@@ -44,6 +44,7 @@ public class DungeonGenerator : MonoBehaviour
     public void Generate()
     {
         Current = this;
+        tiles.Clear(); // the tileset may have changed since the previous arena
         var rng = new System.Random(seed != 0 ? seed : System.Environment.TickCount);
         size = arenaSize + 2 * margin;
         open = new bool[size, size];

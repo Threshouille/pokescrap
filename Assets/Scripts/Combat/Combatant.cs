@@ -417,6 +417,13 @@ public class Combatant : MonoBehaviour
         modifiers.Clear();
     }
 
+    /// Removes statuses, bonuses and penalties (between two arenas).
+    public void Cleanse()
+    {
+        lungeUntil = 0f;
+        ClearEffects();
+    }
+
     /// A knocked-out team member stays on the ground but no longer blocks or gets hit.
     public void KnockOut()
     {

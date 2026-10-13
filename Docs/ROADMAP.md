@@ -42,10 +42,14 @@ Reporté à l'approfondissement :
 
 ## Jalon 3 — Une partie complète sur un cycle
 
-Version minimale :
-- Enchaînement de 2 arènes puis 1 boss, réanimation entre deux arènes.
-- Boss : un ennemi renforcé, sans comportement propre pour commencer.
-- Écrans de victoire et de défaite.
+Version minimale (faite le 13/10/2026) :
+- Enchaînement Arène 1 → Arène 2 → Boss dans la même partie, avec fondu, nouveau décor et nouvelle disposition à chaque étape.
+- Entre deux étapes : K.O. réanimés à 50 %, 30 % de PV rendus aux autres, effets effacés.
+- Ennemis de niveau 1, 5 puis 10 selon l'étape.
+- Boss : Groudon, renforcé (PV × 8, agrandi, barre de vie en haut de l'écran), avec une escorte en deux vagues. Attaques provisoires.
+- Écrans de victoire et de défaite avec temps, niveau et ennemis battus.
+
+À faire ensuite (décidé par Owen le 13/10/2026) : les boss sont des légendaires, chacun avec 4 attaques fixes pour que le joueur apprenne ses schémas. Les 4 attaques de Groudon restent à valider.
 
 Reporté à l'approfondissement :
 - Comportements propres du boss.

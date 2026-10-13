@@ -626,40 +626,93 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpawner
   generator: {fileID: 1266977759}
-  waves:
-  - enemies:
-    - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
-      count: 3
-    - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
-      count: 1
-    - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
-      count: 1
-  - enemies:
-    - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
-      count: 2
-    - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
-      count: 1
-    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
-      count: 1
-    - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
-      count: 1
-    - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
-      count: 1
-  - enemies:
-    - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
-      count: 2
-    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
-      count: 1
-    - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
-      count: 2
-    - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
-      count: 1
-    - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
-      count: 1
+  stages:
+  - name: "Ar\xE8ne 1"
+    tileset: {fileID: 11400000, guid: ada691e4bb813f06c9b18580a4a037d7, type: 2}
+    enemyLevel: 1
+    waves:
+    - enemies:
+      - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+        count: 3
+      - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+        count: 1
+    - enemies:
+      - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+        count: 1
+      - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
+        count: 1
+      - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
+        count: 1
+    - enemies:
+      - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+        count: 1
+      - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
+        count: 1
+      - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
+        count: 1
+    boss: {fileID: 0}
+  - name: "Ar\xE8ne 2"
+    tileset: {fileID: 11400000, guid: eb4a2fa3feab9e3809daa47dfa4de815, type: 2}
+    enemyLevel: 5
+    waves:
+    - enemies:
+      - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+        count: 3
+      - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
+        count: 1
+    - enemies:
+      - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
+        count: 1
+      - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
+        count: 1
+    - enemies:
+      - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+        count: 1
+      - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
+        count: 1
+      - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
+        count: 1
+    boss: {fileID: 0}
+  - name: Boss
+    tileset: {fileID: 11400000, guid: 02ef2b67309b1721a9fb23a37d2c7532, type: 2}
+    enemyLevel: 10
+    waves:
+    - enemies:
+      - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
+        count: 1
+    - enemies:
+      - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+        count: 2
+      - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
+        count: 1
+    boss: {fileID: 11400000, guid: e29482e7ac95d541da208ae6f4d476eb, type: 2}
   delayBetweenWaves: 2
   minDistance: 6
   damageFactor: 0.25
   healthFactor: 3
+  bossHealthFactor: 8
+  bossScale: 1.5
+  stagePause: 2
+  fadeTime: 0.5
+  healBetweenStages: 0.3
 --- !u!4 &1126093273
 Transform:
   m_ObjectHideFlags: 0

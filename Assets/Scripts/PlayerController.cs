@@ -210,6 +210,31 @@ public class PlayerController : MonoBehaviour
         Current.body.linearVelocity = move * Current.combatant.CurrentSpeed;
     }
 
+    /// Between two arenas: knocked-out members get back up, the others are healed a little, effects are removed
+    /// and everybody is placed around the given point.
+    public void PrepareForNextArena(Vector3 centre, float healShare)
+    {
+        transform.position = centre;
+        for (int i = 0; i < members.Count; i++)
+        {
+            var member = members[i];
+            if (member.combatant.IsAlive) member.combatant.Heal(member.combatant.maxHp * healShare);
+            else
+            {
+                member.combatant.Revive(reviveHealthShare);
+                member.animator.Play("Idle");
+            }
+            member.combatant.Cleanse();
+            member.reviveProgress = 0f;
+            if (member.gaugeFill != null) ShowGauge(member);
+            Vector2 spot = centre + StartOffsets[i % StartOffsets.Length];
+            member.body.position = spot;
+            member.go.transform.position = spot;
+            member.body.linearVelocity = Vector2.zero;
+        }
+        SetControlled(current);
+    }
+
     // The gauge fills while the controlled Pokémon stays on a knocked-out ally, and drains twice as fast otherwise.
     void UpdateRevives()
     {
@@ -341,13 +366,5 @@ public class PlayerController : MonoBehaviour
         }
         var kb = Keyboard.current;
         return kb != null && kb.tabKey.wasPressedThisFrame ? 1 : 0;
-    }
-
-    // The regular display is drawn by TeamHud; only the end-of-run message lives here.
-    void OnGUI()
-    {
-        if (!gameOver) return;
-        GUI.Box(new Rect(Screen.width / 2 - 170, Screen.height / 2 - 30, 340, 60),
-            "Toute l'équipe est K.O.\nOptions (manette) ou Entrée pour recommencer");
     }
 }
