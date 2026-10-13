@@ -106,8 +106,9 @@ def main(rom_dir, out_dir):
             "base_form": base_form,
             "evolution": {"from": pre_evo, "method": evo_method, "param1": evo_p1, "param2": evo_p2},
         }
-        if ent < len(learnsets):
-            entry["learnset"] = learnsets[ent]
+        # Learnsets follow the monster.md index, not the "entity id" field (they only match up to 201).
+        if i < len(learnsets):
+            entry["learnset"] = learnsets[i]
         pokemon.append(entry)
 
     speed_csv = Path(__file__).parent / "external" / "pokemon_stats.csv"
