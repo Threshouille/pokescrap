@@ -117,6 +117,22 @@ public class Combatant : MonoBehaviour
         return best;
     }
 
+    /// Push away from the standing team-mates closer than "space": zero when nobody is near, stronger when closer.
+    public Vector2 Repulsion(float space)
+    {
+        Vector2 push = Vector2.zero, me = transform.position;
+        foreach (var c in all)
+        {
+            if (c == this || c.team != team || !c.IsAlive) continue;
+            Vector2 away = me - (Vector2)c.transform.position;
+            float distance = away.magnitude;
+            if (distance >= space) continue;
+            // Exactly on top of each other: any direction will do.
+            push += (distance > 0.001f ? away / distance : UnityEngine.Random.insideUnitCircle.normalized) * (1f - distance / space);
+        }
+        return push;
+    }
+
     /// Standing Pokémon of a team with the lowest share of health, among those under maxRatio and within range.
     public static Combatant MostWounded(Team team, Vector2 from, float range, float maxRatio)
     {

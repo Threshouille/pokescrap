@@ -67,7 +67,8 @@ public class AllyAI : MonoBehaviour
         }
         if (returning || !decision.engaged)
         {
-            Steer(toLeader.magnitude > followDistance ? navigator.Direction(position, leader.position, combatant.team) : Vector2.zero, toLeader);
+            Vector2 follow = toLeader.magnitude > followDistance ? navigator.Direction(position, leader.position, combatant.team) : Vector2.zero;
+            Steer(RoleTactics.Separate(combatant, grid, position, follow), toLeader); // spread out around the leader
             return;
         }
         Steer(decision.move, decision.look);

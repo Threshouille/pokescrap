@@ -5,11 +5,13 @@ using UnityEngine;
 public static class RoleTactics
 {
     public const float ZoneMargin = 0.4f; // tiles kept from the edge of a harmful zone
+    public const float PersonalSpace = 1.5f; // tiles an AI tries to keep from the other Pokémon of its team
     const float ShotRadius = 0.2f; // clearance needed along a line of fire
     const float MeleeStandOff = 1.5f; // melee: distance kept while every move recharges
-    const float HoldDistance = 4f; // ranged: distance kept while every move recharges
-    const float FleeDistance = 2.5f; // support: runs away from opponents closer than this
-    const float RegroupDistance = 3f; // support: comes back when its nearest ally is farther than this
+    const float RangedMax = 6f, RangedRetreat = 3.5f; // ranged: stays within Max, backs off under Retreat
+    const float SupportMax = 7f, SupportRetreat = 4f; // support: same idea, farther away
+    const float SelfDefence = 1.5f; // ranged and support only use their melee moves on an opponent this close
+    const float RegroupDistance = 5f; // support: comes back when its nearest ally is farther than this
     const float HealThreshold = 0.7f; // heals allies under this share of their health
     const float BuffRange = 6f; // bonuses are used when an opponent is within this distance
 
@@ -29,7 +31,7 @@ public static class RoleTactics
         Vector2 position = self.transform.position;
         var grid = DungeonGenerator.Current;
         Team opponents = self.team == Team.Player ? Team.Enemy : Team.Player;
-        bool support = self.Role == "support";
+        bool support = self.Role == "support", ranged = self.Role == "ranged", melee = !support && !ranged;
 
         var foe = Combatant.Nearest(opponents, position, aggroRange);
         Vector2 toFoe = foe != null ? (Vector2)foe.transform.position - position : Vector2.zero;
@@ -37,12 +39,16 @@ public static class RoleTactics
         bool lineOfFire = foe != null && (grid == null || grid.LineClear(position, foe.transform.position, ShotRadius));
         decision.look = toFoe;
 
-        // Care first: heals and bonuses. A support looks at these before anything else; the other roles take their
-        // moves in slot order, so a tank can still raise its defence between two blows.
-        Combatant patient = null; // wounded ally that is out of reach
-        float wanted = float.MaxValue; // shortest reach among the ready attacks
-        bool anyRanged = false;
+        // Ranged and support Pokémon back away from an opponent that gets too close. When cornered (no way to
+        // step back), "retreat" stays zero and they fight where they stand.
+        bool tooClose = !melee && foe != null && foeDistance < (support ? SupportRetreat : RangedRetreat);
+        Vector2 retreat = tooClose ? Away(self, grid, position, toFoe) : Vector2.zero;
 
+        Combatant patient = null; // wounded ally that is out of reach
+        float wanted = float.MaxValue; // shortest reach among the ready moves worth walking for
+
+        // A support looks at its heals and bonuses before anything else (pass 0), then at its attacks (pass 1).
+        // The other roles take their moves in slot order, so a tank can still raise its defence between two blows.
         for (int pass = 0; pass < 2; pass++)
         {
             for (int slot = 0; slot < Combatant.MoveSlots; slot++)
@@ -50,9 +56,8 @@ public static class RoleTactics
                 var move = self.Moves[slot];
                 if (move == null) continue;
                 bool care = move.family == "heal" || move.family == "modifier";
-                if (support && care != (pass == 0)) continue; // support: care on the first pass, attacks on the second
-                if (!support && pass == 1) continue; // other roles: a single pass, in slot order
-                if (!care && move.family != "melee") anyRanged = true;
+                if (support && care != (pass == 0)) continue;
+                if (!support && pass == 1) continue;
                 if (self.CooldownLeft(slot) > 0f) continue;
 
                 if (move.family == "heal")
@@ -70,8 +75,9 @@ public static class RoleTactics
                     if (foe == null) continue;
                     if (move.target == "enemies")
                     {
-                        if (foeDistance <= move.radius * 0.9f && !foe.HasModifier(move.modStat, false)) return Use(decision, slot, toFoe, foeDistance);
-                        if (!foe.HasModifier(move.modStat, false)) wanted = Mathf.Min(wanted, move.radius * 0.8f);
+                        if (foe.HasModifier(move.modStat, false)) continue;
+                        if (foeDistance <= move.radius * 0.9f) return Use(decision, slot, toFoe, foeDistance);
+                        if (melee) wanted = Mathf.Min(wanted, move.radius * 0.8f); // only a melee Pokémon walks in for it
                     }
                     else if (foeDistance <= BuffRange && !self.HasModifier(move.modStat, move.modValue > 1f))
                         return Use(decision, slot, Vector2.right, 0f);
@@ -79,63 +85,72 @@ public static class RoleTactics
                 }
 
                 // Attacks: projectile, melee, zone.
-                if (foe == null) continue;
+                if (foe == null || toFoe == Vector2.zero) continue;
                 if (move.power <= 0 && !string.IsNullOrEmpty(move.status) && foe.HasStatus(move.status)) continue; // already has it
-                bool usable = foeDistance <= move.Reach && toFoe != Vector2.zero && (lineOfFire || move.family == "zone")
-                    && !(move.lunge > 0f && Zone.Inside(foe.transform.position, self.team, ZoneMargin)); // no dashing into a cloud
+
+                if (move.family == "melee")
+                {
+                    // For a ranged or support Pokémon a melee move is self-defence only.
+                    float reach = melee ? move.Reach : Mathf.Min(move.Reach, SelfDefence);
+                    bool intoCloud = move.lunge > 0f && Zone.Inside(foe.transform.position, self.team, ZoneMargin);
+                    if (foeDistance <= reach && lineOfFire && !intoCloud) return Use(decision, slot, toFoe, foeDistance);
+                    if (melee) wanted = Mathf.Min(wanted, move.Reach * 0.9f);
+                    continue;
+                }
+
+                // Too close with room to step back: back off first, shoot afterwards.
+                bool usable = foeDistance <= move.Reach && (lineOfFire || move.family == "zone") && retreat == Vector2.zero;
                 if (usable) return Use(decision, slot, toFoe, foeDistance);
                 wanted = Mathf.Min(wanted, move.Reach * 0.9f);
             }
         }
 
         // Nothing to use right now: where to stand.
-        if (support)
+        if (melee)
         {
-            if (foe != null && foeDistance < FleeDistance)
+            if (foe == null) return decision;
+            decision.engaged = true;
+            if (wanted < float.MaxValue)
             {
-                decision.engaged = true;
-                Vector2 away = -toFoe.normalized;
-                decision.move = Passable(self, grid, position, away) ? away
-                    : Passable(self, grid, position, new Vector2(-away.y, away.x)) ? new Vector2(-away.y, away.x)
-                    : Vector2.zero;
-                return decision;
+                // Behind a wall, being in range is not enough: keep walking until the target is in sight.
+                if (foeDistance > wanted || !lineOfFire) decision.move = navigator.Direction(position, foe.transform.position, self.team);
             }
-            if (patient != null)
-            {
-                decision.engaged = true;
-                decision.move = navigator.Direction(position, patient.transform.position, self.team);
-                decision.look = decision.move;
-                return decision;
-            }
-            var friend = Combatant.Nearest(self.team, position, float.MaxValue, self);
+            else if (foeDistance > MeleeStandOff) decision.move = navigator.Direction(position, foe.transform.position, self.team);
+        }
+        else if (retreat != Vector2.zero)
+        {
+            decision.engaged = true;
+            decision.move = retreat;
+        }
+        else if (support && patient != null)
+        {
+            decision.engaged = true;
+            decision.move = navigator.Direction(position, patient.transform.position, self.team);
+            decision.look = decision.move;
+        }
+        else
+        {
+            var friend = support ? Combatant.Nearest(self.team, position, float.MaxValue, self) : null;
             if (friend != null && Vector2.Distance(friend.transform.position, position) > RegroupDistance)
             {
                 decision.engaged = true;
                 decision.move = navigator.Direction(position, friend.transform.position, self.team);
-                return decision;
             }
-            if (foe == null) return decision;
-            decision.engaged = true;
-            // Steps forward for a ready move, but never into the distance it would then run away from.
-            if (wanted < float.MaxValue && foeDistance > Mathf.Max(wanted, FleeDistance + 0.3f))
-                decision.move = navigator.Direction(position, foe.transform.position, self.team);
-            return decision;
+            else if (foe != null)
+            {
+                decision.engaged = true;
+                if (!tooClose)
+                {
+                    // Stays in its band: walks in only as far as needed to have the target in reach and in sight.
+                    float far = Mathf.Min(support ? SupportMax : RangedMax, wanted);
+                    bool hasShot = wanted < float.MaxValue;
+                    if (foeDistance > far && (hasShot || ranged) || (hasShot && !lineOfFire))
+                        decision.move = navigator.Direction(position, foe.transform.position, self.team);
+                }
+            }
         }
 
-        if (foe == null) return decision;
-        decision.engaged = true;
-        if (wanted < float.MaxValue)
-        {
-            // Behind a wall, being in range is not enough: keep walking until the target is in sight.
-            if (foeDistance > wanted || !lineOfFire) decision.move = navigator.Direction(position, foe.transform.position, self.team);
-        }
-        else if (self.Role == "ranged" || anyRanged && self.Role != "melee")
-        {
-            if (foeDistance > HoldDistance + 0.5f) decision.move = navigator.Direction(position, foe.transform.position, self.team);
-            else if (foeDistance < HoldDistance - 1f && Passable(self, grid, position, -toFoe.normalized))
-                decision.move = -toFoe.normalized; // back off while recharging
-        }
-        else if (foeDistance > MeleeStandOff) decision.move = navigator.Direction(position, foe.transform.position, self.team);
+        if (decision.engaged) decision.move = Separate(self, grid, position, decision.move);
         return decision;
     }
 
@@ -147,6 +162,35 @@ public static class RoleTactics
         decision.distance = distance;
         decision.look = aim;
         return decision;
+    }
+
+    /// Direction that takes the Pokémon away from an opponent: straight back, else sideways, else zero (cornered).
+    static Vector2 Away(Combatant self, DungeonGenerator grid, Vector2 position, Vector2 toFoe)
+    {
+        Vector2 back = -toFoe.normalized;
+        if (Passable(self, grid, position, back)) return back;
+        var left = new Vector2(-back.y, back.x);
+        if (Passable(self, grid, position, left)) return left;
+        if (Passable(self, grid, position, -left)) return -left;
+        return Vector2.zero;
+    }
+
+    /// Bends a walking direction away from team-mates that are too close, so the AIs do not bunch up.
+    /// A Pokémon standing still only steps aside when it is really crowded.
+    public static Vector2 Separate(Combatant self, DungeonGenerator grid, Vector2 position, Vector2 move)
+    {
+        Vector2 push = self.Repulsion(PersonalSpace);
+        if (push.sqrMagnitude < 0.0001f) return move;
+        if (move == Vector2.zero)
+        {
+            if (push.magnitude < 0.25f) return Vector2.zero; // tolerance, so nobody jitters at the edge of its bubble
+            Vector2 aside = push.normalized;
+            return Passable(self, grid, position, aside) ? aside * 0.5f : Vector2.zero;
+        }
+        Vector2 blended = move.normalized + push * 1.5f;
+        if (blended.sqrMagnitude < 0.01f) return move;
+        blended = blended.normalized * move.magnitude;
+        return Passable(self, grid, position, blended.normalized) ? blended : move;
     }
 
     /// True when a short step in that direction stays on the floor and out of harmful zones.
