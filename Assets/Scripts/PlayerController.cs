@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -31,6 +32,8 @@ public class PlayerController : MonoBehaviour
     /// The Pokémon the player currently controls.
     public Combatant Controlled => members.Count > 0 ? Current.combatant : null;
     public bool GameOver => gameOver;
+    /// Every member of the team, knocked out or not.
+    public IEnumerable<Combatant> Members => members.Select(m => m.combatant);
 
     /// Team member next to the controlled one in d-pad order (-1 = left, +1 = right), knocked out or not.
     public Combatant Neighbour(int step) =>
@@ -67,6 +70,7 @@ public class PlayerController : MonoBehaviour
         arrowRenderer.color = ArrowColor;
         arrowRenderer.sortingOrder = 0; // above the floor, under the Pokémon
         aimArrow.gameObject.SetActive(false);
+        gameObject.AddComponent<Progression>();
         gameObject.AddComponent<TeamHud>();
     }
 
@@ -147,6 +151,8 @@ public class PlayerController : MonoBehaviour
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             return;
         }
+
+        if (Time.timeScale == 0f) return; // paused by the upgrade screen
 
         var member = Current;
         move = ReadMove();

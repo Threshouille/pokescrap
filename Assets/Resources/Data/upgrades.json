@@ -1,0 +1,12 @@
+{
+ "upgrades": [
+  {"id": "hp", "name": "Vitalité", "description": "+20 % de PV max", "stat": "maxHp", "value": 0.2, "family": ""},
+  {"id": "atk", "name": "Force", "description": "+15 % d'attaque", "stat": "attack", "value": 0.15, "family": ""},
+  {"id": "spatk", "name": "Esprit", "description": "+15 % d'attaque spéciale", "stat": "specialAttack", "value": 0.15, "family": ""},
+  {"id": "speed", "name": "Agilité", "description": "+10 % de vitesse de déplacement", "stat": "moveSpeed", "value": 0.1, "family": ""},
+  {"id": "cooldown", "name": "Cadence", "description": "-15 % de temps de recharge", "stat": "cooldown", "value": 0.15, "family": ""},
+  {"id": "proj_size", "name": "Gros calibre", "description": "+50 % de taille des projectiles", "stat": "projectileSize", "value": 0.5, "family": "projectile"},
+  {"id": "proj_speed", "name": "Vélocité", "description": "+30 % de vitesse des projectiles", "stat": "projectileSpeed", "value": 0.3, "family": "projectile"},
+  {"id": "melee_area", "name": "Allonge", "description": "+30 % de zone au corps à corps", "stat": "meleeArea", "value": 0.3, "family": "melee"}
+ ]
+}

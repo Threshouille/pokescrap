@@ -34,8 +34,9 @@ Conception : `Docs/GDD.md` (décisions d'Owen + points ouverts) ; le lire avant 
 - Ennemis de l'arène : liste `waves` (chaque vague = jeux d'animations + nombres) sur l'objet `Enemies` (`EnemySpawner`), avec `healthFactor`, `damageFactor` et `delayBetweenWaves`. La vague suivante part quand il ne reste aucun ennemi ; `Victory` après la dernière.
 - Feuille de route : `Docs/ROADMAP.md` (squelette d'abord : jalons 1 à 4 en version minimale). Projet sous Git local, sans dépôt distant ; ne jamais pousser vers un hébergement public (assets tirés de la ROM versionnés).
 - Un nouveau Pokémon dans `Assets/Sprites/Pokemon/<Nom>/` a besoin d'un `id.txt` contenant son identifiant de `pokemon.json`, et de son portrait : `Rom/export/portraits/<id sur 4 chiffres>/00.png` copié en `Assets/Resources/Portraits/<id>.png`.
+- Progression : `Progression` (ajouté à l'exécution par `PlayerController`) gère expérience, niveau commun et écran de choix (met `Time.timeScale` à 0). Gains par niveau : `LevelData` lit `Assets/Resources/Data/levels_rt.bytes`, produit par `Tools/.venv/bin/python -I Tools/pmd/extract_levels.py Rom/files Assets/Resources/Data/levels_rt.bytes`. Catalogue d'améliorations : `Assets/Resources/Data/upgrades.json` (appliquées par `Combatant.ApplyUpgrade`).
 - Interface : `TeamHud` (ajouté à l'exécution par `PlayerController`), dessinée en IMGUI à l'échelle de l'écran. Réanimation des alliés K.O. gérée dans `PlayerController.UpdateRevives`.
 - Tests en jeu : la fenêtre Unity tourne lentement en arrière-plan ; toute logique de jeu doit passer par `FixedUpdate`, pas par `Update`.
-- Pas encore extraits : eau/lave des décors, courbes de niveau (`BALANCE/m_level.bin`), objets, effets d'attaque, musiques.
+- Pas encore extraits : eau/lave des décors, objets, effets d'attaque du jeu d'origine, musiques.
 - La ROM et tout ce qui en est extrait restent locaux, hors de tout dépôt public.
 - Le jeu lit ses données depuis des fichiers (JSON / ScriptableObjects), jamais en dur dans le code.

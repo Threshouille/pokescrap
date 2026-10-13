@@ -8,7 +8,7 @@ public class PokemonStats
     public int id;
     public string name;
     public int[] types;
-    public int baseHp, baseAtk, baseSpAtk, baseDef, baseSpDef, baseSpeed, movementType;
+    public int baseHp, baseAtk, baseSpAtk, baseDef, baseSpDef, baseSpeed, movementType, expYield;
 }
 
 [Serializable]
@@ -38,12 +38,24 @@ public class MoveDef
     public float Reach => family == "melee" ? lunge + range + radius * 0.5f : range * 0.85f;
 }
 
+[Serializable]
+public class UpgradeDef
+{
+    public string id;
+    public string name;
+    public string description;
+    public string stat; // maxHp, attack, specialAttack, moveSpeed, cooldown, projectileSize, projectileSpeed, meleeArea
+    public float value; // share added (or removed, for cooldown)
+    public string family; // only offered to a Pokémon that has a move of this family; empty = always
+}
+
 /// Game data loaded from Resources/Data (pokemon_rt.json comes from the ROM, realtime_moves.json is hand-written).
 public static class GameData
 {
     [Serializable] class PokemonFile { public PokemonStats[] pokemon; }
     [Serializable] class TypeColorEntry { public int type; public string color; }
     [Serializable] class Loadout { public int pokemonId; public int[] moves; }
+    [Serializable] class UpgradeFile { public UpgradeDef[] upgrades; }
     [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; }
 
     // Base speed in the main games goes from 5 to 160; squeezed into a playable range.
@@ -53,6 +65,7 @@ public static class GameData
     static Dictionary<int, MoveDef> moves;
     static Dictionary<int, int[]> loadouts;
     static Dictionary<int, Color> typeColors;
+    static UpgradeDef[] upgrades;
 
     // Statics can outlive a play session in the editor: reload the files each time a game starts.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -70,6 +83,8 @@ public static class GameData
         foreach (var m in file.moves) moves[m.id] = m;
         loadouts = new Dictionary<int, int[]>();
         foreach (var l in file.loadouts) loadouts[l.pokemonId] = l.moves;
+        var upgradeFile = Resources.Load<TextAsset>("Data/upgrades");
+        upgrades = upgradeFile != null ? JsonUtility.FromJson<UpgradeFile>(upgradeFile.text).upgrades : new UpgradeDef[0];
         typeColors = new Dictionary<int, Color>();
         foreach (var t in file.typeColors)
             if (ColorUtility.TryParseHtmlString(t.color, out var c)) typeColors[t.type] = c;
@@ -90,6 +105,27 @@ public static class GameData
             for (int i = 0; i < slots && i < ids.Length; i++)
                 moves.TryGetValue(ids[i], out result[i]);
         return result;
+    }
+
+    /// Up to "count" different upgrades that make sense for this Pokémon, picked at random.
+    public static UpgradeDef[] RandomUpgrades(Combatant combatant, int count, System.Random rng)
+    {
+        Load();
+        var pool = new List<UpgradeDef>();
+        foreach (var upgrade in upgrades)
+        {
+            bool fits = string.IsNullOrEmpty(upgrade.family);
+            if (!fits)
+                foreach (var move in combatant.Moves)
+                    if (move != null && move.family == upgrade.family) fits = true;
+            if (fits) pool.Add(upgrade);
+        }
+        for (int i = pool.Count - 1; i > 0; i--)
+        {
+            int j = rng.Next(i + 1);
+            (pool[i], pool[j]) = (pool[j], pool[i]);
+        }
+        return pool.GetRange(0, Mathf.Min(count, pool.Count)).ToArray();
     }
 
     public static Color TypeColor(int type)

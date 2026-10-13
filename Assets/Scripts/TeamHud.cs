@@ -14,11 +14,13 @@ public class TeamHud : MonoBehaviour
     static readonly Color BarBack = new(0f, 0f, 0f, 0.7f);
     static readonly Color HealthHigh = new(0.3f, 0.85f, 0.3f), HealthLow = new(0.9f, 0.25f, 0.2f);
     static readonly Color KnockedOut = new(0f, 0f, 0f, 0.65f), Poisoned = new(0.69f, 0.31f, 0.85f);
+    static readonly Color Experience = new(0.35f, 0.65f, 1f);
     static readonly Color Recharging = new(0.25f, 0.25f, 0.25f, 0.8f), Shade = new(0f, 0f, 0f, 0.55f);
 
     static readonly Dictionary<int, Texture2D> portraits = new();
 
     PlayerController team;
+    Progression progression;
     GUIStyle text;
 
     // Statics can outlive a play session in the editor.
@@ -28,6 +30,7 @@ public class TeamHud : MonoBehaviour
     void Awake()
     {
         team = GetComponent<PlayerController>();
+        progression = GetComponent<Progression>();
     }
 
     static Texture2D PortraitOf(int pokemonId)
@@ -61,8 +64,15 @@ public class TeamHud : MonoBehaviour
 
         // Name and health bar.
         float x = portrait.xMax + Gap * s;
-        Label(new Rect(x, portrait.y - 2f * s, BarWidth * s, 10f * s), combatant.Stats.name, TextAnchor.MiddleLeft);
-        var bar = new Rect(x, portrait.y + 9f * s, BarWidth * s, BarHeight * s);
+        Label(new Rect(x, portrait.y - 12f * s, BarWidth * s, 10f * s), $"{combatant.Stats.name}   Niv. {combatant.level}", TextAnchor.MiddleLeft);
+        if (progression != null)
+        {
+            // Thin experience bar between the name and the health bar.
+            var xp = new Rect(x, portrait.y, BarWidth * s, 3f * s);
+            Fill(Grow(xp, s), BarBack);
+            Fill(new Rect(xp.x, xp.y, xp.width * Mathf.Clamp01(progression.Xp / progression.XpToNext), xp.height), Experience);
+        }
+        var bar = new Rect(x, portrait.y + 6f * s, BarWidth * s, BarHeight * s);
         float ratio = combatant.maxHp > 0f ? Mathf.Clamp01(combatant.hp / combatant.maxHp) : 0f;
         Fill(Grow(bar, s), BarBack);
         Fill(new Rect(bar.x, bar.y, bar.width * ratio, bar.height), Color.Lerp(HealthLow, HealthHigh, ratio));
@@ -89,7 +99,8 @@ public class TeamHud : MonoBehaviour
             {
                 // Greyed out, with a darker shade that shrinks as the move comes back.
                 Fill(Grow(slot, -s), Recharging);
-                float share = move.cooldown > 0f ? Mathf.Clamp01(left / move.cooldown) : 0f;
+                float total = combatant.CooldownOf(move);
+                float share = total > 0f ? Mathf.Clamp01(left / total) : 0f;
                 Fill(new Rect(slot.x, slot.y, slot.width, slot.height * share), Shade);
                 Label(bottom, left.ToString("0.0"), TextAnchor.MiddleCenter);
             }

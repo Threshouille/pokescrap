@@ -28,12 +28,14 @@ public class Projectile : MonoBehaviour
             renderer.sortingOrder = 2;
         }
 
+        go.transform.localScale *= owner.projectileSizeMul; // "bigger projectiles" upgrades
+
         var projectile = go.AddComponent<Projectile>();
         projectile.team = owner.team;
         projectile.damage = owner.DamageOf(move);
-        projectile.radius = move.radius;
+        projectile.radius = move.radius * owner.projectileSizeMul;
         projectile.direction = direction;
-        projectile.speed = move.speed;
+        projectile.speed = move.speed * owner.projectileSpeedMul;
         projectile.remaining = move.range;
         projectile.move = move;
     }

@@ -24,15 +24,32 @@ public class Combatant : MonoBehaviour
     [Tooltip("Multiplier on the damage this Pokémon deals (enemies hit softer than players)")]
     public float damageFactor = 1f;
 
+    public int level = 1;
+    // Current stats: base values plus what each level brought.
+    public float atk, spAtk, def, spDef;
+    // Multipliers changed by upgrades.
+    public float attackMul = 1f, specialAttackMul = 1f, cooldownMul = 1f;
+    public float projectileSizeMul = 1f, projectileSpeedMul = 1f, meleeAreaMul = 1f;
+
     public PokemonStats Stats { get; private set; }
     public MoveDef[] Moves { get; private set; } = new MoveDef[MoveSlots];
     public event Action<Combatant> Died;
+    /// Raised for every Pokémon that goes down, whatever its team.
+    public static event Action<Combatant> AnyDied;
     public bool IsAlive => hp > 0f;
     public bool IsPoisoned => IsAlive && Time.time < poisonUntil;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
 
     static readonly List<Combatant> all = new();
+
+    // Statics can outlive a play session in the editor.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics()
+    {
+        all.Clear();
+        AnyDied = null;
+    }
 
     readonly float[] readyAt = new float[MoveSlots];
     readonly HashSet<Combatant> lungeHit = new();
@@ -88,18 +105,59 @@ public class Combatant : MonoBehaviour
         Moves = GameData.StartingMoves(pokemonId, MoveSlots);
         if (Stats == null) return;
         maxHp = hp = Stats.baseHp;
+        level = 1;
+        atk = Stats.baseAtk;
+        spAtk = Stats.baseSpAtk;
+        def = Stats.baseDef;
+        spDef = Stats.baseSpDef;
+        attackMul = specialAttackMul = cooldownMul = projectileSizeMul = projectileSpeedMul = meleeAreaMul = 1f;
         moveSpeed = GameData.MoveSpeed(Stats.baseSpeed);
         Array.Clear(readyAt, 0, readyAt.Length);
     }
 
     public float CooldownLeft(int slot) => Mathf.Max(0f, readyAt[slot] - Time.time);
 
+    /// Recharge time of a move for this Pokémon, upgrades included.
+    public float CooldownOf(MoveDef move) => move.cooldown * cooldownMul;
+
+    /// Stats gained on reaching a new level. A knocked-out Pokémon gets the stats but stays down.
+    public void ApplyGrowth(LevelGrowth growth, int newLevel)
+    {
+        level = newLevel;
+        maxHp += growth.hp;
+        if (IsAlive) hp += growth.hp;
+        atk += growth.atk;
+        spAtk += growth.spAtk;
+        def += growth.def;
+        spDef += growth.spDef;
+    }
+
+    public void ApplyUpgrade(UpgradeDef upgrade)
+    {
+        switch (upgrade.stat)
+        {
+            case "maxHp":
+                float gain = maxHp * upgrade.value;
+                maxHp += gain;
+                if (IsAlive) hp += gain;
+                break;
+            case "attack": attackMul += upgrade.value; break;
+            case "specialAttack": specialAttackMul += upgrade.value; break;
+            case "moveSpeed": moveSpeed *= 1f + upgrade.value; break;
+            case "cooldown": cooldownMul *= 1f - upgrade.value; break;
+            case "projectileSize": projectileSizeMul += upgrade.value; break;
+            case "projectileSpeed": projectileSpeedMul += upgrade.value; break;
+            case "meleeArea": meleeAreaMul += upgrade.value; break;
+            default: Debug.LogWarning($"Unknown upgrade stat '{upgrade.stat}'"); break;
+        }
+    }
+
     /// Uses a move towards a direction. distance (tiles) is where a zone move lands; by default its full range.
     public bool TryUseMove(int slot, Vector2 direction, float distance = -1f)
     {
         var move = Moves[slot];
         if (move == null || Time.time < readyAt[slot] || direction == Vector2.zero) return false;
-        readyAt[slot] = Time.time + move.cooldown;
+        readyAt[slot] = Time.time + CooldownOf(move);
         direction = direction.normalized;
         if (move.family == "projectile") Projectile.Spawn(this, move, direction);
         else if (move.family == "zone")
@@ -150,7 +208,7 @@ public class Combatant : MonoBehaviour
     void MeleeHit(MoveDef move, Vector2 direction, HashSet<Combatant> hit)
     {
         Vector2 centre = (Vector2)transform.position + direction * move.range;
-        foreach (var other in Physics2D.OverlapCircleAll(centre, move.radius))
+        foreach (var other in Physics2D.OverlapCircleAll(centre, move.radius * meleeAreaMul))
         {
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team || !hit.Add(target)) continue;
@@ -162,7 +220,7 @@ public class Combatant : MonoBehaviour
     /// Provisional formula: move power plus the matching attack stat. Types and defence come later.
     public float DamageOf(MoveDef move)
     {
-        int stat = Stats == null ? 0 : move.category == "physical" ? Stats.baseAtk : Stats.baseSpAtk;
+        float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
         return (move.power + stat) * damageFactor;
     }
 
@@ -186,6 +244,7 @@ public class Combatant : MonoBehaviour
         if (IsAlive) return;
         poisonUntil = 0f;
         Died?.Invoke(this);
+        AnyDied?.Invoke(this);
         if (team == Team.Enemy) Destroy(gameObject);
     }
 

@@ -27,9 +27,14 @@ Reporté à l'approfondissement :
 
 ## Jalon 2 — Progression en partie
 
-Version minimale :
-- Expérience commune et niveaux (extraire les courbes de statistiques de la ROM).
-- Choix d'1 amélioration parmi 3, par Pokémon, tous les 10 niveaux, avec un petit catalogue (statistiques, un ou deux modificateurs d'attaque).
+Version minimale (faite le 13/10/2026) :
+- Expérience commune et niveaux, avec les gains de statistiques par niveau tirés de la ROM.
+- Choix d'1 amélioration parmi 3, par Pokémon, tous les 10 niveaux, dans un catalogue de 8 améliorations (5 de statistiques, 3 par famille d'attaques). Jeu en pause pendant les 3 choix.
+
+À reprendre à l'approfondissement :
+- Rythme de l'expérience : la formule actuelle (20 + 4 × niveau par niveau) est provisoire, sans lien avec l'objectif « niveau 100 en 30 minutes ».
+- Les ennemis restent au niveau 1 : ils ne suivent pas la montée en puissance de l'équipe.
+- La défense n'entre toujours pas dans les dégâts.
 
 Reporté à l'approfondissement :
 - Catalogue étoffé, évolutions d'attaques (chaînes à concevoir).
