@@ -1,0 +1,108 @@
+{
+  "scale": "24 px = 1 case",
+  "sheets": [
+    {
+      "file": "tir_de_boue_vol.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true,
+      "palette": [
+        "#1c0c04",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#e2b070"
+      ]
+    },
+    {
+      "file": "tir_de_boue_impact.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        70,
+        80,
+        100,
+        130
+      ],
+      "loop": false,
+      "palette": [
+        "#1c0c04",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#e2b070"
+      ]
+    },
+    {
+      "file": "tranche_trainee.png",
+      "frame_width": 48,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true,
+      "palette": [
+        "#240e04",
+        "#6e3014",
+        "#c05a24",
+        "#ee9440",
+        "#ffd890"
+      ]
+    },
+    {
+      "file": "seisme_onde.png",
+      "frame_width": 192,
+      "frame_height": 192,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": false,
+      "palette": [
+        "#1c0a02",
+        "#6a2e10",
+        "#d0581c",
+        "#ffa640",
+        "#f4dcae"
+      ]
+    },
+    {
+      "file": "eruption_lave.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#260804",
+        "#6a1a0a",
+        "#c8301a",
+        "#f47a1e",
+        "#ffd84a"
+      ]
+    }
+  ]
+}

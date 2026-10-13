@@ -197,6 +197,7 @@ public class EnemySpawner : MonoBehaviour
         for (int level = 2; level <= Current.enemyLevel; level++)
             combatant.ApplyGrowth(LevelData.Growth(set.pokemonId, level), level);
         combatant.damageFactor = damageFactor;
+        combatant.isBoss = isBoss;
         combatant.maxHp = combatant.hp = combatant.maxHp * (isBoss ? bossHealthFactor : healthFactor);
         if (isBoss) go.AddComponent<BossAI>(); // numbered announcements instead of danger areas
         else

@@ -18,6 +18,8 @@ public class Combatant : MonoBehaviour
     const int IconsPerRow = 4;
     const float IconSpacing = 0.45f; // tiles between two icons
     const float BlinkTime = 1f, BlinkRate = 8f; // an icon blinks during its last second
+    const float BossPoisonFactor = 0.25f; // poison takes a share of max HP: unchecked, it would melt a boss
+    const float BossParalysisFactor = 0.5f; // paralysis lasts half as long on a boss
     const float DefenseScale = 30f; // damage taken = raw * scale / (scale + defense)
     static readonly Vector3 StatusIconOffset = new(0f, 1.1f, 0f);
     static readonly Color PoisonTint = new(0.85f, 0.7f, 1f), ParalysisTint = new(1f, 1f, 0.6f), HealTint = new(0.6f, 1f, 0.6f);
@@ -28,6 +30,8 @@ public class Combatant : MonoBehaviour
     public float moveSpeed = 4f;
     [Tooltip("Multiplier on the damage this Pokémon deals (enemies hit softer than players)")]
     public float damageFactor = 1f;
+    [Tooltip("Bosses resist statuses: less poison damage, shorter paralysis")]
+    public bool isBoss;
 
     public int level = 1;
     // Current stats: base values plus what each level brought.
@@ -256,7 +260,7 @@ public class Combatant : MonoBehaviour
         }
         else if (move.status == "paralysis")
         {
-            paralysisUntil = Mathf.Max(paralysisUntil, Time.time + duration);
+            paralysisUntil = Mathf.Max(paralysisUntil, Time.time + duration * (isBoss ? BossParalysisFactor : 1f));
         }
     }
 
@@ -365,7 +369,8 @@ public class Combatant : MonoBehaviour
         if (IsPoisoned && Time.time >= nextPoisonTick)
         {
             nextPoisonTick += PoisonTick;
-            LoseHp(Mathf.Max(1f, maxHp * PoisonShare)); // poison ignores defence and the post-hit protection
+            // Poison ignores defence and the post-hit protection.
+            LoseHp(Mathf.Max(1f, maxHp * PoisonShare * (isBoss ? BossPoisonFactor : 1f)));
             if (!IsAlive) return;
         }
 

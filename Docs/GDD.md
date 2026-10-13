@@ -49,7 +49,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Chaque boss est un Pokémon légendaire (Groudon en premier), avec 4 attaques toujours les mêmes, pour que le joueur apprenne ses schémas.
 - Annonce (décidé le 13/10/2026) : avant chaque attaque, le boss affiche une bulle avec un chiffre de 1 à 4. C'est la seule indication : aucune zone rouge au sol. L'attaque est tirée au hasard ; la visée est verrouillée à l'apparition de la bulle. Sous 50 % de PV, les annonces durent 60 % de leur temps normal.
 - Groudon : 1 Tir de Boue (3 projectiles en éventail sur 40°, ralentissent), 2 Tranche (ruée de 5 cases), 3 Séisme (dégâts dans un rayon de 4 cases autour de lui), 4 Éruption (une flaque de lave sous chaque membre de l'équipe pendant 4 s, premier dégât après 0,6 s puis chaque seconde). Annonces : 0,8 s, 0,9 s, 1,4 s et 1,0 s.
-- Problème ouvert : le poison retire 4 % des PV max par seconde, donc il use un boss aussi vite qu'un ennemi ordinaire (512 PV en 25 s, sans autre dégât).
+- Résistance des boss aux statuts (décidé le 13/10/2026) : le poison ne leur retire qu'un quart des dégâts normaux (1 % des PV max par tic au lieu de 4 %) et la paralysie dure moitié moins longtemps sur eux. Sans cela, le poison usait un boss aussi vite qu'un ennemi ordinaire.
 
 ### Entre les parties
 - Recrutement : un Pokémon battu a un pourcentage de chance de rejoindre le joueur (comme dans le jeu d'origine).
