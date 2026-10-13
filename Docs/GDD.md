@@ -13,7 +13,8 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Les Pokémon non joués sont contrôlés par l'IA ou par d'autres joueurs (coopération).
 - En solo, le joueur change à la volée le Pokémon qu'il contrôle.
 - Un Pokémon K.O. : le joueur bascule sur un Pokémon encore en vie. La partie se termine quand les 3 sont K.O.
-- Réanimation : entre deux arènes, ou avec un objet.
+- Réanimation : en restant quelques secondes sur un allié K.O. avec le Pokémon contrôlé (3 s à moins d'1 case, jauge au-dessus de l'allié, retour à 50 % des PV avec une courte protection ; la jauge se vide deux fois plus vite si on s'éloigne). Aussi prévue entre deux arènes et par objet.
+- Interface : en bas à gauche, portrait du Pokémon contrôlé (tiré de la ROM), nom, barre de vie, et 4 cadres pour ses attaques (bouton, nom abrégé, couleur du type) qui se grisent pendant la recharge avec le temps restant.
 - Des Pokémon « support » sont envisagés, pour donner un rôle aux attaques de statut.
 
 ### Attaques

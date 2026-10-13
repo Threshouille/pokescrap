@@ -10,10 +10,11 @@ public class PmdSpriteImport : AssetPostprocessor
     const string Root = "Assets/Sprites/Pokemon";
     const string TilesetRoot = "Assets/Tilesets";
     const string EffectRoot = "Assets/Resources/Effects";
+    const string PortraitRoot = "Assets/Resources/Portraits";
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/"))
+        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/"))
             Configure((TextureImporter)assetImporter);
     }
 

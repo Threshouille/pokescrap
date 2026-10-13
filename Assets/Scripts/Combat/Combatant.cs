@@ -209,6 +209,15 @@ public class Combatant : MonoBehaviour
         if (body != null) body.simulated = false;
     }
 
+    /// Brings a knocked-out team member back with a share of its max HP, briefly protected.
+    public void Revive(float healthShare)
+    {
+        hp = Mathf.Max(1f, maxHp * healthShare);
+        invulnerableUntil = Time.time + 2f * PlayerInvulnerability;
+        foreach (var collider in GetComponents<Collider2D>()) collider.enabled = true;
+        if (body != null) body.simulated = true;
+    }
+
     void LateUpdate()
     {
         bool poisoned = IsPoisoned;

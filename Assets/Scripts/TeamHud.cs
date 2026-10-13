@@ -1,0 +1,118 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+/// On-screen display, bottom left: portrait and health of the Pokémon the player controls, and its four moves,
+/// each greyed out while it recharges.
+[RequireComponent(typeof(PlayerController))]
+public class TeamHud : MonoBehaviour
+{
+    const float ReferenceHeight = 360f; // the layout below is written for a screen this tall, then scaled up
+    const float Margin = 8f, Portrait = 40f, Gap = 6f, BarWidth = 98f, BarHeight = 9f, Slot = 22f, SlotGap = 3f;
+    static readonly string[] SlotLabels = { "R1", "R2", "L1", "L2" };
+    static readonly Color Frame = new(0.08f, 0.08f, 0.12f, 0.85f);
+    static readonly Color BarBack = new(0f, 0f, 0f, 0.7f);
+    static readonly Color HealthHigh = new(0.3f, 0.85f, 0.3f), HealthLow = new(0.9f, 0.25f, 0.2f);
+    static readonly Color Recharging = new(0.25f, 0.25f, 0.25f, 0.8f), Shade = new(0f, 0f, 0f, 0.55f);
+
+    static readonly Dictionary<int, Texture2D> portraits = new();
+
+    PlayerController team;
+    GUIStyle text;
+
+    // Statics can outlive a play session in the editor.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Reset() => portraits.Clear();
+
+    void Awake()
+    {
+        team = GetComponent<PlayerController>();
+    }
+
+    static Texture2D PortraitOf(int pokemonId)
+    {
+        if (!portraits.TryGetValue(pokemonId, out var texture))
+            portraits[pokemonId] = texture = Resources.Load<Texture2D>("Portraits/" + pokemonId);
+        return texture;
+    }
+
+    void OnGUI()
+    {
+        var combatant = team.Controlled;
+        if (combatant == null || combatant.Stats == null || team.GameOver) return;
+
+        float s = Mathf.Max(1f, Mathf.Round(Screen.height / ReferenceHeight));
+        text ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = false };
+        text.fontSize = Mathf.RoundToInt(7f * s);
+
+        // Portrait.
+        var portrait = new Rect(Margin * s, Screen.height - (Margin + Portrait) * s, Portrait * s, Portrait * s);
+        Fill(Grow(portrait, 2f * s), Frame);
+        var picture = PortraitOf(combatant.Stats.id);
+        if (picture != null) GUI.DrawTexture(portrait, picture, ScaleMode.StretchToFill);
+        else Fill(portrait, GameData.TypeColor(combatant.Stats.types.Length > 0 ? combatant.Stats.types[0] : 0));
+
+        // Name and health bar.
+        float x = portrait.xMax + Gap * s;
+        Label(new Rect(x, portrait.y - 2f * s, BarWidth * s, 10f * s), combatant.Stats.name, TextAnchor.MiddleLeft);
+        var bar = new Rect(x, portrait.y + 9f * s, BarWidth * s, BarHeight * s);
+        float ratio = combatant.maxHp > 0f ? Mathf.Clamp01(combatant.hp / combatant.maxHp) : 0f;
+        Fill(Grow(bar, s), BarBack);
+        Fill(new Rect(bar.x, bar.y, bar.width * ratio, bar.height), Color.Lerp(HealthLow, HealthHigh, ratio));
+        Label(bar, $"{Mathf.CeilToInt(combatant.hp)}/{Mathf.CeilToInt(combatant.maxHp)}", TextAnchor.MiddleCenter);
+
+        // The four moves, aligned with the bottom of the portrait.
+        for (int i = 0; i < Combatant.MoveSlots; i++)
+        {
+            var slot = new Rect(x + i * (Slot + SlotGap) * s, portrait.yMax - Slot * s, Slot * s, Slot * s);
+            var move = combatant.Moves[i];
+            // Button name on the top line of the frame, move name (or time left) on the bottom line.
+            var top = new Rect(slot.x, slot.y + s, slot.width, 9f * s);
+            var bottom = new Rect(slot.x, slot.y + 10f * s, slot.width, 11f * s);
+            Fill(slot, Frame);
+            if (move == null)
+            {
+                Label(top, SlotLabels[i], TextAnchor.MiddleCenter);
+                continue;
+            }
+
+            Fill(Grow(slot, -s), GameData.TypeColor(move.type));
+            float left = combatant.CooldownLeft(i);
+            if (left > 0f)
+            {
+                // Greyed out, with a darker shade that shrinks as the move comes back.
+                Fill(Grow(slot, -s), Recharging);
+                float share = move.cooldown > 0f ? Mathf.Clamp01(left / move.cooldown) : 0f;
+                Fill(new Rect(slot.x, slot.y, slot.width, slot.height * share), Shade);
+                Label(bottom, left.ToString("0.0"), TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                Label(bottom, Short(move.name), TextAnchor.MiddleCenter);
+            }
+            Label(top, SlotLabels[i], TextAnchor.MiddleCenter);
+        }
+    }
+
+    static string Short(string name) => name.Length <= 4 ? name : name.Substring(0, 4);
+
+    static Rect Grow(Rect rect, float amount) =>
+        new(rect.x - amount, rect.y - amount, rect.width + 2f * amount, rect.height + 2f * amount);
+
+    static void Fill(Rect rect, Color color)
+    {
+        var previous = GUI.color;
+        GUI.color = color;
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        GUI.color = previous;
+    }
+
+    // White text with a one-pixel dark shadow, readable on any background.
+    void Label(Rect rect, string content, TextAnchor anchor)
+    {
+        text.alignment = anchor;
+        text.normal.textColor = Color.black;
+        GUI.Label(new Rect(rect.x + 1f, rect.y + 1f, rect.width, rect.height), content, text);
+        text.normal.textColor = Color.white;
+        GUI.Label(rect, content, text);
+    }
+}

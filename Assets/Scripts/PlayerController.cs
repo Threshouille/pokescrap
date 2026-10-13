@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 /// Gamepad: left stick moves, right stick aims, R1 / R2 / L1 / L2 use moves 1-4, d-pad left/right changes the
 /// controlled Pokémon. Keyboard and mouse: WASD (ZQSD on AZERTY) or arrows, mouse aims, left click / right click /
 /// Space / Shift, Tab changes Pokémon. This object follows the controlled Pokémon (camera and allies track it).
+/// Standing on a knocked-out ally for a few seconds brings it back.
 [DefaultExecutionOrder(50)] // after DungeonGenerator.Start, which places this object in the arena
 public class PlayerController : MonoBehaviour
 {
@@ -15,10 +16,21 @@ public class PlayerController : MonoBehaviour
     const float ArrowDistance = 0.9f, ArrowSize = 0.4f;
     static readonly Vector3 FeetOffset = new(0f, -0.25f, 0f);
     static readonly Color ArrowColor = new(1f, 1f, 1f, 0.8f);
-    static readonly string[] SlotLabels = { "R1", "R2", "L1", "L2" };
+    const float GaugeWidth = 1f, GaugeHeight = 0.12f, GaugeY = 1f;
+    static readonly Color GaugeColor = new(1f, 0.85f, 0.2f);
     static readonly Vector3[] StartOffsets = { Vector3.zero, new(-1.2f, -0.8f, 0f), new(1.2f, -0.8f, 0f) };
 
     public PmdAnimSet[] characters;
+    [Tooltip("Seconds the controlled Pokémon must stay on a knocked-out ally to bring it back")]
+    public float reviveTime = 3f;
+    [Tooltip("How close the controlled Pokémon must be to the knocked-out ally, in tiles")]
+    public float reviveRadius = 1f;
+    [Tooltip("Share of its max HP a revived Pokémon comes back with")]
+    public float reviveHealthShare = 0.5f;
+
+    /// The Pokémon the player currently controls.
+    public Combatant Controlled => members.Count > 0 ? Current.combatant : null;
+    public bool GameOver => gameOver;
 
     class Member
     {
@@ -27,6 +39,8 @@ public class PlayerController : MonoBehaviour
         public PmdAnimator animator;
         public Combatant combatant;
         public AllyAI ai;
+        public float reviveProgress; // seconds accumulated by the player standing on this knocked-out member
+        public Transform gaugeBack, gaugeFill;
     }
 
     readonly List<Member> members = new();
@@ -49,6 +63,7 @@ public class PlayerController : MonoBehaviour
         arrowRenderer.color = ArrowColor;
         arrowRenderer.sortingOrder = 0; // above the floor, under the Pokémon
         aimArrow.gameObject.SetActive(false);
+        gameObject.AddComponent<TeamHud>();
     }
 
     void OnDestroy()
@@ -171,8 +186,60 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (gameOver || members.Count == 0 || Current.combatant.IsLunging) return; // a melee dash drives the body
+        if (gameOver || members.Count == 0) return;
+        UpdateRevives();
+        if (Current.combatant.IsLunging) return; // a melee dash drives the body
         Current.body.linearVelocity = move * Current.combatant.moveSpeed;
+    }
+
+    // The gauge fills while the controlled Pokémon stays on a knocked-out ally, and drains twice as fast otherwise.
+    void UpdateRevives()
+    {
+        Vector2 position = Current.go.transform.position;
+        foreach (var member in members)
+        {
+            if (member.combatant.IsAlive) continue;
+            bool near = Vector2.Distance(position, member.go.transform.position) <= reviveRadius;
+            member.reviveProgress = near
+                ? member.reviveProgress + Time.fixedDeltaTime
+                : Mathf.Max(0f, member.reviveProgress - 2f * Time.fixedDeltaTime);
+            if (member.reviveProgress >= reviveTime)
+            {
+                member.reviveProgress = 0f;
+                member.combatant.Revive(reviveHealthShare);
+                member.animator.Play("Idle");
+                member.ai.enabled = member != Current;
+            }
+            ShowGauge(member);
+        }
+    }
+
+    void ShowGauge(Member member)
+    {
+        if (member.gaugeFill == null)
+        {
+            member.gaugeBack = MakeBar(member.go.transform, new Color(0f, 0f, 0f, 0.6f), 10);
+            member.gaugeFill = MakeBar(member.go.transform, GaugeColor, 11);
+        }
+        bool visible = member.reviveProgress > 0f;
+        member.gaugeBack.gameObject.SetActive(visible);
+        member.gaugeFill.gameObject.SetActive(visible);
+        float ratio = Mathf.Clamp01(member.reviveProgress / reviveTime);
+        member.gaugeFill.localScale = new Vector3(GaugeWidth * ratio, GaugeHeight, 1f);
+        member.gaugeFill.localPosition = new Vector3(-GaugeWidth * (1f - ratio) / 2f, GaugeY, 0f);
+    }
+
+    static Transform MakeBar(Transform parent, Color color, int order)
+    {
+        var bar = new GameObject("ReviveGauge").transform;
+        bar.SetParent(parent, false);
+        bar.localPosition = new Vector3(0f, GaugeY, 0f);
+        bar.localScale = new Vector3(GaugeWidth, GaugeHeight, 1f);
+        var renderer = bar.gameObject.AddComponent<SpriteRenderer>();
+        renderer.sprite = Shapes.Square;
+        renderer.color = color;
+        renderer.sortingOrder = order;
+        return bar;
     }
 
     void LateUpdate()
@@ -258,29 +325,11 @@ public class PlayerController : MonoBehaviour
         return kb != null && kb.tabKey.wasPressedThisFrame ? 1 : 0;
     }
 
-    // Provisional HUD: the team's health, then the cooldowns of the controlled Pokémon.
+    // The regular display is drawn by TeamHud; only the end-of-run message lives here.
     void OnGUI()
     {
-        if (members.Count == 0) return;
-        if (gameOver)
-        {
-            GUI.Box(new Rect(Screen.width / 2 - 170, Screen.height / 2 - 30, 340, 60),
-                "Toute l'équipe est K.O.\nOptions (manette) ou Entrée pour recommencer");
-            return;
-        }
-        GUILayout.BeginArea(new Rect(10, 10, 260, 60 + 22 * (members.Count + Combatant.MoveSlots)), GUI.skin.box);
-        foreach (var m in members)
-        {
-            var c = m.combatant;
-            string hp = c.IsAlive ? $"PV {Mathf.CeilToInt(c.hp)}/{Mathf.CeilToInt(c.maxHp)}" : "K.O.";
-            GUILayout.Label($"{(m == Current ? "▶" : "   ")} {c.Stats?.name}  {hp}");
-        }
-        for (int slot = 0; slot < Combatant.MoveSlots; slot++)
-        {
-            var move = Current.combatant.Moves[slot];
-            float left = Current.combatant.CooldownLeft(slot);
-            GUILayout.Label(move == null ? $"{SlotLabels[slot]}  —" : $"{SlotLabels[slot]}  {move.name}  {(left > 0f ? left.ToString("0.0") + " s" : "prêt")}");
-        }
-        GUILayout.EndArea();
+        if (!gameOver) return;
+        GUI.Box(new Rect(Screen.width / 2 - 170, Screen.height / 2 - 30, 340, 60),
+            "Toute l'équipe est K.O.\nOptions (manette) ou Entrée pour recommencer");
     }
 }
