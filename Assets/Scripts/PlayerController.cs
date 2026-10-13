@@ -32,6 +32,10 @@ public class PlayerController : MonoBehaviour
     public Combatant Controlled => members.Count > 0 ? Current.combatant : null;
     public bool GameOver => gameOver;
 
+    /// Team member next to the controlled one in d-pad order (-1 = left, +1 = right), knocked out or not.
+    public Combatant Neighbour(int step) =>
+        members.Count < 2 ? null : members[((current + step) % members.Count + members.Count) % members.Count].combatant;
+
     class Member
     {
         public GameObject go;

@@ -2,16 +2,18 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// On-screen display, bottom left: portrait and health of the Pokémon the player controls, and its four moves,
-/// each greyed out while it recharges.
+/// each greyed out while it recharges. The two allies are shown as small portraits above it.
 [RequireComponent(typeof(PlayerController))]
 public class TeamHud : MonoBehaviour
 {
     const float ReferenceHeight = 360f; // the layout below is written for a screen this tall, then scaled up
+    const float SmallPortrait = 20f, SmallGap = 5f, SmallBar = 3f;
     const float Margin = 8f, Portrait = 40f, Gap = 6f, BarWidth = 98f, BarHeight = 9f, Slot = 22f, SlotGap = 3f;
     static readonly string[] SlotLabels = { "R1", "R2", "L1", "L2" };
     static readonly Color Frame = new(0.08f, 0.08f, 0.12f, 0.85f);
     static readonly Color BarBack = new(0f, 0f, 0f, 0.7f);
     static readonly Color HealthHigh = new(0.3f, 0.85f, 0.3f), HealthLow = new(0.9f, 0.25f, 0.2f);
+    static readonly Color KnockedOut = new(0f, 0f, 0f, 0.65f), Poisoned = new(0.69f, 0.31f, 0.85f);
     static readonly Color Recharging = new(0.25f, 0.25f, 0.25f, 0.8f), Shade = new(0f, 0f, 0f, 0.55f);
 
     static readonly Dictionary<int, Texture2D> portraits = new();
@@ -50,6 +52,12 @@ public class TeamHud : MonoBehaviour
         var picture = PortraitOf(combatant.Stats.id);
         if (picture != null) GUI.DrawTexture(portrait, picture, ScaleMode.StretchToFill);
         else Fill(portrait, GameData.TypeColor(combatant.Stats.types.Length > 0 ? combatant.Stats.types[0] : 0));
+
+        // Allies, in d-pad order: the left one is reached with d-pad left, the right one with d-pad right.
+        var leftAlly = team.Neighbour(-1);
+        var rightAlly = team.Neighbour(1);
+        DrawAlly(leftAlly, 0, portrait, s);
+        if (rightAlly != leftAlly) DrawAlly(rightAlly, 1, portrait, s);
 
         // Name and health bar.
         float x = portrait.xMax + Gap * s;
@@ -91,6 +99,30 @@ public class TeamHud : MonoBehaviour
             }
             Label(top, SlotLabels[i], TextAnchor.MiddleCenter);
         }
+    }
+
+    void DrawAlly(Combatant ally, int index, Rect portrait, float s)
+    {
+        if (ally == null || ally.Stats == null) return;
+        float size = SmallPortrait * s;
+        var rect = new Rect(portrait.x + index * (size + SmallGap * s), portrait.y - size - (SmallBar + 8f) * s, size, size);
+        Fill(Grow(rect, s), Frame);
+        var picture = PortraitOf(ally.Stats.id);
+        if (picture != null) GUI.DrawTexture(rect, picture, ScaleMode.StretchToFill);
+        else Fill(rect, GameData.TypeColor(ally.Stats.types.Length > 0 ? ally.Stats.types[0] : 0));
+
+        var bar = new Rect(rect.x, rect.yMax + 2f * s, size, SmallBar * s);
+        Fill(Grow(bar, s), BarBack);
+        if (!ally.IsAlive)
+        {
+            Fill(rect, KnockedOut);
+            Label(rect, "K.O.", TextAnchor.MiddleCenter);
+            return;
+        }
+        float ratio = ally.maxHp > 0f ? Mathf.Clamp01(ally.hp / ally.maxHp) : 0f;
+        Fill(new Rect(bar.x, bar.y, bar.width * ratio, bar.height), Color.Lerp(HealthLow, HealthHigh, ratio));
+        // Small purple corner while poisoned.
+        if (ally.IsPoisoned) Fill(new Rect(rect.xMax - 5f * s, rect.y, 5f * s, 5f * s), Poisoned);
     }
 
     static string Short(string name) => name.Length <= 4 ? name : name.Substring(0, 4);
