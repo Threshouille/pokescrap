@@ -15,6 +15,9 @@ public class Combatant : MonoBehaviour
     const float PoisonShare = 0.04f; // share of max HP lost per tick
     const float ParalysisSlow = 0.5f; // speed multiplier while paralysed
     const float DefaultStatusDuration = 5f;
+    const int IconsPerRow = 4;
+    const float IconSpacing = 0.45f; // tiles between two icons
+    const float BlinkTime = 1f, BlinkRate = 8f; // an icon blinks during its last second
     const float DefenseScale = 30f; // damage taken = raw * scale / (scale + defense)
     static readonly Vector3 StatusIconOffset = new(0f, 1.1f, 0f);
     static readonly Color PoisonTint = new(0.85f, 0.7f, 1f), ParalysisTint = new(1f, 1f, 0.6f), HealTint = new(0.6f, 1f, 0.6f);
@@ -61,6 +64,7 @@ public class Combatant : MonoBehaviour
     readonly HashSet<Combatant> lungeHit = new();
     readonly List<TimedModifier> modifiers = new();
     readonly Dictionary<string, GameObject> statusIcons = new();
+    readonly List<EffectIcon> shownEffects = new();
     MoveDef lungeMove;
     Vector2 lungeDirection;
     float lungeUntil;
@@ -426,28 +430,53 @@ public class Combatant : MonoBehaviour
                 : paralysed ? ParalysisTint
                 : Color.white;
 
-        // Status icons side by side above the health bar.
-        int shown = (poisoned ? 1 : 0) + (paralysed ? 1 : 0), index = 0;
-        ShowIcon("poison", poisoned, ref index, shown);
-        ShowIcon("paralysis", paralysed, ref index, shown);
+        // Icons above the health bar: statuses first, then bonuses and penalties, four per row.
+        shownEffects.Clear();
+        GetEffects(shownEffects);
+        foreach (var icon in statusIcons.Values)
+            if (icon != null) icon.SetActive(false);
+        for (int i = 0; i < shownEffects.Count; i++)
+        {
+            var icon = IconFor(shownEffects[i].key);
+            icon.SetActive(!Blinking(shownEffects[i].remaining));
+            int row = i / IconsPerRow, column = i % IconsPerRow;
+            int inRow = Mathf.Min(IconsPerRow, shownEffects.Count - row * IconsPerRow);
+            icon.transform.localPosition = StatusIconOffset
+                + new Vector3((column - (inRow - 1) / 2f) * IconSpacing, row * IconSpacing, 0f);
+        }
     }
 
-    void ShowIcon(string status, bool visible, ref int index, int shown)
+    /// One icon to display: a status (poison, paralysis) or a stat change (attack_up, speed_down...).
+    public struct EffectIcon
     {
-        statusIcons.TryGetValue(status, out var icon);
-        if (visible && icon == null)
-        {
-            icon = new GameObject("StatusIcon");
-            icon.transform.SetParent(transform, false);
-            var renderer = icon.AddComponent<SpriteRenderer>();
-            renderer.sprite = Shapes.StatusIcon(status);
-            renderer.sortingOrder = 12; // above the health bar
-            statusIcons[status] = icon;
-        }
-        if (icon == null) return;
-        icon.SetActive(visible);
-        if (!visible) return;
-        icon.transform.localPosition = StatusIconOffset + new Vector3((index - (shown - 1) / 2f) * 0.45f, 0f, 0f);
-        index++;
+        public string key;
+        public float remaining; // seconds left
+    }
+
+    /// Statuses, then stat bonuses and penalties, currently active on this Pokémon.
+    public void GetEffects(List<EffectIcon> into)
+    {
+        if (!IsAlive) return;
+        if (IsPoisoned) into.Add(new EffectIcon { key = "poison", remaining = poisonUntil - Time.time });
+        if (IsParalysed) into.Add(new EffectIcon { key = "paralysis", remaining = paralysisUntil - Time.time });
+        foreach (var m in modifiers)
+            if (Time.time < m.until)
+                into.Add(new EffectIcon { key = m.stat + (m.value > 1f ? "_up" : "_down"), remaining = m.until - Time.time });
+    }
+
+    /// True on the "off" half of the blink that announces the end of an effect.
+    public static bool Blinking(float remaining) =>
+        remaining < BlinkTime && Mathf.Repeat(Time.time * BlinkRate, 1f) < 0.5f;
+
+    GameObject IconFor(string key)
+    {
+        if (statusIcons.TryGetValue(key, out var icon) && icon != null) return icon;
+        icon = new GameObject("StatusIcon");
+        icon.transform.SetParent(transform, false);
+        var renderer = icon.AddComponent<SpriteRenderer>();
+        renderer.sprite = Shapes.StatusIcon(key);
+        renderer.sortingOrder = 12; // above the health bar
+        statusIcons[key] = icon;
+        return icon;
     }
 }

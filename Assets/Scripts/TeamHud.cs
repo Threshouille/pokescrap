@@ -7,6 +7,7 @@ using UnityEngine;
 public class TeamHud : MonoBehaviour
 {
     const float ReferenceHeight = 360f; // the layout below is written for a screen this tall, then scaled up
+    const float IconSize = 10f;
     const float SmallPortrait = 20f, SmallGap = 5f, SmallBar = 3f;
     const float Margin = 8f, Portrait = 40f, Gap = 6f, BarWidth = 98f, BarHeight = 9f, Slot = 22f, SlotGap = 3f;
     static readonly string[] SlotLabels = { "R1", "R2", "L1", "L2" };
@@ -19,6 +20,7 @@ public class TeamHud : MonoBehaviour
 
     static readonly Dictionary<int, Texture2D> portraits = new();
 
+    readonly List<Combatant.EffectIcon> effects = new();
     PlayerController team;
     Progression progression;
     GUIStyle text;
@@ -78,6 +80,16 @@ public class TeamHud : MonoBehaviour
         Fill(new Rect(bar.x, bar.y, bar.width * ratio, bar.height), Color.Lerp(HealthLow, HealthHigh, ratio));
         Label(bar, $"{Mathf.CeilToInt(combatant.hp)}/{Mathf.CeilToInt(combatant.maxHp)}", TextAnchor.MiddleCenter);
 
+        // Statuses and stat changes of the controlled Pokémon, to the right of its health bar.
+        effects.Clear();
+        combatant.GetEffects(effects);
+        for (int i = 0; i < effects.Count; i++)
+        {
+            if (Combatant.Blinking(effects[i].remaining)) continue;
+            DrawSprite(new Rect(bar.xMax + (5f + i * (IconSize + 1f)) * s, bar.y - 1f * s, IconSize * s, IconSize * s),
+                Shapes.StatusIcon(effects[i].key));
+        }
+
         // The four moves, aligned with the bottom of the portrait.
         for (int i = 0; i < Combatant.MoveSlots; i++)
         {
@@ -134,6 +146,15 @@ public class TeamHud : MonoBehaviour
         Fill(new Rect(bar.x, bar.y, bar.width * ratio, bar.height), Color.Lerp(HealthLow, HealthHigh, ratio));
         // Small purple corner while poisoned.
         if (ally.IsPoisoned) Fill(new Rect(rect.xMax - 5f * s, rect.y, 5f * s, 5f * s), Poisoned);
+    }
+
+    static void DrawSprite(Rect rect, Sprite sprite)
+    {
+        if (sprite == null) return;
+        var texture = sprite.texture;
+        var area = sprite.rect;
+        GUI.DrawTextureWithTexCoords(rect, texture,
+            new Rect(area.x / texture.width, area.y / texture.height, area.width / texture.width, area.height / texture.height));
     }
 
     static string Short(string name) => name.Length <= 4 ? name : name.Substring(0, 4);

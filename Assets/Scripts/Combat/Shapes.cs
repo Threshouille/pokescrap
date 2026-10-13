@@ -33,22 +33,43 @@ public static class Shapes
         ".ppp....",
     };
 
-    /// Icon shown above a Pokémon for a status. A sheet named status_<name> in Resources/Effects takes precedence.
+    static readonly string[] ArrowPixels = // pointing up; flipped for penalties
+    {
+        "...pp...",
+        "..pPPp..",
+        ".pPPPPp.",
+        "pPPPPPPp",
+        "pppPPppp",
+        "..pPPp..",
+        "..pPPp..",
+        "..pppp..",
+    };
+
+    /// Icon shown above a Pokémon for a status or a stat change (attack_up, defense_down...). A sheet named status_<name> in Resources/Effects takes precedence.
     public static Sprite StatusIcon(string status)
     {
         var sheet = EffectLibrary.Get("status_" + status);
         if (sheet != null) return sheet.Frame(0);
         if (icons.TryGetValue(status, out var cached) && cached != null) return cached;
         bool poison = status == "poison";
-        var pixels = poison ? PoisonPixels : ParalysisPixels;
+        bool up = status.EndsWith("_up"), down = status.EndsWith("_down");
+        var pixels = poison ? PoisonPixels : up || down ? ArrowPixels : ParalysisPixels;
         Color32 outline = poison ? new Color32(74, 26, 107, 255) : new Color32(110, 80, 0, 255);
         Color32 fill = poison ? new Color32(176, 79, 216, 255) : new Color32(255, 222, 60, 255);
+        if (up || down)
+        {
+            // Provisional: an arrow in the colour of the stat (red attack, blue defence, green speed).
+            outline = new Color32(30, 30, 40, 255);
+            fill = status.StartsWith("attack") ? new Color32(235, 80, 60, 255)
+                : status.StartsWith("defense") ? new Color32(80, 140, 240, 255)
+                : new Color32(90, 210, 90, 255);
+        }
         int size = pixels.Length;
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
         for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
-                char c = pixels[size - 1 - y][x]; // rows are written top to bottom
+                char c = pixels[down ? y : size - 1 - y][x]; // rows are written top to bottom; penalties point down
                 tex.SetPixel(x, y, c == 'p' ? outline : c == 'P' ? fill
                     : c == 'd' ? new Color32(26, 10, 38, 255) : new Color32(0, 0, 0, 0));
             }
