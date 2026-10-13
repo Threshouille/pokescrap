@@ -1,0 +1,84 @@
+{
+  "scale": "24 px = 1 case",
+  "sheets": [
+    {
+      "file": "puredpois_vol.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "puredpois_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        90,
+        110,
+        140
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "gaz_toxik_nuage.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "status_poison.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2",
+        "#a8ff3e"
+      ]
+    }
+  ]
+}

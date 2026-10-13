@@ -1,0 +1,23 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Ll]ogs/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Uu]ser[Ss]ettings/
+*.csproj
+*.sln
+*.slnx
+*.user
+.vs/
+.idea/
+
+# ROM and everything unpacked from it (stays local, see CLAUDE.md)
+/Rom/
+*.nds
+*.zip
+
+# Python tooling
+/Tools/.venv/
+__pycache__/
