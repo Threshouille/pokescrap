@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// Plain shapes generated in code, used as placeholders until real effects exist. Both are 1 unit wide.
@@ -5,9 +6,10 @@ public static class Shapes
 {
     const int CircleSize = 32;
 
-    static Sprite circle, square, arrow, poison;
+    static Sprite circle, square, arrow;
+    static readonly Dictionary<string, Sprite> icons = new();
 
-    // Provisional status icon (an original drawing): p = outline, P = fill, d = dark.
+    // Provisional status icons (original drawings). Letters are looked up in each icon's palette.
     static readonly string[] PoisonPixels =
     {
         "..pppp..",
@@ -19,25 +21,53 @@ public static class Shapes
         "..pPPp..",
         "...pp...",
     };
+    static readonly string[] ParalysisPixels =
+    {
+        "....ppp.",
+        "...pPPp.",
+        "..pPPp..",
+        ".pPPPPpp",
+        "ppPPPPp.",
+        "..pPPp..",
+        ".pPPp...",
+        ".ppp....",
+    };
 
     /// Icon shown above a Pokémon for a status. A sheet named status_<name> in Resources/Effects takes precedence.
     public static Sprite StatusIcon(string status)
     {
         var sheet = EffectLibrary.Get("status_" + status);
         if (sheet != null) return sheet.Frame(0);
-        if (status != "poison") return null;
-        if (poison != null) return poison;
-        int size = PoisonPixels.Length;
+        if (icons.TryGetValue(status, out var cached) && cached != null) return cached;
+        bool poison = status == "poison";
+        var pixels = poison ? PoisonPixels : ParalysisPixels;
+        Color32 outline = poison ? new Color32(74, 26, 107, 255) : new Color32(110, 80, 0, 255);
+        Color32 fill = poison ? new Color32(176, 79, 216, 255) : new Color32(255, 222, 60, 255);
+        int size = pixels.Length;
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
         for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
-                char c = PoisonPixels[size - 1 - y][x]; // rows are written top to bottom
-                tex.SetPixel(x, y, c == 'p' ? new Color32(74, 26, 107, 255) : c == 'P' ? new Color32(176, 79, 216, 255)
+                char c = pixels[size - 1 - y][x]; // rows are written top to bottom
+                tex.SetPixel(x, y, c == 'p' ? outline : c == 'P' ? fill
                     : c == 'd' ? new Color32(26, 10, 38, 255) : new Color32(0, 0, 0, 0));
             }
         tex.Apply();
-        return poison = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 24f);
+        return icons[status] = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 24f);
+    }
+
+    /// Brief translucent disc: provisional feedback for moves that have no sprite sheet (heals, bonuses, penalties).
+    public static void Pulse(Vector3 position, float radius, Color color)
+    {
+        var go = new GameObject("Pulse");
+        go.transform.position = position;
+        go.transform.localScale = Vector3.one * radius * 2f;
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = Circle;
+        color.a = 0.35f;
+        renderer.color = color;
+        renderer.sortingOrder = 0; // above the floor, under the Pokémon
+        Object.Destroy(go, 0.35f);
     }
 
     // Runtime sprites are destroyed when play mode ends while statics can survive: hence the null checks.

@@ -26,13 +26,36 @@
   {"id": 154, "name": "Charge", "type": 1, "category": "physical", "power": 6, "family": "melee", "cooldown": 1.2, "range": 0.4, "radius": 0.45, "windup": 0.7, "lunge": 2.5, "lungeTime": 0.2, "effect": "charge_trainee", "impactEffect": "charge_impact"},
   {"id": 260, "name": "Griffe", "type": 1, "category": "physical", "power": 6, "family": "melee", "cooldown": 0.5, "range": 0.7, "radius": 0.6, "windup": 0.4, "effect": "griffe_coup", "impactEffect": ""},
   {"id": 147, "name": "Purédpois", "type": 8, "category": "special", "power": 4, "family": "projectile", "cooldown": 3.0, "speed": 6, "range": 7, "radius": 0.3, "windup": 0.6, "status": "poison", "statusChance": 0.4, "statusDuration": 5, "effect": "puredpois_vol", "impactEffect": "puredpois_impact"},
-  {"id": 196, "name": "Gaz Toxik", "type": 8, "category": "status", "power": 0, "family": "zone", "cooldown": 8.0, "range": 5, "radius": 1.2, "windup": 0.8, "zoneDuration": 4, "status": "poison", "statusDuration": 5, "effect": "gaz_toxik_nuage", "impactEffect": ""}
+  {"id": 196, "name": "Gaz Toxik", "type": 8, "category": "status", "power": 0, "family": "zone", "cooldown": 8.0, "range": 5, "radius": 1.2, "windup": 0.8, "zoneDuration": 4, "status": "poison", "statusDuration": 5, "effect": "gaz_toxik_nuage", "impactEffect": ""},
+  {"id": 188, "name": "Éclair", "type": 5, "category": "special", "power": 1, "family": "projectile", "cooldown": 2.5, "speed": 14, "range": 7, "radius": 0.18, "windup": 0.5, "effect": "eclair_vol", "impactEffect": "eclair_impact"},
+  {"id": 192, "name": "Cage-Éclair", "type": 5, "category": "status", "power": 0, "family": "projectile", "cooldown": 6, "speed": 5, "range": 6, "radius": 0.3, "windup": 0.6, "status": "paralysis", "statusChance": 1, "statusDuration": 4, "effect": "cage_eclair_vol", "impactEffect": "cage_eclair_impact"},
+  {"id": 190, "name": "Vive-Attaque", "type": 1, "category": "physical", "power": 4, "family": "melee", "cooldown": 1.2, "range": 0.4, "radius": 0.45, "windup": 0.5, "lunge": 3, "lungeTime": 0.15, "effect": "vive_attaque_trainee", "impactEffect": "charge_impact"},
+  {"id": 217, "name": "Rugissement", "type": 1, "category": "status", "power": 0, "family": "modifier", "cooldown": 8, "radius": 3, "windup": 0.6, "target": "enemies", "modStat": "attack", "modValue": 0.7, "modDuration": 5, "effect": "rugissement_onde", "impactEffect": ""},
+  {"id": 120, "name": "Léchouille", "type": 14, "category": "physical", "power": 4, "family": "melee", "cooldown": 1.0, "range": 0.7, "radius": 0.6, "windup": 0.4, "status": "paralysis", "statusChance": 0.3, "statusDuration": 3, "effect": "lechouille_coup", "impactEffect": ""},
+  {"id": 302, "name": "Boul'Armure", "type": 1, "category": "status", "power": 0, "family": "modifier", "cooldown": 10, "radius": 0, "windup": 0.3, "target": "self", "modStat": "defense", "modValue": 1.5, "modDuration": 6, "effect": "boul_armure_aura", "impactEffect": ""},
+  {"id": 507, "name": "Forte-Paume", "type": 7, "category": "physical", "power": 12, "family": "melee", "cooldown": 2.0, "range": 0.7, "radius": 0.6, "windup": 0.5, "status": "paralysis", "statusChance": 0.3, "statusDuration": 3, "effect": "forte_paume_coup", "impactEffect": ""},
+  {"id": 329, "name": "Vampigraine", "type": 4, "category": "special", "power": 3, "family": "projectile", "cooldown": 4, "speed": 8, "range": 6, "radius": 0.22, "windup": 0.5, "drain": 1.0, "effect": "vampigraine_vol", "impactEffect": "vampigraine_impact"},
+  {"id": 199, "name": "Poudre Toxik", "type": 8, "category": "status", "power": 0, "family": "zone", "cooldown": 8, "range": 4, "radius": 1.2, "windup": 0.8, "zoneDuration": 4, "status": "poison", "statusDuration": 5, "effect": "poudre_toxik_nuage", "impactEffect": ""},
+  {"id": 68, "name": "Poing-Karaté", "type": 7, "category": "physical", "power": 10, "family": "melee", "cooldown": 1.5, "range": 0.7, "radius": 0.55, "windup": 0.5, "effect": "poing_karate_coup", "impactEffect": ""},
+  {"id": 92, "name": "Balayage", "type": 7, "category": "physical", "power": 7, "family": "melee", "cooldown": 2.5, "range": 0.4, "radius": 0.45, "windup": 0.6, "lunge": 2, "lungeTime": 0.2, "effect": "balayage_trainee", "impactEffect": "charge_impact"},
+  {"id": 101, "name": "Poudreuse", "type": 6, "category": "special", "power": 4, "family": "projectile", "cooldown": 2.5, "speed": 9, "range": 7, "radius": 0.22, "windup": 0.5, "effect": "poudreuse_vol", "impactEffect": "poudreuse_impact"},
+  {"id": 97, "name": "Vent Glace", "type": 6, "category": "special", "power": 5, "family": "projectile", "cooldown": 6, "speed": 5, "range": 6, "radius": 0.4, "windup": 0.7, "modStat": "speed", "modValue": 0.6, "modDuration": 4, "effect": "vent_glace_vol", "impactEffect": "vent_glace_impact"},
+  {"id": 94, "name": "Synthèse", "type": 4, "category": "status", "power": 0, "family": "heal", "cooldown": 6, "range": 5, "radius": 0, "windup": 0.4, "healShare": 0.3, "effect": "synthese_soin", "impactEffect": ""},
+  {"id": 124, "name": "Para-Spore", "type": 4, "category": "status", "power": 0, "family": "zone", "cooldown": 9, "range": 4, "radius": 1.2, "windup": 0.8, "zoneDuration": 4, "status": "paralysis", "statusDuration": 3, "effect": "para_spore_nuage", "impactEffect": ""},
+  {"id": 234, "name": "Choc Mental", "type": 11, "category": "special", "power": 5, "family": "projectile", "cooldown": 3, "speed": 8, "range": 7, "radius": 0.25, "windup": 0.6, "effect": "choc_mental_vol", "impactEffect": "choc_mental_impact"}
  ],
  "loadouts": [
-  {"pokemonId": 1, "moves": [251, 154]},
-  {"pokemonId": 4, "moves": [262, 260]},
-  {"pokemonId": 7, "moves": [308, 16, 154]},
-  {"pokemonId": 19, "moves": [154]},
-  {"pokemonId": 109, "moves": [147, 196]}
+  {"pokemonId": 1, "role": "support", "moves": [329, 217, 199, 251]},
+  {"pokemonId": 4, "role": "ranged", "moves": [262, 260]},
+  {"pokemonId": 7, "role": "ranged", "moves": [308, 16, 154]},
+  {"pokemonId": 25, "role": "ranged", "moves": [188, 192, 190, 217]},
+  {"pokemonId": 488, "role": "melee", "moves": [154, 120, 302]},
+  {"pokemonId": 489, "role": "melee", "moves": [190, 507]},
+  {"pokemonId": 19, "role": "melee", "moves": [154]},
+  {"pokemonId": 109, "role": "ranged", "moves": [147, 196]},
+  {"pokemonId": 66, "role": "melee", "moves": [68, 92]},
+  {"pokemonId": 393, "role": "ranged", "moves": [101, 97]},
+  {"pokemonId": 187, "role": "support", "moves": [94, 124]},
+  {"pokemonId": 308, "role": "support", "moves": [217, 234]}
  ]
 }

@@ -21,7 +21,9 @@ public class PlayerController : MonoBehaviour
     static readonly Color GaugeColor = new(1f, 0.85f, 0.2f);
     static readonly Vector3[] StartOffsets = { Vector3.zero, new(-1.2f, -0.8f, 0f), new(1.2f, -0.8f, 0f) };
 
+    [Tooltip("Every playable Pokémon; the team is drawn at random among them when a run starts")]
     public PmdAnimSet[] characters;
+    public int teamSize = 3;
     [Tooltip("Seconds the controlled Pokémon must stay on a knocked-out ally to bring it back")]
     public float reviveTime = 3f;
     [Tooltip("How close the controlled Pokémon must be to the knocked-out ally, in tiles")]
@@ -81,13 +83,19 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        for (int i = 0; i < characters.Length; i++) members.Add(SpawnMember(i));
+        // Provisional until the team selection menu exists: a random team among the playable Pokémon.
+        var pool = new List<PmdAnimSet>(characters);
+        for (int i = 0; i < teamSize && pool.Count > 0; i++)
+        {
+            int pick = Random.Range(0, pool.Count);
+            members.Add(SpawnMember(pool[pick], i));
+            pool.RemoveAt(pick);
+        }
         SetControlled(0);
     }
 
-    Member SpawnMember(int index)
+    Member SpawnMember(PmdAnimSet set, int index)
     {
-        var set = characters[index];
         var go = new GameObject(GameData.Pokemon(set.pokemonId)?.name ?? "Ally");
         go.transform.position = transform.position + StartOffsets[index % StartOffsets.Length];
 
@@ -199,7 +207,7 @@ public class PlayerController : MonoBehaviour
         if (gameOver || members.Count == 0) return;
         UpdateRevives();
         if (Current.combatant.IsLunging) return; // a melee dash drives the body
-        Current.body.linearVelocity = move * Current.combatant.moveSpeed;
+        Current.body.linearVelocity = move * Current.combatant.CurrentSpeed;
     }
 
     // The gauge fills while the controlled Pokémon stays on a knocked-out ally, and drains twice as fast otherwise.

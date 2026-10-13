@@ -1,25 +1,20 @@
 using UnityEngine;
 
-/// Enemy behaviour: approach the nearest team member, announce the attack (wind-up with a visible danger zone),
-/// strike, recover. It picks the first ready move that reaches; ranged enemies keep their distance while recharging.
-/// It walks around walls and harmful zones, and only attacks a target it can reach in a straight line.
+/// Enemy played by the computer. Its role (melee, ranged or support, see RoleTactics) decides how it fights;
+/// this class adds what is specific to an enemy: every move is announced (wind-up with a visible danger area)
+/// before it is used, then the enemy pauses. It walks around walls and harmful zones.
 [RequireComponent(typeof(Rigidbody2D), typeof(PmdAnimator), typeof(Combatant))]
 public class EnemyAI : MonoBehaviour
 {
     enum State { Chase, Windup, Recover }
 
     const float DefaultWindup = 0.5f;
-    const float MeleeStandOff = 1.5f;
-    const float ZoneMargin = 0.4f; // tiles kept between the enemy and the edge of a harmful zone
-    const float ShotRadius = 0.2f; // clearance needed along a line of fire
     static readonly Color TelegraphColor = new(1f, 0.15f, 0.15f, 0.35f);
 
     [Tooltip("Share of the Pokémon's own speed used while moving")]
     public float speedFactor = 0.6f;
     [Tooltip("Pause after each attack, on top of the move's cooldown")]
     public float recoverTime = 1.5f;
-    [Tooltip("Distance a ranged enemy keeps from its target while every move is recharging")]
-    public float holdDistance = 4f;
 
     readonly Navigator navigator = new();
     Rigidbody2D body;
@@ -73,74 +68,33 @@ public class EnemyAI : MonoBehaviour
 
     void Chase()
     {
-        // Always goes for the nearest team member still standing.
-        var target = Combatant.Nearest(Team.Player, transform.position, float.MaxValue);
-        if (target == null)
-        {
-            body.linearVelocity = Vector2.zero;
-            animator.Play("Idle");
-            return;
-        }
         Vector2 position = transform.position;
-        Vector2 targetPosition = target.transform.position;
-        Vector2 toTarget = targetPosition - position;
-        float distance = toTarget.magnitude;
         var grid = DungeonGenerator.Current;
 
         // Getting out of a harmful zone comes before anything else.
-        Vector2 escape = Zone.EscapeDirection(position, combatant.team, ZoneMargin);
+        Vector2 escape = Zone.EscapeDirection(position, combatant.team, RoleTactics.ZoneMargin);
         if (escape != Vector2.zero)
         {
-            Move(Passable(grid, position, escape) ? escape : new Vector2(-escape.y, escape.x), toTarget);
+            Move(RoleTactics.Passable(combatant, grid, position, escape) ? escape : new Vector2(-escape.y, escape.x), escape);
             return;
         }
 
-        bool lineOfFire = grid == null || grid.LineClear(position, targetPosition, ShotRadius);
-        float wanted = float.MaxValue;
-        bool ranged = false;
-        for (int slot = 0; slot < Combatant.MoveSlots; slot++)
+        var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue);
+        if (decision.slot >= 0)
         {
-            var move = combatant.Moves[slot];
-            if (move == null) continue;
-            if (move.family != "melee") ranged = true;
-            if (combatant.CooldownLeft(slot) > 0f) continue;
-            if (distance <= move.Reach && toTarget != Vector2.zero && (lineOfFire || move.family == "zone"))
-            {
-                StartWindup(slot, move, toTarget.normalized, distance);
-                return;
-            }
-            wanted = Mathf.Min(wanted, move.Reach * 0.9f);
+            Vector2 aim = decision.aim != Vector2.zero ? decision.aim.normalized : Vector2.right;
+            StartWindup(decision.slot, combatant.Moves[decision.slot], aim, decision.distance);
+            return;
         }
-
-        Vector2 direction = Vector2.zero;
-        if (wanted < float.MaxValue)
-        {
-            // Behind a wall, being in range is not enough: keep walking until the target is in sight.
-            if (distance > wanted || !lineOfFire) direction = navigator.Direction(position, targetPosition, combatant.team);
-        }
-        else if (ranged)
-        {
-            if (distance > holdDistance + 0.5f) direction = navigator.Direction(position, targetPosition, combatant.team);
-            else if (distance < holdDistance - 1f && Passable(grid, position, -toTarget.normalized))
-                direction = -toTarget.normalized; // back off while recharging
-        }
-        else if (distance > MeleeStandOff) direction = navigator.Direction(position, targetPosition, combatant.team);
-
-        Move(direction, toTarget);
+        Move(decision.engaged ? decision.move : Vector2.zero, decision.look);
     }
 
     void Move(Vector2 direction, Vector2 lookAt)
     {
-        body.linearVelocity = direction * combatant.moveSpeed * speedFactor;
-        animator.direction = PmdAnimator.DirectionIndex(direction != Vector2.zero ? direction : lookAt);
+        body.linearVelocity = direction * combatant.CurrentSpeed * speedFactor;
+        Vector2 facing = direction != Vector2.zero ? direction : lookAt;
+        if (facing != Vector2.zero) animator.direction = PmdAnimator.DirectionIndex(facing);
         animator.Play(direction != Vector2.zero ? "Walk" : "Idle");
-    }
-
-    /// True when a short step in that direction stays on the floor and out of harmful zones.
-    bool Passable(DungeonGenerator grid, Vector2 position, Vector2 direction)
-    {
-        Vector2 ahead = position + direction * 0.7f;
-        return (grid == null || grid.WalkableAt(ahead, 0.3f)) && !Zone.Inside(ahead, combatant.team, ZoneMargin);
     }
 
     // Direction and landing point are locked when the wind-up starts: leaving the red area dodges the attack.
@@ -155,12 +109,20 @@ public class EnemyAI : MonoBehaviour
         animator.direction = PmdAnimator.DirectionIndex(direction);
         animator.Play("Idle");
 
+        // Heals and bonuses threaten nobody: no danger area.
+        if (move.family == "heal" || (move.family == "modifier" && move.target != "enemies")) return;
+
         telegraph = new GameObject("Telegraph");
         var renderer = telegraph.AddComponent<SpriteRenderer>();
         renderer.color = TelegraphColor;
         renderer.sortingOrder = 0; // above the floor, under the Pokémon
 
-        if (move.family == "zone")
+        if (move.family == "modifier")
+        {
+            // Penalty cast around the enemy itself.
+            Circle(renderer, transform.position, move.radius);
+        }
+        else if (move.family == "zone")
         {
             // Disc where the zone will land.
             Circle(renderer, transform.position + (Vector3)(direction * Mathf.Min(distance, move.range)), move.radius);

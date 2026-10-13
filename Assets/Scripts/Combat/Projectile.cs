@@ -6,7 +6,7 @@ public class Projectile : MonoBehaviour
     const float SpawnOffset = 0.4f; // tiles in front of the shooter
 
     Team team;
-    float damage;
+    float damage; // raw, before the target's defence
     float radius;
     Vector2 direction;
     float speed;
@@ -51,7 +51,13 @@ public class Projectile : MonoBehaviour
             if (target != null)
             {
                 if (target.team == team) continue;
-                if (target.TakeDamage(damage)) target.ApplyStatus(move);
+                if (target.TakeHit(damage, move.category, out float dealt))
+                {
+                    target.ApplyEffects(move);
+                    // Draining moves give what they took to the most wounded ally of the shooter.
+                    if (move.drain > 0f && dealt > 0f)
+                        Combatant.MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
+                }
             }
             // A cast that starts inside a collider reports no usable contact point.
             Vector3 at = hit.distance > 0f ? (Vector3)hit.point : transform.position;

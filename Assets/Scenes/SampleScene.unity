@@ -152,6 +152,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 04d307084c5fa59ccb30516ba0e282a8, type: 2}
   - {fileID: 11400000, guid: 7c192a368bb3f4c25ac15957e128b931, type: 2}
   - {fileID: 11400000, guid: 9349fb683ec28418791efa846f283dd6, type: 2}
+  - {fileID: 11400000, guid: e0e3347ebaa3996cd9d8636f4a9f022f, type: 2}
+  - {fileID: 11400000, guid: 2cb1f4fd3c76e8711b4c15236a7c8ac6, type: 2}
+  - {fileID: 11400000, guid: 345a2463c1592fd2ba15aa0d61ea1505, type: 2}
+  teamSize: 3
+  reviveTime: 3
+  reviveRadius: 1
+  reviveHealthShare: 0.5
 --- !u!4 &327428569
 Transform:
   m_ObjectHideFlags: 0
@@ -622,17 +629,33 @@ MonoBehaviour:
   waves:
   - enemies:
     - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
-      count: 4
-  - enemies:
-    - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
-      count: 4
-    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+      count: 3
+    - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+      count: 1
+    - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
       count: 1
   - enemies:
     - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
-      count: 3
-    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
       count: 2
+    - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+      count: 1
+    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+      count: 1
+    - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
+      count: 1
+    - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
+      count: 1
+  - enemies:
+    - set: {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+      count: 2
+    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+      count: 1
+    - set: {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
+      count: 2
+    - set: {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
+      count: 1
+    - set: {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
+      count: 1
   delayBetweenWaves: 2
   minDistance: 6
   damageFactor: 0.25

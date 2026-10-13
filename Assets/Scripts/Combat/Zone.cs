@@ -71,7 +71,7 @@ public class Zone : MonoBehaviour
         foreach (var other in Physics2D.OverlapCircleAll(transform.position, move.radius))
         {
             var target = other.GetComponentInParent<Combatant>();
-            if (target != null && target.team != team) target.ApplyStatus(move, true);
+            if (target != null && target.team != team) target.ApplyEffects(move, true);
         }
     }
 }

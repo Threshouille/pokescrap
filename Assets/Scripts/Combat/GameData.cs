@@ -19,7 +19,7 @@ public class MoveDef
     public int type;
     public string category; // physical, special, status
     public int power;
-    public string family; // projectile, melee, zone
+    public string family; // projectile, melee, zone, heal, modifier
     public float cooldown; // seconds
     public float speed; // tiles per second
     public float range; // tiles: flight distance (projectile) or distance of the hit zone (melee)
@@ -33,9 +33,18 @@ public class MoveDef
     public float statusChance; // 0..1, defaults to 1
     public float statusDuration; // seconds
     public float zoneDuration; // zone only: seconds the area stays
+    public float healShare; // heal only: share of the target's max HP given back
+    public float drain; // share of the damage dealt that heals the most wounded ally
+    public string target; // modifier only: self, allies or enemies (around the user, within radius)
+    public string modStat; // attack, defense or speed: temporary bonus or penalty (on hit, or cast by a modifier move)
+    public float modValue; // multiplier, above 1 = bonus, below 1 = penalty
+    public float modDuration; // seconds
 
     /// Distance from which an AI can expect the move to connect.
-    public float Reach => family == "melee" ? lunge + range + radius * 0.5f : range * 0.85f;
+    public float Reach => family == "melee" ? lunge + range + radius * 0.5f
+        : family == "heal" ? range
+        : family == "modifier" ? radius * 0.9f
+        : range * 0.85f;
 }
 
 [Serializable]
@@ -54,7 +63,7 @@ public static class GameData
 {
     [Serializable] class PokemonFile { public PokemonStats[] pokemon; }
     [Serializable] class TypeColorEntry { public int type; public string color; }
-    [Serializable] class Loadout { public int pokemonId; public int[] moves; }
+    [Serializable] class Loadout { public int pokemonId; public string role; public int[] moves; }
     [Serializable] class UpgradeFile { public UpgradeDef[] upgrades; }
     [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; }
 
@@ -64,6 +73,7 @@ public static class GameData
     static Dictionary<int, PokemonStats> pokemon;
     static Dictionary<int, MoveDef> moves;
     static Dictionary<int, int[]> loadouts;
+    static Dictionary<int, string> roles;
     static Dictionary<int, Color> typeColors;
     static UpgradeDef[] upgrades;
 
@@ -82,7 +92,12 @@ public static class GameData
         moves = new Dictionary<int, MoveDef>();
         foreach (var m in file.moves) moves[m.id] = m;
         loadouts = new Dictionary<int, int[]>();
-        foreach (var l in file.loadouts) loadouts[l.pokemonId] = l.moves;
+        roles = new Dictionary<int, string>();
+        foreach (var l in file.loadouts)
+        {
+            loadouts[l.pokemonId] = l.moves;
+            roles[l.pokemonId] = string.IsNullOrEmpty(l.role) ? "melee" : l.role;
+        }
         var upgradeFile = Resources.Load<TextAsset>("Data/upgrades");
         upgrades = upgradeFile != null ? JsonUtility.FromJson<UpgradeFile>(upgradeFile.text).upgrades : new UpgradeDef[0];
         typeColors = new Dictionary<int, Color>();
@@ -94,6 +109,13 @@ public static class GameData
     {
         Load();
         return pokemon.TryGetValue(id, out var p) ? p : null;
+    }
+
+    /// melee, ranged or support (melee when unknown).
+    public static string Role(int pokemonId)
+    {
+        Load();
+        return roles.TryGetValue(pokemonId, out var role) ? role : "melee";
     }
 
     /// Starting moves of a Pokémon, in slot order (missing slots are null).
