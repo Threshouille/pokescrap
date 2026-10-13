@@ -77,6 +77,43 @@ public static class Shapes
         return icons[status] = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 24f);
     }
 
+    static readonly string[][] Digits =
+    {
+        new[] { "..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###." },
+        new[] { ".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####" },
+        new[] { ".###.", "#...#", "....#", "..##.", "....#", "#...#", ".###." },
+        new[] { "...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#." },
+    };
+    static readonly Sprite[] bubbles = new Sprite[4];
+
+    /// Speech bubble showing a number from 1 to 4 (a boss announcing which of its moves comes next). 1 unit wide.
+    public static Sprite NumberBubble(int number)
+    {
+        int index = Mathf.Clamp(number, 1, 4) - 1;
+        if (bubbles[index] != null) return bubbles[index];
+        const int size = 16;
+        Color32 ink = new(30, 30, 40, 255), paper = new(255, 255, 255, 255), none = new(0, 0, 0, 0);
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+        for (int x = 0; x < size; x++)
+            for (int y = 0; y < size; y++)
+            {
+                // Rounded box on rows 4-15, with a small tail underneath pointing at the speaker.
+                bool corner = (x == 1 || x == 14) && (y == 4 || y == 15);
+                bool box = x >= 1 && x <= 14 && y >= 4 && y <= 15 && !corner;
+                bool edge = box && (x == 1 || x == 14 || y == 4 || y == 15
+                    || ((x == 2 || x == 13) && (y == 5 || y == 14)));
+                bool tail = y >= 1 && y <= 3 && Mathf.Abs(x - 7.5f) <= (y - 0.5f) * 0.75f;
+                bool tailEdge = tail && (y == 1 || Mathf.Abs(x - 7.5f) > (y - 1.5f) * 0.75f);
+                tex.SetPixel(x, y, edge || tailEdge ? ink : box || tail ? paper : none);
+            }
+        var digit = Digits[index];
+        for (int row = 0; row < digit.Length; row++)
+            for (int col = 0; col < digit[row].Length; col++)
+                if (digit[row][col] == '#') tex.SetPixel(5 + col, 13 - row, ink);
+        tex.Apply();
+        return bubbles[index] = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
+
     /// Brief translucent disc: provisional feedback for moves that have no sprite sheet (heals, bonuses, penalties).
     public static void Pulse(Vector3 position, float radius, Color color)
     {

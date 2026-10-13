@@ -49,7 +49,7 @@ Version minimale (faite le 13/10/2026) :
 - Boss : Groudon, renforcé (PV × 8, agrandi, barre de vie en haut de l'écran), avec une escorte en deux vagues. Attaques provisoires.
 - Écrans de victoire et de défaite avec temps, niveau et ennemis battus.
 
-À faire ensuite (décidé par Owen le 13/10/2026) : les boss sont des légendaires, chacun avec 4 attaques fixes pour que le joueur apprenne ses schémas. Les 4 attaques de Groudon restent à valider.
+À faire ensuite (décidé par Owen le 13/10/2026) : les boss sont des légendaires, chacun avec 4 attaques fixes pour que le joueur apprenne ses schémas. Groudon a ses 4 attaques et ses annonces par bulle numérotée (fait le 13/10/2026).
 
 Reporté à l'approfondissement :
 - Comportements propres du boss.

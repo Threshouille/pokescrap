@@ -296,10 +296,41 @@ public class Combatant : MonoBehaviour
             return true;
         }
 
+        if (move.family == "burst")
+        {
+            // Damage all around the user.
+            readyAt[slot] = Time.time + CooldownOf(move);
+            foreach (var c in all.ToArray()) // a hit can remove a Pokémon from the list
+                if (c.team != team && c.IsAlive && Vector2.Distance(c.transform.position, transform.position) <= move.radius
+                    && c.TakeHit(DamageOf(move), move.category, out _))
+                    c.ApplyEffects(move);
+            if (EffectLibrary.Get(move.effect) != null) EffectPlayer.Spawn(move.effect, transform.position, Vector2.right);
+            else Shapes.Pulse(transform.position, move.radius, GameData.TypeColor(move.type));
+            return true;
+        }
+
+        if (move.family == "zone" && move.target == "each")
+        {
+            // One zone under every opponent still standing.
+            readyAt[slot] = Time.time + CooldownOf(move);
+            foreach (var c in all.ToArray())
+                if (c.team != team && c.IsAlive) Zone.Spawn(this, move, c.transform.position);
+            return true;
+        }
+
         if (direction == Vector2.zero) return false;
         readyAt[slot] = Time.time + CooldownOf(move);
         direction = direction.normalized;
-        if (move.family == "projectile") Projectile.Spawn(this, move, direction);
+        if (move.family == "projectile")
+        {
+            // Several shots are fanned out evenly around the aimed direction.
+            int shots = Mathf.Max(1, move.count);
+            for (int i = 0; i < shots; i++)
+            {
+                float angle = shots == 1 ? 0f : Mathf.Lerp(-move.spread / 2f, move.spread / 2f, i / (shots - 1f));
+                Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction);
+            }
+        }
         else if (move.family == "zone")
         {
             float reach = distance > 0f ? Mathf.Min(distance, move.range) : move.range;

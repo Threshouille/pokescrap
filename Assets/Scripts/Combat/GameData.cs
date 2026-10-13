@@ -19,7 +19,7 @@ public class MoveDef
     public int type;
     public string category; // physical, special, status
     public int power;
-    public string family; // projectile, melee, zone, heal, modifier
+    public string family; // projectile, melee, zone, burst, heal, modifier
     public float cooldown; // seconds
     public float speed; // tiles per second
     public float range; // tiles: flight distance (projectile) or distance of the hit zone (melee)
@@ -33,9 +33,11 @@ public class MoveDef
     public float statusChance; // 0..1, defaults to 1
     public float statusDuration; // seconds
     public float zoneDuration; // zone only: seconds the area stays
+    public int count; // projectile only: number of shots fired at once (1 when omitted)
+    public float spread; // projectile only: total angle, in degrees, over which the shots are fanned out
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally
-    public string target; // modifier only: self, allies or enemies (around the user, within radius)
+    public string target; // modifier: self, allies or enemies (around the user, within radius); zone: "each" = one under every opponent
     public string modStat; // attack, defense or speed: temporary bonus or penalty (on hit, or cast by a modifier move)
     public float modValue; // multiplier, above 1 = bonus, below 1 = penalty
     public float modDuration; // seconds
@@ -43,7 +45,7 @@ public class MoveDef
     /// Distance from which an AI can expect the move to connect.
     public float Reach => family == "melee" ? lunge + range + radius * 0.5f
         : family == "heal" ? range
-        : family == "modifier" ? radius * 0.9f
+        : family == "modifier" || family == "burst" ? radius * 0.9f
         : range * 0.85f;
 }
 

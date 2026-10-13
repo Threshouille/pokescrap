@@ -198,8 +198,12 @@ public class EnemySpawner : MonoBehaviour
             combatant.ApplyGrowth(LevelData.Growth(set.pokemonId, level), level);
         combatant.damageFactor = damageFactor;
         combatant.maxHp = combatant.hp = combatant.maxHp * (isBoss ? bossHealthFactor : healthFactor);
-        go.AddComponent<EnemyAI>();
-        if (!isBoss) go.AddComponent<HealthBar>(); // the boss has its own bar at the top of the screen
+        if (isBoss) go.AddComponent<BossAI>(); // numbered announcements instead of danger areas
+        else
+        {
+            go.AddComponent<EnemyAI>();
+            go.AddComponent<HealthBar>(); // the boss has its own bar at the top of the screen
+        }
         return combatant;
     }
 

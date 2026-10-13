@@ -43,9 +43,10 @@
   {"id": 94, "name": "Synthèse", "type": 4, "category": "status", "power": 0, "family": "heal", "cooldown": 6, "range": 5, "radius": 0, "windup": 0.4, "healShare": 0.3, "effect": "synthese_soin", "impactEffect": ""},
   {"id": 124, "name": "Para-Spore", "type": 4, "category": "status", "power": 0, "family": "zone", "cooldown": 9, "range": 6, "radius": 1.2, "windup": 0.8, "zoneDuration": 4, "status": "paralysis", "statusDuration": 3, "effect": "para_spore_nuage", "impactEffect": ""},
   {"id": 234, "name": "Choc Mental", "type": 11, "category": "special", "power": 5, "family": "projectile", "cooldown": 3, "speed": 8, "range": 7, "radius": 0.25, "windup": 0.6, "effect": "choc_mental_vol", "impactEffect": "choc_mental_impact"},
-  {"id": 299, "name": "Tir de Boue", "type": 9, "category": "special", "power": 12, "family": "projectile", "cooldown": 3, "speed": 8, "range": 8, "radius": 0.35, "windup": 0.7, "modStat": "speed", "modValue": 0.6, "modDuration": 4, "effect": "tir_de_boue_vol", "impactEffect": "tir_de_boue_impact"},
-  {"id": 81, "name": "Tranche", "type": 1, "category": "physical", "power": 14, "family": "melee", "cooldown": 3, "range": 0.6, "radius": 0.8, "windup": 0.8, "lunge": 4, "lungeTime": 0.25, "effect": "tranche_trainee", "impactEffect": "charge_impact"},
-  {"id": 106, "name": "Grimace", "type": 1, "category": "status", "power": 0, "family": "modifier", "cooldown": 10, "radius": 5, "windup": 0.8, "target": "enemies", "modStat": "speed", "modValue": 0.6, "modDuration": 5, "effect": "grimace_onde", "impactEffect": ""}
+  {"id": 299, "name": "Tir de Boue", "type": 9, "category": "special", "power": 12, "family": "projectile", "cooldown": 0.1, "speed": 8, "range": 9, "radius": 0.35, "windup": 0.8, "count": 3, "spread": 40, "modStat": "speed", "modValue": 0.6, "modDuration": 4, "effect": "tir_de_boue_vol", "impactEffect": "tir_de_boue_impact"},
+  {"id": 81, "name": "Tranche", "type": 1, "category": "physical", "power": 14, "family": "melee", "cooldown": 0.1, "range": 0.6, "radius": 0.9, "windup": 0.9, "lunge": 5, "lungeTime": 0.3, "effect": "tranche_trainee", "impactEffect": "charge_impact"},
+  {"id": 118, "name": "Séisme", "type": 9, "category": "physical", "power": 5, "family": "burst", "cooldown": 0.1, "radius": 4, "windup": 1.4, "effect": "seisme_onde", "impactEffect": ""},
+  {"id": 278, "name": "Éruption", "type": 2, "category": "special", "power": 40, "family": "zone", "cooldown": 0.1, "range": 0, "radius": 1.3, "windup": 1.0, "zoneDuration": 4, "target": "each", "effect": "eruption_lave", "impactEffect": ""}
  ],
  "loadouts": [
   {"pokemonId": 1, "role": "support", "moves": [329, 217, 199, 251]},
@@ -60,6 +61,6 @@
   {"pokemonId": 393, "role": "ranged", "moves": [101, 97]},
   {"pokemonId": 187, "role": "support", "moves": [94, 124]},
   {"pokemonId": 308, "role": "support", "moves": [217, 234]},
-  {"pokemonId": 415, "role": "melee", "moves": [299, 81, 106]}
+  {"pokemonId": 415, "role": "melee", "moves": [299, 81, 118, 278]}
  ]
 }

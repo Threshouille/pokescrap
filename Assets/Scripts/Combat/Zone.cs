@@ -1,16 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// A lingering area of the "zone" move family (a gas cloud for instance): gives its status to opponents inside it.
+/// A lingering area of the "zone" move family (a gas cloud, a pool of lava...): gives its status to the opponents
+/// inside it and, when the move has power, hurts them at regular intervals.
 public class Zone : MonoBehaviour
 {
     const float DefaultDuration = 4f;
+    const float FirstTick = 0.6f, TickInterval = 1f; // damaging zones leave a moment to step out
 
     static readonly List<Zone> active = new();
 
     Team team;
     MoveDef move;
     float dieAt;
+    float damage; // raw, per tick; 0 for zones that only carry a status
+    float nextTick;
 
     void OnEnable() => active.Add(this);
     void OnDisable() => active.Remove(this);
@@ -36,6 +40,8 @@ public class Zone : MonoBehaviour
         zone.team = owner.team;
         zone.move = move;
         zone.dieAt = Time.time + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
+        zone.damage = owner.DamageOf(move);
+        zone.nextTick = Time.time + FirstTick;
     }
 
     /// True when the point lies in a zone that is harmful to the given team (margin widens the zones).
@@ -68,10 +74,14 @@ public class Zone : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+        bool tick = damage > 0f && Time.time >= nextTick;
+        if (tick) nextTick += TickInterval;
         foreach (var other in Physics2D.OverlapCircleAll(transform.position, move.radius))
         {
             var target = other.GetComponentInParent<Combatant>();
-            if (target != null && target.team != team) target.ApplyEffects(move, true);
+            if (target == null || target.team == team) continue;
+            target.ApplyEffects(move, true);
+            if (tick) target.TakeHit(damage, move.category, out _);
         }
     }
 }
