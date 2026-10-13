@@ -55,6 +55,14 @@ public class Combatant : MonoBehaviour
     void OnEnable() => all.Add(this);
     void OnDisable() => all.Remove(this);
 
+    public static int CountAlive(Team team)
+    {
+        int count = 0;
+        foreach (var c in all)
+            if (c.team == team && c.IsAlive) count++;
+        return count;
+    }
+
     /// Nearest standing Pokémon of a team within maxDistance, or null.
     public static Combatant Nearest(Team team, Vector2 from, float maxDistance)
     {

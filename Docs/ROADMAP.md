@@ -1,6 +1,6 @@
 # Pokescrap — Feuille de route
 
-État : en cours de validation avec Owen. Les décisions de conception sont dans `GDD.md`.
+État : validée avec Owen le 13/10/2026. Les décisions de conception sont dans `GDD.md`.
 
 Décidé (13/10/2026) : squelette d'abord. Les jalons 1 à 4 sont faits en version minimale, dans l'ordre, pour boucler une partie complète ; on approfondit ensuite.
 
@@ -15,8 +15,8 @@ Arène, équipe de 3 (1 joueur + 2 IA), changement de Pokémon, visée, 3 famill
 
 ## Jalon 1 — Une arène avec un début et une fin
 
-Version minimale :
-- Vagues d'ennemis et condition de victoire de l'arène.
+Version minimale (faite le 13/10/2026) :
+- Vagues d'ennemis et condition de victoire de l'arène : 3 vagues réglables sur l'objet `Enemies`, 2 s de pause entre deux vagues, message de victoire et relance.
 
 Reporté à l'approfondissement :
 - Formule de dégâts définitive : défense, table des types.
@@ -56,24 +56,28 @@ Version minimale :
 Reporté à l'approfondissement :
 - Choix des attaques de départ, monnaie persistante, achat d'attaques, objet passif.
 
-## Jalon 5 — Contenu et variété
+## Jalon 5 — Tous les Pokémon, joueurs comme ennemis
 
-- Nouvelles familles d'attaques (mur, ruée, amélioration temporaire, soin) et attaques de statut ; Pokémon de soutien.
-- Autres statuts (brûlure, paralysie, sommeil…).
-- Talents.
+Objectif décidé par Owen : à terme, les 558 Pokémon de la ROM sont jouables et peuvent tous apparaître comme ennemis.
+
+- Import automatique des sprites de tous les Pokémon (aujourd'hui copiés à la main, un par un).
+- Génération automatique d'une définition temps réel pour chaque attaque (457 apprenables) à partir des données de la ROM : portée et cible → famille, puissance, catégorie. Les attaques faites à la main gardent la priorité.
+- Attaques de départ de chaque Pokémon tirées de ses attaques apprenables.
+- Nouvelles familles (mur, ruée, amélioration temporaire, soin), autres statuts (brûlure, paralysie, sommeil…), talents, Pokémon de soutien.
 - Terrains spéciaux (eau, lave, trous) et types de déplacement.
-- Plus de Pokémon jouables, d'ennemis, de décors.
-- Les 3 cycles et le boss final.
+- Plus de décors, les 3 cycles et le boss final.
 
-## Jalon 6 — Coopération et finition
+Conséquence dès maintenant : ne rien écrire qui suppose une liste fermée de Pokémon ou d'attaques.
+
+## Jalon 6 — Coopération et finition (décidé : après tout le reste)
 
 - Coopération locale à 2 ou 3 manettes.
 - Musique et sons complets.
 - Options, équilibrage final.
 
-## Questions à trancher pour ordonner la suite
+## Décisions d'ordonnancement (13/10/2026)
 
-1. (Tranché : squelette d'abord.)
-2. Coopération : tôt (elle touche à l'architecture des contrôles) ou en fin de projet ?
-3. Son : dès le jalon 1 ou plus tard ?
-4. Taille visée pour la première version « complète » : combien de Pokémon jouables et d'ennemis ?
+1. Squelette d'abord : jalons 1 à 4 en version minimale, puis approfondissement.
+2. Coopération : plus tard (jalon 6).
+3. Son : plus tard (jalon 6).
+4. Périmètre final : tous les Pokémon jouables, et tous utilisables comme ennemis (jalon 5). Le squelette se fait avec le petit effectif actuel.

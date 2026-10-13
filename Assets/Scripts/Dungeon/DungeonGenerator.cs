@@ -71,14 +71,15 @@ public class DungeonGenerator : MonoBehaviour
             player.position = floorMap.transform.TransformPoint(new Vector3(centre + 0.5f, centre + 0.5f, 0f));
     }
 
-    /// World position of a random free tile at least minDistance tiles away from the centre.
-    public Vector3 RandomOpenPosition(System.Random rng, float minDistance)
+    /// World position of a random free tile at least minDistance tiles away from a point (the centre by default).
+    public Vector3 RandomOpenPosition(System.Random rng, float minDistance, Vector2? around = null)
     {
         int centre = size / 2;
+        Vector2 origin = around.HasValue ? (Vector2)CellOf(around.Value) : new Vector2(centre, centre);
         for (int attempt = 0; attempt < 200; attempt++)
         {
             int x = rng.Next(margin, margin + arenaSize), y = rng.Next(margin, margin + arenaSize);
-            if (open[x, y] && Vector2.Distance(new Vector2(x, y), new Vector2(centre, centre)) >= minDistance)
+            if (open[x, y] && Vector2.Distance(new Vector2(x, y), origin) >= minDistance)
                 return floorMap.transform.TransformPoint(new Vector3(x + 0.5f, y + 0.5f, 0f));
         }
         return floorMap.transform.TransformPoint(new Vector3(centre + 0.5f, centre + 0.5f, 0f));

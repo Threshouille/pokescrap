@@ -31,7 +31,8 @@ Conception : `Docs/GDD.md` (décisions d'Owen + points ouverts) ; le lire avant 
 - `GameData` et `EffectLibrary` relisent leurs fichiers à chaque lancement de partie ; en mode édition (hors Play), leurs données peuvent être périmées tant qu'aucun script n'a été recompilé.
 - Déplacement des IA : `Navigator` (A* sur la grille de `DungeonGenerator.Current`, zones nocives pénalisées via `Zone.Inside`). Toute nouvelle IA doit passer par `navigator.Direction(...)` plutôt que viser sa cible en ligne droite.
 - Familles d'attaques : `projectile`, `melee` (avec `lunge` éventuel), `zone` (aire persistante). Statut : `status: "poison"` sur une attaque. Icône de statut : planche `status_<nom>` dans `Assets/Resources/Effects/` si elle existe, sinon icône de secours dans `Shapes`.
-- Ennemis de l'arène : liste `enemies` (jeu d'animations + nombre) sur l'objet `Enemies`, avec `healthFactor` et `damageFactor`.
+- Ennemis de l'arène : liste `waves` (chaque vague = jeux d'animations + nombres) sur l'objet `Enemies` (`EnemySpawner`), avec `healthFactor`, `damageFactor` et `delayBetweenWaves`. La vague suivante part quand il ne reste aucun ennemi ; `Victory` après la dernière.
+- Feuille de route : `Docs/ROADMAP.md` (squelette d'abord : jalons 1 à 4 en version minimale). Projet sous Git local, sans dépôt distant ; ne jamais pousser vers un hébergement public (assets tirés de la ROM versionnés).
 - Un nouveau Pokémon dans `Assets/Sprites/Pokemon/<Nom>/` a besoin d'un `id.txt` contenant son identifiant de `pokemon.json`.
 - Tests en jeu : la fenêtre Unity tourne lentement en arrière-plan ; toute logique de jeu doit passer par `FixedUpdate`, pas par `Update`.
 - Pas encore extraits : eau/lave des décors, courbes de niveau (`BALANCE/m_level.bin`), objets, effets d'attaque, musiques.

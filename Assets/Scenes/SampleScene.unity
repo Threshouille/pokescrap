@@ -619,11 +619,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemySpawner
   generator: {fileID: 1266977759}
-  enemies:
-  - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
-    count: 5
-  - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
-    count: 2
+  waves:
+  - enemies:
+    - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+      count: 4
+  - enemies:
+    - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+      count: 4
+    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+      count: 1
+  - enemies:
+    - set: {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+      count: 3
+    - set: {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+      count: 2
+  delayBetweenWaves: 2
   minDistance: 6
   damageFactor: 0.25
   healthFactor: 3
