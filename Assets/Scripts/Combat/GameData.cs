@@ -126,13 +126,6 @@ public static class GameData
         return pokemon.TryGetValue(id, out var p) ? p : null;
     }
 
-    /// True when the Pokémon has starting moves, i.e. can be played.
-    public static bool HasLoadout(int pokemonId)
-    {
-        Load();
-        return loadouts.ContainsKey(pokemonId);
-    }
-
     /// Moves this Pokémon can pick from: those it learns by level that the game can play, in level order.
     public static List<MoveDef> MovePool(int pokemonId)
     {
@@ -192,7 +185,22 @@ public static class GameData
         return moves.TryGetValue(id, out var move) ? move : null;
     }
 
-    /// melee, ranged or support (melee when unknown).
+    /// AI role deduced from the moves a Pokémon has: support with a heal or a bonus for its allies, ranged when
+    /// shots and zones are at least as many as close-range moves, melee otherwise.
+    public static string RoleFromMoves(IEnumerable<MoveDef> known)
+    {
+        int ranged = 0, close = 0;
+        foreach (var move in known)
+        {
+            if (move == null) continue;
+            if (move.family == "heal" || (move.family == "modifier" && move.target == "allies")) return "support";
+            if (move.family == "projectile" || move.family == "zone") ranged++;
+            else if (move.family == "melee" || move.family == "burst") close++;
+        }
+        return ranged > 0 && ranged >= close ? "ranged" : "melee";
+    }
+
+    /// Role written in realtime_moves.json (bosses): melee, ranged or support (melee when unknown).
     public static string Role(int pokemonId)
     {
         Load();

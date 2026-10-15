@@ -227,7 +227,7 @@ public class TeamMenu : MonoBehaviour
             return;
         }
         Label(new Rect(x, panel.y + pad, w, line), stats?.name ?? "?", TextAnchor.MiddleLeft);
-        Label(new Rect(x, panel.y + pad + line, w, line), RoleName(GameData.Role(id)), TextAnchor.MiddleLeft);
+        Label(new Rect(x, panel.y + pad + line, w, line), RoleName(GameData.RoleFromMoves(System.Array.ConvertAll(SaveData.StartingMoves(id), m => GameData.Move(m)))), TextAnchor.MiddleLeft);
         if (stats != null)
             for (int t = 0; t < stats.types.Length; t++)
                 Fill(new Rect(x + t * 14f * s, panel.y + pad + 2f * line + 2f * s, 12f * s, 6f * s), GameData.TypeColor(stats.types[t]));

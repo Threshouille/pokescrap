@@ -24,8 +24,8 @@ public class PokemonRoster : ScriptableObject
         return null;
     }
 
-    /// Can be picked for a team: has sprites, a role, and enough moves to choose from.
-    public static bool Playable(int pokemonId) => Get(pokemonId) != null && GameData.HasLoadout(pokemonId)
+    /// Can be picked for a team: has sprites and enough moves to choose from.
+    public static bool Playable(int pokemonId) => Get(pokemonId) != null
         && GameData.MovePool(pokemonId).Count >= SaveData.Settings.startingMoveCount;
 
     /// Earliest playable form of a Pokémon's evolution line, going back through its previous forms

@@ -174,7 +174,8 @@ public class Combatant : MonoBehaviour
         OriginId = pokemonId;
         Moves = moveIds == null ? GameData.StartingMoves(pokemonId, MoveSlots) : new MoveDef[MoveSlots];
         for (int i = 0; moveIds != null && i < MoveSlots && i < moveIds.Length; i++) Moves[i] = GameData.Move(moveIds[i]);
-        Role = GameData.Role(pokemonId);
+        // Bosses keep the role written with their fixed moves; the others get it from the moves they have.
+        Role = moveIds == null ? GameData.Role(pokemonId) : GameData.RoleFromMoves(Moves);
         if (Stats == null) return;
         maxHp = hp = Stats.baseHp;
         level = 1;
@@ -249,6 +250,7 @@ public class Combatant : MonoBehaviour
         if (slot < 0 || slot >= MoveSlots) return;
         Moves[slot] = move;
         readyAt[slot] = 0f;
+        Role = GameData.RoleFromMoves(Moves);
     }
 
     public void ApplyUpgrade(UpgradeDef upgrade)
