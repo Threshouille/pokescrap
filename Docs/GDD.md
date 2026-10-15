@@ -53,6 +53,9 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 
 ### Entre les parties
 - Recrutement : un Pokémon battu a un pourcentage de chance de rejoindre le joueur (comme dans le jeu d'origine).
+- Un Pokémon recruté est débloqué dans la première forme de sa lignée (décidé le 15/10/2026) : battre un Dracaufeu débloque Salamèche, puisque chaque partie commence au niveau 1 et qu'on évolue en jouant. Rien ne change pour les Pokémon sans évolution.
+- Mise en œuvre (15/10/2026) : le taux appliqué est celui de la forme débloquée (dans la ROM, 186 formes évoluées sur 312 ont un taux négatif, Dracaufeu −12 %) ; taux nul ou négatif = jamais recruté (légendaires). Tirage seulement pour une espèce pas encore débloquée ; la recrue est gardée même en cas de défaite. Provisoire : on remonte la lignée jusqu'à la première forme jouable (Raichu → Pikachu tant que Pichu n'est pas importé), en attendant la décision sur les évolutions sans niveau (point 10).
+- Menu avant la partie (15/10/2026) : choix de 3 Pokémon parmi les débloqués ; les autres apparaissent en silhouette. Débloqués au départ : les 6 jouables d'origine (`meta.json`). Fin de partie : rejouer avec la même équipe ou revenir au menu.
 - Deux monnaies : une gagnée et dépensée pendant la partie (boutiques), une autre conservée entre les parties pour acheter des attaques équipables au départ, et peut-être un objet donnant un passif pendant la partie (modèle Wizard of Legend).
 
 ### Périmètre final
@@ -81,7 +84,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Rôles (13/10/2026) : chaque Pokémon est corps à corps, distance ou soutien (champ `role` de ses attaques de départ), et son IA en découle, allié comme ennemi. Corps à corps : va au contact. Distance : garde 4 cases pendant ses recharges. Soutien : soigne d'abord l'allié sous 70 % de PV, pose ses bonus et malus, fuit un adversaire à moins de 2,5 cases, reste à 3 cases de ses alliés, n'attaque qu'ensuite.
 - Placement des IA (13/10/2026) : un Pokémon à distance reste entre 4 et 6 cases de sa cible et recule en dessous de 3,5 ; un soutien reste entre 5 et 7 cases et recule en dessous de 4. Trop près avec la place de reculer, ils reculent avant de tirer ; acculés, ils se battent sur place. Leurs attaques de mêlée ne servent qu'en défense (adversaire à moins de 1,5 case). Toutes les IA gardent 1,5 case entre membres d'un même camp, y compris au repos autour du joueur.
 - Rugissement a un rayon de 4,5 cases ; un soutien ne s'avance pas pour le lancer. Para-Spore et Poudre Toxik portent à 6 cases, pour rester utilisables depuis la bande des soutiens.
-- Jouables (6) : Bulbizarre (soutien : Vampigraine, Rugissement, Poudre Toxik, Tranch'Herbe), Salamèche (distance), Carapuce (distance), Pikachu (distance : Éclair, Cage-Éclair, Vive-Attaque, Rugissement), Goinfrex (corps à corps : Charge, Léchouille, Boul'Armure), Riolu (corps à corps : Vive-Attaque, Forte-Paume). Équipe de 3 tirée au hasard à chaque partie, en attendant le menu.
+- Jouables (6) : Bulbizarre (soutien : Vampigraine, Rugissement, Poudre Toxik, Tranch'Herbe), Salamèche (distance), Carapuce (distance), Pikachu (distance : Éclair, Cage-Éclair, Vive-Attaque, Rugissement), Goinfrex (corps à corps : Charge, Léchouille, Boul'Armure), Riolu (corps à corps : Vive-Attaque, Forte-Paume). Équipe de 3 choisie dans le menu depuis le 15/10/2026 ; les 6 ennemis sont recrutables.
 - Ennemis (6, deux par rôle, six types) : Rattata et Machoc (corps à corps), Smogo et Stalgamin (distance), Granivol (soigneur) et Tarsal (affaiblisseur).
 - Mécaniques ajoutées : soin (part des PV max de l'allié le plus blessé à portée), drain (Vampigraine rend à l'allié le plus blessé ce qu'elle inflige), bonus et malus temporaires d'attaque, de défense ou de vitesse (même type sur la même statistique : rafraîchi, pas cumulé), paralysie (vitesse divisée par deux).
 - Icônes d'effets : au-dessus de chaque Pokémon, statuts puis bonus et malus (attaque, défense, vitesse), 4 par ligne puis une seconde ligne ; les mêmes à droite de la barre de vie du Pokémon contrôlé. Une icône clignote pendant sa dernière seconde. Provisoirement, bonus et malus sont des flèches colorées (rouge attaque, bleu défense, vert vitesse), remplacées dès qu'une planche `status_attack_up`, `status_speed_down`, etc. existe.
@@ -121,7 +124,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 9. Lisibilité du type d'un ennemi à l'écran.
 
 ### Progression
-10. Évolutions sans niveau (pierre, échange, bonheur).
+10. Évolutions sans niveau (pierre, échange, bonheur) : pas encore décidé (Owen, 15/10/2026). Touche aussi les bébés : la ROM range Pikachu sous Pichu, qui évolue par bonheur.
 11. Talents : un par Pokémon, passif permanent ou à déclencher ?
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?

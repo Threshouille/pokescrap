@@ -9,6 +9,9 @@ public class PokemonStats
     public string name;
     public int[] types;
     public int baseHp, baseAtk, baseSpAtk, baseDef, baseSpDef, baseSpeed, movementType, expYield;
+    public int baseForm; // first form of the evolution line
+    public int evolvesFrom; // previous form, 0 when none
+    public float recruitRate; // percent chance to join when knocked out, from the ROM (≤ 0: never)
 }
 
 [Serializable]
@@ -111,6 +114,13 @@ public static class GameData
     {
         Load();
         return pokemon.TryGetValue(id, out var p) ? p : null;
+    }
+
+    /// True when the Pokémon has starting moves, i.e. can be played.
+    public static bool HasLoadout(int pokemonId)
+    {
+        Load();
+        return loadouts.ContainsKey(pokemonId);
     }
 
     /// melee, ranged or support (melee when unknown).

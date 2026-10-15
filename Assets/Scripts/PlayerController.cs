@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 
 /// The player's team: every character is in the arena at once. One is driven by the player, the others by AllyAI.
 /// Gamepad: left stick moves, right stick aims, R1 / R2 / L1 / L2 use moves 1-4, d-pad left/right changes the
@@ -21,8 +20,6 @@ public class PlayerController : MonoBehaviour
     static readonly Color GaugeColor = new(1f, 0.85f, 0.2f);
     static readonly Vector3[] StartOffsets = { Vector3.zero, new(-1.2f, -0.8f, 0f), new(1.2f, -0.8f, 0f) };
 
-    [Tooltip("Every playable Pokémon; the team is drawn at random among them when a run starts")]
-    public PmdAnimSet[] characters;
     public int teamSize = 3;
     [Tooltip("Seconds the controlled Pokémon must stay on a knocked-out ally to bring it back")]
     public float reviveTime = 3f;
@@ -83,15 +80,27 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        // Provisional until the team selection menu exists: a random team among the playable Pokémon.
-        var pool = new List<PmdAnimSet>(characters);
+        foreach (var set in ChooseTeam()) members.Add(SpawnMember(set, members.Count));
+        SetControlled(0);
+    }
+
+    /// The team picked in the menu, or a random one among the unlocked Pokémon when the arena is started directly.
+    List<PmdAnimSet> ChooseTeam()
+    {
+        var team = new List<PmdAnimSet>();
+        if (Run.Team != null)
+            foreach (int id in Run.Team)
+                if (PokemonRoster.Get(id) is { } set) team.Add(set);
+        if (team.Count > 0) return team;
+
+        var pool = SaveData.Unlocked.Where(PokemonRoster.Playable).Select(PokemonRoster.Get).ToList();
         for (int i = 0; i < teamSize && pool.Count > 0; i++)
         {
             int pick = Random.Range(0, pool.Count);
-            members.Add(SpawnMember(pool[pick], i));
+            team.Add(pool[pick]);
             pool.RemoveAt(pick);
         }
-        SetControlled(0);
+        return team;
     }
 
     Member SpawnMember(PmdAnimSet set, int index)
@@ -151,14 +160,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        if (gameOver)
-        {
-            var pad = Gamepad.current;
-            var kb = Keyboard.current;
-            if ((pad != null && pad.startButton.wasPressedThisFrame) || (kb != null && kb.enterKey.wasPressedThisFrame))
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-            return;
-        }
+        if (gameOver) return; // EnemySpawner draws the end screen and handles what comes next
 
         if (Time.timeScale == 0f) return; // paused by the upgrade screen
 

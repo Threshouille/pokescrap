@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 
 /// Runs a whole run: a series of stages (arenas, then a boss), each made of enemy waves. Between two stages the
 /// arena is rebuilt with the next décor and the team is put back on its feet. Also draws the stage indicator,
@@ -65,9 +64,13 @@ public class EnemySpawner : MonoBehaviour
     float phaseUntil, nextWaveAt;
     float runTime;
     int defeated;
+    bool recorded;
+    Recruitment recruitment;
     GUIStyle label, title, text;
 
     Stage Current => stages[CurrentStage];
+
+    void Awake() => recruitment = gameObject.AddComponent<Recruitment>();
 
     void OnEnable() => Combatant.AnyDied += OnDied;
     void OnDisable() => Combatant.AnyDied -= OnDied;
@@ -212,11 +215,20 @@ public class EnemySpawner : MonoBehaviour
     {
         bool over = Victory || (team != null && team.GameOver);
         if (!over) runTime += Time.deltaTime; // stops during the upgrade screen, which freezes time
-        if (!Victory) return; // after a defeat, the team object handles the restart
+        if (!over) return;
+        if (!recorded)
+        {
+            recorded = true;
+            SaveData.RecordRun(Victory);
+        }
+        // Cross (or Enter / Options) plays again with the same team, Circle (or Escape) goes back to the menu.
         var pad = Gamepad.current;
         var kb = Keyboard.current;
-        if ((pad != null && pad.startButton.wasPressedThisFrame) || (kb != null && kb.enterKey.wasPressedThisFrame))
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        if ((pad != null && (pad.buttonSouth.wasPressedThisFrame || pad.startButton.wasPressedThisFrame))
+            || (kb != null && kb.enterKey.wasPressedThisFrame))
+            Run.Restart();
+        else if ((pad != null && pad.buttonEast.wasPressedThisFrame) || (kb != null && kb.escapeKey.wasPressedThisFrame))
+            Run.ToMenu();
     }
 
     // Provisional display: stage and wave, boss health, fades and end-of-run screens.
@@ -268,7 +280,12 @@ public class EnemySpawner : MonoBehaviour
         string summary = $"{reached}\nTemps : {Mathf.FloorToInt(runTime / 60f)}:{Mathf.FloorToInt(runTime % 60f):00}"
             + $"     Niveau : {(progression != null ? progression.Level : 1)}     Ennemis battus : {defeated}";
         GUI.Label(new Rect(0, y + 30f * s, Screen.width, 30f * s), summary, text);
-        GUI.Label(new Rect(0, y + 70f * s, Screen.width, 14f * s), "Options (manette) ou Entrée pour recommencer", text);
+        var recruits = recruitment != null ? recruitment.recruits : null;
+        string joined = recruits != null && recruits.Count > 0
+            ? "Recrutés : " + string.Join(", ", recruits.ConvertAll(id => GameData.Pokemon(id)?.name ?? "?"))
+            : "Aucune recrue";
+        GUI.Label(new Rect(0, y + 62f * s, Screen.width, 14f * s), joined, text);
+        GUI.Label(new Rect(0, y + 84f * s, Screen.width, 14f * s), "Croix ou Entrée : rejouer     Rond ou Échap : menu", text);
     }
 
     static void Fill(Rect rect, Color color)

@@ -101,6 +101,32 @@ public class PmdSpriteImport : AssetPostprocessor
             EditorUtility.SetDirty(set);
             Debug.Log($"{assetPath}: {set.anims.Count} animations");
         }
+        BuildRoster();
         AssetDatabase.SaveAssets();
+    }
+
+    // Lists every anim set in Resources so the game can find any Pokémon's sprites by id.
+    static void BuildRoster()
+    {
+        var path = $"Assets/Resources/{PokemonRoster.ResourcePath}.asset";
+        var roster = AssetDatabase.LoadAssetAtPath<PokemonRoster>(path);
+        if (roster == null)
+        {
+            roster = ScriptableObject.CreateInstance<PokemonRoster>();
+            AssetDatabase.CreateAsset(roster, path);
+        }
+        roster.sets = AssetDatabase.FindAssets("t:PmdAnimSet", new[] { Root })
+            .Select(guid => AssetDatabase.LoadAssetAtPath<PmdAnimSet>(AssetDatabase.GUIDToAssetPath(guid)))
+            .Where(set => set != null && set.pokemonId > 0)
+            .ToList();
+        EditorUtility.SetDirty(roster);
+        Debug.Log($"{path}: {roster.sets.Count} Pokémon");
+    }
+
+    [MenuItem("Pokescrap/Effacer la sauvegarde")]
+    public static void EraseSave()
+    {
+        SaveData.Erase();
+        Debug.Log($"Save erased: {SaveData.Path}");
     }
 }

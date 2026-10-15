@@ -56,10 +56,15 @@ Reporté à l'approfondissement :
 
 ## Jalon 4 — Entre les parties
 
-Version minimale :
+Version minimale (faite le 15/10/2026) :
 - Menu : choix des 3 Pokémon parmi ceux débloqués.
 - Recrutement des Pokémon battus (pourcentage de chance).
 - Sauvegarde des Pokémon débloqués.
+- Fait : scène `Menu`, recrutement au taux de la ROM (première forme jouable de la lignée), sauvegarde JSON, écran de fin « rejouer / menu » avec les recrues.
+
+À reprendre à l'approfondissement :
+- Taux : environ 8 % par K.O., tout se débloque en une ou deux parties. Piste : une seule recrue possible par arène.
+- Ennemis recrutés jouables avec leurs attaques d'ennemi, sans équilibrage.
 
 Reporté à l'approfondissement :
 - Choix des attaques de départ, monnaie persistante, achat d'attaques, objet passif.

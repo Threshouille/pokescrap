@@ -1,6 +1,6 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 15/10/2026. À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
+Dernière mise à jour : 15/10/2026 (jalon 4 minimal fait ; prochaine étape : approfondissement ou jalon 5, à voir avec Owen). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
 
 ## Méthode de travail avec Owen
 
@@ -20,13 +20,13 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 | 1 Arène avec vagues et victoire | fait (minimal) |
 | 2 Expérience, niveaux, choix d'améliorations | fait (minimal) |
 | 3 Partie complète : Arène 1 → Arène 2 → Boss, écrans de fin | fait (minimal), boss Groudon complet |
-| 4 Entre les parties : choix de l'équipe, recrutement, sauvegarde | **prochaine étape, plan à proposer** |
+| 4 Entre les parties : choix de l'équipe, recrutement, sauvegarde | fait (minimal) |
 | 5 Tous les Pokémon jouables et ennemis (génération automatique des attaques) | à faire |
 | 6 Coopération, son, finition | à faire, en dernier (décidé) |
 
 ## Contenu actuel
 
-- **Jouables (6)**, équipe de 3 tirée au hasard à chaque partie (provisoire, en attendant le menu du jalon 4) : Bulbizarre (soutien), Salamèche, Carapuce, Pikachu (distance), Goinfrex, Riolu (corps à corps).
+- **Jouables (6 au départ)**, équipe de 3 choisie dans la scène `Menu` : Bulbizarre (soutien), Salamèche, Carapuce, Pikachu (distance), Goinfrex, Riolu (corps à corps). Les 6 ennemis sont recrutables et deviennent jouables.
 - **Ennemis (6)** : Rattata, Machoc (corps à corps), Smogo, Stalgamin (distance), Granivol (soigneur), Tarsal (affaiblisseur).
 - **Boss** : Groudon, 4 attaques fixes annoncées uniquement par une bulle numérotée 1-4, tirées au hasard, annonces plus courtes sous 50 % PV. Résiste au poison (¼) et à la paralysie (½).
 - **Étapes** : décor 1 (cristaux roses, ennemis niv. 1), décor 20 (sable, niv. 5), décor 12 (volcan, boss niv. 10).
@@ -49,6 +49,7 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 
 ## Comment je teste (rappels utiles)
 
+- Sauvegarde : `~/.config/unity3d/DefaultCompany/Pokescrap/save.json` ; menu **Pokescrap > Effacer la sauvegarde** (la remettre à zéro après les tests). Pour tester le recrutement : `SaveData.Settings.recruitMultiplier = 100` en mode Play. Lancer `SampleScene` directement donne une équipe au hasard parmi les débloqués ; `Run.ToMenu()` / `Run.Start(ids)` changent de scène.
 - `execute_code` en mode Play ; neutraliser l'écran d'amélioration avec `Progression.choiceInterval = 0` et les vagues avec `EnemySpawner.delayBetweenWaves = 600`.
 - Aller directement au boss : invoquer deux fois la méthode privée `EnemySpawner.NextStage` par réflexion après avoir détruit les ennemis.
 - Pour mesurer une mécanique, figer les autres acteurs (désactiver `AllyAI`, `EnemyAI`, `BossAI`) : les alliés tuent sinon les cibles de test, et le poison fausse les PV.

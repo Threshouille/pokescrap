@@ -122,6 +122,7 @@ def main(rom_dir, out_dir):
         "id": e["id"], "name": e["name"], "types": e["types"], "baseHp": e["base_hp"],
         "baseAtk": e["base_atk"], "baseSpAtk": e["base_sp_atk"], "baseDef": e["base_def"],
         "baseSpDef": e["base_sp_def"], "baseSpeed": e.get("base_speed", 0), "movementType": e["movement_type"], "expYield": e["exp_yield"],
+        "baseForm": e["base_form"], "evolvesFrom": e["evolution"]["from"], "recruitRate": e["recruit_rate"],
     } for e in pokemon]
     rt_dir = out.parent / "Resources" / "Data"
     rt_dir.mkdir(parents=True, exist_ok=True)
