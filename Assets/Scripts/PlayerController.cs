@@ -93,11 +93,11 @@ public class PlayerController : MonoBehaviour
                 if (PokemonRoster.Get(id) is { } set) team.Add(set);
         if (team.Count > 0) return team;
 
-        var pool = SaveData.Unlocked.Where(PokemonRoster.Playable).Select(PokemonRoster.Get).ToList();
+        var pool = SaveData.Unlocked.Where(PokemonRoster.Playable).ToList();
         for (int i = 0; i < teamSize && pool.Count > 0; i++)
         {
             int pick = Random.Range(0, pool.Count);
-            team.Add(pool[pick]);
+            team.Add(PokemonRoster.Get(pool[pick]));
             pool.RemoveAt(pick);
         }
         return team;

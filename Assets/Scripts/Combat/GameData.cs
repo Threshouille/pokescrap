@@ -214,7 +214,7 @@ public static class GameData
         Load();
         foreach (var p in pokemon.Values)
             if (p.evolvesFrom == pokemonId && p.id != pokemonId && p.evolveLevel > 0 && level >= p.evolveLevel
-                && PokemonRoster.Get(p.id) != null)
+                && PokemonRoster.Has(p.id))
                 return p.id;
         return 0;
     }

@@ -11,6 +11,7 @@ public class PmdSpriteImport : AssetPostprocessor
     const string TilesetRoot = "Assets/Tilesets";
     const string EffectRoot = "Assets/Resources/Effects";
     const string PortraitRoot = "Assets/Resources/Portraits";
+    const string AnimSetRoot = "Assets/Resources/" + PokemonRoster.AnimSetPath;
 
     void OnPreprocessTexture()
     {
@@ -61,21 +62,30 @@ public class PmdSpriteImport : AssetPostprocessor
     [MenuItem("Pokescrap/Build Anim Sets")]
     public static void BuildAll()
     {
+        Directory.CreateDirectory(AnimSetRoot);
+        AssetDatabase.Refresh();
+        var ids = new System.Collections.Generic.List<int>();
+        int done = 0;
         foreach (var folder in AssetDatabase.GetSubFolders(Root))
         {
             var xmlPath = folder + "/AnimData.xml";
-            if (!File.Exists(xmlPath)) continue;
+            var idPath = folder + "/id.txt";
+            if (!File.Exists(xmlPath) || !File.Exists(idPath)) continue;
+            int id = int.Parse(File.ReadAllText(idPath).Trim());
 
-            var assetPath = folder + "/AnimSet.asset";
+            // Anim sets live in Resources/AnimSets/<id> so the game loads them one at a time; older ones sat
+            // next to the sprites and are moved (keeping their GUID, so scene references survive).
+            var assetPath = $"{AnimSetRoot}/{id}.asset";
+            var oldPath = folder + "/AnimSet.asset";
+            if (File.Exists(oldPath) && !File.Exists(assetPath)) AssetDatabase.MoveAsset(oldPath, assetPath);
             var set = AssetDatabase.LoadAssetAtPath<PmdAnimSet>(assetPath);
             if (set == null)
             {
                 set = ScriptableObject.CreateInstance<PmdAnimSet>();
                 AssetDatabase.CreateAsset(set, assetPath);
             }
-
-            var idPath = folder + "/id.txt";
-            if (File.Exists(idPath)) set.pokemonId = int.Parse(File.ReadAllText(idPath).Trim());
+            set.pokemonId = id;
+            if (!ids.Contains(id)) ids.Add(id);
 
             set.anims.Clear();
             var nodes = XDocument.Load(xmlPath).Root.Element("Anims").Elements("Anim").ToList();
@@ -99,14 +109,18 @@ public class PmdSpriteImport : AssetPostprocessor
                 });
             }
             EditorUtility.SetDirty(set);
-            Debug.Log($"{assetPath}: {set.anims.Count} animations");
+            AssetDatabase.SaveAssetIfDirty(set);
+            if (set.anims.Count == 0) Debug.LogWarning($"{assetPath} ({folder}): no animations");
+            // Hundreds of uncompressed sheets do not fit in memory: release them as we go.
+            if (++done % 25 == 0) EditorUtility.UnloadUnusedAssetsImmediate();
         }
-        BuildRoster();
+        BuildRoster(ids);
         AssetDatabase.SaveAssets();
+        Debug.Log($"Build Anim Sets: {done} anim sets");
     }
 
     // Lists every anim set in Resources so the game can find any Pokémon's sprites by id.
-    static void BuildRoster()
+    static void BuildRoster(System.Collections.Generic.List<int> ids)
     {
         var path = $"Assets/Resources/{PokemonRoster.ResourcePath}.asset";
         var roster = AssetDatabase.LoadAssetAtPath<PokemonRoster>(path);
@@ -115,12 +129,10 @@ public class PmdSpriteImport : AssetPostprocessor
             roster = ScriptableObject.CreateInstance<PokemonRoster>();
             AssetDatabase.CreateAsset(roster, path);
         }
-        roster.sets = AssetDatabase.FindAssets("t:PmdAnimSet", new[] { Root })
-            .Select(guid => AssetDatabase.LoadAssetAtPath<PmdAnimSet>(AssetDatabase.GUIDToAssetPath(guid)))
-            .Where(set => set != null && set.pokemonId > 0)
-            .ToList();
+        ids.Sort();
+        roster.ids = ids;
         EditorUtility.SetDirty(roster);
-        Debug.Log($"{path}: {roster.sets.Count} Pokémon");
+        Debug.Log($"{path}: {roster.ids.Count} Pokémon");
     }
 
     [MenuItem("Pokescrap/Effacer la sauvegarde")]
