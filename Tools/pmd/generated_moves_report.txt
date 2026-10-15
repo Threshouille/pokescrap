@@ -1,0 +1,99 @@
+353 attaques générées, 98 écartées (à faire à la main) :
+   10 Doux Parfum (Sweet Scent) : attaque de statut sans effet gérable
+   12 Danse Pluie (Rain Dance) : effet particulier (catégorie PokéAPI 10)
+   14 Grêle (Hail) : effet particulier (catégorie PokéAPI 10)
+   15 Aromathérapi (Aromatherapy) : statut sur soi sans effet gérable
+   17 Encore (Encore) : attaque de statut sans effet gérable
+   19 Frénésie (Rage) : statut sur soi sans effet gérable
+   21 Balance (Pain Split) : attaque de statut sans effet gérable
+   26 Glas de Soin (Heal Bell) : statut sur soi sans effet gérable
+   35 Dépit (Spite) : attaque de statut sans effet gérable
+   37 Brouillard (SmokeScreen) : attaque de statut sans effet gérable
+   40 Mimique (Mirror Move) : statut sur soi sans effet gérable
+   49 Rancune (Grudge) : statut sur soi sans effet gérable
+   56 Reflet (Double Team) : statut sur soi sans effet gérable
+   74 Puissance (Focus Energy) : statut sur soi sans effet gérable
+   86 Toile (Spider Web) : attaque de statut sans effet gérable
+   88 Buée Noire (Haze) : effet particulier (catégorie PokéAPI 10)
+   89 Regard Noir (Mean Look) : attaque de statut sans effet gérable
+   98 Lire-Esprit (Mind Reader) : statut sur soi sans effet gérable
+  102 Par Ici (Follow Me) : statut sur soi sans effet gérable
+  104 Ténacité (Endure) : statut sur soi sans effet gérable
+  112 Brouhaha (Uproar) : statut sur soi sans effet gérable
+  115 Boost (Psych Up) : attaque de statut sans effet gérable
+  119 Force-Nature (Nature Power) : attaque de statut sans effet gérable
+  130 Brume (Mist) : effet particulier (catégorie PokéAPI 11)
+  131 Abîme (Fissure) : effet particulier (catégorie PokéAPI 9)
+  134 Rune Protect (Safeguard) : effet particulier (catégorie PokéAPI 11)
+  138 Gribouille (Sketch) : attaque de statut sans effet gérable
+  141 Tempêtesable (Sandstorm) : effet particulier (catégorie PokéAPI 10)
+  142 Jet de Sable (Sand-Attack) : attaque de statut sans effet gérable
+  146 Télékinésie (Kinesis) : attaque de statut sans effet gérable
+  150 Glaciation (Sheer Cold) : effet particulier (catégorie PokéAPI 9)
+  169 Lilliput (Minimize) : statut sur soi sans effet gérable
+  172 Provoc (Taunt) : attaque de statut sans effet gérable
+  177 Empal'Korne (Horn Drill) : effet particulier (catégorie PokéAPI 9)
+  183 Adaptation (Conversion) : statut sur soi sans effet gérable
+  184 Conversion 2 (Conversion 2) : statut sur soi sans effet gérable
+  185 Coup d'Main (Helping Hand) : statut sur soi sans effet gérable
+  187 Téléport (Teleport) : statut sur soi sans effet gérable
+  194 Barrage (Block) : attaque de statut sans effet gérable
+  209 Tourmagik (Trick) : attaque de statut sans effet gérable
+  212 Lance-Boue (Mud Sport) : effet particulier (catégorie PokéAPI 10)
+  220 Imitation (Role Play) : attaque de statut sans effet gérable
+  223 Zénith (Sunny Day) : effet particulier (catégorie PokéAPI 10)
+  225 Voeu (Wish) : statut sur soi sans effet gérable
+  227 Blabla Dodo (Sleep Talk) : statut sur soi sans effet gérable
+  229 Assistance (Assist) : attaque de statut sans effet gérable
+  232 Repos (Rest) : statut sur soi sans effet gérable
+  233 Racines (Ingrain) : statut sur soi sans effet gérable
+  237 Malédiction (Curse) : attaque de statut sans effet gérable
+  247 Guillotine (Guillotine) : effet particulier (catégorie PokéAPI 9)
+  252 Relais (Baton Pass) : attaque de statut sans effet gérable
+  254 Trempette (Splash) : statut sur soi sans effet gérable
+  256 Carnareket (Doom Desire) : statut sur soi sans effet gérable
+  257 Cognobidon (Belly Drum) : statut sur soi sans effet gérable
+  259 Mur Lumière (Light Screen) : effet particulier (catégorie PokéAPI 11)
+  266 Possessif (Imprison) : attaque de statut sans effet gérable
+  268 Cyclone (Whirlwind) : effet particulier (catégorie PokéAPI 12)
+  269 Baston (Beat Up) : statut sur soi sans effet gérable
+  273 Flash (Flash) : attaque de statut sans effet gérable
+  282 Morphing (Transform) : statut sur soi sans effet gérable
+  284 Hurlement (Roar) : effet particulier (catégorie PokéAPI 12)
+  286 Camouflage (Camouflage) : statut sur soi sans effet gérable
+  295 Picots (Spikes) : effet particulier (catégorie PokéAPI 11)
+  298 Reflet Magik (Magic Coat) : statut sur soi sans effet gérable
+  301 Abri (Protect) : statut sur soi sans effet gérable
+  304 Clonage (Substitute) : attaque de statut sans effet gérable
+  305 Détection (Detect) : statut sur soi sans effet gérable
+  307 Tourniquet (Water Sport) : effet particulier (catégorie PokéAPI 10)
+  313 Prlvt Destin (Destiny Bond) : attaque de statut sans effet gérable
+  317 Prescience (Future Sight) : statut sur soi sans effet gérable
+  327 Copie (Mimic) : attaque de statut sans effet gérable
+  330 Métronome (Metronome) : attaque de statut sans effet gérable
+  334 Saisie (Snatch) : statut sur soi sans effet gérable
+  337 Recyclage (Recycle) : statut sur soi sans effet gérable
+  338 Protection (Reflect) : effet particulier (catégorie PokéAPI 11)
+  339 Régénération (Refresh) : statut sur soi sans effet gérable
+  349 Verrouillage (Lock-On) : statut sur soi sans effet gérable
+  434 Anneau Hydro (Aqua Ring) : statut sur soi sans effet gérable
+  438 Suc Digestif (Gastro Acid) : attaque de statut sans effet gérable
+  439 Voeu Soin (Healing Wish) : statut sur soi sans effet gérable
+  444 Vent Arrière (Tailwind) : effet particulier (catégorie PokéAPI 11)
+  447 Air Veinard (Lucky Chant) : effet particulier (catégorie PokéAPI 11)
+  448 Permugarde (Guard Swap) : attaque de statut sans effet gérable
+  464 Echange Psy (Psycho Shift) : attaque de statut sans effet gérable
+  465 Moi d'Abord (Me First) : attaque de statut sans effet gérable
+  478 Gravité (Gravity) : effet particulier (catégorie PokéAPI 10)
+  482 Passe-Passe (Switcheroo) : attaque de statut sans effet gérable
+  492 Acupression (Acupressure) : statut sur soi sans effet gérable
+  493 Vol Magnétik (Magnet Rise) : statut sur soi sans effet gérable
+  496 Pics Toxik (Toxic Spikes) : effet particulier (catégorie PokéAPI 11)
+  499 Distorsion (Trick Room) : effet particulier (catégorie PokéAPI 10)
+  503 Dégommage (Fling) : attaque de statut sans effet gérable
+  504 Soucigraine (Worry Seed) : attaque de statut sans effet gérable
+  506 Permucoeur (Heart Swap) : attaque de statut sans effet gérable
+  513 Permuforce (Power Swap) : attaque de statut sans effet gérable
+  514 Astuce Force (Power Trick) : statut sur soi sans effet gérable
+  525 Photocopie (Copycat) : attaque de statut sans effet gérable
+  526 Danse-Lune (Lunar Dance) : statut sur soi sans effet gérable

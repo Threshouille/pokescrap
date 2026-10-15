@@ -1,0 +1,33 @@
+{
+  "_comment": "Rules used by generate_moves.py to turn ROM + PokéAPI move data into generic real-time moves. Hand-written moves in realtime_moves.json always win.",
+  "apiPowerToPmd": 0.2,
+  "fixedDamagePower": 8,
+  "referencePower": 6,
+  "cooldownExponent": 0.9,
+  "minCooldown": 0.5,
+  "maxCooldown": 20,
+  "windupPerPower": 0.01,
+  "chargeWindup": 1.0,
+  "rechargeCooldownFactor": 1.5,
+  "multiHit": { "count": 3, "spread": 20, "meleePowerFactor": 2 },
+  "templates": {
+    "melee":            { "family": "melee", "cooldown": 0.8, "range": 0.7, "radius": 0.6, "windup": 0.4 },
+    "lunge":            { "family": "melee", "cooldown": 1.2, "range": 0.4, "radius": 0.45, "windup": 0.5, "lunge": 2.5, "lungeTime": 0.2 },
+    "projectile":       { "family": "projectile", "cooldown": 2.5, "speed": 9, "range": 7, "radius": 0.22, "windup": 0.5 },
+    "line":             { "family": "projectile", "cooldown": 3.0, "speed": 14, "range": 9, "radius": 0.3, "windup": 0.6 },
+    "burstNear":        { "family": "burst", "cooldown": 3.0, "radius": 1.8, "windup": 0.6 },
+    "burstRoom":        { "family": "burst", "cooldown": 5.0, "radius": 4.0, "windup": 1.0 },
+    "statusProjectile": { "family": "projectile", "cooldown": 6.0, "speed": 6, "range": 6, "radius": 0.3, "windup": 0.6 },
+    "statusZone":       { "family": "zone", "cooldown": 8.0, "range": 6, "radius": 1.2, "windup": 0.8, "zoneDuration": 4 },
+    "modifierSelf":     { "family": "modifier", "cooldown": 10.0, "radius": 0, "windup": 0.3, "target": "self", "modDuration": 6 },
+    "modifierAllies":   { "family": "modifier", "cooldown": 10.0, "radius": 4, "windup": 0.4, "target": "allies", "modDuration": 6 },
+    "modifierEnemies":  { "family": "modifier", "cooldown": 8.0, "radius": 4.5, "windup": 0.6, "target": "enemies", "modDuration": 5 },
+    "heal":             { "family": "heal", "cooldown": 8.0, "range": 5, "windup": 0.4 }
+  },
+  "statMap": { "2": "attack", "3": "defense", "4": "attack", "5": "defense", "6": "speed" },
+  "statStages": { "-3": 0.4, "-2": 0.5, "-1": 0.7, "1": 1.3, "2": 1.6, "3": 1.8 },
+  "onHitModDuration": 4,
+  "statusDurations": { "poison": 5, "paralysis": 3, "burn": 5, "sleep": 3, "freeze": 2, "confusion": 4, "trap": 3, "leech-seed": 6, "yawn": 3, "infatuation": 3, "nightmare": 5 },
+  "maxHealShare": 0.5,
+  "excludedMetaCategories": [9, 10, 11, 12]
+}

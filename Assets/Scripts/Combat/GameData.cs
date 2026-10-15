@@ -95,6 +95,10 @@ public static class GameData
 
         var file = JsonUtility.FromJson<MoveFile>(Resources.Load<TextAsset>("Data/realtime_moves").text);
         moves = new Dictionary<int, MoveDef>();
+        // Generic moves made from the ROM by generate_moves.py, then the hand-written ones on top.
+        var generated = Resources.Load<TextAsset>("Data/generated_moves");
+        if (generated != null)
+            foreach (var m in JsonUtility.FromJson<MoveFile>(generated.text).moves) moves[m.id] = m;
         foreach (var m in file.moves) moves[m.id] = m;
         loadouts = new Dictionary<int, int[]>();
         roles = new Dictionary<int, string>();
