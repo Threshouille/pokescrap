@@ -21,6 +21,7 @@ public class Projectile : MonoBehaviour
     float range; // tiles the path covers (arc: up to the landing point)
     float side; // +1 / -1: which way a curve bends, where an orbit starts
     float delay; // seconds before the shot leaves (bursts)
+    Vector2 aimAtSpawn; // the shooter's live aim when the shot was created (zero for an AI)
 
     // The path is an offset around a point moving straight ahead from "origin" along "forward".
     Vector2 origin, forward;
@@ -70,6 +71,7 @@ public class Projectile : MonoBehaviour
         projectile.origin = go.transform.position;
         projectile.bouncesLeft = move.bounces;
         projectile.delay = delay;
+        projectile.aimAtSpawn = owner.LiveAim;
         projectile.renderers = go.GetComponentsInChildren<Renderer>();
         if (delay > 0f) projectile.Show(false);
     }
@@ -118,6 +120,13 @@ public class Projectile : MonoBehaviour
             delay -= dt;
             if (owner == null || !owner.IsAlive) { Destroy(gameObject); return; }
             if (delay > 0f) return;
+            // A player's shot keeps its angle in the volley but follows where the player aims now.
+            if (aimAtSpawn != Vector2.zero && owner.LiveAim != Vector2.zero)
+            {
+                float offset = Vector2.SignedAngle(aimAtSpawn, forward);
+                forward = (Quaternion.Euler(0f, 0f, offset) * owner.LiveAim.normalized);
+                transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
+            }
             origin = owner.transform.position + (Vector3)(forward * SpawnOffset);
             transform.position = origin;
             Show(true);

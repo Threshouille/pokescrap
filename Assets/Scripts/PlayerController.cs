@@ -131,7 +131,11 @@ public class PlayerController : MonoBehaviour
     {
         current = index;
         move = Vector2.zero;
-        foreach (var m in members) m.ai.enabled = m != Current && m.combatant.IsAlive;
+        foreach (var m in members)
+        {
+            m.ai.enabled = m != Current && m.combatant.IsAlive;
+            m.combatant.LiveAim = Vector2.zero; // the AI aims for itself
+        }
     }
 
     /// Next member still standing in the given direction, or -1 when there is none.
@@ -169,6 +173,7 @@ public class PlayerController : MonoBehaviour
         Vector2 aim = ReadAim();
         if (aim != Vector2.zero) facing = aim;
         else if (move != Vector2.zero) facing = move.normalized;
+        member.combatant.LiveAim = facing; // shots leaving after a cast follow the aim
 
         if (DodgePressed()) member.combatant.TryDodge(move != Vector2.zero ? move : facing);
 

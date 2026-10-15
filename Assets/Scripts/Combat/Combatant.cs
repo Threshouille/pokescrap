@@ -58,6 +58,9 @@ public class Combatant : MonoBehaviour
     /// True while a dash (melee lunge or dodge) drives the body: controllers leave its velocity alone.
     public bool IsDashing => IsLunging || IsDodging;
     public float DodgeCooldownLeft => Mathf.Max(0f, dodgeReadyAt - Time.time);
+    /// Where the player controlling this Pokémon aims right now (zero for an AI). A shot that leaves after a cast
+    /// or a delay follows it, rather than the direction it was aimed at when the move started.
+    public Vector2 LiveAim { get; set; }
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
     public bool IsCasting => castMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
@@ -540,6 +543,7 @@ public class Combatant : MonoBehaviour
     void FireProjectiles(MoveDef move, Vector2 direction, float distance)
     {
         int shots = Mathf.Max(1, move.count);
+        if (move.path == "arc" && distance <= 0f) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
         for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
             for (int i = 0; i < shots; i++)
             {
@@ -557,13 +561,34 @@ public class Combatant : MonoBehaviour
             }
     }
 
+    // Arc shots fired without a distance (the player) land on the nearest opponent within reach close to the aimed
+    // direction; shots landing further and further (rangeStep) are centred on it.
+    void AutoAim(MoveDef move, int total, ref Vector2 direction, ref float distance)
+    {
+        const float Cone = 40f; // degrees either side of the aim
+        float reach = move.range + (total - 1) * move.rangeStep, best = float.MaxValue;
+        Combatant target = null;
+        foreach (var c in all)
+        {
+            if (c.team == team || !c.IsAlive) continue;
+            Vector2 to = c.transform.position - transform.position;
+            float d = to.magnitude;
+            if (d > reach || d >= best || Vector2.Angle(direction, to) > Cone) continue;
+            best = d;
+            target = c;
+        }
+        if (target == null) return;
+        direction = ((Vector2)(target.transform.position - transform.position)).normalized;
+        distance = Mathf.Max(0.5f, best - (total - 1) / 2f * move.rangeStep);
+    }
+
     void FixedUpdate()
     {
         if (!UpdateStatuses()) { castMove = null; return; }
 
         if (castMove != null && Time.time >= castUntil)
         {
-            if (CanAttack) FireProjectiles(castMove, castDirection, castDistance);
+            if (CanAttack) FireProjectiles(castMove, LiveAim != Vector2.zero ? Steer(LiveAim.normalized) : castDirection, castDistance);
             castMove = null;
         }
 
