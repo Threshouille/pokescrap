@@ -196,7 +196,8 @@ public class EnemySpawner : MonoBehaviour
 
         go.AddComponent<PmdAnimator>().SetAnimSet(set);
         var combatant = go.AddComponent<Combatant>();
-        combatant.Init(set.pokemonId, Team.Enemy);
+        // Bosses keep their fixed moves; other enemies draw theirs from what they learn by level.
+        combatant.Init(set.pokemonId, Team.Enemy, isBoss ? null : GameData.RandomMoves(set.pokemonId, SaveData.Settings.enemyMoveCount, rng));
         for (int level = 2; level <= Current.enemyLevel; level++)
             combatant.ApplyGrowth(LevelData.Growth(set.pokemonId, level), level);
         combatant.damageFactor = damageFactor;

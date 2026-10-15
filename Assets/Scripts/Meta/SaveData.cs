@@ -33,6 +33,9 @@ public static class SaveData
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;
         public int startingMoveCount = 2;
+        public int enemyMoveCount = 2;
+        public float moveOfferChanceWhenFull = 0.5f; // chance that a level-up choice offers a new move once 4 are known
+        public float evolvedMoveWeight = 2f; // after evolving, moves of the current form are this much more likely
     }
 
     static File data;

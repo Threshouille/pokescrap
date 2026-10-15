@@ -11,6 +11,7 @@ public class PokemonStats
     public int baseHp, baseAtk, baseSpAtk, baseDef, baseSpDef, baseSpeed, movementType, expYield;
     public int baseForm; // first form of the evolution line
     public int evolvesFrom; // previous form, 0 when none
+    public int evolveLevel; // level at which the previous form turns into this one (0: not by level)
     public float recruitRate; // percent chance to join when knocked out, from the ROM (≤ 0: never)
     public int[] levelUpMoves; // moves learnt by level in the ROM, in level order (TMs and egg moves left out)
 }
@@ -155,6 +156,33 @@ public static class GameData
                 if (result.Count < count && pool.Contains(id)) result.Add(id);
         foreach (int id in pool)
             if (result.Count < count && !result.Contains(id)) result.Add(id);
+        return result.ToArray();
+    }
+
+    /// Form this Pokémon turns into at that level, or 0. Only evolutions by level with sprites in the project.
+    public static int LevelEvolution(int pokemonId, int level)
+    {
+        Load();
+        foreach (var p in pokemon.Values)
+            if (p.evolvesFrom == pokemonId && p.id != pokemonId && p.evolveLevel > 0 && level >= p.evolveLevel
+                && PokemonRoster.Get(p.id) != null)
+                return p.id;
+        return 0;
+    }
+
+    /// "count" moves drawn from the pool, the first one dealing damage when the pool has one (enemies).
+    public static int[] RandomMoves(int pokemonId, int count, System.Random rng)
+    {
+        var pool = MovePool(pokemonId);
+        var result = new List<int>();
+        var damaging = pool.FindAll(m => m.power > 0);
+        if (damaging.Count > 0) result.Add(damaging[rng.Next(damaging.Count)].id);
+        while (result.Count < count)
+        {
+            var left = pool.FindAll(m => !result.Contains(m.id));
+            if (left.Count == 0) break;
+            result.Add(left[rng.Next(left.Count)].id);
+        }
         return result.ToArray();
     }
 

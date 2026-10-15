@@ -49,7 +49,7 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 
 ## Comment je teste (rappels utiles)
 
-- Système d'attaques (décidé le 15/10/2026, voir GDD) : étapes 1 (générateur), effets et 2 (attaques de départ au menu) faites ; restent l'étape 3 (nouvelle attaque tous les 10 niveaux, plus de chances pour celles de la forme évoluée), l'étape 4 (rôle de l'IA déduit des attaques), les ennemis à 2 attaques tirées au hasard, et l'intégration des icônes de statut demandées à Claude Design.
+- Système d'attaques (décidé le 15/10/2026, voir GDD) : étapes 1 (générateur), effets, 2 (attaques de départ au menu) et 3 (nouvelles attaques, évolution en partie, ennemis à 2 attaques) faites ; restent l'étape 4 (rôle de l'IA déduit des attaques) et l'intégration des icônes de statut demandées à Claude Design. Formes évoluées importées : Herbizarre, Florizarre, Reptincel, Dracaufeu, Carabaffe, Tortank, Rattatac, Machopeur, Smogogo, Floravol, Cotovol, Kirlia, Gardevoir, Oniglali.
 - Sauvegarde : `~/.config/unity3d/DefaultCompany/Pokescrap/save.json` ; menu **Pokescrap > Effacer la sauvegarde** (la remettre à zéro après les tests). Pour tester le recrutement : `SaveData.Settings.recruitMultiplier = 100` en mode Play. Lancer `SampleScene` directement donne une équipe au hasard parmi les débloqués ; `Run.ToMenu()` / `Run.Start(ids)` changent de scène.
 - `execute_code` en mode Play ; neutraliser l'écran d'amélioration avec `Progression.choiceInterval = 0` et les vagues avec `EnemySpawner.delayBetweenWaves = 600`.
 - Aller directement au boss : invoquer deux fois la méthode privée `EnemySpawner.NextStage` par réflexion après avoir détruit les ennemis.

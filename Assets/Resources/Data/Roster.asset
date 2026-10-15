@@ -14,15 +14,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PokemonRoster
   sets:
   - {fileID: 11400000, guid: 04d307084c5fa59ccb30516ba0e282a8, type: 2}
+  - {fileID: 11400000, guid: b03d35c02148fbb5d89a8486dc8846f0, type: 2}
   - {fileID: 11400000, guid: 9349fb683ec28418791efa846f283dd6, type: 2}
+  - {fileID: 11400000, guid: 4794567af1524cd4fb9d48e19d0b5941, type: 2}
+  - {fileID: 11400000, guid: 6f4438af3abe301aeb92c06ca70b0154, type: 2}
+  - {fileID: 11400000, guid: bf511e01b535041cb9d3c24ea4f3aee1, type: 2}
+  - {fileID: 11400000, guid: 61583367683becfb3bc2ff7f4f4bf3b7, type: 2}
+  - {fileID: 11400000, guid: 235b7ef6ec3ef0ceeaff53a7a8c544e2, type: 2}
   - {fileID: 11400000, guid: 2cb1f4fd3c76e8711b4c15236a7c8ac6, type: 2}
   - {fileID: 11400000, guid: 0af435357b8f27b9d87c1b962177b3ea, type: 2}
   - {fileID: 11400000, guid: e29482e7ac95d541da208ae6f4d476eb, type: 2}
+  - {fileID: 11400000, guid: 3080c00ccdc6fc740ae210ee72a175ad, type: 2}
+  - {fileID: 11400000, guid: 9a94cb0f7dfa4016b82ebcd21e4b373a, type: 2}
   - {fileID: 11400000, guid: ec253a08be6ece756b4e49a2cb9d7432, type: 2}
+  - {fileID: 11400000, guid: ec6fcfe4afd1f31b6876582970edfe74, type: 2}
+  - {fileID: 11400000, guid: 85f03ec29453a89b29030168ba4b599b, type: 2}
   - {fileID: 11400000, guid: e0e3347ebaa3996cd9d8636f4a9f022f, type: 2}
   - {fileID: 11400000, guid: dd1dfcaa7445add9ca004a233863198b, type: 2}
+  - {fileID: 11400000, guid: 1d927c1e14d2454c0a73a1c01315be13, type: 2}
+  - {fileID: 11400000, guid: 662ef8fd8343896f392c9f6a7530008f, type: 2}
   - {fileID: 11400000, guid: 345a2463c1592fd2ba15aa0d61ea1505, type: 2}
   - {fileID: 11400000, guid: 7c192a368bb3f4c25ac15957e128b931, type: 2}
   - {fileID: 11400000, guid: cbc83913d017b4beab150b38ddbcb169, type: 2}
+  - {fileID: 11400000, guid: 9fd7ac0b122ede64fbbd145bf4b631c8, type: 2}
   - {fileID: 11400000, guid: 6f145a02d24671dbbb11d9fa76ed156e, type: 2}
   - {fileID: 11400000, guid: 8b92a08af2c5a39f3bc67e082727bda0, type: 2}
+  - {fileID: 11400000, guid: 9eca9952f7a772d14864194271dd26d6, type: 2}

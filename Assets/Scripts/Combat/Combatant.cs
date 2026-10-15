@@ -37,6 +37,8 @@ public class Combatant : MonoBehaviour
     public float projectileSizeMul = 1f, projectileSpeedMul = 1f, meleeAreaMul = 1f;
 
     public PokemonStats Stats { get; private set; }
+    /// The form this Pokémon started the run as (it may have evolved since).
+    public int OriginId { get; private set; }
     public MoveDef[] Moves { get; private set; } = new MoveDef[MoveSlots];
     /// melee, ranged or support: drives the AI.
     public string Role { get; private set; } = "melee";
@@ -169,6 +171,7 @@ public class Combatant : MonoBehaviour
     {
         team = newTeam;
         Stats = GameData.Pokemon(pokemonId);
+        OriginId = pokemonId;
         Moves = moveIds == null ? GameData.StartingMoves(pokemonId, MoveSlots) : new MoveDef[MoveSlots];
         for (int i = 0; moveIds != null && i < MoveSlots && i < moveIds.Length; i++) Moves[i] = GameData.Move(moveIds[i]);
         Role = GameData.Role(pokemonId);
@@ -200,6 +203,52 @@ public class Combatant : MonoBehaviour
         spAtk += growth.spAtk;
         def += growth.def;
         spDef += growth.spDef;
+    }
+
+    /// Turns into another form: its base stats replace the old ones, level gains are kept.
+    public void Evolve(int pokemonId)
+    {
+        var next = GameData.Pokemon(pokemonId);
+        if (next == null || Stats == null) return;
+        float hpShare = maxHp > 0f ? hp / maxHp : 1f;
+        maxHp += next.baseHp - Stats.baseHp;
+        if (IsAlive) hp = Mathf.Max(1f, maxHp * hpShare);
+        atk += next.baseAtk - Stats.baseAtk;
+        spAtk += next.baseSpAtk - Stats.baseSpAtk;
+        def += next.baseDef - Stats.baseDef;
+        spDef += next.baseSpDef - Stats.baseSpDef;
+        moveSpeed *= GameData.MoveSpeed(next.baseSpeed) / GameData.MoveSpeed(Stats.baseSpeed);
+        Stats = next;
+    }
+
+    /// Moves this Pokémon could learn now: those of its first form, plus those of the forms it evolved into,
+    /// with a weight (moves of an evolved current form are more likely). Known moves are left out.
+    public List<(MoveDef move, float weight)> LearnableMoves(float evolvedWeight)
+    {
+        var result = new List<(MoveDef, float)>();
+        var forms = new List<int>();
+        for (var form = Stats; form != null; form = form.id == OriginId || form.evolvesFrom <= 0 ? null : GameData.Pokemon(form.evolvesFrom))
+            forms.Add(form.id);
+        if (!forms.Contains(OriginId)) forms.Add(OriginId);
+        var current = Stats.id != OriginId ? GameData.MovePool(Stats.id).ConvertAll(m => m.id) : new List<int>();
+        var seen = new HashSet<int>();
+        foreach (int form in forms)
+            foreach (var move in GameData.MovePool(form))
+            {
+                if (!seen.Add(move.id) || Array.Exists(Moves, m => m != null && m.id == move.id)) continue;
+                result.Add((move, current.Contains(move.id) ? evolvedWeight : 1f));
+            }
+        return result;
+    }
+
+    public int KnownMoveCount => Array.FindAll(Moves, m => m != null).Length;
+
+    /// Puts a move in a slot (replacing what was there), ready to use.
+    public void LearnMove(int slot, MoveDef move)
+    {
+        if (slot < 0 || slot >= MoveSlots) return;
+        Moves[slot] = move;
+        readyAt[slot] = 0f;
     }
 
     public void ApplyUpgrade(UpgradeDef upgrade)

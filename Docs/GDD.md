@@ -20,7 +20,8 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 ### Attaques
 - 4 emplacements par Pokémon. On commence la partie avec 2 attaques choisies avant la partie parmi toutes celles que la forme de base apprend par niveau (1 à 100) ; CT et attaques par œufs exclues (décidé le 15/10/2026).
 - Pendant la partie, tous les 10 niveaux, l'une des 3 propositions du choix d'amélioration est une nouvelle attaque tirée au hasard dans la liste du Pokémon, jusqu'à 4 attaques ; ensuite cette proposition n'apparaît qu'une fois sur deux et sert à remplacer une attaque apprise. Après une évolution, les attaques de la forme évoluée ont plus de chances d'être proposées (15/10/2026).
-- Ennemis : 2 attaques tirées au hasard dans leur liste (15/10/2026).
+- Ennemis : 2 attaques tirées au hasard dans leur liste, dont au moins une offensive si possible (15/10/2026). Les boss gardent leurs attaques fixes.
+- Évolution en partie (15/10/2026) : au niveau du jeu d'origine, statistiques de base de la nouvelle forme, niveaux gagnés conservés ; les attaques de la forme actuelle comptent double au tirage des nouvelles attaques. Évolutions sans niveau : pas encore décidé.
 - Abandonné (15/10/2026) : l'évolution des attaques en cours de partie.
 - Les attaques plus puissantes ont plus de temps de recharge ou d'autres inconvénients (annonce plus longue, charge, recul).
 - Méthode (15/10/2026) : toutes les attaques sont d'abord ajoutées de façon générique (`generate_moves.py`, à partir de la ROM et de PokéAPI), puis la plupart seront reprises au cas par cas pour leur donner un aspect unique.
