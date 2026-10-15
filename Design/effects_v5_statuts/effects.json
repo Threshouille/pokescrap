@@ -1,0 +1,118 @@
+{
+  "sheets": [
+    {
+      "file": "status_burn.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "status_sleep.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#1e1a46",
+        "#6a6ad0",
+        "#a8acf2",
+        "#e4e6ff"
+      ]
+    },
+    {
+      "file": "status_freeze.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#1a2f5a",
+        "#4f8fd8",
+        "#a6dcff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "status_confusion.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0c2c",
+        "#b8307a",
+        "#f070b0",
+        "#ffc2e0"
+      ]
+    },
+    {
+      "file": "status_trap.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#241206",
+        "#6e4220",
+        "#a8743a",
+        "#dcb070"
+      ]
+    },
+    {
+      "file": "status_yawn.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#2c2838",
+        "#8a84a0",
+        "#c4bed6",
+        "#ece8f4"
+      ]
+    },
+    {
+      "file": "status_leech-seed.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#10260e",
+        "#2e6a1e",
+        "#58a832",
+        "#9edc5a",
+        "#e4ffb0"
+      ]
+    }
+  ]
+}
