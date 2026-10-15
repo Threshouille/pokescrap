@@ -73,7 +73,7 @@ public class BossAI : MonoBehaviour
                 Vector2 toTarget = target.transform.position - transform.position;
                 bool close = toTarget.magnitude <= approachDistance;
                 Vector2 step = close ? Vector2.zero : navigator.Direction(transform.position, target.transform.position, combatant.team);
-                body.linearVelocity = step * combatant.CurrentSpeed * speedFactor;
+                body.linearVelocity = combatant.Steer(step) * combatant.CurrentSpeed * speedFactor;
                 animator.direction = PmdAnimator.DirectionIndex(step != Vector2.zero ? step : toTarget);
                 animator.Play(step != Vector2.zero ? "Walk" : "Idle");
 

@@ -76,7 +76,7 @@ public class AllyAI : MonoBehaviour
 
     void Steer(Vector2 direction, Vector2 lookAt)
     {
-        body.linearVelocity = direction * combatant.CurrentSpeed * speedFactor;
+        body.linearVelocity = combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor;
         if (Time.time < attackUntil)
         {
             animator.direction = PmdAnimator.DirectionIndex(attackDirection);

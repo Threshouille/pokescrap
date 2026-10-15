@@ -78,7 +78,13 @@ def main(root):
         category = mv["category"]
         damaging = category != "status"
         ailment = ailments.get(m.get("meta_ailment_id", "0"), "none")
-        ailment = None if ailment in ("none", "unknown") else ailment
+        if ailment in ("none", "unknown"):
+            ailment = None
+        elif ailment not in rules["statusDurations"]:
+            if category == "status":
+                skipped.append((mv, f"statut non géré ({ailment})"))
+                continue
+            ailment = None  # damaging moves keep only their damage
         changes = [(rules["statMap"][s], c) for s, c in stat_changes.get(a["id"], []) if s in rules["statMap"]]
         healing = int(m.get("healing") or 0)
         drain = int(m.get("drain") or 0)
@@ -157,8 +163,15 @@ def main(root):
                 out.setdefault("modDuration", rules["onHitModDuration"])
                 if damaging:
                     out["statChance"] = round(int(m.get("stat_chance") or 0) / 100, 2) or 1
+        elif changes and damaging and meta_cat == 7:  # 7 = damage and raise the user's stats
+            gains = [c for c in changes if c[1] > 0]
+            if gains:
+                stat, change = gains[0]
+                out["selfModStat"], out["selfModValue"] = stat, rules["statStages"][str(max(-3, min(3, change)))]
+                out["selfModDuration"] = rules["onHitModDuration"]
+                out["selfStatChance"] = round(int(m.get("stat_chance") or 0) / 100, 2) or 1
         elif changes and damaging:
-            notes.append("bonus au lanceur ignoré")
+            notes.append("effet sur les statistiques ignoré")
         if len(changes) > 1:
             notes.append("une seule statistique gardée")
         if healing > 0:

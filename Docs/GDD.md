@@ -18,8 +18,13 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Des Pokémon « support » sont envisagés, pour donner un rôle aux attaques de statut.
 
 ### Attaques
-- 4 emplacements par Pokémon. On commence la partie avec 3 ou 4 attaques choisies avant la partie ; on ne suit pas les niveaux d'apprentissage du jeu d'origine.
-- Certaines attaques évoluent en cours de partie, lors des choix d'amélioration (ex. : Écume → Pistolet à O → Hydrocanon). L'évolution d'attaque est tirée au hasard comme les autres propositions, mais avec une fréquence plus élevée. Les chaînes sont à concevoir, elles n'existent pas dans les données.
+- 4 emplacements par Pokémon. On commence la partie avec 2 attaques choisies avant la partie parmi toutes celles que la forme de base apprend par niveau (1 à 100) ; CT et attaques par œufs exclues (décidé le 15/10/2026).
+- Pendant la partie, tous les 10 niveaux, l'une des 3 propositions du choix d'amélioration est une nouvelle attaque tirée au hasard dans la liste du Pokémon, jusqu'à 4 attaques ; ensuite cette proposition n'apparaît qu'une fois sur deux et sert à remplacer une attaque apprise. Après une évolution, les attaques de la forme évoluée ont plus de chances d'être proposées (15/10/2026).
+- Ennemis : 2 attaques tirées au hasard dans leur liste (15/10/2026).
+- Abandonné (15/10/2026) : l'évolution des attaques en cours de partie.
+- Les attaques plus puissantes ont plus de temps de recharge ou d'autres inconvénients (annonce plus longue, charge, recul).
+- Méthode (15/10/2026) : toutes les attaques sont d'abord ajoutées de façon générique (`generate_moves.py`, à partir de la ROM et de PokéAPI), puis la plupart seront reprises au cas par cas pour leur donner un aspect unique.
+- Statuts (décidés le 15/10/2026, réglages dans `statuses.json`) : poison ; paralysie (vitesse ÷2) ; brûlure (dégâts réguliers, moitié du poison, attaque physique −30 %) ; sommeil (ni déplacement ni attaque, réveil au premier coup) ; gel (immobilisé, dégelé par une attaque Feu) ; confusion (déplacement et visée déviés jusqu'à 60°) ; piège (immobile mais peut attaquer, petits dégâts) ; Bâillement (sommeil au bout de 2 s) ; Vampigraine (dégâts qui soignent le lanceur). Sommeil et gel durent moitié moins sur l'équipe du joueur ; les boss subissent un quart des dégâts réguliers et des statuts handicapants deux fois plus courts. Aussi : recul, bonus au lanceur à l'impact, chance de malus. Les effets non transposables (Attraction, Requiem, Entrave…) sont ignorés : les attaques offensives gardent leurs dégâts, les attaques de statut pur sont à faire à la main.
 - Ennemis : piste retenue, les mêmes attaques que les joueurs, avec plus de temps de recharge ou moins de dégâts (pas encore tranché).
 - Chaque attaque a son propre temps de recharge.
 - Visée libre au stick droit ; le Pokémon se tourne dans la direction du stick quand il attaque.
@@ -31,7 +36,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.
 - Les statistiques suivent les données réelles : un joueur qui connaît Pokémon doit reconnaître qui est résistant, qui frappe fort, au corps à corps ou à distance.
 - Expérience commune à l'équipe.
-- Tous les 5 ou 10 niveaux : 1 choix parmi 3 améliorations aléatoires par Pokémon (statistique, modification d'une famille d'attaques comme +50 % de taille de projectile, évolution d'une attaque). Les 3 Pokémon montant de niveau ensemble, une seule coupure sert à faire les 3 choix.
+- Tous les 5 ou 10 niveaux : 1 choix parmi 3 améliorations aléatoires par Pokémon (statistique, modification d'une famille d'attaques comme +50 % de taille de projectile, nouvelle attaque). Les 3 Pokémon montant de niveau ensemble, une seule coupure sert à faire les 3 choix.
 - Les Pokémon évoluent au niveau réel du jeu d'origine. On débloque toujours la première forme d'une lignée, qui évolue pendant la partie. Les évolutions sans niveau (pierre, échange, bonheur) restent à définir.
 - Vitesse : reprise des jeux principaux (absente de la ROM), elle détermine la vitesse de déplacement.
 
@@ -132,5 +137,4 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 ### Contenu
 14. Terrains spéciaux (trous, eau, lave) : dans la première version ou plus tard ? Les spectres traversent-ils les murs ?
 15. Boss : lesquels, et avec quels comportements spécifiques ?
-16. Objets et boutiques : quels objets, quels effets ?
-17. Liste des chaînes d'évolution d'attaques et des familles pour la première version.
+16. Objets et boutiques : quels objets, quels effets ? Piste d'Owen (15/10/2026) : objets trouvés au hasard ou chez des marchands, qui donnent des effets passifs aux Pokémon.

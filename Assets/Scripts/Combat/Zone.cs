@@ -11,6 +11,7 @@ public class Zone : MonoBehaviour
     static readonly List<Zone> active = new();
 
     Team team;
+    Combatant owner;
     MoveDef move;
     float dieAt;
     float damage; // raw, per tick; 0 for zones that only carry a status
@@ -38,6 +39,7 @@ public class Zone : MonoBehaviour
 
         var zone = go.AddComponent<Zone>();
         zone.team = owner.team;
+        zone.owner = owner;
         zone.move = move;
         zone.dieAt = Time.time + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
         zone.damage = owner.DamageOf(move);
@@ -80,7 +82,7 @@ public class Zone : MonoBehaviour
         {
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team) continue;
-            target.ApplyEffects(move, true);
+            target.ApplyEffects(move, true, owner);
             if (tick) target.TakeHit(damage, move.category, out _);
         }
     }

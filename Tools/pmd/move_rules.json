@@ -27,7 +27,7 @@
   "statMap": { "2": "attack", "3": "defense", "4": "attack", "5": "defense", "6": "speed" },
   "statStages": { "-3": 0.4, "-2": 0.5, "-1": 0.7, "1": 1.3, "2": 1.6, "3": 1.8 },
   "onHitModDuration": 4,
-  "statusDurations": { "poison": 5, "paralysis": 3, "burn": 5, "sleep": 3, "freeze": 2, "confusion": 4, "trap": 3, "leech-seed": 6, "yawn": 3, "infatuation": 3, "nightmare": 5 },
+  "statusDurations": { "poison": 5, "paralysis": 3, "burn": 5, "sleep": 3, "freeze": 2, "confusion": 4, "trap": 3, "leech-seed": 6, "yawn": 2 },
   "maxHealShare": 0.5,
   "excludedMetaCategories": [9, 10, 11, 12]
 }

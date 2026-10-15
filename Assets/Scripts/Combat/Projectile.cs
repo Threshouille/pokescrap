@@ -6,6 +6,7 @@ public class Projectile : MonoBehaviour
     const float SpawnOffset = 0.4f; // tiles in front of the shooter
 
     Team team;
+    Combatant owner;
     float damage; // raw, before the target's defence
     float radius;
     Vector2 direction;
@@ -32,6 +33,7 @@ public class Projectile : MonoBehaviour
 
         var projectile = go.AddComponent<Projectile>();
         projectile.team = owner.team;
+        projectile.owner = owner;
         projectile.damage = owner.DamageOf(move);
         projectile.radius = move.radius * owner.projectileSizeMul;
         projectile.direction = direction;
@@ -53,10 +55,8 @@ public class Projectile : MonoBehaviour
                 if (target.team == team) continue;
                 if (target.TakeHit(damage, move.category, out float dealt))
                 {
-                    target.ApplyEffects(move);
-                    // Draining moves give what they took to the most wounded ally of the shooter.
-                    if (move.drain > 0f && dealt > 0f)
-                        Combatant.MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
+                    target.ApplyEffects(move, false, owner);
+                    if (owner != null) owner.HitLanded(move, dealt);
                 }
             }
             // A cast that starts inside a collider reports no usable contact point.

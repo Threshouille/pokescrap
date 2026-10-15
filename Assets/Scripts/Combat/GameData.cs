@@ -32,7 +32,7 @@ public class MoveDef
     public float lungeTime; // seconds the dash lasts
     public string effect; // sprite sheet in Resources/Effects: flight (projectile), strike (melee) or dash trail (lunge)
     public string impactEffect; // sprite sheet played where the move hits
-    public string status; // status given to the target: "poison" (others to come)
+    public string status; // status given to the target: a key of statuses.json
     public float statusChance; // 0..1, defaults to 1
     public float statusDuration; // seconds
     public float zoneDuration; // zone only: seconds the area stays
@@ -40,6 +40,10 @@ public class MoveDef
     public float spread; // projectile only: total angle, in degrees, over which the shots are fanned out
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally
+    public float recoil; // share of the damage dealt that the user loses
+    public float statChance; // 0..1 chance of the on-hit modifier (always when omitted)
+    public string selfModStat; // bonus the user gets when the move lands
+    public float selfModValue, selfModDuration, selfStatChance;
     public string target; // modifier: self, allies or enemies (around the user, within radius); zone: "each" = one under every opponent
     public string modStat; // attack, defense or speed: temporary bonus or penalty (on hit, or cast by a modifier move)
     public float modValue; // multiplier, above 1 = bonus, below 1 = penalty

@@ -11,18 +11,14 @@ public class Combatant : MonoBehaviour
     const float HitFlashTime = 0.1f;
     const float DefaultLungeTime = 0.2f;
     const float PlayerInvulnerability = 0.8f; // seconds without damage after a hit, so simultaneous attacks do not stack
-    const float PoisonTick = 1f; // seconds between two poison damages
-    const float PoisonShare = 0.04f; // share of max HP lost per tick
-    const float ParalysisSlow = 0.5f; // speed multiplier while paralysed
     const float DefaultStatusDuration = 5f;
+    const float ConfusionChange = 0.5f; // seconds between two changes of the confusion deviation
     const int IconsPerRow = 4;
     const float IconSpacing = 0.45f; // tiles between two icons
     const float BlinkTime = 1f, BlinkRate = 8f; // an icon blinks during its last second
-    const float BossPoisonFactor = 0.25f; // poison takes a share of max HP: unchecked, it would melt a boss
-    const float BossParalysisFactor = 0.5f; // paralysis lasts half as long on a boss
     const float DefenseScale = 30f; // damage taken = raw * scale / (scale + defense)
     static readonly Vector3 StatusIconOffset = new(0f, 1.1f, 0f);
-    static readonly Color PoisonTint = new(0.85f, 0.7f, 1f), ParalysisTint = new(1f, 1f, 0.6f), HealTint = new(0.6f, 1f, 0.6f);
+    static readonly Color HealTint = new(0.6f, 1f, 0.6f);
 
     public Team team;
     public float maxHp;
@@ -30,7 +26,7 @@ public class Combatant : MonoBehaviour
     public float moveSpeed = 4f;
     [Tooltip("Multiplier on the damage this Pokémon deals (enemies hit softer than players)")]
     public float damageFactor = 1f;
-    [Tooltip("Bosses resist statuses: less poison damage, shorter paralysis")]
+    [Tooltip("Bosses resist statuses: less damage over time, shorter disabling statuses (see statuses.json)")]
     public bool isBoss;
 
     public int level = 1;
@@ -48,12 +44,16 @@ public class Combatant : MonoBehaviour
     /// Raised for every Pokémon that goes down, whatever its team.
     public static event Action<Combatant> AnyDied;
     public bool IsAlive => hp > 0f;
-    public bool IsPoisoned => IsAlive && Time.time < poisonUntil;
-    public bool IsParalysed => IsAlive && Time.time < paralysisUntil;
+    public bool IsPoisoned => HasStatus("poison");
+    public bool IsParalysed => HasStatus("paralysis");
+    /// False while a status (sleep, freeze, trap) holds this Pokémon in place.
+    public bool CanMove => StatusAllows(def => def.canMove);
+    /// False while a status (sleep, freeze) prevents attacking.
+    public bool CanAttack => StatusAllows(def => def.canAttack);
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
     /// Movement speed right now, statuses and temporary modifiers included.
-    public float CurrentSpeed => moveSpeed * Modifier("speed") * (IsParalysed ? ParalysisSlow : 1f);
+    public float CurrentSpeed => CanMove ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) : 0f;
 
     class TimedModifier
     {
@@ -62,17 +62,25 @@ public class Combatant : MonoBehaviour
         public float until;
     }
 
+    class ActiveStatus
+    {
+        public StatusDef def;
+        public float until, nextTick;
+        public Combatant source; // who gave it (draining statuses heal it)
+    }
+
     static readonly List<Combatant> all = new();
 
     readonly float[] readyAt = new float[MoveSlots];
     readonly HashSet<Combatant> lungeHit = new();
     readonly List<TimedModifier> modifiers = new();
+    readonly List<ActiveStatus> statuses = new();
     readonly Dictionary<string, GameObject> statusIcons = new();
     readonly List<EffectIcon> shownEffects = new();
     MoveDef lungeMove;
     Vector2 lungeDirection;
     float lungeUntil;
-    float poisonUntil, nextPoisonTick, paralysisUntil;
+    float confusionOffset, nextConfusionChange;
     Rigidbody2D body;
     SpriteRenderer spriteRenderer;
     float flashUntil, healFlashUntil;
@@ -239,29 +247,87 @@ public class Combatant : MonoBehaviour
         modifiers.Add(new TimedModifier { stat = stat, value = value, until = Time.time + duration });
     }
 
-    public bool HasStatus(string status) => status == "poison" ? IsPoisoned : status == "paralysis" && IsParalysed;
+    public bool HasStatus(string status)
+    {
+        if (!IsAlive) return false;
+        foreach (var st in statuses)
+            if (st.def.key == status && Time.time < st.until) return true;
+        return false;
+    }
+
+    bool StatusAllows(Predicate<StatusDef> allows)
+    {
+        if (!IsAlive) return true;
+        foreach (var st in statuses)
+            if (Time.time < st.until && !allows(st.def)) return false;
+        return true;
+    }
+
+    float StatusProduct(Func<StatusDef, float> factor)
+    {
+        float result = 1f;
+        foreach (var st in statuses)
+            if (Time.time < st.until) result *= factor(st.def);
+        return result;
+    }
+
+    float ConfuseAngle()
+    {
+        float angle = 0f;
+        foreach (var st in statuses)
+            if (Time.time < st.until) angle = Mathf.Max(angle, st.def.confuseAngle);
+        return angle;
+    }
+
+    /// Movement or aim thrown off while confused.
+    public Vector2 Steer(Vector2 direction)
+    {
+        if (direction == Vector2.zero || ConfuseAngle() <= 0f) return direction;
+        return Quaternion.Euler(0f, 0f, confusionOffset) * direction;
+    }
+
+    /// Gives a status for a number of seconds (refreshed, not stacked). Unknown statuses are ignored.
+    public void AddStatus(string key, float duration, Combatant source = null)
+    {
+        var def = StatusLibrary.Get(key);
+        if (!IsAlive || def == null) return;
+        duration *= team == Team.Player ? def.playerDurationFactor : 1f;
+        if (isBoss) duration *= def.bossDurationFactor;
+        foreach (var st in statuses)
+            if (st.def == def)
+            {
+                if (Time.time >= st.until) st.nextTick = Time.time + st.def.tick;
+                st.until = Mathf.Max(st.until, Time.time + duration);
+                if (source != null) st.source = source;
+                return;
+            }
+        statuses.Add(new ActiveStatus { def = def, until = Time.time + duration, nextTick = Time.time + def.tick, source = source });
+    }
 
     /// Applies what a move carries besides damage: a status (with its chance) and a stat modifier.
-    /// sure = ignore the status chance (lingering zones).
-    public void ApplyEffects(MoveDef move, bool sure = false)
+    /// sure = ignore the status chance (lingering zones). source = the user of the move.
+    public void ApplyEffects(MoveDef move, bool sure = false, Combatant source = null)
     {
         if (!IsAlive) return;
-        if (!string.IsNullOrEmpty(move.modStat) && move.family != "modifier")
+        statuses.RemoveAll(st => st.def.thawType == move.type); // a fire move thaws a frozen Pokémon
+        if (!string.IsNullOrEmpty(move.modStat) && move.family != "modifier"
+            && (sure || move.statChance <= 0f || UnityEngine.Random.value <= move.statChance))
             AddModifier(move.modStat, move.modValue, move.modDuration > 0f ? move.modDuration : DefaultStatusDuration);
 
         if (string.IsNullOrEmpty(move.status)) return;
         float chance = move.statusChance > 0f ? move.statusChance : 1f;
         if (!sure && UnityEngine.Random.value > chance) return;
-        float duration = move.statusDuration > 0f ? move.statusDuration : DefaultStatusDuration;
-        if (move.status == "poison")
-        {
-            if (!IsPoisoned) nextPoisonTick = Time.time + PoisonTick;
-            poisonUntil = Mathf.Max(poisonUntil, Time.time + duration);
-        }
-        else if (move.status == "paralysis")
-        {
-            paralysisUntil = Mathf.Max(paralysisUntil, Time.time + duration * (isBoss ? BossParalysisFactor : 1f));
-        }
+        AddStatus(move.status, move.statusDuration > 0f ? move.statusDuration : DefaultStatusDuration, source);
+    }
+
+    /// Called on the attacker when one of its moves lands: drain, recoil and bonuses it gives itself.
+    public void HitLanded(MoveDef move, float dealt)
+    {
+        if (dealt > 0f && move.drain > 0f)
+            MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
+        if (!string.IsNullOrEmpty(move.selfModStat) && (move.selfStatChance <= 0f || UnityEngine.Random.value <= move.selfStatChance))
+            AddModifier(move.selfModStat, move.selfModValue, move.selfModDuration > 0f ? move.selfModDuration : DefaultStatusDuration);
+        if (dealt > 0f && move.recoil > 0f && IsAlive) LoseHp(Mathf.Max(1f, dealt * move.recoil));
     }
 
     // ---- Moves ----
@@ -270,7 +336,7 @@ public class Combatant : MonoBehaviour
     public bool TryUseMove(int slot, Vector2 direction, float distance = -1f)
     {
         var move = Moves[slot];
-        if (move == null || Time.time < readyAt[slot]) return false;
+        if (move == null || Time.time < readyAt[slot] || !CanAttack) return false;
 
         if (move.family == "heal")
         {
@@ -306,8 +372,11 @@ public class Combatant : MonoBehaviour
             readyAt[slot] = Time.time + CooldownOf(move);
             foreach (var c in all.ToArray()) // a hit can remove a Pokémon from the list
                 if (c.team != team && c.IsAlive && Vector2.Distance(c.transform.position, transform.position) <= move.radius
-                    && c.TakeHit(DamageOf(move), move.category, out _))
-                    c.ApplyEffects(move);
+                    && c.TakeHit(DamageOf(move), move.category, out float dealt))
+                {
+                    c.ApplyEffects(move, false, this);
+                    HitLanded(move, dealt);
+                }
             if (EffectLibrary.Get(move.effect) != null) EffectPlayer.Spawn(move.effect, transform.position, Vector2.right);
             else Shapes.Pulse(transform.position, move.radius, GameData.TypeColor(move.type));
             return true;
@@ -324,7 +393,7 @@ public class Combatant : MonoBehaviour
 
         if (direction == Vector2.zero) return false;
         readyAt[slot] = Time.time + CooldownOf(move);
-        direction = direction.normalized;
+        direction = Steer(direction.normalized);
         if (move.family == "projectile")
         {
             // Several shots are fanned out evenly around the aimed direction.
@@ -366,18 +435,42 @@ public class Combatant : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (IsPoisoned && Time.time >= nextPoisonTick)
-        {
-            nextPoisonTick += PoisonTick;
-            // Poison ignores defence and the post-hit protection.
-            LoseHp(Mathf.Max(1f, maxHp * PoisonShare * (isBoss ? BossPoisonFactor : 1f)));
-            if (!IsAlive) return;
-        }
+        if (!UpdateStatuses()) return;
 
         // During a dash the attacker is pushed forward and hits each opponent it reaches once.
         if (!IsLunging) return;
         body.linearVelocity = lungeDirection * lungeMove.lunge / LungeTime(lungeMove);
         MeleeHit(lungeMove, lungeDirection, lungeHit);
+    }
+
+    /// Damage over time, statuses that end or turn into another one, confusion. False once knocked out.
+    bool UpdateStatuses()
+    {
+        for (int i = 0; i < statuses.Count; i++)
+        {
+            var st = statuses[i];
+            if (Time.time >= st.until)
+            {
+                statuses.RemoveAt(i--);
+                if (!string.IsNullOrEmpty(st.def.becomes))
+                    AddStatus(st.def.becomes, StatusLibrary.Get(st.def.becomes)?.duration ?? DefaultStatusDuration, st.source);
+                continue;
+            }
+            if (st.def.damageShare <= 0f || Time.time < st.nextTick) continue;
+            st.nextTick += st.def.tick;
+            // Damage over time ignores defence and the post-hit protection.
+            float amount = Mathf.Max(1f, maxHp * st.def.damageShare * (isBoss ? st.def.bossDamageFactor : 1f));
+            LoseHp(amount);
+            if (st.def.drainToSource && st.source != null && st.source.IsAlive) st.source.Heal(amount);
+            if (!IsAlive) return false;
+        }
+        if (Time.time >= nextConfusionChange)
+        {
+            nextConfusionChange = Time.time + ConfusionChange;
+            float angle = ConfuseAngle();
+            confusionOffset = UnityEngine.Random.Range(-angle, angle);
+        }
+        return true;
     }
 
     /// Hits every opponent inside a circle placed in front of the attacker, skipping those already hit.
@@ -389,7 +482,11 @@ public class Combatant : MonoBehaviour
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team || !hit.Add(target)) continue;
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
-            if (target.TakeHit(DamageOf(move), move.category, out _)) target.ApplyEffects(move);
+            if (target.TakeHit(DamageOf(move), move.category, out float dealt))
+            {
+                target.ApplyEffects(move, false, this);
+                HitLanded(move, dealt);
+            }
         }
     }
 
@@ -398,7 +495,8 @@ public class Combatant : MonoBehaviour
     {
         if (move.power <= 0) return 0f; // pure status moves
         float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
-        return (move.power + stat) * Modifier("attack") * damageFactor;
+        float burn = move.category == "physical" ? StatusProduct(def => def.physicalAttackMul) : 1f;
+        return (move.power + stat) * Modifier("attack") * burn * damageFactor;
     }
 
     /// A hit from a move: the target's defence (physical or special) reduces it. Returns false when the hit was
@@ -412,6 +510,7 @@ public class Combatant : MonoBehaviour
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = category == "physical" ? def : spDef;
         dealt = Mathf.Max(1f, raw * DefenseScale / (DefenseScale + defence) / Modifier("defense"));
+        statuses.RemoveAll(st => st.def.wakeOnHit);
         LoseHp(dealt);
         return true;
     }
@@ -449,7 +548,7 @@ public class Combatant : MonoBehaviour
 
     void ClearEffects()
     {
-        poisonUntil = paralysisUntil = 0f;
+        statuses.Clear();
         modifiers.Clear();
     }
 
@@ -480,14 +579,12 @@ public class Combatant : MonoBehaviour
 
     void LateUpdate()
     {
-        bool poisoned = IsPoisoned, paralysed = IsParalysed;
+        var tint = StatusTint();
         if (spriteRenderer != null)
             spriteRenderer.color = Time.time < flashUntil ? new Color(1f, 0.4f, 0.4f)
                 : Time.time < healFlashUntil ? HealTint
                 : Time.time < invulnerableUntil ? new Color(1f, 1f, 1f, 0.5f) // half transparent while protected
-                : poisoned ? PoisonTint
-                : paralysed ? ParalysisTint
-                : Color.white;
+                : tint;
 
         // Icons above the health bar: statuses first, then bonuses and penalties, four per row.
         shownEffects.Clear();
@@ -505,6 +602,16 @@ public class Combatant : MonoBehaviour
         }
     }
 
+    /// Colour of the highest-priority status on, white when there is none.
+    Color StatusTint()
+    {
+        if (!IsAlive) return Color.white;
+        foreach (var def in StatusLibrary.All)
+            foreach (var st in statuses)
+                if (st.def == def && Time.time < st.until) return def.color;
+        return Color.white;
+    }
+
     /// One icon to display: a status (poison, paralysis) or a stat change (attack_up, speed_down...).
     public struct EffectIcon
     {
@@ -516,8 +623,10 @@ public class Combatant : MonoBehaviour
     public void GetEffects(List<EffectIcon> into)
     {
         if (!IsAlive) return;
-        if (IsPoisoned) into.Add(new EffectIcon { key = "poison", remaining = poisonUntil - Time.time });
-        if (IsParalysed) into.Add(new EffectIcon { key = "paralysis", remaining = paralysisUntil - Time.time });
+        foreach (var def in StatusLibrary.All)
+            foreach (var st in statuses)
+                if (st.def == def && Time.time < st.until)
+                    into.Add(new EffectIcon { key = def.key, remaining = st.until - Time.time });
         foreach (var m in modifiers)
             if (Time.time < m.until)
                 into.Add(new EffectIcon { key = m.stat + (m.value > 1f ? "_up" : "_down"), remaining = m.until - Time.time });
@@ -533,7 +642,7 @@ public class Combatant : MonoBehaviour
         icon = new GameObject("StatusIcon");
         icon.transform.SetParent(transform, false);
         var renderer = icon.AddComponent<SpriteRenderer>();
-        renderer.sprite = Shapes.StatusIcon(key);
+        renderer.sprite = Shapes.StatusIcon(key, StatusLibrary.Get(key)?.color);
         renderer.sortingOrder = 12; // above the health bar
         statusIcons[key] = icon;
         return icon;

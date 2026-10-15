@@ -165,7 +165,7 @@ public class PlayerController : MonoBehaviour
         if (Time.timeScale == 0f) return; // paused by the upgrade screen
 
         var member = Current;
-        move = ReadMove();
+        move = member.combatant.CanMove ? ReadMove() : Vector2.zero; // asleep, frozen or trapped
         Vector2 aim = ReadAim();
         if (aim != Vector2.zero) facing = aim;
         else if (move != Vector2.zero) facing = move.normalized;
@@ -209,7 +209,7 @@ public class PlayerController : MonoBehaviour
         if (gameOver || members.Count == 0) return;
         UpdateRevives();
         if (Current.combatant.IsLunging) return; // a melee dash drives the body
-        Current.body.linearVelocity = move * Current.combatant.CurrentSpeed;
+        Current.body.linearVelocity = Current.combatant.Steer(move) * Current.combatant.CurrentSpeed;
     }
 
     /// Between two arenas: knocked-out members get back up, the others are healed a little, effects are removed

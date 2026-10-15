@@ -46,7 +46,8 @@ public static class Shapes
     };
 
     /// Icon shown above a Pokémon for a status or a stat change (attack_up, defense_down...). A sheet named status_<name> in Resources/Effects takes precedence.
-    public static Sprite StatusIcon(string status)
+    /// Statuses without their own drawing use the drop shape in their tint.
+    public static Sprite StatusIcon(string status, Color? tint = null)
     {
         var sheet = EffectLibrary.Get("status_" + status);
         if (sheet != null) return sheet.Frame(0);
@@ -56,6 +57,12 @@ public static class Shapes
         var pixels = poison ? PoisonPixels : up || down ? ArrowPixels : ParalysisPixels;
         Color32 outline = poison ? new Color32(74, 26, 107, 255) : new Color32(110, 80, 0, 255);
         Color32 fill = poison ? new Color32(176, 79, 216, 255) : new Color32(255, 222, 60, 255);
+        if (!poison && !up && !down && status != "paralysis" && tint.HasValue)
+        {
+            pixels = PoisonPixels;
+            fill = tint.Value;
+            outline = new Color32(30, 30, 40, 255);
+        }
         if (up || down)
         {
             // Provisional: an arrow in the colour of the stat (red attack, blue defence, green speed).

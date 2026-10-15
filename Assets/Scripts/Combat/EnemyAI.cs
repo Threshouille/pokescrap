@@ -91,7 +91,7 @@ public class EnemyAI : MonoBehaviour
 
     void Move(Vector2 direction, Vector2 lookAt)
     {
-        body.linearVelocity = direction * combatant.CurrentSpeed * speedFactor;
+        body.linearVelocity = combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor;
         Vector2 facing = direction != Vector2.zero ? direction : lookAt;
         if (facing != Vector2.zero) animator.direction = PmdAnimator.DirectionIndex(facing);
         animator.Play(direction != Vector2.zero ? "Walk" : "Idle");

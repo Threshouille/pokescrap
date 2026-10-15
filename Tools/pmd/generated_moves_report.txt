@@ -1,4 +1,5 @@
-353 attaques générées, 98 écartées (à faire à la main) :
+343 attaques générées, 108 écartées (à faire à la main) :
+    5 Cauchemar (Nightmare) : statut non géré (nightmare)
    10 Doux Parfum (Sweet Scent) : attaque de statut sans effet gérable
    12 Danse Pluie (Rain Dance) : effet particulier (catégorie PokéAPI 10)
    14 Grêle (Hail) : effet particulier (catégorie PokéAPI 10)
@@ -6,12 +7,15 @@
    17 Encore (Encore) : attaque de statut sans effet gérable
    19 Frénésie (Rage) : statut sur soi sans effet gérable
    21 Balance (Pain Split) : attaque de statut sans effet gérable
+   22 Tourmente (Torment) : statut non géré (torment)
    26 Glas de Soin (Heal Bell) : statut sur soi sans effet gérable
    35 Dépit (Spite) : attaque de statut sans effet gérable
    37 Brouillard (SmokeScreen) : attaque de statut sans effet gérable
    40 Mimique (Mirror Move) : statut sur soi sans effet gérable
    49 Rancune (Grudge) : statut sur soi sans effet gérable
+   54 Flair (Odor Sleuth) : statut non géré (no-type-immunity)
    56 Reflet (Double Team) : statut sur soi sans effet gérable
+   59 Entrave (Disable) : statut non géré (disable)
    74 Puissance (Focus Energy) : statut sur soi sans effet gérable
    86 Toile (Spider Web) : attaque de statut sans effet gérable
    88 Buée Noire (Haze) : effet particulier (catégorie PokéAPI 10)
@@ -46,7 +50,7 @@
   227 Blabla Dodo (Sleep Talk) : statut sur soi sans effet gérable
   229 Assistance (Assist) : attaque de statut sans effet gérable
   232 Repos (Rest) : statut sur soi sans effet gérable
-  233 Racines (Ingrain) : statut sur soi sans effet gérable
+  233 Racines (Ingrain) : statut non géré (ingrain)
   237 Malédiction (Curse) : attaque de statut sans effet gérable
   247 Guillotine (Guillotine) : effet particulier (catégorie PokéAPI 9)
   252 Relais (Baton Pass) : attaque de statut sans effet gérable
@@ -61,14 +65,17 @@
   282 Morphing (Transform) : statut sur soi sans effet gérable
   284 Hurlement (Roar) : effet particulier (catégorie PokéAPI 12)
   286 Camouflage (Camouflage) : statut sur soi sans effet gérable
+  293 Requiem (Perish Song) : statut non géré (perish-song)
   295 Picots (Spikes) : effet particulier (catégorie PokéAPI 11)
   298 Reflet Magik (Magic Coat) : statut sur soi sans effet gérable
-  301 Abri (Protect) : statut sur soi sans effet gérable
+  301 Abri (Protect) : statut non géré (protect)
   304 Clonage (Substitute) : attaque de statut sans effet gérable
-  305 Détection (Detect) : statut sur soi sans effet gérable
+  305 Détection (Detect) : statut non géré (protect)
   307 Tourniquet (Water Sport) : effet particulier (catégorie PokéAPI 10)
   313 Prlvt Destin (Destiny Bond) : attaque de statut sans effet gérable
+  315 Clairvoyance (Foresight) : statut non géré (no-type-immunity)
   317 Prescience (Future Sight) : statut sur soi sans effet gérable
+  326 Attraction (Attract) : statut non géré (infatuation)
   327 Copie (Mimic) : attaque de statut sans effet gérable
   330 Métronome (Metronome) : attaque de statut sans effet gérable
   334 Saisie (Snatch) : statut sur soi sans effet gérable
@@ -82,8 +89,10 @@
   444 Vent Arrière (Tailwind) : effet particulier (catégorie PokéAPI 11)
   447 Air Veinard (Lucky Chant) : effet particulier (catégorie PokéAPI 11)
   448 Permugarde (Guard Swap) : attaque de statut sans effet gérable
+  450 Anti-Soin (Heal Block) : statut non géré (heal-block)
   464 Echange Psy (Psycho Shift) : attaque de statut sans effet gérable
   465 Moi d'Abord (Me First) : attaque de statut sans effet gérable
+  466 Embargo (Embargo) : statut non géré (embargo)
   478 Gravité (Gravity) : effet particulier (catégorie PokéAPI 10)
   482 Passe-Passe (Switcheroo) : attaque de statut sans effet gérable
   492 Acupression (Acupressure) : statut sur soi sans effet gérable
@@ -97,3 +106,4 @@
   514 Astuce Force (Power Trick) : statut sur soi sans effet gérable
   525 Photocopie (Copycat) : attaque de statut sans effet gérable
   526 Danse-Lune (Lunar Dance) : statut sur soi sans effet gérable
+  528 Oeil Miracle (Miracle Eye) : statut non géré (no-type-immunity)
