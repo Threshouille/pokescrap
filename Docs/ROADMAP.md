@@ -19,10 +19,10 @@ Version minimale (faite le 13/10/2026) :
 - Vagues d'ennemis et condition de victoire de l'arène : 3 vagues réglables sur l'objet `Enemies`, 2 s de pause entre deux vagues, message de victoire et relance.
 
 Reporté à l'approfondissement :
-- Formule de dégâts définitive : défense, table des types.
+- Formule de dégâts : la défense est prise en compte depuis le 13/10/2026 ; reste la table des types.
 - Alliés qui esquivent les attaques annoncées.
 - Équilibrage : PV, dégâts, recharges, nombre d'ennemis.
-- Interface lisible : PV de l'équipe, recharges des 4 attaques, type des ennemis.
+- Interface : PV de l'équipe et recharges faits ; reste le type des ennemis.
 - Retours de jeu : chiffres de dégâts, animation de dégât, sons de base.
 
 ## Jalon 2 — Progression en partie
@@ -33,8 +33,7 @@ Version minimale (faite le 13/10/2026) :
 
 À reprendre à l'approfondissement :
 - Rythme de l'expérience : la formule actuelle (20 + 4 × niveau par niveau) est provisoire, sans lien avec l'objectif « niveau 100 en 30 minutes ».
-- Les ennemis restent au niveau 1 : ils ne suivent pas la montée en puissance de l'équipe.
-- La défense n'entre toujours pas dans les dégâts.
+- Niveaux des ennemis : fixés par étape (1, 5, 10) depuis le jalon 3, sans lien avec le niveau réel de l'équipe.
 
 Reporté à l'approfondissement :
 - Catalogue étoffé, évolutions d'attaques (chaînes à concevoir).
@@ -46,7 +45,7 @@ Version minimale (faite le 13/10/2026) :
 - Enchaînement Arène 1 → Arène 2 → Boss dans la même partie, avec fondu, nouveau décor et nouvelle disposition à chaque étape.
 - Entre deux étapes : K.O. réanimés à 50 %, 30 % de PV rendus aux autres, effets effacés.
 - Ennemis de niveau 1, 5 puis 10 selon l'étape.
-- Boss : Groudon, renforcé (PV × 8, agrandi, barre de vie en haut de l'écran), avec une escorte en deux vagues. Attaques provisoires.
+- Boss : Groudon, renforcé (PV × 8, agrandi, barre de vie en haut de l'écran), avec une escorte en deux vagues.
 - Écrans de victoire et de défaite avec temps, niveau et ennemis battus.
 
 À faire ensuite (décidé par Owen le 13/10/2026) : les boss sont des légendaires, chacun avec 4 attaques fixes pour que le joueur apprenne ses schémas. Groudon a ses 4 attaques et ses annonces par bulle numérotée (fait le 13/10/2026).

@@ -2,7 +2,7 @@
 
 Projet Unity (URP) : roguelike en temps réel, jouable à la manette, qui réutilise les assets et données de Pokémon Donjon Mystère sans chercher à reproduire le jeu d'origine (ex. : la carte est une grande arène carrée avec obstacles, pas un donjon à salles et couloirs). L'utilisateur parle français.
 
-Conception : `Docs/GDD.md` (décisions d'Owen + points ouverts) ; le lire avant tout travail de gameplay et le tenir à jour quand une décision est prise.
+Conception : `Docs/GDD.md` (décisions d'Owen + points ouverts) ; le lire avant tout travail de gameplay et le tenir à jour quand une décision est prise. Reprise de session : `Docs/HANDOFF.md` (état, méthode de travail, problèmes connus).
 
 ## Économie de tokens
 - Réponses courtes, pas de récapitulatif de ce qui vient d'être fait.
