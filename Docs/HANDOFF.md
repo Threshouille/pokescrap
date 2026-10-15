@@ -36,7 +36,7 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 
 ## Prochaine session : attaques au cas par cas
 
-Owen veut travailler les attaques en détail. Fait : les 17 **attaques de base** à distance (une par type, `basic: true`, `basicByType` dans `realtime_moves.json`), avec trajectoires et paramètres propres (`Projectile`). Prompt Claude Design envoyé ou à envoyer : `Design/prompt_attaques_de_base.md` (planches à brancher à leur arrivée). À faire ensuite : les attaques de base au corps à corps (chaque Pokémon aura l'une ou l'autre, via `basicByPokemon`), régler les dégâts (`damageScale`) en jeu. Points de départ :
+Owen veut travailler les attaques en détail. Fait : les 17 **attaques de base** à distance (une par type, `basic: true`, `basicByType` dans `realtime_moves.json`), avec trajectoires et paramètres propres (`Projectile`). Planches Claude Design intégrées (`Design/effects_v6_attaques_de_base/`, prompt `Design/prompt_attaques_de_base.md`). À faire ensuite : les attaques de base au corps à corps (chaque Pokémon aura l'une ou l'autre, via `basicByPokemon`), régler les dégâts (`damageScale`) en jeu. Points de départ :
 - `Tools/pmd/generated_moves_report.txt` : 108 attaques écartées (75 de statut sans effet transposable comme Abri, Repos, Morphing, Métronome ; terrain, météo, K.O. en un coup, expulsion ; statuts non gérés comme Attraction, Requiem, Entrave).
 - Les attaques génériques n'ont pas d'effet visuel propre (disque coloré du type) : prévoir des prompts Claude Design par famille ou par attaque.
 - Une attaque se reprend à la main en l'ajoutant à `realtime_moves.json` (même `id`), qui l'emporte sur la version générée.
