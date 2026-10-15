@@ -53,6 +53,8 @@ public class MoveDef
     public bool pierce; // goes through opponents, hitting each once
     public int bounces; // times the shot bounces off walls
     public float splash; // arc: radius of the hit where it lands
+    public float puddle; // arc: seconds the puddle showing the splash area stays (fading out); none when 0
+    public float effectScale; // size multiplier of the effect sheets (1 when omitted)
     public float homing; // homing: degrees per second the shot turns toward its target
     public float castTime; // projectile: seconds the user stands still, aim locked, before the shots leave
     public bool sequential; // projectile: the shots of a fan leave one by one (burstInterval apart), middle first, then left, right

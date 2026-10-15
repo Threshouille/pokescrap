@@ -37,7 +37,11 @@ public class Projectile : MonoBehaviour
         go.transform.position = owner.transform.position + (Vector3)(direction * SpawnOffset);
 
         // Without a sprite sheet the shot falls back to a plain disc in the colour of its type.
-        if (!EffectPlayer.Attach(go, move.effect, direction))
+        if (EffectPlayer.Attach(go, move.effect, direction))
+        {
+            if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
+        }
+        else
         {
             go.transform.localScale = Vector3.one * move.radius * 2f;
             var renderer = go.AddComponent<SpriteRenderer>();
@@ -237,8 +241,10 @@ public class Projectile : MonoBehaviour
     // Arc: hits every opponent within the splash radius where it lands.
     void Land(Vector2 at)
     {
+        float area = Mathf.Max(radius, move.splash);
+        if (move.puddle > 0f) Shapes.Puddle(at, area, GameData.TypeColor(move.type), move.puddle);
         EffectPlayer.Spawn(move.impactEffect, at, forward);
-        foreach (var c in Physics2D.OverlapCircleAll(at, Mathf.Max(radius, move.splash)))
+        foreach (var c in Physics2D.OverlapCircleAll(at, area))
         {
             if (c.isTrigger) continue;
             var target = c.GetComponentInParent<Combatant>();

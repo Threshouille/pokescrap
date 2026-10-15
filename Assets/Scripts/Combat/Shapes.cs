@@ -122,6 +122,20 @@ public static class Shapes
     }
 
     /// Brief translucent disc: provisional feedback for moves that have no sprite sheet (heals, bonuses, penalties).
+    /// Flat disc on the floor that fades out over "duration" seconds (e.g. the puddle left where an arc shot lands).
+    public static void Puddle(Vector3 position, float radius, Color color, float duration)
+    {
+        var go = new GameObject("Puddle");
+        go.transform.position = position;
+        go.transform.localScale = Vector3.one * radius * 2f;
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = Circle;
+        color.a = 0.45f;
+        renderer.color = color;
+        renderer.sortingOrder = 0; // above the floor, under the Pokémon
+        go.AddComponent<FadeOut>().duration = duration;
+    }
+
     public static void Pulse(Vector3 position, float radius, Color color)
     {
         var go = new GameObject("Pulse");
@@ -183,5 +197,28 @@ public static class Shapes
             tex.Apply();
             return square = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
         }
+    }
+}
+
+/// Fades a sprite out over its duration, then removes it (purely visual).
+public class FadeOut : MonoBehaviour
+{
+    public float duration = 1f;
+    SpriteRenderer spriteRenderer;
+    float startAlpha, elapsed;
+
+    void Start()
+    {
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        startAlpha = spriteRenderer.color.a;
+    }
+
+    void Update()
+    {
+        elapsed += Time.deltaTime;
+        var c = spriteRenderer.color;
+        c.a = startAlpha * (1f - Mathf.Clamp01(elapsed / duration));
+        spriteRenderer.color = c;
+        if (elapsed >= duration) Destroy(gameObject);
     }
 }
