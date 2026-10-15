@@ -63,6 +63,17 @@ public class MoveDef
     public float homing; // homing: degrees per second the shot turns toward its target
     public float castTime; // projectile: seconds the user stands still, aim locked, before the shots leave
     public bool sequential; // projectile: the shots of a fan leave one by one (burstInterval apart), middle first, then left, right
+    public string shape; // melee: circle (default: in front, range away), arc (sector around the user: range, arc), thrust (line from the user: range long, radius wide), around (circle around the user)
+    public float arc; // melee arc: total angle in degrees
+    public int hits; // melee: strikes in a row (1 when omitted)
+    public float hitInterval; // seconds between two strikes
+    public float[] hitAngles; // degrees: offset of each strike from the aim, in turn (alternating swings, crossed claws)
+    public float step; // melee: tiles the user steps forward with each strike
+    public float finishRadius; // melee dash: radius of a strike around the user where the dash ends
+    public float radiusMin; // melee around: the radius is drawn between this and range
+    public float chainBonus, chainMax, chainWindow; // melee: each strike landing within chainWindow seconds of the previous one adds chainBonus to the damage, up to ×chainMax
+    public bool teleport; // melee: the user blinks lunge tiles forward (through opponents, not walls), then strikes
+    public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally
     public float recoil; // share of the damage dealt that the user loses
@@ -75,7 +86,8 @@ public class MoveDef
     public float modDuration; // seconds
 
     /// Distance from which an AI can expect the move to connect.
-    public float Reach => family == "melee" ? lunge + range + radius * 0.5f
+    public float Reach => family == "melee" ? lunge + (shape == "arc" || shape == "thrust" ? range
+            : shape == "around" ? (radiusMin > 0f ? radiusMin : range) * 0.9f : range + radius * 0.5f)
         : family == "heal" ? range
         : family == "modifier" || family == "burst" ? radius * 0.9f
         : range * 0.85f;
@@ -100,7 +112,7 @@ public static class GameData
     [Serializable] class Loadout { public int pokemonId; public string role; public int[] moves; }
     [Serializable] class UpgradeFile { public UpgradeDef[] upgrades; }
     [Serializable] class BasicEntry { public int type; public int pokemonId; public int move; }
-    [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; public BasicEntry[] basicByType, basicByPokemon; }
+    [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; public BasicEntry[] basicByType, meleeBasicByType, basicByPokemon; }
 
     // Base speed in the main games goes from 5 to 160; squeezed into a playable range.
     const float MinBaseSpeed = 5f, MaxBaseSpeed = 160f, MinMoveSpeed = 3f, MaxMoveSpeed = 6f;
@@ -110,7 +122,7 @@ public static class GameData
     static Dictionary<int, int[]> loadouts;
     static Dictionary<int, string> roles;
     static Dictionary<int, Color> typeColors;
-    static Dictionary<int, int> basicByType;
+    static Dictionary<int, int> basicByType, meleeBasicByType;
     static Dictionary<int, List<int>> basicByPokemon;
     static UpgradeDef[] upgrades;
 
@@ -144,6 +156,8 @@ public static class GameData
         basicByType = new Dictionary<int, int>();
         basicByPokemon = new Dictionary<int, List<int>>();
         foreach (var b in file.basicByType ?? new BasicEntry[0]) basicByType[b.type] = b.move;
+        meleeBasicByType = new Dictionary<int, int>();
+        foreach (var b in file.meleeBasicByType ?? new BasicEntry[0]) meleeBasicByType[b.type] = b.move;
         foreach (var b in file.basicByPokemon ?? new BasicEntry[0])
         {
             if (!basicByPokemon.ContainsKey(b.pokemonId)) basicByPokemon[b.pokemonId] = new List<int>();
@@ -173,16 +187,24 @@ public static class GameData
         return pool;
     }
 
-    /// Basic attacks of a Pokémon: its own entries in basicByPokemon, else the one of each of its types.
-    public static List<MoveDef> BasicMoves(int pokemonId)
+    /// Basic attacks of a Pokémon: its own entries in basicByPokemon, else those of each of its types. style:
+    /// "ranged", "melee", or null for both (the style matching its stats first).
+    public static List<MoveDef> BasicMoves(int pokemonId, string style = null)
     {
         Load();
         var result = new List<MoveDef>();
         if (basicByPokemon.TryGetValue(pokemonId, out var own))
+        {
             foreach (int id in own) Add(id);
-        else if (Pokemon(pokemonId)?.types is { } types)
-            foreach (int type in types)
-                if (basicByType.TryGetValue(type, out int id)) Add(id);
+            if (style != null) result.RemoveAll(m => (m.family == "melee") != (style == "melee"));
+            return result;
+        }
+        var stats = Pokemon(pokemonId);
+        if (stats?.types == null) return result;
+        var styles = style != null ? new[] { style } : StatStyle(pokemonId) == "melee" ? new[] { "melee", "ranged" } : new[] { "ranged", "melee" };
+        foreach (var st in styles)
+            foreach (int type in stats.types)
+                if ((st == "melee" ? meleeBasicByType : basicByType).TryGetValue(type, out int id)) Add(id);
         return result;
 
         void Add(int id)
@@ -192,13 +214,20 @@ public static class GameData
         }
     }
 
+    /// Style of basic attacks that suits a Pokémon: melee when its Attack beats its Special Attack, ranged otherwise.
+    public static string StatStyle(int pokemonId)
+    {
+        var stats = Pokemon(pokemonId);
+        return stats != null && stats.baseAtk > stats.baseSpAtk ? "melee" : "ranged";
+    }
+
     /// Starting moves when the player has not chosen any: basic attacks, then the hand-written loadout where it
     /// fits, then the pool.
     public static int[] DefaultStartingMoves(int pokemonId, int count)
     {
         Load();
         var pool = MovePool(pokemonId).ConvertAll(m => m.id);
-        var result = BasicMoves(pokemonId).ConvertAll(m => m.id);
+        var result = BasicMoves(pokemonId, StatStyle(pokemonId)).ConvertAll(m => m.id);
         if (result.Count > count) result.RemoveRange(count, result.Count - count);
         if (loadouts.TryGetValue(pokemonId, out var ids))
             foreach (int id in ids)
@@ -219,15 +248,15 @@ public static class GameData
         return 0;
     }
 
-    /// "count" moves for an enemy: one of its basic attacks, then moves drawn from the pool, the first one dealing
+    /// "count" moves for an enemy: one of its basic attacks (style matching its stats), then moves drawn from the pool, the first one dealing
     /// damage when the pool has one.
     /// "role" (melee, ranged or support; null for any): the moves are drawn so that the Pokémon gets that role
     /// (see RoleFromMoves), when its list allows it (CanTakeRole).
     public static int[] RandomMoves(int pokemonId, int count, System.Random rng, string role = null)
     {
-        var basics = BasicMoves(pokemonId);
+        var basics = BasicMoves(pokemonId, StatStyle(pokemonId));
         var pool = MovePool(pokemonId);
-        pool.RemoveAll(basics.Contains);
+        pool.RemoveAll(m => m.basic);
         if (role != null && role != "support") pool.RemoveAll(IsSupportMove); // would turn it into a support
         var result = new List<int>();
         if (basics.Count > 0 && count > 0) result.Add(basics[rng.Next(basics.Count)].id);

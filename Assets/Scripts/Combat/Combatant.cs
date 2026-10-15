@@ -95,6 +95,12 @@ public class Combatant : MonoBehaviour
     float dodgeUntil, dodgeReadyAt;
     readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
+    struct PendingStrike { public MoveDef move; public Vector2 direction; public float at; }
+    readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
+    int chainCount; // strikes landed in a row (chainBonus)
+    float chainUntil;
+    float lungeSpeed;
+    bool lungeBouncing, lungeFinishPending;
     Vector2 castDirection;
     float castDistance, castUntil;
     float confusionOffset, nextConfusionChange;
@@ -203,6 +209,7 @@ public class Combatant : MonoBehaviour
         Array.Clear(readyAt, 0, readyAt.Length);
         modifiers.Clear();
         castMove = null;
+        strikes.Clear();
     }
 
     public float CooldownLeft(int slot) => Mathf.Max(0f, readyAt[slot] - Time.time);
@@ -466,33 +473,114 @@ public class Combatant : MonoBehaviour
         if (direction == Vector2.zero) return false;
         readyAt[slot] = Time.time + CooldownOf(move);
         direction = Steer(direction.normalized);
-        if (move.family == "projectile")
+        if ((move.family == "projectile" || move.family == "melee") && move.castTime > 0f)
         {
-            if (move.castTime > 0f)
-            {
-                // Aim locked now, shots leave once the cast is over.
-                castMove = move;
-                castDirection = direction;
-                castDistance = distance;
-                castUntil = Time.time + move.castTime;
-            }
-            else FireProjectiles(move, direction, distance);
+            // The move goes off once the cast is over, toward where the player aims then.
+            castMove = move;
+            castDirection = direction;
+            castDistance = distance;
+            castUntil = Time.time + move.castTime;
         }
+        else if (move.family == "projectile") FireProjectiles(move, direction, distance);
         else if (move.family == "zone")
         {
             float reach = distance > 0f ? Mathf.Min(distance, move.range) : move.range;
             Zone.Spawn(this, move, (Vector2)transform.position + direction * reach);
         }
-        else if (move.family == "melee")
+        else if (move.family == "melee") Melee(move, direction);
+        return true;
+    }
+
+    // A melee move: blink forward first if it teleports, then a dash (hits along the way) or one or more strikes.
+    void Melee(MoveDef move, Vector2 direction)
+    {
+        if (move.teleport) MoveSafely(direction, move.lunge);
+        else if (move.lunge > 0f && body != null)
         {
-            if (move.lunge > 0f && body != null) StartLunge(move, direction);
-            else
+            StartLunge(move, direction);
+            return;
+        }
+        int count = Mathf.Max(1, move.hits);
+        for (int i = 0; i < count; i++)
+        {
+            float angle = move.hitAngles != null && move.hitAngles.Length > 0 ? move.hitAngles[i % move.hitAngles.Length] : 0f;
+            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, at = Time.time + i * move.hitInterval });
+        }
+    }
+
+    // Moves the user up to "distance" tiles, through opponents but stopping short of walls.
+    void MoveSafely(Vector2 direction, float distance)
+    {
+        const float Margin = 0.35f;
+        foreach (var hit in Physics2D.RaycastAll(transform.position, direction, distance + Margin))
+            if (!hit.collider.isTrigger && hit.collider.GetComponentInParent<Combatant>() == null)
+                distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - Margin));
+        Vector2 to = (Vector2)transform.position + direction * distance;
+        if (body != null) body.position = to;
+        transform.position = to;
+    }
+
+    /// One strike of a melee move, shaped by move.shape; radius overrides the size (dash finish). Returns the opponents hit.
+    int Strike(MoveDef move, Vector2 direction, float radius = -1f)
+    {
+        float mul = meleeAreaMul;
+        Vector2 at = transform.position;
+        string shape = radius > 0f ? "around" : move.shape;
+        float reach = radius > 0f ? radius : move.radiusMin > 0f ? UnityEngine.Random.Range(move.radiusMin, move.range) : move.range;
+        Collider2D[] found = shape switch
+        {
+            "arc" => Physics2D.OverlapCircleAll(at, reach * mul),
+            "thrust" => Physics2D.OverlapBoxAll(at + direction * reach * mul / 2f, new Vector2(reach * mul, move.radius * 2f * mul),
+                Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg),
+            "around" => Physics2D.OverlapCircleAll(at, reach * mul),
+            _ => Physics2D.OverlapCircleAll(at + direction * move.range, move.radius * mul),
+        };
+        ShowStrike(move, shape, at, direction, reach * mul);
+
+        // Strikes that land in quick succession hit harder (chainBonus).
+        if (move.chainBonus > 0f && Time.time > chainUntil) chainCount = 0;
+        float factor = move.chainBonus > 0f ? Mathf.Min(1f + move.chainBonus * chainCount, move.chainMax > 0f ? move.chainMax : 2f) : 1f;
+
+        var hit = new HashSet<Combatant>();
+        foreach (var other in found)
+        {
+            var target = other.GetComponentInParent<Combatant>();
+            if (target == null || target.team == team || !hit.Add(target)) continue;
+            Vector2 to = target.transform.position - transform.position;
+            if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
+            EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
+            if (target.TakeHit(DamageOf(move) * factor, move.category, out float dealt))
             {
-                EffectPlayer.Spawn(move.effect, transform.position + (Vector3)(direction * move.range), direction);
-                MeleeHit(move, direction, new HashSet<Combatant>());
+                target.ApplyEffects(move, false, this);
+                HitLanded(move, dealt);
             }
         }
-        return true;
+        if (move.chainBonus > 0f && hit.Count > 0)
+        {
+            chainCount++;
+            chainUntil = Time.time + move.chainWindow;
+        }
+        return hit.Count;
+    }
+
+    // The strike's sprite sheet, or a flash of the type colour over the area when there is none.
+    void ShowStrike(MoveDef move, string shape, Vector2 at, Vector2 direction, float reach)
+    {
+        Vector2 centre = shape switch
+        {
+            "arc" or "thrust" => at + direction * reach * 0.55f,
+            "around" => at,
+            _ => at + direction * move.range,
+        };
+        if (EffectLibrary.Get(move.effect) != null && shape != "around")
+        {
+            EffectPlayer.Spawn(move.effect, centre, direction);
+            return;
+        }
+        var colour = GameData.TypeColor(move.type);
+        if (shape == "thrust")
+            for (float d = 0.25f; d <= reach; d += 0.35f) Shapes.Pulse(at + direction * d, move.radius * meleeAreaMul, colour);
+        else Shapes.Pulse(centre, shape == "around" ? reach : shape == "arc" ? reach * 0.5f : move.radius * meleeAreaMul, colour);
     }
 
     /// Quick dash that goes through opponents (not walls), without protection: hits still land. False while it recharges.
@@ -533,6 +621,9 @@ public class Combatant : MonoBehaviour
         lungeDirection = direction;
         lungeHit.Clear();
         lungeUntil = Time.time + LungeTime(move);
+        lungeSpeed = move.lunge / LungeTime(move);
+        lungeBouncing = false;
+        lungeFinishPending = move.finishRadius > 0f;
         // Trail just behind the attacker, following it for the length of the dash.
         EffectPlayer.Spawn(move.effect, transform.position - (Vector3)(direction * 0.5f), direction, transform, LungeTime(move));
     }
@@ -588,8 +679,20 @@ public class Combatant : MonoBehaviour
 
         if (castMove != null && Time.time >= castUntil)
         {
-            if (CanAttack) FireProjectiles(castMove, LiveAim != Vector2.zero ? Steer(LiveAim.normalized) : castDirection, castDistance);
+            var aim = LiveAim != Vector2.zero ? Steer(LiveAim.normalized) : castDirection;
+            if (CanAttack && castMove.family == "melee") Melee(castMove, aim);
+            else if (CanAttack) FireProjectiles(castMove, aim, castDistance);
             castMove = null;
+        }
+
+        for (int i = 0; i < strikes.Count; i++)
+        {
+            var strike = strikes[i];
+            if (Time.time < strike.at) continue;
+            strikes.RemoveAt(i--);
+            if (!CanAttack) continue;
+            if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
+            Strike(strike.move, strike.direction);
         }
 
         if (IsDodging)
@@ -600,10 +703,28 @@ public class Combatant : MonoBehaviour
         }
         if (dodgeIgnored.Count > 0) EndDodge();
 
-        // During a dash the attacker is pushed forward and hits each opponent it reaches once.
-        if (!IsLunging) return;
-        body.linearVelocity = lungeDirection * lungeMove.lunge / LungeTime(lungeMove);
-        MeleeHit(lungeMove, lungeDirection, lungeHit);
+        // During a dash the attacker is pushed forward and hits each opponent it reaches once; it may end with a
+        // strike around it, or bounce back off the first one it hits.
+        if (!IsLunging)
+        {
+            if (lungeFinishPending)
+            {
+                lungeFinishPending = false;
+                Strike(lungeMove, lungeDirection, lungeMove.finishRadius);
+            }
+            return;
+        }
+        body.linearVelocity = lungeDirection * lungeSpeed;
+        if (lungeBouncing) return;
+        if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
+        {
+            const float BounceTime = 0.15f;
+            lungeBouncing = true;
+            lungeFinishPending = false;
+            lungeDirection = -lungeDirection;
+            lungeSpeed = lungeMove.bounceBack / BounceTime;
+            lungeUntil = Time.time + BounceTime;
+        }
     }
 
     /// Damage over time, statuses that end or turn into another one, confusion. False once knocked out.
@@ -637,13 +758,15 @@ public class Combatant : MonoBehaviour
     }
 
     /// Hits every opponent inside a circle placed in front of the attacker, skipping those already hit.
-    void MeleeHit(MoveDef move, Vector2 direction, HashSet<Combatant> hit)
+    int MeleeHit(MoveDef move, Vector2 direction, HashSet<Combatant> hit)
     {
+        int count = 0;
         Vector2 centre = (Vector2)transform.position + direction * move.range;
         foreach (var other in Physics2D.OverlapCircleAll(centre, move.radius * meleeAreaMul))
         {
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team || !hit.Add(target)) continue;
+            count++;
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move), move.category, out float dealt))
             {
@@ -651,6 +774,7 @@ public class Combatant : MonoBehaviour
                 HitLanded(move, dealt);
             }
         }
+        return count;
     }
 
     /// Raw damage of a move before the target's defence: power plus the matching attack stat (provisional formula).
@@ -727,6 +851,9 @@ public class Combatant : MonoBehaviour
     public void KnockOut()
     {
         lungeUntil = dodgeUntil = 0f;
+        lungeFinishPending = false;
+        strikes.Clear();
+        castMove = null;
         EndDodge();
         ClearEffects();
         foreach (var collider in GetComponents<Collider2D>()) collider.enabled = false;
