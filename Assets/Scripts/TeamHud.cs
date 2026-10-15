@@ -10,6 +10,7 @@ public class TeamHud : MonoBehaviour
     const float IconSize = 10f;
     const float SmallPortrait = 20f, SmallGap = 5f, SmallBar = 3f;
     const float Margin = 8f, Portrait = 40f, Gap = 6f, BarWidth = 98f, BarHeight = 9f, Slot = 22f, SlotGap = 3f;
+    static readonly Color DodgeColor = new(0.45f, 0.55f, 0.65f);
     static readonly string[] SlotLabels = { "R1", "R2", "L1", "L2" };
     static readonly Color Frame = new(0.08f, 0.08f, 0.12f, 0.85f);
     static readonly Color BarBack = new(0f, 0f, 0f, 0.7f);
@@ -121,6 +122,23 @@ public class TeamHud : MonoBehaviour
                 Label(bottom, Short(move.name), TextAnchor.MiddleCenter);
             }
             Label(top, SlotLabels[i], TextAnchor.MiddleCenter);
+        }
+
+        // Dodge, after the moves.
+        {
+            var slot = new Rect(x + Combatant.MoveSlots * (Slot + SlotGap) * s, portrait.yMax - Slot * s, Slot * s, Slot * s);
+            var top = new Rect(slot.x, slot.y + s, slot.width, 9f * s);
+            var bottom = new Rect(slot.x, slot.y + 10f * s, slot.width, 11f * s);
+            Fill(slot, Frame);
+            float left = combatant.DodgeCooldownLeft;
+            Fill(Grow(slot, -s), left > 0f ? Recharging : DodgeColor);
+            if (left > 0f)
+            {
+                float total = SaveData.Settings.dodgeCooldown;
+                Fill(new Rect(slot.x, slot.y, slot.width, slot.height * (total > 0f ? Mathf.Clamp01(left / total) : 0f)), Shade);
+            }
+            Label(top, "X", TextAnchor.MiddleCenter);
+            Label(bottom, left > 0f ? left.ToString("0.0") : "Esq.", TextAnchor.MiddleCenter);
         }
     }
 

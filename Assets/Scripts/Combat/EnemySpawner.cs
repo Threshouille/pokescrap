@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -174,13 +176,62 @@ public class EnemySpawner : MonoBehaviour
     {
         nextWaveAt = 0f;
         if (Current.waves == null || CurrentWave >= Current.waves.Length) return;
+        var sets = new List<PmdAnimSet>();
         foreach (var entry in Current.waves[CurrentWave].enemies)
             for (int i = 0; i < entry.count; i++)
-                Spawn(entry.set, SpawnPoint(), false);
+                sets.Add(entry.set);
+        for (int i = sets.Count - 1; i > 0; i--)
+        {
+            int j = rng.Next(i + 1);
+            (sets[i], sets[j]) = (sets[j], sets[i]);
+        }
+        int size = Mathf.Max(1, SaveData.Settings.enemyGroupSize);
+        for (int start = 0; start < sets.Count; start += size)
+            SpawnGroup(sets.GetRange(start, Mathf.Min(size, sets.Count - start)));
         CurrentWave++;
     }
 
-    Combatant Spawn(PmdAnimSet set, Vector3 position, bool isBoss)
+    // A group appears in one spot: one support (the first member whose moves allow it; when none can, a member is
+    // swapped for a Pokémon of the stage, or else of the run, that can), the others melee or ranged at random,
+    // each keeping its natural role when its moves do not allow the one it was given.
+    void SpawnGroup(List<PmdAnimSet> sets)
+    {
+        var group = new EnemyGroup();
+        int support = sets.FindIndex(set => GameData.CanTakeRole(set.pokemonId, "support"));
+        if (support < 0 && sets.Count >= 2) // a lone enemy stays as it is
+        {
+            var healer = SupportCandidate();
+            if (healer != null) sets[support = 0] = healer;
+        }
+        Vector3 centre = SpawnPoint();
+        for (int i = 0; i < sets.Count; i++)
+        {
+            string role = i == support ? "support" : rng.Next(2) == 0 ? "melee" : "ranged";
+            if (!GameData.CanTakeRole(sets[i].pokemonId, role)) role = null;
+            Vector3 spot = centre + (Vector3)(GroupOffsets[i % GroupOffsets.Length]);
+            if (!generator.WalkableAt(spot, 0.3f)) spot = centre;
+            var combatant = Spawn(sets[i], spot, false, role);
+            combatant.GetComponent<EnemyAI>().group = group;
+            group.members.Add(combatant);
+        }
+    }
+
+    PmdAnimSet SupportCandidate()
+    {
+        var candidates = new List<PmdAnimSet>();
+        foreach (var stage in new[] { Current }.Concat(stages))
+        {
+            foreach (var wave in stage.waves ?? new Wave[0])
+                foreach (var entry in wave.enemies)
+                    if (entry.set != null && GameData.CanTakeRole(entry.set.pokemonId, "support")) candidates.Add(entry.set);
+            if (candidates.Count > 0) break;
+        }
+        return candidates.Count > 0 ? candidates[rng.Next(candidates.Count)] : null;
+    }
+
+    static readonly Vector2[] GroupOffsets = { Vector2.zero, new(1.2f, 0f), new(-0.6f, 1f), new(-0.6f, -1f), new(1.2f, 1.2f) };
+
+    Combatant Spawn(PmdAnimSet set, Vector3 position, bool isBoss, string role = null)
     {
         var go = new GameObject(GameData.Pokemon(set.pokemonId)?.name ?? "Enemy");
         go.transform.SetParent(transform, false);
@@ -197,7 +248,7 @@ public class EnemySpawner : MonoBehaviour
         go.AddComponent<PmdAnimator>().SetAnimSet(set);
         var combatant = go.AddComponent<Combatant>();
         // Bosses keep their fixed moves; other enemies draw theirs from what they learn by level.
-        combatant.Init(set.pokemonId, Team.Enemy, isBoss ? null : GameData.RandomMoves(set.pokemonId, SaveData.Settings.enemyMoveCount, rng));
+        combatant.Init(set.pokemonId, Team.Enemy, isBoss ? null : GameData.RandomMoves(set.pokemonId, SaveData.Settings.enemyMoveCount, rng, role));
         for (int level = 2; level <= Current.enemyLevel; level++)
             combatant.ApplyGrowth(LevelData.Growth(set.pokemonId, level), level);
         combatant.damageFactor = damageFactor;

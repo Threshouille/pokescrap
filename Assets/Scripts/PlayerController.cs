@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 /// The player's team: every character is in the arena at once. One is driven by the player, the others by AllyAI.
 /// Gamepad: left stick moves, right stick aims, R1 / R2 / L1 / L2 use moves 1-4, d-pad left/right changes the
 /// controlled Pokémon. Keyboard and mouse: WASD (ZQSD on AZERTY) or arrows, mouse aims, left click / right click /
-/// Space / Shift, Tab changes Pokémon. This object follows the controlled Pokémon (camera and allies track it).
+/// Space / Shift, Tab changes Pokémon. Dodge: ✕ (gamepad south button) or left Ctrl. This object follows the controlled Pokémon (camera and allies track it).
 /// Standing on a knocked-out ally for a few seconds brings it back.
 [DefaultExecutionOrder(50)] // after DungeonGenerator.Start, which places this object in the arena
 public class PlayerController : MonoBehaviour
@@ -170,6 +170,8 @@ public class PlayerController : MonoBehaviour
         if (aim != Vector2.zero) facing = aim;
         else if (move != Vector2.zero) facing = move.normalized;
 
+        if (DodgePressed()) member.combatant.TryDodge(move != Vector2.zero ? move : facing);
+
         for (int slot = 0; slot < Combatant.MoveSlots; slot++)
             if (SlotHeld(slot) && member.combatant.TryUseMove(slot, facing))
             {
@@ -208,7 +210,7 @@ public class PlayerController : MonoBehaviour
     {
         if (gameOver || members.Count == 0) return;
         UpdateRevives();
-        if (Current.combatant.IsLunging) return; // a melee dash drives the body
+        if (Current.combatant.IsDashing) return; // a melee dash drives the body
         Current.body.linearVelocity = Current.combatant.Steer(move) * Current.combatant.CurrentSpeed;
     }
 
@@ -356,6 +358,13 @@ public class PlayerController : MonoBehaviour
             2 => kb != null && kb.spaceKey.isPressed,
             _ => kb != null && kb.leftShiftKey.isPressed,
         };
+    }
+
+    static bool DodgePressed()
+    {
+        var pad = Gamepad.current;
+        var kb = Keyboard.current;
+        return (pad != null && pad.buttonSouth.wasPressedThisFrame) || (kb != null && kb.leftCtrlKey.wasPressedThisFrame);
     }
 
     static int ReadSwitch()

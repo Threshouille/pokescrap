@@ -9,6 +9,8 @@ public class Projectile : MonoBehaviour
     const float HomingRange = 5f; // tiles: how far a homing shot looks for a target
     const float MinSpeed = 1f; // tiles per second: a slowing shot never stops
 
+    static readonly List<Projectile> active = new();
+
     Team team;
     Combatant owner;
     MoveDef move;
@@ -31,7 +33,9 @@ public class Projectile : MonoBehaviour
 
     /// shotIndex: position in the volley (picks the side of curves and orbits); delay: seconds before leaving;
     /// distance: where the user aimed (arc lands there when closer than the range, ≤ 0 = full range).
-    public static void Spawn(Combatant owner, MoveDef move, Vector2 direction, int shotIndex = 0, float delay = 0f, float distance = -1f)
+    /// extraRange: tiles added to the range (shots of a volley landing further and further).
+    public static void Spawn(Combatant owner, MoveDef move, Vector2 direction, int shotIndex = 0, float delay = 0f, float distance = -1f,
+        float extraRange = 0f)
     {
         var go = new GameObject(move.name);
         go.transform.position = owner.transform.position + (Vector3)(direction * SpawnOffset);
@@ -60,7 +64,7 @@ public class Projectile : MonoBehaviour
         projectile.radius = projectile.baseRadius = move.radius * owner.projectileSizeMul;
         projectile.baseScale = go.transform.localScale;
         projectile.speed = move.speed * owner.projectileSpeedMul;
-        projectile.range = move.path == "arc" && distance > 0f ? Mathf.Min(distance, move.range) : move.range;
+        projectile.range = (move.path == "arc" && distance > 0f ? Mathf.Min(distance, move.range) : move.range) + extraRange;
         projectile.side = shotIndex % 2 == 0 ? 1f : -1f;
         projectile.forward = direction.normalized;
         projectile.origin = go.transform.position;
@@ -73,6 +77,36 @@ public class Projectile : MonoBehaviour
     void Show(bool visible)
     {
         foreach (var r in renderers) r.enabled = visible;
+    }
+
+    void OnEnable() => active.Add(this);
+    void OnDisable() => active.Remove(this);
+
+    /// Sideways direction that gets out of the way of an opponent's shot about to reach the point (within
+    /// "lookahead" seconds), or zero. A shot in an arc is avoided by leaving the area where it will land.
+    public static Vector2 Threat(Vector2 point, Team victim, float bodyRadius, float lookahead)
+    {
+        foreach (var shot in active)
+        {
+            if (shot.team == victim || shot.delay > 0f || shot.returning || shot.move == null) continue;
+            if (shot.move.path == "arc")
+            {
+                Vector2 landing = shot.origin + shot.forward * shot.range;
+                Vector2 away = point - landing;
+                bool soon = (shot.range - shot.travelled) / Mathf.Max(shot.speed, MinSpeed) <= lookahead;
+                if (soon && away.magnitude <= Mathf.Max(shot.radius, shot.move.splash) + bodyRadius)
+                    return away.sqrMagnitude > 0.0001f ? away.normalized : Vector2.right;
+                continue;
+            }
+            Vector2 rel = point - (Vector2)shot.transform.position;
+            float along = Vector2.Dot(rel, shot.forward);
+            if (along < 0f || along > shot.speed * lookahead) continue;
+            var normal = new Vector2(-shot.forward.y, shot.forward.x);
+            float lateral = Vector2.Dot(rel, normal);
+            if (Mathf.Abs(lateral) > shot.radius + bodyRadius) continue;
+            return lateral >= 0f ? normal : -normal;
+        }
+        return Vector2.zero;
     }
 
     void FixedUpdate()

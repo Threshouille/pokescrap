@@ -8,5 +8,10 @@
   "enemyBasicCooldownMul": 2.5,
   "enemyBasicDamageMul": 1.5,
   "moveOfferChanceWhenFull": 0.5,
-  "evolvedMoveWeight": 2
+  "evolvedMoveWeight": 2,
+  "dodgeDistance": 2.5,
+  "dodgeTime": 0.2,
+  "dodgeCooldown": 3,
+  "enemyGroupSize": 3,
+  "groupRetargetTime": 2
 }

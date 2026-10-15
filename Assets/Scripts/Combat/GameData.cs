@@ -53,6 +53,7 @@ public class MoveDef
     public bool pierce; // goes through opponents, hitting each once
     public int bounces; // times the shot bounces off walls
     public float splash; // arc: radius of the hit where it lands
+    public float rangeStep; // projectile: each shot after the first flies this much further (tiles)
     public float puddle; // arc: seconds the puddle showing the splash area stays (fading out); none when 0
     public float effectScale; // size multiplier of the effect sheets (1 when omitted)
     public float homing; // homing: degrees per second the shot turns toward its target
@@ -216,16 +217,20 @@ public static class GameData
 
     /// "count" moves for an enemy: one of its basic attacks, then moves drawn from the pool, the first one dealing
     /// damage when the pool has one.
-    public static int[] RandomMoves(int pokemonId, int count, System.Random rng)
+    /// "role" (melee, ranged or support; null for any): the moves are drawn so that the Pokémon gets that role
+    /// (see RoleFromMoves), when its list allows it (CanTakeRole).
+    public static int[] RandomMoves(int pokemonId, int count, System.Random rng, string role = null)
     {
         var basics = BasicMoves(pokemonId);
         var pool = MovePool(pokemonId);
         pool.RemoveAll(basics.Contains);
+        if (role != null && role != "support") pool.RemoveAll(IsSupportMove); // would turn it into a support
         var result = new List<int>();
         if (basics.Count > 0 && count > 0) result.Add(basics[rng.Next(basics.Count)].id);
         if (result.Count >= count) return result.ToArray();
-        var damaging = pool.FindAll(m => m.power > 0);
-        if (damaging.Count > 0) result.Add(damaging[rng.Next(damaging.Count)].id);
+        var first = pool.FindAll(m => role == null ? m.power > 0 : FitsRole(m, role));
+        if (first.Count == 0) first = pool.FindAll(m => m.power > 0);
+        if (first.Count > 0) result.Add(first[rng.Next(first.Count)].id);
         while (result.Count < count)
         {
             var left = pool.FindAll(m => !result.Contains(m.id));
@@ -234,6 +239,23 @@ public static class GameData
         }
         return result.ToArray();
     }
+
+    /// True when RandomMoves can give the Pokémon that role.
+    public static bool CanTakeRole(int pokemonId, string role)
+    {
+        var basics = BasicMoves(pokemonId);
+        return MovePool(pokemonId).Exists(m => !basics.Contains(m) && FitsRole(m, role));
+    }
+
+    static bool IsSupportMove(MoveDef m) => m.family == "heal" || (m.family == "modifier" && m.target == "allies");
+
+    // A move that makes a Pokémon take the role (with only a basic attack beside it).
+    static bool FitsRole(MoveDef m, string role) => role switch
+    {
+        "support" => IsSupportMove(m),
+        "ranged" => m.power > 0 && (m.family == "projectile" || m.family == "zone"),
+        _ => m.power > 0 && (m.family == "melee" || m.family == "burst"),
+    };
 
     public static MoveDef Move(int id)
     {
@@ -252,7 +274,7 @@ public static class GameData
         {
             if (move == null) continue;
             if (move.basic) { basic = move; continue; }
-            if (move.family == "heal" || (move.family == "modifier" && move.target == "allies")) return "support";
+            if (IsSupportMove(move)) return "support";
             if (move.family == "projectile" || move.family == "zone") ranged++;
             else if (move.family == "melee" || move.family == "burst") close++;
         }

@@ -39,6 +39,11 @@ public static class SaveData
         public int enemyMoveCount = 2;
         public float moveOfferChanceWhenFull = 0.5f; // chance that a level-up choice offers a new move once 4 are known
         public float evolvedMoveWeight = 2f; // after evolving, moves of the current form are this much more likely
+        public float dodgeDistance = 2.5f; // tiles covered by a dodge (team only)
+        public float dodgeTime = 0.2f;
+        public float dodgeCooldown = 3f;
+        public int enemyGroupSize = 3; // enemies of a wave are split into groups that share a target, each with a support
+        public float groupRetargetTime = 2f;
     }
 
     static File data;

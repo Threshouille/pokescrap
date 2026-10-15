@@ -54,6 +54,10 @@ public class Combatant : MonoBehaviour
     public bool CanAttack => StatusAllows(def => def.canAttack);
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
+    public bool IsDodging => Time.time < dodgeUntil;
+    /// True while a dash (melee lunge or dodge) drives the body: controllers leave its velocity alone.
+    public bool IsDashing => IsLunging || IsDodging;
+    public float DodgeCooldownLeft => Mathf.Max(0f, dodgeReadyAt - Time.time);
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
     public bool IsCasting => castMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
@@ -84,6 +88,9 @@ public class Combatant : MonoBehaviour
     MoveDef lungeMove;
     Vector2 lungeDirection;
     float lungeUntil;
+    Vector2 dodgeDirection;
+    float dodgeUntil, dodgeReadyAt;
+    readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
     Vector2 castDirection;
     float castDistance, castUntil;
@@ -485,6 +492,36 @@ public class Combatant : MonoBehaviour
         return true;
     }
 
+    /// Quick dash that goes through opponents (not walls), without protection: hits still land. False while it recharges.
+    public bool TryDodge(Vector2 direction)
+    {
+        if (!IsAlive || Time.time < dodgeReadyAt || !CanMove || IsCasting || IsLunging || direction == Vector2.zero || body == null) return false;
+        var settings = SaveData.Settings;
+        dodgeDirection = direction.normalized;
+        dodgeUntil = Time.time + settings.dodgeTime;
+        dodgeReadyAt = Time.time + settings.dodgeCooldown;
+        Team opponents = team == Team.Player ? Team.Enemy : Team.Player;
+        var mine = GetComponents<Collider2D>();
+        foreach (var other in all)
+        {
+            if (other.team != opponents) continue;
+            foreach (var theirs in other.GetComponents<Collider2D>())
+            {
+                foreach (var own in mine) Physics2D.IgnoreCollision(own, theirs, true);
+                dodgeIgnored.Add(theirs);
+            }
+        }
+        return true;
+    }
+
+    void EndDodge()
+    {
+        var mine = GetComponents<Collider2D>();
+        foreach (var theirs in dodgeIgnored)
+            if (theirs != null) foreach (var own in mine) Physics2D.IgnoreCollision(own, theirs, false);
+        dodgeIgnored.Clear();
+    }
+
     static float LungeTime(MoveDef move) => move.lungeTime > 0f ? move.lungeTime : DefaultLungeTime;
 
     void StartLunge(MoveDef move, Vector2 direction)
@@ -515,7 +552,8 @@ public class Combatant : MonoBehaviour
                     delay += rank * move.burstInterval;
                 }
                 angle += UnityEngine.Random.Range(-move.jitter, move.jitter);
-                Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, delay, distance);
+                Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, delay, distance,
+                    (volley * shots + i) * move.rangeStep);
             }
     }
 
@@ -528,6 +566,14 @@ public class Combatant : MonoBehaviour
             if (CanAttack) FireProjectiles(castMove, castDirection, castDistance);
             castMove = null;
         }
+
+        if (IsDodging)
+        {
+            var settings = SaveData.Settings;
+            body.linearVelocity = dodgeDirection * settings.dodgeDistance / settings.dodgeTime;
+            return;
+        }
+        if (dodgeIgnored.Count > 0) EndDodge();
 
         // During a dash the attacker is pushed forward and hits each opponent it reaches once.
         if (!IsLunging) return;
@@ -648,14 +694,15 @@ public class Combatant : MonoBehaviour
     /// Removes statuses, bonuses and penalties (between two arenas).
     public void Cleanse()
     {
-        lungeUntil = 0f;
+        lungeUntil = dodgeUntil = dodgeReadyAt = 0f;
         ClearEffects();
     }
 
     /// A knocked-out team member stays on the ground but no longer blocks or gets hit.
     public void KnockOut()
     {
-        lungeUntil = 0f;
+        lungeUntil = dodgeUntil = 0f;
+        EndDodge();
         ClearEffects();
         foreach (var collider in GetComponents<Collider2D>()) collider.enabled = false;
         if (body != null) body.simulated = false;

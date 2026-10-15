@@ -56,17 +56,23 @@ public class Zone : MonoBehaviour
         return false;
     }
 
-    /// Direction that leaves the harmful zone the point is in (straight away from its centre), or zero outside.
+    /// Direction that leaves the harmful zones the point is in, or zero outside. Overlapping zones each push away
+    /// from their centre, the deeper the harder, so the way out of a cluster of clouds is the shortest one.
     public static Vector2 EscapeDirection(Vector2 point, Team victim, float margin)
     {
+        Vector2 push = Vector2.zero;
+        bool inside = false;
         foreach (var zone in active)
         {
             if (zone.move == null || zone.team == victim) continue;
             Vector2 away = point - (Vector2)zone.transform.position;
-            if (away.magnitude > zone.move.radius + margin) continue;
-            return away.sqrMagnitude > 0.0001f ? away.normalized : Vector2.right;
+            float depth = zone.move.radius + margin - away.magnitude;
+            if (depth < 0f) continue;
+            inside = true;
+            push += (away.sqrMagnitude > 0.0001f ? away.normalized : Vector2.right) * (depth + 0.1f);
         }
-        return Vector2.zero;
+        if (!inside) return Vector2.zero;
+        return push.sqrMagnitude > 0.0001f ? push.normalized : Vector2.right;
     }
 
     void FixedUpdate()

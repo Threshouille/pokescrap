@@ -23,9 +23,11 @@ public static class RoleTactics
         public float distance; // where a zone move should land
         public Vector2 move; // direction to walk when no move is used
         public Vector2 look;
+        public Combatant foe; // opponent the decision is about, or null
     }
 
-    public static Decision Decide(Combatant self, Navigator navigator, float aggroRange)
+    /// "target": opponent to fight (an enemy group's shared target); the nearest one within aggroRange when null.
+    public static Decision Decide(Combatant self, Navigator navigator, float aggroRange, Combatant target = null)
     {
         var decision = new Decision { slot = -1 };
         Vector2 position = self.transform.position;
@@ -33,7 +35,8 @@ public static class RoleTactics
         Team opponents = self.team == Team.Player ? Team.Enemy : Team.Player;
         bool support = self.Role == "support", ranged = self.Role == "ranged", melee = !support && !ranged;
 
-        var foe = Combatant.Nearest(opponents, position, aggroRange);
+        var foe = target != null && target.IsAlive ? target : Combatant.Nearest(opponents, position, aggroRange);
+        decision.foe = foe;
         Vector2 toFoe = foe != null ? (Vector2)foe.transform.position - position : Vector2.zero;
         float foeDistance = toFoe.magnitude;
         bool lineOfFire = foe != null && (grid == null || grid.LineClear(position, foe.transform.position, ShotRadius));
@@ -193,6 +196,20 @@ public static class RoleTactics
         if (blended.sqrMagnitude < 0.01f) return move;
         blended = blended.normalized * move.magnitude;
         return Passable(self, grid, position, blended.normalized) ? blended : move;
+    }
+
+    static readonly float[] EscapeAngles = { 0f, 45f, -45f, 90f, -90f };
+
+    /// Way out of a harmful zone: straight out when the floor allows it, else the closest angle that does. Only walls
+    /// are checked, since every step is still inside the zone (checking zones too made the AI circle in it).
+    public static Vector2 EscapeStep(DungeonGenerator grid, Vector2 position, Vector2 escape)
+    {
+        foreach (float angle in EscapeAngles)
+        {
+            Vector2 direction = Quaternion.Euler(0f, 0f, angle) * escape;
+            if (grid == null || grid.WalkableAt(position + direction * 0.7f, 0.3f)) return direction;
+        }
+        return escape;
     }
 
     /// True when a short step in that direction stays on the floor and out of harmful zones.

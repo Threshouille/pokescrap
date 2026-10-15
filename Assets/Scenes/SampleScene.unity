@@ -148,13 +148,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c44c5bc4bad2ea67aafc7790a9a7a69e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  characters:
-  - {fileID: 11400000, guid: 04d307084c5fa59ccb30516ba0e282a8, type: 2}
-  - {fileID: 11400000, guid: 7c192a368bb3f4c25ac15957e128b931, type: 2}
-  - {fileID: 11400000, guid: 9349fb683ec28418791efa846f283dd6, type: 2}
-  - {fileID: 11400000, guid: e0e3347ebaa3996cd9d8636f4a9f022f, type: 2}
-  - {fileID: 11400000, guid: 2cb1f4fd3c76e8711b4c15236a7c8ac6, type: 2}
-  - {fileID: 11400000, guid: 345a2463c1592fd2ba15aa0d61ea1505, type: 2}
   teamSize: 3
   reviveTime: 3
   reviveRadius: 1
@@ -706,9 +699,9 @@ MonoBehaviour:
     boss: {fileID: 11400000, guid: e29482e7ac95d541da208ae6f4d476eb, type: 2}
   delayBetweenWaves: 2
   minDistance: 6
-  damageFactor: 0.25
+  damageFactor: 0.5
   healthFactor: 3
-  bossHealthFactor: 8
+  bossHealthFactor: 16
   bossScale: 1.5
   stagePause: 2
   fadeTime: 0.5

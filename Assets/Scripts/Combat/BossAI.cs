@@ -92,7 +92,7 @@ public class BossAI : MonoBehaviour
                 break;
 
             case State.Recover:
-                if (combatant.IsLunging) break; // the dash drives the body
+                if (combatant.IsDashing) break; // the dash drives the body
                 body.linearVelocity = Vector2.zero;
                 if (Time.time >= stateUntil) Enter(State.Approach, 0f);
                 break;

@@ -16,6 +16,8 @@ public class EnemyAI : MonoBehaviour
     [Tooltip("Pause after each attack, on top of the move's cooldown")]
     public float recoverTime = 1.5f;
 
+    public EnemyGroup group; // set by EnemySpawner: the group's members share their target
+
     readonly Navigator navigator = new();
     Rigidbody2D body;
     PmdAnimator animator;
@@ -59,7 +61,7 @@ public class EnemyAI : MonoBehaviour
                 break;
 
             case State.Recover:
-                if (combatant.IsLunging) break; // the dash drives the body
+                if (combatant.IsDashing) break; // the dash drives the body
                 body.linearVelocity = Vector2.zero;
                 if (Time.time >= stateUntil) state = State.Chase;
                 break;
@@ -75,11 +77,11 @@ public class EnemyAI : MonoBehaviour
         Vector2 escape = Zone.EscapeDirection(position, combatant.team, RoleTactics.ZoneMargin);
         if (escape != Vector2.zero)
         {
-            Move(RoleTactics.Passable(combatant, grid, position, escape) ? escape : new Vector2(-escape.y, escape.x), escape);
+            Move(RoleTactics.EscapeStep(grid, position, escape), escape);
             return;
         }
 
-        var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue);
+        var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target());
         if (decision.slot >= 0)
         {
             Vector2 aim = decision.aim != Vector2.zero ? decision.aim.normalized : Vector2.right;
@@ -127,6 +129,11 @@ public class EnemyAI : MonoBehaviour
             // Disc where the zone will land.
             Circle(renderer, transform.position + (Vector3)(direction * Mathf.Min(distance, move.range)), move.radius);
         }
+        else if (move.family == "projectile" && move.path == "arc")
+        {
+            // Disc where the shot will land.
+            Circle(renderer, transform.position + (Vector3)(direction * Mathf.Min(distance, move.range)), Mathf.Max(move.radius, move.splash));
+        }
         else if (move.family == "projectile")
         {
             // Thin strip along the flight path.
@@ -148,6 +155,7 @@ public class EnemyAI : MonoBehaviour
         renderer.sprite = Shapes.Circle;
         renderer.transform.position = centre;
         renderer.transform.localScale = Vector3.one * radius * 2f;
+        DangerArea.AddCircle(renderer.gameObject, combatant.team, centre, radius);
     }
 
     void Strip(SpriteRenderer renderer, Vector2 direction, float length, float halfWidth)
@@ -156,5 +164,6 @@ public class EnemyAI : MonoBehaviour
         renderer.transform.position = transform.position + (Vector3)(direction * length / 2f);
         renderer.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
         renderer.transform.localScale = new Vector3(length, halfWidth * 2f, 1f);
+        DangerArea.AddStrip(renderer.gameObject, combatant.team, transform.position, direction, length, halfWidth);
     }
 }
