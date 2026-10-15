@@ -73,6 +73,8 @@ public class MoveDef
     public float radiusMin; // melee around: the radius is drawn between this and range
     public float chainBonus, chainMax, chainWindow; // melee: each strike landing within chainWindow seconds of the previous one adds chainBonus to the damage, up to ×chainMax
     public bool teleport; // melee: the user blinks lunge tiles forward (through opponents, not walls), then strikes
+    public string finishEffect; // melee dash: sheet of the strike where the dash ends, stretched to finishRadius
+    public string trailEffect; // melee teleport: sheet left where the user blinked from
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally

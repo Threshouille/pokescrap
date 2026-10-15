@@ -5,7 +5,7 @@ using UnityEngine;
 /// Sprite sheets of attack effects, described by Resources/Effects/effects.json (one row of frames per sheet).
 public static class EffectLibrary
 {
-    const int PixelsPerUnit = 24; // same scale as the Pokémon and the tiles
+    public const int PixelsPerUnit = 24; // same scale as the Pokémon and the tiles
 
     [Serializable]
     public class Sheet
@@ -85,11 +85,14 @@ public class EffectPlayer : MonoBehaviour
     }
 
     /// Creates a standalone effect. One-shot sheets remove themselves at the end; looping ones need a lifetime.
-    public static void Spawn(string name, Vector3 position, Vector2 direction, Transform parent = null, float lifetime = 0f)
+    /// size: width in tiles the frame is stretched to (its own size when ≤ 0).
+    public static void Spawn(string name, Vector3 position, Vector2 direction, Transform parent = null, float lifetime = 0f, float size = 0f)
     {
-        if (EffectLibrary.Get(name) == null) return;
+        var sheet = EffectLibrary.Get(name);
+        if (sheet == null) return;
         var go = new GameObject(name);
         go.transform.position = position;
+        if (size > 0f) go.transform.localScale = Vector3.one * size * EffectLibrary.PixelsPerUnit / sheet.frame_width;
         if (parent != null) go.transform.SetParent(parent, true);
         Attach(go, name, direction);
         if (lifetime > 0f) go.GetComponent<EffectPlayer>().dieAt = Time.time + lifetime;

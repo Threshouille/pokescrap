@@ -42,26 +42,6 @@
       ]
     },
     {
-      "file": "griffe_coup.png",
-      "frame_width": 32,
-      "frame_height": 32,
-      "frame_count": 5,
-      "frame_duration_ms": [
-        40,
-        50,
-        60,
-        70,
-        90
-      ],
-      "loop": false,
-      "palette": [
-        "#24242e",
-        "#8a90a0",
-        "#c8ccd6",
-        "#ffffff"
-      ]
-    },
-    {
       "file": "charge_trainee.png",
       "frame_width": 32,
       "frame_height": 24,
@@ -1399,6 +1379,744 @@
         70,
         80,
         100
+      ],
+      "loop": false,
+      "palette": [
+        "#22262e",
+        "#6a7280",
+        "#a8b0bc",
+        "#dce2ea",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "griffe_coup.png",
+      "frame_width": 36,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#8a90a0",
+        "#c8ccd6",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "griffe_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#8a90a0",
+        "#c8ccd6",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "roue_de_feu_trainee.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "roue_de_feu_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "aqua_jet_trainee.png",
+      "frame_width": 40,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#0b1d5a",
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#f0faff"
+      ]
+    },
+    {
+      "file": "aqua_jet_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#0b1d5a",
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#f0faff"
+      ]
+    },
+    {
+      "file": "fouet_lianes_coup.png",
+      "frame_width": 60,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#11301a",
+        "#2b6e2a",
+        "#4fae38",
+        "#9fe05a",
+        "#e6ffb0"
+      ]
+    },
+    {
+      "file": "fouet_lianes_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#11301a",
+        "#2b6e2a",
+        "#4fae38",
+        "#9fe05a",
+        "#e6ffb0"
+      ]
+    },
+    {
+      "file": "etincelle_trainee.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#3a2600",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "etincelle_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2600",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "etincelle_decharge.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2600",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "crocs_givre_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        40,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1a2f5a",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "crocs_givre_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1a2f5a",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mach_punch_coup.png",
+      "frame_width": 20,
+      "frame_height": 20,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        40,
+        50,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#d0702a",
+        "#f6b060",
+        "#ffe4bc",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mach_punch_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#d0702a",
+        "#f6b060",
+        "#ffe4bc",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "dard_venin_coup.png",
+      "frame_width": 44,
+      "frame_height": 12,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "dard_venin_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "ampleur_onde.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        60,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1c0c04",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#e2b070"
+      ]
+    },
+    {
+      "file": "ampleur_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1c0c04",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#e2b070"
+      ]
+    },
+    {
+      "file": "picpic_coup.png",
+      "frame_width": 32,
+      "frame_height": 12,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        40,
+        50,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2e10",
+        "#c89a30",
+        "#f6dc6a",
+        "#fff8d0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "picpic_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2e10",
+        "#c89a30",
+        "#f6dc6a",
+        "#fff8d0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "coupe_psycho_coup.png",
+      "frame_width": 40,
+      "frame_height": 64,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#2a0c3c",
+        "#7a2ea8",
+        "#d04ab0",
+        "#ff92d6",
+        "#ffe0f4"
+      ]
+    },
+    {
+      "file": "coupe_psycho_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#2a0c3c",
+        "#7a2ea8",
+        "#d04ab0",
+        "#ff92d6",
+        "#ffe0f4"
+      ]
+    },
+    {
+      "file": "taillade_coup.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2a06",
+        "#5e8c12",
+        "#a8d82a",
+        "#e2f76a",
+        "#fbffd0"
+      ]
+    },
+    {
+      "file": "taillade_coup_2.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2a06",
+        "#5e8c12",
+        "#a8d82a",
+        "#e2f76a",
+        "#fbffd0"
+      ]
+    },
+    {
+      "file": "taillade_coup_3.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2a06",
+        "#5e8c12",
+        "#a8d82a",
+        "#e2f76a",
+        "#fbffd0"
+      ]
+    },
+    {
+      "file": "taillade_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2a06",
+        "#5e8c12",
+        "#a8d82a",
+        "#e2f76a",
+        "#fbffd0"
+      ]
+    },
+    {
+      "file": "roulade_trainee.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#2a2218",
+        "#6e6250",
+        "#a89a7c",
+        "#d8ccae",
+        "#f4ecd6"
+      ]
+    },
+    {
+      "file": "roulade_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#2a2218",
+        "#6e6250",
+        "#a89a7c",
+        "#d8ccae",
+        "#f4ecd6"
+      ]
+    },
+    {
+      "file": "ombre_portee_trainee.png",
+      "frame_width": 40,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#140a24",
+        "#3a2060",
+        "#6a3c9a",
+        "#a87ad6",
+        "#e0c8ff"
+      ]
+    },
+    {
+      "file": "ombre_portee_coup.png",
+      "frame_width": 24,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#140a24",
+        "#3a2060",
+        "#6a3c9a",
+        "#a87ad6",
+        "#e0c8ff"
+      ]
+    },
+    {
+      "file": "ombre_portee_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#140a24",
+        "#3a2060",
+        "#6a3c9a",
+        "#a87ad6",
+        "#e0c8ff"
+      ]
+    },
+    {
+      "file": "dracogriffe_coup.png",
+      "frame_width": 28,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#120a3a",
+        "#3a2ab0",
+        "#6a5af0",
+        "#a8b8ff",
+        "#eef0ff"
+      ]
+    },
+    {
+      "file": "dracogriffe_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#120a3a",
+        "#3a2ab0",
+        "#6a5af0",
+        "#a8b8ff",
+        "#eef0ff"
+      ]
+    },
+    {
+      "file": "morsure_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        40,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#0a0408",
+        "#2a1a2e",
+        "#4a3650",
+        "#d8d0dc",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "morsure_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#0a0408",
+        "#2a1a2e",
+        "#4a3650",
+        "#d8d0dc",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "pisto_poing_trainee.png",
+      "frame_width": 32,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#22262e",
+        "#6a7280",
+        "#a8b0bc",
+        "#dce2ea",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "pisto_poing_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
       ],
       "loop": false,
       "palette": [

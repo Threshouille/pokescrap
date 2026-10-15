@@ -494,7 +494,11 @@ public class Combatant : MonoBehaviour
     // A melee move: blink forward first if it teleports, then a dash (hits along the way) or one or more strikes.
     void Melee(MoveDef move, Vector2 direction)
     {
-        if (move.teleport) MoveSafely(direction, move.lunge);
+        if (move.teleport)
+        {
+            EffectPlayer.Spawn(move.trailEffect, transform.position + (Vector3)(direction * move.lunge * 0.5f), direction, null, 0.25f);
+            MoveSafely(direction, move.lunge);
+        }
         else if (move.lunge > 0f && body != null)
         {
             StartLunge(move, direction);
@@ -535,10 +539,9 @@ public class Combatant : MonoBehaviour
             "around" => Physics2D.OverlapCircleAll(at, reach * mul),
             _ => Physics2D.OverlapCircleAll(at + direction * move.range, move.radius * mul),
         };
-        ShowStrike(move, shape, at, direction, reach * mul);
-
         // Strikes that land in quick succession hit harder (chainBonus).
         if (move.chainBonus > 0f && Time.time > chainUntil) chainCount = 0;
+        ShowStrike(move, shape, at, direction, reach * mul, radius > 0f);
         float factor = move.chainBonus > 0f ? Mathf.Min(1f + move.chainBonus * chainCount, move.chainMax > 0f ? move.chainMax : 2f) : 1f;
 
         var hit = new HashSet<Combatant>();
@@ -564,17 +567,25 @@ public class Combatant : MonoBehaviour
     }
 
     // The strike's sprite sheet, or a flash of the type colour over the area when there is none.
-    void ShowStrike(MoveDef move, string shape, Vector2 at, Vector2 direction, float reach)
+    // A dash finish uses finishEffect; a chained strike uses the brighter sheets <effect>_2, <effect>_3 when they exist.
+    void ShowStrike(MoveDef move, string shape, Vector2 at, Vector2 direction, float reach, bool finish = false)
     {
+        string sheet = finish ? move.finishEffect : move.effect;
+        if (!finish && move.chainBonus > 0f && chainCount > 0)
+        {
+            string brighter = $"{move.effect}_{Mathf.Min(chainCount + 1, 3)}";
+            if (EffectLibrary.Get(brighter) != null) sheet = brighter;
+        }
         Vector2 centre = shape switch
         {
             "arc" or "thrust" => at + direction * reach * 0.55f,
             "around" => at,
             _ => at + direction * move.range,
         };
-        if (EffectLibrary.Get(move.effect) != null && shape != "around")
+        if (EffectLibrary.Get(sheet) != null)
         {
-            EffectPlayer.Spawn(move.effect, centre, direction);
+            // An area around the user is stretched to its size; the other strikes keep the sheet's own size.
+            EffectPlayer.Spawn(sheet, centre, direction, null, 0f, shape == "around" ? reach * 2f : 0f);
             return;
         }
         var colour = GameData.TypeColor(move.type);
