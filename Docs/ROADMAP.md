@@ -64,19 +64,23 @@ Version minimale (faite le 15/10/2026) :
 
 À reprendre à l'approfondissement :
 - Taux : environ 8 % par K.O., tout se débloque en une ou deux parties. Piste : une seule recrue possible par arène.
-- Ennemis recrutés jouables avec leurs attaques d'ennemi, sans équilibrage.
+- Ennemis recrutés jouables sans équilibrage.
+- Fait depuis (15/10/2026) : choix des 2 attaques de départ au menu.
 
 Reporté à l'approfondissement :
-- Choix des attaques de départ, monnaie persistante, achat d'attaques, objet passif.
+- Monnaie persistante, achat d'attaques, objets à effets passifs (trouvés au hasard ou chez des marchands, piste d'Owen).
 
 ## Jalon 5 — Tous les Pokémon, joueurs comme ennemis
 
 Objectif décidé par Owen : à terme, les 558 Pokémon de la ROM sont jouables et peuvent tous apparaître comme ennemis.
 
 - Import automatique des sprites de tous les Pokémon (aujourd'hui copiés à la main, un par un).
-- Génération automatique d'une définition temps réel pour chaque attaque (457 apprenables) à partir des données de la ROM : portée et cible → famille, puissance, catégorie. Les attaques faites à la main gardent la priorité.
-- Attaques de départ de chaque Pokémon tirées de ses attaques apprenables.
-- Nouvelles familles (mur, ruée, amélioration temporaire, soin), autres statuts (brûlure, paralysie, sommeil…), talents, Pokémon de soutien.
+- Fait (15/10/2026) : génération automatique des attaques apprenables par niveau (`generate_moves.py`, ROM + PokéAPI : 343 générées, 108 écartées) ; les attaques faites à la main gardent la priorité.
+- Fait (15/10/2026) : attaques de départ choisies dans la liste par niveau de la forme de base ; nouvelles attaques proposées en partie ; ennemis à 2 attaques tirées au hasard ; rôle d'IA déduit des attaques.
+- Fait (15/10/2026) : statuts brûlure, sommeil, gel, confusion, piège, bâillement, vampigraine ; recul ; bonus au lanceur.
+- Fait (15/10/2026) : évolution en partie au niveau de la ROM (évolutions par niveau, si les sprites existent).
+- **Suivant (décidé par Owen) : reprise des attaques au cas par cas** pour leur donner un aspect unique, en commençant par les 108 écartées et les effets visuels.
+- Reste : évolutions sans niveau (non décidé), nouvelles familles (mur…), talents.
 - Terrains spéciaux (eau, lave, trous) et types de déplacement.
 - Plus de décors, les 3 cycles et le boss final.
 
