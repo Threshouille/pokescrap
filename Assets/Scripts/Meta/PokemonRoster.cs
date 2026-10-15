@@ -54,7 +54,7 @@ public class PokemonRoster : ScriptableObject
         return found;
     }
 
-    /// Pokémon shown in the team menu: unlocked ones, plus first playable forms that can still be recruited.
+    /// Pokémon shown in the team menu: first playable forms of each evolution line, unlocked or still to recruit.
     public static List<int> Selectable()
     {
         var result = new List<int>();
@@ -64,8 +64,9 @@ public class PokemonRoster : ScriptableObject
             if (result.Contains(id)) continue;
             var stats = GameData.Pokemon(id);
             if (stats == null || !Playable(stats.id)) continue;
-            bool recruitable = FirstPlayableForm(stats.id) == stats.id && stats.recruitRate > 0f;
-            if (!recruitable && !SaveData.IsUnlocked(stats.id)) continue;
+            if (FirstPlayableForm(stats.id) != stats.id) continue; // evolved forms are only reached during a run
+            if (stats.baseForm > 0 && stats.baseForm != stats.id && Playable(stats.baseForm)) continue; // other forms (Unown letters...)
+            if (stats.recruitRate <= 0f && !SaveData.IsUnlocked(stats.id)) continue;
             result.Add(stats.id);
         }
         result.Sort();
