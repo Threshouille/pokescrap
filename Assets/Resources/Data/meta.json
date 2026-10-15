@@ -4,8 +4,8 @@
   "recruitMessageTime": 3,
   "startingMoveCount": 1,
   "enemyMoveCount": 2,
-  "enemyBasicCooldownMul": 4,
-  "enemyBasicDamageMul": 2.5,
+  "enemyBasicCooldownMul": 2.5,
+  "enemyBasicDamageMul": 1.5,
   "moveOfferChanceWhenFull": 0.5,
   "evolvedMoveWeight": 2
 }

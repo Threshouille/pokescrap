@@ -54,8 +54,10 @@ public class Combatant : MonoBehaviour
     public bool CanAttack => StatusAllows(def => def.canAttack);
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
+    /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
+    public bool IsCasting => castMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
-    public float CurrentSpeed => CanMove ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) : 0f;
+    public float CurrentSpeed => CanMove && !IsCasting ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) : 0f;
 
     class TimedModifier
     {
@@ -82,6 +84,9 @@ public class Combatant : MonoBehaviour
     MoveDef lungeMove;
     Vector2 lungeDirection;
     float lungeUntil;
+    MoveDef castMove; // move being cast, fired at castUntil
+    Vector2 castDirection;
+    float castDistance, castUntil;
     float confusionOffset, nextConfusionChange;
     Rigidbody2D body;
     SpriteRenderer spriteRenderer;
@@ -187,6 +192,7 @@ public class Combatant : MonoBehaviour
         moveSpeed = GameData.MoveSpeed(Stats.baseSpeed);
         Array.Clear(readyAt, 0, readyAt.Length);
         modifiers.Clear();
+        castMove = null;
     }
 
     public float CooldownLeft(int slot) => Mathf.Max(0f, readyAt[slot] - Time.time);
@@ -392,7 +398,7 @@ public class Combatant : MonoBehaviour
     public bool TryUseMove(int slot, Vector2 direction, float distance = -1f)
     {
         var move = Moves[slot];
-        if (move == null || Time.time < readyAt[slot] || !CanAttack) return false;
+        if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting) return false;
 
         if (move.family == "heal")
         {
@@ -452,16 +458,15 @@ public class Combatant : MonoBehaviour
         direction = Steer(direction.normalized);
         if (move.family == "projectile")
         {
-            // Several shots are fanned out evenly around the aimed direction; a burst fires that volley again
-            // and again, in the same direction, from wherever the user stands.
-            int shots = Mathf.Max(1, move.count);
-            for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
-                for (int i = 0; i < shots; i++)
-                {
-                    float angle = shots == 1 ? 0f : Mathf.Lerp(-move.spread / 2f, move.spread / 2f, i / (shots - 1f));
-                    angle += UnityEngine.Random.Range(-move.jitter, move.jitter);
-                    Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, volley * move.burstInterval, distance);
-                }
+            if (move.castTime > 0f)
+            {
+                // Aim locked now, shots leave once the cast is over.
+                castMove = move;
+                castDirection = direction;
+                castDistance = distance;
+                castUntil = Time.time + move.castTime;
+            }
+            else FireProjectiles(move, direction, distance);
         }
         else if (move.family == "zone")
         {
@@ -492,9 +497,37 @@ public class Combatant : MonoBehaviour
         EffectPlayer.Spawn(move.effect, transform.position - (Vector3)(direction * 0.5f), direction, transform, LungeTime(move));
     }
 
+    // Several shots are fanned out evenly around the aimed direction; a burst fires that volley again and again, in
+    // the same direction, from wherever the user stands. Sequential shots of a fan leave one by one, from the
+    // middle outwards, left before right.
+    void FireProjectiles(MoveDef move, Vector2 direction, float distance)
+    {
+        int shots = Mathf.Max(1, move.count);
+        for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
+            for (int i = 0; i < shots; i++)
+            {
+                float angle = shots == 1 ? 0f : Mathf.Lerp(-move.spread / 2f, move.spread / 2f, i / (shots - 1f));
+                float delay = volley * move.burstInterval;
+                if (move.sequential)
+                {
+                    float centre = (shots - 1) / 2f;
+                    int rank = Mathf.RoundToInt(2f * Mathf.Abs(i - centre)) - (i > centre ? 1 : 0); // i > centre: left side
+                    delay += rank * move.burstInterval;
+                }
+                angle += UnityEngine.Random.Range(-move.jitter, move.jitter);
+                Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, delay, distance);
+            }
+    }
+
     void FixedUpdate()
     {
-        if (!UpdateStatuses()) return;
+        if (!UpdateStatuses()) { castMove = null; return; }
+
+        if (castMove != null && Time.time >= castUntil)
+        {
+            if (CanAttack) FireProjectiles(castMove, castDirection, castDistance);
+            castMove = null;
+        }
 
         // During a dash the attacker is pushed forward and hits each opponent it reaches once.
         if (!IsLunging) return;

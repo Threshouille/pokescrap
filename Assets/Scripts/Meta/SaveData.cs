@@ -33,8 +33,8 @@ public static class SaveData
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;
         public int startingMoveCount = 1; // on top of the basic attack
-        public float enemyBasicCooldownMul = 4f; // enemies fire their basic attack less often...
-        public float enemyBasicDamageMul = 2.5f; // ...but it hits harder
+        public float enemyBasicCooldownMul = 2.5f; // enemies fire their basic attack less often...
+        public float enemyBasicDamageMul = 1.5f; // ...but it hits harder
         public int enemyMoveCount = 2;
         public float moveOfferChanceWhenFull = 0.5f; // chance that a level-up choice offers a new move once 4 are known
         public float evolvedMoveWeight = 2f; // after evolving, moves of the current form are this much more likely
