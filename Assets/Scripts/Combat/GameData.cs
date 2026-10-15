@@ -12,6 +12,7 @@ public class PokemonStats
     public int baseForm; // first form of the evolution line
     public int evolvesFrom; // previous form, 0 when none
     public float recruitRate; // percent chance to join when knocked out, from the ROM (≤ 0: never)
+    public int[] levelUpMoves; // moves learnt by level in the ROM, in level order (TMs and egg moves left out)
 }
 
 [Serializable]
@@ -129,6 +130,38 @@ public static class GameData
     {
         Load();
         return loadouts.ContainsKey(pokemonId);
+    }
+
+    /// Moves this Pokémon can pick from: those it learns by level that the game can play, in level order.
+    public static List<MoveDef> MovePool(int pokemonId)
+    {
+        Load();
+        var pool = new List<MoveDef>();
+        var stats = Pokemon(pokemonId);
+        if (stats?.levelUpMoves != null)
+            foreach (int id in stats.levelUpMoves)
+                if (moves.TryGetValue(id, out var move)) pool.Add(move);
+        return pool;
+    }
+
+    /// Starting moves when the player has not chosen any: the hand-written loadout where it fits, then the pool.
+    public static int[] DefaultStartingMoves(int pokemonId, int count)
+    {
+        Load();
+        var pool = MovePool(pokemonId).ConvertAll(m => m.id);
+        var result = new List<int>();
+        if (loadouts.TryGetValue(pokemonId, out var ids))
+            foreach (int id in ids)
+                if (result.Count < count && pool.Contains(id)) result.Add(id);
+        foreach (int id in pool)
+            if (result.Count < count && !result.Contains(id)) result.Add(id);
+        return result.ToArray();
+    }
+
+    public static MoveDef Move(int id)
+    {
+        Load();
+        return moves.TryGetValue(id, out var move) ? move : null;
     }
 
     /// melee, ranged or support (melee when unknown).

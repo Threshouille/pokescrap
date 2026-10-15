@@ -1,14 +1,14 @@
 {
   "_comment": "Statuses, in display priority order (tint and icons). Durations come from the move; 'duration' is used when a status turns into another (yawn -> sleep). Fire is type 2.",
   "statuses": [
-    { "key": "sleep", "tint": "#9c9ce0", "canMove": false, "canAttack": false, "wakeOnHit": true, "duration": 3, "playerDurationFactor": 0.5, "bossDurationFactor": 0.5 },
-    { "key": "freeze", "tint": "#a8dcff", "canMove": false, "canAttack": false, "thawType": 2, "duration": 2, "playerDurationFactor": 0.5, "bossDurationFactor": 0.5 },
-    { "key": "trap", "tint": "#d8b080", "canMove": false, "damageShare": 0.02, "duration": 3, "bossDurationFactor": 0.5 },
-    { "key": "paralysis", "tint": "#ffff99", "speedMul": 0.5, "duration": 3, "bossDurationFactor": 0.5 },
-    { "key": "confusion", "tint": "#ffa8dc", "confuseAngle": 60, "duration": 4, "bossDurationFactor": 0.5 },
-    { "key": "burn", "tint": "#ffb888", "damageShare": 0.02, "physicalAttackMul": 0.7, "duration": 5, "bossDamageFactor": 0.25 },
-    { "key": "poison", "tint": "#d9b3ff", "damageShare": 0.04, "duration": 5, "bossDamageFactor": 0.25 },
-    { "key": "leech-seed", "tint": "#b0e880", "damageShare": 0.02, "drainToSource": true, "duration": 6, "bossDamageFactor": 0.25 },
-    { "key": "yawn", "tint": "#d0d0e8", "becomes": "sleep", "duration": 2 }
+    { "key": "sleep", "name": "Sommeil", "tint": "#9c9ce0", "canMove": false, "canAttack": false, "wakeOnHit": true, "duration": 3, "playerDurationFactor": 0.5, "bossDurationFactor": 0.5 },
+    { "key": "freeze", "name": "Gel", "tint": "#a8dcff", "canMove": false, "canAttack": false, "thawType": 2, "duration": 2, "playerDurationFactor": 0.5, "bossDurationFactor": 0.5 },
+    { "key": "trap", "name": "Piège", "tint": "#d8b080", "canMove": false, "damageShare": 0.02, "duration": 3, "bossDurationFactor": 0.5 },
+    { "key": "paralysis", "name": "Paralysie", "tint": "#ffff99", "speedMul": 0.5, "duration": 3, "bossDurationFactor": 0.5 },
+    { "key": "confusion", "name": "Confusion", "tint": "#ffa8dc", "confuseAngle": 60, "duration": 4, "bossDurationFactor": 0.5 },
+    { "key": "burn", "name": "Brûlure", "tint": "#ffb888", "damageShare": 0.02, "physicalAttackMul": 0.7, "duration": 5, "bossDamageFactor": 0.25 },
+    { "key": "poison", "name": "Poison", "tint": "#d9b3ff", "damageShare": 0.04, "duration": 5, "bossDamageFactor": 0.25 },
+    { "key": "leech-seed", "name": "Vampigraine", "tint": "#b0e880", "damageShare": 0.02, "drainToSource": true, "duration": 6, "bossDamageFactor": 0.25 },
+    { "key": "yawn", "name": "Bâillement", "tint": "#d0d0e8", "becomes": "sleep", "duration": 2 }
   ]
 }

@@ -2,14 +2,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// Menu scene: pick 3 Pokémon among the unlocked ones, then start a run. Locked Pokémon show as silhouettes.
-/// Gamepad: d-pad or left stick moves the cursor, Cross adds or removes, Options starts once the team is full.
-/// Keyboard: arrows, Space, Enter.
+/// Menu scene: pick 3 Pokémon among the unlocked ones and their starting moves, then start a run.
+/// Locked Pokémon show as silhouettes.
+/// Gamepad: d-pad or left stick moves the cursor, Cross adds or removes, Triangle opens the starting moves of the
+/// Pokémon under the cursor (Cross picks, Circle or Triangle closes), Options starts once the team is full.
+/// Keyboard: arrows, Space, E (moves), Escape, Enter.
 public class TeamMenu : MonoBehaviour
 {
     const float ReferenceHeight = 360f;
     const int Columns = 6;
     const float Cell = 34f, CellGap = 4f, DeadZone = 0.5f, RepeatDelay = 0.25f;
+    const float PanelWidth = 190f, PanelHeight = 214f, Line = 11f;
+    const int VisibleMoves = 13;
     static readonly Color Frame = new(0.08f, 0.08f, 0.12f, 0.9f);
     static readonly Color Cursor = new(1f, 0.85f, 0.2f), Picked = new(0.3f, 0.85f, 0.3f);
     static readonly Color Silhouette = new(0f, 0f, 0f, 0.85f);
@@ -20,6 +24,11 @@ public class TeamMenu : MonoBehaviour
     readonly List<int> team = new();
     readonly Dictionary<int, Texture2D> portraits = new();
     int cursor;
+    // Starting moves screen: open for one Pokémon, with its move pool and the moves picked so far.
+    bool editingMoves;
+    List<MoveDef> pool;
+    readonly List<int> picked = new();
+    int moveCursor;
     Vector2Int heldDirection;
     float nextRepeat;
     GUIStyle text, title;
@@ -42,16 +51,33 @@ public class TeamMenu : MonoBehaviour
         var direction = ReadDirection(pad, kb);
         if (direction != heldDirection) nextRepeat = 0f;
         heldDirection = direction;
-        if (direction != Vector2Int.zero && Time.unscaledTime >= nextRepeat)
+        bool repeat = direction != Vector2Int.zero && Time.unscaledTime >= nextRepeat;
+        if (repeat) nextRepeat = Time.unscaledTime + RepeatDelay;
+        bool cross = (pad != null && pad.buttonSouth.wasPressedThisFrame) || (kb != null && kb.spaceKey.wasPressedThisFrame);
+        bool triangle = (pad != null && pad.buttonNorth.wasPressedThisFrame) || (kb != null && kb.eKey.wasPressedThisFrame);
+        bool circle = (pad != null && pad.buttonEast.wasPressedThisFrame) || (kb != null && kb.escapeKey.wasPressedThisFrame);
+
+        if (editingMoves)
         {
-            nextRepeat = Time.unscaledTime + RepeatDelay;
+            if (repeat && direction.y != 0) moveCursor = Mathf.Clamp(moveCursor + direction.y, 0, pool.Count - 1);
+            if (cross) ToggleMove(pool[moveCursor].id);
+            if (triangle || circle) CloseMoves();
+            return;
+        }
+        if (triangle && SaveData.IsUnlocked(choices[cursor]))
+        {
+            OpenMoves(choices[cursor]);
+            return;
+        }
+
+        if (repeat)
+        {
             int column = cursor % Columns + direction.x, row = cursor / Columns + direction.y;
             int next = row * Columns + Mathf.Clamp(column, 0, Columns - 1);
             if (next >= 0 && next < choices.Count) cursor = next;
         }
 
-        if ((pad != null && pad.buttonSouth.wasPressedThisFrame) || (kb != null && kb.spaceKey.wasPressedThisFrame))
-            Toggle(choices[cursor]);
+        if (cross) Toggle(choices[cursor]);
         if (team.Count == teamSize
             && ((pad != null && pad.startButton.wasPressedThisFrame) || (kb != null && kb.enterKey.wasPressedThisFrame)))
             Run.Start(team.ToArray());
@@ -83,6 +109,32 @@ public class TeamMenu : MonoBehaviour
         if (team.Count < teamSize) team.Add(id);
     }
 
+    void OpenMoves(int id)
+    {
+        editingMoves = true;
+        pool = GameData.MovePool(id);
+        picked.Clear();
+        picked.AddRange(SaveData.StartingMoves(id));
+        moveCursor = picked.Count > 0 ? Mathf.Max(0, pool.FindIndex(m => m.id == picked[0])) : 0;
+    }
+
+    int MoveCount => Mathf.Min(SaveData.Settings.startingMoveCount, pool.Count);
+
+    // A full selection drops its oldest move to make room, so the player never has to remove one first.
+    void ToggleMove(int id)
+    {
+        if (picked.Remove(id)) return;
+        if (picked.Count >= MoveCount) picked.RemoveAt(0);
+        picked.Add(id);
+    }
+
+    // The choice is kept only when complete; otherwise the previous one stays.
+    void CloseMoves()
+    {
+        if (picked.Count == MoveCount) SaveData.SetStartingMoves(choices[cursor], picked.ToArray());
+        editingMoves = false;
+    }
+
     Texture2D PortraitOf(int id)
     {
         if (!portraits.TryGetValue(id, out var texture))
@@ -103,7 +155,7 @@ public class TeamMenu : MonoBehaviour
 
         int unlocked = choices.FindAll(SaveData.IsUnlocked).Count;
         float gridWidth = Columns * Cell + (Columns - 1) * CellGap;
-        float panelWidth = 170f;
+        float panelWidth = PanelWidth;
         float left = (Screen.width - (gridWidth + 16f + panelWidth) * s) / 2f, top = 44f * s;
 
         // Grid of portraits.
@@ -132,9 +184,10 @@ public class TeamMenu : MonoBehaviour
 
         // Details of the Pokémon under the cursor.
         float px = left + (gridWidth + 16f) * s;
-        var panel = new Rect(px, top, panelWidth * s, 150f * s);
+        var panel = new Rect(px, top, panelWidth * s, PanelHeight * s);
         Fill(panel, Frame);
-        if (choices.Count > 0) DrawDetails(choices[cursor], panel, s);
+        if (editingMoves) DrawMoves(choices[cursor], panel, s);
+        else if (choices.Count > 0) DrawDetails(choices[cursor], panel, s);
 
         // Team and help.
         float by = Screen.height - 70f * s;
@@ -144,8 +197,11 @@ public class TeamMenu : MonoBehaviour
             Fill(rect, Frame);
             if (i < team.Count && PortraitOf(team[i]) is { } picture) GUI.DrawTexture(rect, picture);
         }
-        string help = team.Count == teamSize ? "Options ou Entrée : lancer la partie" : $"Croix : choisir {teamSize} Pokémon";
-        Label(new Rect(0, by + 38f * s, Screen.width, 12f * s), $"Croix directionnelle : déplacer     Croix ou Espace : ajouter / retirer     {help}", TextAnchor.MiddleCenter);
+        string help = editingMoves
+            ? $"Haut / bas : parcourir     Croix ou Espace : choisir ({picked.Count}/{MoveCount})     Rond, Triangle ou Échap : valider"
+            : "Croix directionnelle : déplacer     Croix ou Espace : ajouter / retirer     Triangle ou E : attaques     "
+              + (team.Count == teamSize ? "Options ou Entrée : lancer la partie" : $"(choisir {teamSize} Pokémon)");
+        Label(new Rect(0, by + 38f * s, Screen.width, 12f * s), help, TextAnchor.MiddleCenter);
         Label(new Rect(0, by + 52f * s, Screen.width, 12f * s),
             $"Débloqués : {unlocked}/{choices.Count}     Parties : {SaveData.Runs}     Victoires : {SaveData.Wins}", TextAnchor.MiddleCenter);
     }
@@ -177,13 +233,83 @@ public class TeamMenu : MonoBehaviour
                 Fill(new Rect(x + t * 14f * s, panel.y + pad + 2f * line + 2f * s, 12f * s, 6f * s), GameData.TypeColor(stats.types[t]));
 
         float y = portrait.yMax + pad;
-        foreach (var move in GameData.StartingMoves(id, Combatant.MoveSlots))
+        Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), "Attaques de départ :", TextAnchor.MiddleLeft);
+        y += line;
+        foreach (int moveId in SaveData.StartingMoves(id))
         {
+            var move = GameData.Move(moveId);
             if (move == null) continue;
             Fill(new Rect(panel.x + pad, y + 3f * s, 6f * s, 6f * s), GameData.TypeColor(move.type));
             Label(new Rect(panel.x + pad + 10f * s, y, panel.width - 2f * pad, line), move.name, TextAnchor.MiddleLeft);
             y += line;
         }
+        Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), $"{GameData.MovePool(id).Count} attaques au choix", TextAnchor.MiddleLeft);
+    }
+
+    // The move pool, the picked moves ticked, and what the move under the cursor does.
+    void DrawMoves(int id, Rect panel, float s)
+    {
+        float pad = 6f * s, line = Line * s, width = panel.width - 2f * pad;
+        float y = panel.y + pad;
+        Label(new Rect(panel.x + pad, y, width, line), $"{GameData.Pokemon(id)?.name} : {MoveCount} attaques de départ", TextAnchor.MiddleLeft);
+        y += line + 2f * s;
+
+        int first = Mathf.Clamp(moveCursor - VisibleMoves / 2, 0, Mathf.Max(0, pool.Count - VisibleMoves));
+        for (int i = first; i < pool.Count && i < first + VisibleMoves; i++)
+        {
+            var move = pool[i];
+            var row = new Rect(panel.x + pad, y, width, line);
+            if (i == moveCursor) Fill(row, new Color(1f, 0.85f, 0.2f, 0.25f));
+            int slot = picked.IndexOf(move.id);
+            Label(new Rect(row.x, y, 10f * s, line), slot >= 0 ? (slot + 1).ToString() : "·", TextAnchor.MiddleCenter);
+            Fill(new Rect(row.x + 12f * s, y + 3f * s, 6f * s, 6f * s), GameData.TypeColor(move.type));
+            Label(new Rect(row.x + 22f * s, y, width - 22f * s, line), move.name, TextAnchor.MiddleLeft);
+            y += line;
+        }
+
+        var current = pool[moveCursor];
+        float infoY = panel.yMax - pad - 2f * line;
+        Fill(new Rect(panel.x + pad, infoY - 2f * s, width, s), new Color(1f, 1f, 1f, 0.2f));
+        Label(new Rect(panel.x + pad, infoY, width, line), MoveSummary(current), TextAnchor.MiddleLeft);
+        Label(new Rect(panel.x + pad, infoY + line, width, line), MoveEffects(current), TextAnchor.MiddleLeft);
+    }
+
+    static string FamilyName(MoveDef move) => move.family switch
+    {
+        "melee" => move.lunge > 0f ? "Ruée" : "Corps à corps",
+        "projectile" => move.count > 1 ? $"Projectiles ×{move.count}" : "Projectile",
+        "burst" => "Autour de soi",
+        "zone" => "Zone",
+        "heal" => "Soin",
+        "modifier" => move.target == "enemies" ? "Malus" : "Bonus",
+        _ => move.family,
+    };
+
+    static string MoveSummary(MoveDef move)
+    {
+        string power = move.power > 0 ? $"Puiss. {move.power}  ·  " : "";
+        return $"{FamilyName(move)}  ·  {power}Recharge {move.cooldown:0.#} s";
+    }
+
+    static readonly Dictionary<string, string> StatNames = new() { { "attack", "Attaque" }, { "defense", "Défense" }, { "speed", "Vitesse" } };
+
+    static string MoveEffects(MoveDef move)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(move.status))
+        {
+            string name = StatusLibrary.Get(move.status)?.name ?? move.status;
+            float chance = move.statusChance > 0f ? move.statusChance : 1f;
+            parts.Add(chance < 1f ? $"{name} {chance * 100f:0} %" : name);
+        }
+        if (!string.IsNullOrEmpty(move.modStat))
+            parts.Add($"{StatNames.GetValueOrDefault(move.modStat, move.modStat)} {(move.modValue > 1f ? "+" : "")}{(move.modValue - 1f) * 100f:0} %");
+        if (!string.IsNullOrEmpty(move.selfModStat))
+            parts.Add($"{StatNames.GetValueOrDefault(move.selfModStat, move.selfModStat)} du lanceur +{(move.selfModValue - 1f) * 100f:0} %");
+        if (move.healShare > 0f) parts.Add($"Soigne {move.healShare * 100f:0} %");
+        if (move.drain > 0f) parts.Add("Draine");
+        if (move.recoil > 0f) parts.Add($"Recul {move.recoil * 100f:0} %");
+        return parts.Count > 0 ? string.Join("  ·  ", parts) : "Pas d'effet";
     }
 
     static string RoleName(string role) => role switch

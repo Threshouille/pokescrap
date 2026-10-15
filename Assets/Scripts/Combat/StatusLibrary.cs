@@ -6,6 +6,7 @@ using UnityEngine;
 public class StatusDef
 {
     public string key;
+    public string name; // shown in menus
     public string tint = "#ffffff"; // sprite colour while the status is on
     public bool canMove = true, canAttack = true;
     public float speedMul = 1f;

@@ -119,7 +119,7 @@ public class PlayerController : MonoBehaviour
         member.animator = go.AddComponent<PmdAnimator>();
         member.animator.SetAnimSet(set);
         member.combatant = go.AddComponent<Combatant>();
-        member.combatant.Init(set.pokemonId, Team.Player);
+        member.combatant.Init(set.pokemonId, Team.Player, SaveData.StartingMoves(set.pokemonId));
         member.combatant.Died += _ => OnKnockedOut(member);
         member.ai = go.AddComponent<AllyAI>();
         member.ai.leader = transform;

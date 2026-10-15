@@ -24,8 +24,9 @@ public class PokemonRoster : ScriptableObject
         return null;
     }
 
-    /// Can be picked for a team: has sprites and starting moves.
-    public static bool Playable(int pokemonId) => Get(pokemonId) != null && GameData.HasLoadout(pokemonId);
+    /// Can be picked for a team: has sprites, a role, and enough moves to choose from.
+    public static bool Playable(int pokemonId) => Get(pokemonId) != null && GameData.HasLoadout(pokemonId)
+        && GameData.MovePool(pokemonId).Count >= SaveData.Settings.startingMoveCount;
 
     /// Earliest playable form of a Pokémon's evolution line, going back through its previous forms
     /// (Charizard → Charmander; Raichu → Pikachu while Pichu cannot be played). -1 when none is playable.
@@ -46,7 +47,7 @@ public class PokemonRoster : ScriptableObject
         {
             if (set == null || result.Contains(set.pokemonId)) continue;
             var stats = GameData.Pokemon(set.pokemonId);
-            if (stats == null || !GameData.HasLoadout(stats.id)) continue;
+            if (stats == null || !Playable(stats.id)) continue;
             bool recruitable = FirstPlayableForm(stats.id) == stats.id && stats.recruitRate > 0f;
             if (!recruitable && !SaveData.IsUnlocked(stats.id)) continue;
             result.Add(stats.id);

@@ -10,11 +10,19 @@ public static class SaveData
     const int Version = 1;
 
     [Serializable]
+    class MoveChoice
+    {
+        public int pokemonId;
+        public int[] moves;
+    }
+
+    [Serializable]
     class File
     {
         public int version = Version;
         public List<int> unlocked = new();
         public int[] lastTeam = new int[0];
+        public List<MoveChoice> startingMoves = new();
         public int runs, wins;
     }
 
@@ -24,6 +32,7 @@ public static class SaveData
         public int[] startingUnlocked = new int[0];
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;
+        public int startingMoveCount = 2;
     }
 
     static File data;
@@ -87,6 +96,24 @@ public static class SaveData
     public static void SetLastTeam(int[] team)
     {
         Data.lastTeam = team;
+        Write();
+    }
+
+    /// Moves a Pokémon starts a run with: the player's choice if it is still valid, else the default ones.
+    public static int[] StartingMoves(int pokemonId)
+    {
+        int count = Settings.startingMoveCount;
+        var pool = GameData.MovePool(pokemonId).ConvertAll(m => m.id);
+        var choice = Data.startingMoves.Find(c => c.pokemonId == pokemonId);
+        if (choice != null && choice.moves.Length == Math.Min(count, pool.Count) && Array.TrueForAll(choice.moves, pool.Contains))
+            return choice.moves;
+        return GameData.DefaultStartingMoves(pokemonId, count);
+    }
+
+    public static void SetStartingMoves(int pokemonId, int[] moves)
+    {
+        Data.startingMoves.RemoveAll(c => c.pokemonId == pokemonId);
+        Data.startingMoves.Add(new MoveChoice { pokemonId = pokemonId, moves = moves });
         Write();
     }
 

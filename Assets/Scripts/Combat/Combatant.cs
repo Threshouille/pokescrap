@@ -164,11 +164,13 @@ public class Combatant : MonoBehaviour
         return best;
     }
 
-    public void Init(int pokemonId, Team newTeam)
+    /// moveIds: the moves to start with (slot order); the hand-written loadout when null.
+    public void Init(int pokemonId, Team newTeam, int[] moveIds = null)
     {
         team = newTeam;
         Stats = GameData.Pokemon(pokemonId);
-        Moves = GameData.StartingMoves(pokemonId, MoveSlots);
+        Moves = moveIds == null ? GameData.StartingMoves(pokemonId, MoveSlots) : new MoveDef[MoveSlots];
+        for (int i = 0; moveIds != null && i < MoveSlots && i < moveIds.Length; i++) Moves[i] = GameData.Move(moveIds[i]);
         Role = GameData.Role(pokemonId);
         if (Stats == null) return;
         maxHp = hp = Stats.baseHp;
