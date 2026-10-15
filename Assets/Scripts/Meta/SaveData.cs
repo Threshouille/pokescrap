@@ -30,6 +30,7 @@ public static class SaveData
     public class Meta
     {
         public int[] startingUnlocked = new int[0];
+        public bool unlockAll; // tests: every playable Pokémon can be picked, whatever the save says
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;
         public int startingMoveCount = 1; // on top of the basic attack
@@ -89,7 +90,7 @@ public static class SaveData
     public static int Runs => Data.runs;
     public static int Wins => Data.wins;
 
-    public static bool IsUnlocked(int pokemonId) => Data.unlocked.Contains(pokemonId);
+    public static bool IsUnlocked(int pokemonId) => Settings.unlockAll || Data.unlocked.Contains(pokemonId);
 
     public static void Unlock(int pokemonId)
     {

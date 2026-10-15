@@ -1,4 +1,5 @@
 {
+  "unlockAll": true,
   "startingUnlocked": [1, 4, 7, 25, 488, 489],
   "recruitMultiplier": 1,
   "recruitMessageTime": 3,

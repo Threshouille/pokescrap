@@ -24,6 +24,7 @@ public class TeamMenu : MonoBehaviour
     readonly List<int> team = new();
     readonly Dictionary<int, Texture2D> portraits = new();
     int cursor;
+    int firstRow; // first grid row on screen: the grid scrolls to keep the cursor visible
     // Starting moves screen: open for one Pokémon, with its move pool and the moves picked so far.
     bool editingMoves;
     List<MoveDef> pool;
@@ -158,11 +159,20 @@ public class TeamMenu : MonoBehaviour
         float panelWidth = PanelWidth;
         float left = (Screen.width - (gridWidth + 16f + panelWidth) * s) / 2f, top = 44f * s;
 
-        // Grid of portraits.
-        for (int i = 0; i < choices.Count; i++)
+        // Grid of portraits: only the rows that fit above the team bar, scrolled to keep the cursor in view.
+        float by = Screen.height - 70f * s;
+        int visibleRows = Mathf.Max(1, Mathf.FloorToInt((by - 12f * s - top) / ((Cell + CellGap) * s)));
+        int rows = (choices.Count + Columns - 1) / Columns, cursorRow = cursor / Columns;
+        if (cursorRow < firstRow) firstRow = cursorRow;
+        if (cursorRow >= firstRow + visibleRows) firstRow = cursorRow - visibleRows + 1;
+        firstRow = Mathf.Clamp(firstRow, 0, Mathf.Max(0, rows - visibleRows));
+        float gridBottom = top + visibleRows * (Cell + CellGap) * s;
+        if (firstRow > 0) Label(new Rect(left, top - 10f * s, gridWidth * s, 10f * s), "^", TextAnchor.MiddleCenter);
+        if (firstRow + visibleRows < rows) Label(new Rect(left, gridBottom - 2f * s, gridWidth * s, 10f * s), "v", TextAnchor.MiddleCenter);
+        for (int i = firstRow * Columns; i < choices.Count && i < (firstRow + visibleRows) * Columns; i++)
         {
             int id = choices[i];
-            var rect = new Rect(left + (i % Columns) * (Cell + CellGap) * s, top + (i / Columns) * (Cell + CellGap) * s, Cell * s, Cell * s);
+            var rect = new Rect(left + (i % Columns) * (Cell + CellGap) * s, top + (i / Columns - firstRow) * (Cell + CellGap) * s, Cell * s, Cell * s);
             if (i == cursor) Fill(Grow(rect, 2f * s), Cursor);
             else if (team.Contains(id)) Fill(Grow(rect, 2f * s), Picked);
             Fill(rect, Frame);
@@ -190,7 +200,6 @@ public class TeamMenu : MonoBehaviour
         else if (choices.Count > 0) DrawDetails(choices[cursor], panel, s);
 
         // Team and help.
-        float by = Screen.height - 70f * s;
         for (int i = 0; i < teamSize; i++)
         {
             var rect = new Rect(Screen.width / 2f + (i - teamSize / 2f) * 40f * s + 3f * s, by, 34f * s, 34f * s);
