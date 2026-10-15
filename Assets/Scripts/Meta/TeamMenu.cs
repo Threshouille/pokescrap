@@ -113,9 +113,9 @@ public class TeamMenu : MonoBehaviour
     void OpenMoves(int id)
     {
         editingMoves = true;
-        pool = GameData.ChoicePool(id);
+        pool = GameData.MovePool(id);
         picked.Clear();
-        picked.AddRange(SaveData.ChosenMoves(id));
+        picked.AddRange(SaveData.StartingMoves(id));
         moveCursor = picked.Count > 0 ? Mathf.Max(0, pool.FindIndex(m => m.id == picked[0])) : 0;
     }
 
@@ -252,7 +252,7 @@ public class TeamMenu : MonoBehaviour
             Label(new Rect(panel.x + pad + 10f * s, y, panel.width - 2f * pad, line), move.name, TextAnchor.MiddleLeft);
             y += line;
         }
-        Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), $"{GameData.ChoicePool(id).Count} attaques au choix", TextAnchor.MiddleLeft);
+        Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), $"{GameData.MovePool(id).Count} attaques au choix", TextAnchor.MiddleLeft);
     }
 
     // The move pool, the picked moves ticked, and what the move under the cursor does.

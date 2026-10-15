@@ -40,7 +40,7 @@ public class MoveDef
     public float zoneDuration; // zone only: seconds the area stays
     public int count; // projectile only: number of shots fired at once (1 when omitted)
     public float spread; // projectile only: total angle, in degrees, over which the shots are fanned out
-    public bool basic; // basic attack: almost no cooldown, low damage (one per type, see basicByType)
+    public bool basic; // basic attack: short cooldown, low damage (one per type, see basicByType), used last by the AI
     public float damageScale; // multiplies the damage (1 when omitted)
     public string path; // projectile: straight (default), wave, zigzag, curve, orbit, arc, boomerang, homing
     public float pathAmplitude; // tiles: sideways swing (wave, zigzag, curve), orbit radius, or arc height
@@ -105,7 +105,8 @@ public static class GameData
     static Dictionary<int, int[]> loadouts;
     static Dictionary<int, string> roles;
     static Dictionary<int, Color> typeColors;
-    static Dictionary<int, int> basicByType, basicByPokemon;
+    static Dictionary<int, int> basicByType;
+    static Dictionary<int, List<int>> basicByPokemon;
     static UpgradeDef[] upgrades;
 
     // Statics can outlive a play session in the editor: reload the files each time a game starts.
@@ -136,9 +137,13 @@ public static class GameData
         var upgradeFile = Resources.Load<TextAsset>("Data/upgrades");
         upgrades = upgradeFile != null ? JsonUtility.FromJson<UpgradeFile>(upgradeFile.text).upgrades : new UpgradeDef[0];
         basicByType = new Dictionary<int, int>();
-        basicByPokemon = new Dictionary<int, int>();
+        basicByPokemon = new Dictionary<int, List<int>>();
         foreach (var b in file.basicByType ?? new BasicEntry[0]) basicByType[b.type] = b.move;
-        foreach (var b in file.basicByPokemon ?? new BasicEntry[0]) basicByPokemon[b.pokemonId] = b.move;
+        foreach (var b in file.basicByPokemon ?? new BasicEntry[0])
+        {
+            if (!basicByPokemon.ContainsKey(b.pokemonId)) basicByPokemon[b.pokemonId] = new List<int>();
+            basicByPokemon[b.pokemonId].Add(b.move); // several entries for one Pokémon: several basic attacks
+        }
         typeColors = new Dictionary<int, Color>();
         foreach (var t in file.typeColors)
             if (ColorUtility.TryParseHtmlString(t.color, out var c)) typeColors[t.type] = c;
@@ -150,59 +155,49 @@ public static class GameData
         return pokemon.TryGetValue(id, out var p) ? p : null;
     }
 
-    /// Moves this Pokémon can pick from: those it learns by level that the game can play, in level order.
+    /// Moves this Pokémon can pick from: its basic attacks, then those it learns by level that the game can play,
+    /// in level order.
     public static List<MoveDef> MovePool(int pokemonId)
     {
         Load();
-        var pool = new List<MoveDef>();
+        var pool = BasicMoves(pokemonId);
         var stats = Pokemon(pokemonId);
         if (stats?.levelUpMoves != null)
             foreach (int id in stats.levelUpMoves)
-                if (moves.TryGetValue(id, out var move)) pool.Add(move);
+                if (moves.TryGetValue(id, out var move) && !pool.Contains(move)) pool.Add(move);
         return pool;
     }
 
-    /// Basic attack of a Pokémon: its own entry in basicByPokemon, else the one of its first type. Null when none.
-    public static MoveDef BasicMove(int pokemonId)
+    /// Basic attacks of a Pokémon: its own entries in basicByPokemon, else the one of each of its types.
+    public static List<MoveDef> BasicMoves(int pokemonId)
     {
         Load();
-        if (basicByPokemon.TryGetValue(pokemonId, out int id)) return Move(id);
-        var stats = Pokemon(pokemonId);
-        if (stats?.types == null) return null;
-        foreach (int type in stats.types)
-            if (type > 0 && basicByType.TryGetValue(type, out id)) return Move(id);
-        return null;
+        var result = new List<MoveDef>();
+        if (basicByPokemon.TryGetValue(pokemonId, out var own))
+            foreach (int id in own) Add(id);
+        else if (Pokemon(pokemonId)?.types is { } types)
+            foreach (int type in types)
+                if (basicByType.TryGetValue(type, out int id)) Add(id);
+        return result;
+
+        void Add(int id)
+        {
+            var move = Move(id);
+            if (move != null && !result.Contains(move)) result.Add(move);
+        }
     }
 
-    /// Moves the player can pick as starting moves: the pool without the basic attack, which is always given.
-    public static List<MoveDef> ChoicePool(int pokemonId)
-    {
-        var pool = MovePool(pokemonId);
-        var basic = BasicMove(pokemonId);
-        if (basic != null) pool.RemoveAll(m => m.id == basic.id);
-        return pool;
-    }
-
-    /// Basic attack first (slot R1), then the other moves.
-    public static int[] WithBasic(int pokemonId, int[] others)
-    {
-        var basic = BasicMove(pokemonId);
-        var result = new List<int>();
-        if (basic != null) result.Add(basic.id);
-        foreach (int id in others)
-            if (!result.Contains(id)) result.Add(id);
-        return result.ToArray();
-    }
-
-    /// Starting moves when the player has not chosen any: the hand-written loadout where it fits, then the pool.
+    /// Starting moves when the player has not chosen any: basic attacks, then the hand-written loadout where it
+    /// fits, then the pool.
     public static int[] DefaultStartingMoves(int pokemonId, int count)
     {
         Load();
-        var pool = ChoicePool(pokemonId).ConvertAll(m => m.id);
-        var result = new List<int>();
+        var pool = MovePool(pokemonId).ConvertAll(m => m.id);
+        var result = BasicMoves(pokemonId).ConvertAll(m => m.id);
+        if (result.Count > count) result.RemoveRange(count, result.Count - count);
         if (loadouts.TryGetValue(pokemonId, out var ids))
             foreach (int id in ids)
-                if (result.Count < count && pool.Contains(id)) result.Add(id);
+                if (result.Count < count && pool.Contains(id) && !result.Contains(id)) result.Add(id);
         foreach (int id in pool)
             if (result.Count < count && !result.Contains(id)) result.Add(id);
         return result.ToArray();
@@ -219,19 +214,16 @@ public static class GameData
         return 0;
     }
 
-    /// "count" moves for an enemy: its basic attack, then moves drawn from the pool, the first one dealing damage
-    /// when the pool has one.
+    /// "count" moves for an enemy: one of its basic attacks, then moves drawn from the pool, the first one dealing
+    /// damage when the pool has one.
     public static int[] RandomMoves(int pokemonId, int count, System.Random rng)
     {
+        var basics = BasicMoves(pokemonId);
         var pool = MovePool(pokemonId);
+        pool.RemoveAll(basics.Contains);
         var result = new List<int>();
-        var basic = BasicMove(pokemonId);
-        if (basic != null)
-        {
-            result.Add(basic.id);
-            pool.RemoveAll(m => m.id == basic.id);
-            if (result.Count >= count) return result.ToArray();
-        }
+        if (basics.Count > 0 && count > 0) result.Add(basics[rng.Next(basics.Count)].id);
+        if (result.Count >= count) return result.ToArray();
         var damaging = pool.FindAll(m => m.power > 0);
         if (damaging.Count > 0) result.Add(damaging[rng.Next(damaging.Count)].id);
         while (result.Count < count)
