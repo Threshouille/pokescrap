@@ -76,11 +76,10 @@ public static class SaveData
             {
                 Debug.LogWarning($"Unreadable save, starting over: {e.Message}");
             }
-            if (data == null)
-            {
-                data = new File();
-                data.unlocked.AddRange(Settings.startingUnlocked);
-            }
+            data ??= new File();
+            // Starting Pokémon added to meta.json after the save was made are unlocked too.
+            foreach (int id in Settings.startingUnlocked)
+                if (!data.unlocked.Contains(id)) data.unlocked.Add(id);
             return data;
         }
     }

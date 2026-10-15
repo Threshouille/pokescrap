@@ -26,7 +26,7 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 
 ## Contenu actuel
 
-- **Jouables** : 6 débloqués au départ (`meta.json`) : Bulbizarre, Salamèche, Carapuce, Pikachu, Goinfrex, Riolu. Les 6 ennemis sont recrutables (taux de la ROM de la première forme jouable de la lignée) et deviennent jouables. Les 519 Pokémon de la ROM ont des sprites (492 espèces + 28 Zarbi, formes de base seulement ; exceptions à revoir : `Docs/POKEMON_EXCEPTIONS.md`). Seuls Abra, Métamorph et Queulorior n'ont aucune attaque au choix (Téléport, Morphing, Gribouille) et ne sont pas jouables. Les ennemis restent ceux des `stages` (tirage parmi tous les Pokémon à décider plus tard).
+- **Jouables** : 6 débloqués au départ (`meta.json`) : Bulbizarre, Salamèche, Carapuce, Pichu (à la place de Pikachu, qui est une évolution), Goinfrex, Riolu. Les 6 ennemis sont recrutables (taux de la ROM de la première forme jouable de la lignée) et deviennent jouables. Les 519 Pokémon de la ROM ont des sprites (492 espèces + 28 Zarbi, formes de base seulement ; exceptions à revoir : `Docs/POKEMON_EXCEPTIONS.md`). Seuls Abra, Métamorph et Queulorior n'ont aucune attaque au choix (Téléport, Morphing, Gribouille) et ne sont pas jouables. Les ennemis restent ceux des `stages` (tirage parmi tous les Pokémon à décider plus tard).
 - **Menu** (scène `Menu`, lancée par Play) : choix de 3 Pokémon, Triangle pour choisir leurs 2 attaques de départ (attaques de base des types du Pokémon comprises) dans leur liste par niveau ; sauvegarde des débloqués, de la dernière équipe et des attaques choisies.
 - **Attaques** : 343 attaques génériques (`generate_moves.py`, ROM + PokéAPI, règles dans `Tools/pmd/move_rules.json`) + 28 faites à la main (prioritaires) ; 108 écartées, listées dans `Tools/pmd/generated_moves_report.txt`. Recharge croissante avec la puissance, annonce plus longue pour les attaques à charge, recharge ×1,5 pour celles à recharge, recul.
 - **Statuts** (`statuses.json`) : poison, paralysie, brûlure, sommeil, gel, confusion, piège, bâillement, vampigraine ; durées réduites pour l'équipe du joueur (sommeil, gel) et pour les boss.
@@ -45,9 +45,8 @@ Owen veut travailler les attaques en détail. Fait : les 17 **attaques de base**
 
 ## En attente
 
-- **Icônes de statut** (`status_burn`, `sleep`, `freeze`, `confusion`, `trap`, `yawn`, `leech-seed`, 12 × 12 px) : prompt Claude Design donné le 15/10/2026, archive pas encore reçue ; gouttes colorées provisoires.
 - **Icônes de bonus/malus** (`status_attack_up`… six fichiers) : prompt donné plus tôt, archive pas encore reçue ; flèches colorées provisoires.
-- **Évolutions sans niveau** (pierre, échange, bonheur, bébés comme Pichu) : pas décidé par Owen. En attendant, on remonte la lignée jusqu'à la première forme jouable (Raichu → Pikachu).
+- **Évolutions sans niveau** (pierre, échange, bonheur, bébés comme Pichu) : pas décidé par Owen. En attendant, on remonte la lignée jusqu'à la première forme jouable (Raichu → Pichu). Le menu ne propose que ces premières formes.
 - Archives à la racine qui ne servent plus (Owen peut les supprimer) : `Jeu d'action 2D pixel art*.zip`, `Groudon.zip`. Garder l'archive de la ROM.
 
 ## Problèmes connus et points à surveiller
