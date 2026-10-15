@@ -1,20 +1,37 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-/// A shot of the "projectile" move family: flies straight, hits the first opponent or wall.
+/// A shot of the "projectile" move family. It follows a path (straight, wave, zigzag, curve, orbit, arc, boomerang,
+/// homing) and hits the first opponent or wall, unless it pierces, bounces or flies over them (arc).
 public class Projectile : MonoBehaviour
 {
     const float SpawnOffset = 0.4f; // tiles in front of the shooter
+    const float HomingRange = 5f; // tiles: how far a homing shot looks for a target
+    const float MinSpeed = 1f; // tiles per second: a slowing shot never stops
 
     Team team;
     Combatant owner;
-    float damage; // raw, before the target's defence
-    float radius;
-    Vector2 direction;
-    float speed;
-    float remaining; // tiles left to travel
     MoveDef move;
+    float damage; // raw, before the target's defence
+    float radius, baseRadius;
+    Vector3 baseScale;
+    float speed;
+    float range; // tiles the path covers (arc: up to the landing point)
+    float side; // +1 / -1: which way a curve bends, where an orbit starts
+    float delay; // seconds before the shot leaves (bursts)
 
-    public static void Spawn(Combatant owner, MoveDef move, Vector2 direction)
+    // The path is an offset around a point moving straight ahead from "origin" along "forward".
+    Vector2 origin, forward;
+    float travelled; // tiles covered along "forward"
+    bool returning; // boomerang on its way back
+    int bouncesLeft;
+    Combatant homingTarget;
+    readonly HashSet<Combatant> hit = new();
+    Renderer[] renderers;
+
+    /// shotIndex: position in the volley (picks the side of curves and orbits); delay: seconds before leaving;
+    /// distance: where the user aimed (arc lands there when closer than the range, ≤ 0 = full range).
+    public static void Spawn(Combatant owner, MoveDef move, Vector2 direction, int shotIndex = 0, float delay = 0f, float distance = -1f)
     {
         var go = new GameObject(move.name);
         go.transform.position = owner.transform.position + (Vector3)(direction * SpawnOffset);
@@ -34,40 +51,206 @@ public class Projectile : MonoBehaviour
         var projectile = go.AddComponent<Projectile>();
         projectile.team = owner.team;
         projectile.owner = owner;
-        projectile.damage = owner.DamageOf(move);
-        projectile.radius = move.radius * owner.projectileSizeMul;
-        projectile.direction = direction;
-        projectile.speed = move.speed * owner.projectileSpeedMul;
-        projectile.remaining = move.range;
         projectile.move = move;
+        projectile.damage = owner.DamageOf(move);
+        projectile.radius = projectile.baseRadius = move.radius * owner.projectileSizeMul;
+        projectile.baseScale = go.transform.localScale;
+        projectile.speed = move.speed * owner.projectileSpeedMul;
+        projectile.range = move.path == "arc" && distance > 0f ? Mathf.Min(distance, move.range) : move.range;
+        projectile.side = shotIndex % 2 == 0 ? 1f : -1f;
+        projectile.forward = direction.normalized;
+        projectile.origin = go.transform.position;
+        projectile.bouncesLeft = move.bounces;
+        projectile.delay = delay;
+        projectile.renderers = go.GetComponentsInChildren<Renderer>();
+        if (delay > 0f) projectile.Show(false);
     }
 
-    // The whole step is swept with a circle cast, so a fast shot or a slow frame can never skip over a target.
+    void Show(bool visible)
+    {
+        foreach (var r in renderers) r.enabled = visible;
+    }
+
     void FixedUpdate()
     {
-        float step = Mathf.Min(speed * Time.fixedDeltaTime, remaining);
-        foreach (var hit in Physics2D.CircleCastAll(transform.position, radius, direction, step))
+        float dt = Time.fixedDeltaTime;
+        if (delay > 0f)
         {
-            if (hit.collider.isTrigger) continue;
-            var target = hit.collider.GetComponentInParent<Combatant>();
-            if (target != null)
-            {
-                if (target.team == team) continue;
-                if (target.TakeHit(damage, move.category, out float dealt))
-                {
-                    target.ApplyEffects(move, false, owner);
-                    if (owner != null) owner.HitLanded(move, dealt);
-                }
-            }
-            // A cast that starts inside a collider reports no usable contact point.
-            Vector3 at = hit.distance > 0f ? (Vector3)hit.point : transform.position;
-            EffectPlayer.Spawn(move.impactEffect, at, direction);
-            Destroy(gameObject);
+            // Waiting for its turn in a burst: leaves from where the user stands at that moment.
+            delay -= dt;
+            if (owner == null || !owner.IsAlive) { Destroy(gameObject); return; }
+            if (delay > 0f) return;
+            origin = owner.transform.position + (Vector3)(forward * SpawnOffset);
+            transform.position = origin;
+            Show(true);
+        }
+
+        speed = Mathf.Max(MinSpeed, speed + move.accel * dt);
+        if (move.path == "homing") Steer(dt);
+
+        Vector2 from = transform.position;
+        Vector2 to;
+        bool done = false;
+        if (returning)
+        {
+            // Boomerang: straight back to the user, through walls.
+            if (owner == null) { Destroy(gameObject); return; }
+            Vector2 home = owner.transform.position;
+            to = Vector2.MoveTowards(from, home, speed * dt);
+            done = to == home;
+        }
+        else
+        {
+            float step = Mathf.Min(speed * dt, range - travelled);
+            travelled += step;
+            to = PathPoint(travelled);
+            done = travelled >= range;
+        }
+
+        if (move.growth > 0f)
+        {
+            float grown = Mathf.Lerp(1f, move.growth, Mathf.Clamp01(travelled / range));
+            radius = baseRadius * grown;
+            transform.localScale = baseScale * grown;
+        }
+
+        if (move.path == "arc")
+        {
+            // Flies over everything and only hits where it lands; it is drawn higher up in the middle of its flight.
+            float t = Mathf.Clamp01(travelled / range);
+            transform.position = to + Vector2.up * (move.pathAmplitude * 4f * t * (1f - t));
+            if (done) Land(to);
             return;
         }
 
-        transform.position += (Vector3)(direction * step);
-        remaining -= step;
-        if (remaining <= 0f) Destroy(gameObject);
+        if (Sweep(from, to)) return;
+        Vector2 moved = to - from;
+        if (moved.sqrMagnitude > 0.000001f)
+            transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(moved.y, moved.x) * Mathf.Rad2Deg);
+        transform.position = to;
+
+        if (!done) return;
+        if (move.path == "boomerang" && !returning)
+        {
+            returning = true;
+            hit.Clear(); // can hit the same opponents again on the way back
+        }
+        else Destroy(gameObject);
+    }
+
+    /// Point of the path after "distance" tiles along "forward".
+    Vector2 PathPoint(float distance)
+    {
+        Vector2 normal = new Vector2(-forward.y, forward.x);
+        float a = move.pathAmplitude, period = move.pathPeriod > 0f ? move.pathPeriod : 2f;
+        float cycle = distance / period;
+        float sideways = 0f, ahead = 0f;
+        switch (move.path)
+        {
+            case "wave": sideways = a * Mathf.Sin(2f * Mathf.PI * cycle); break;
+            case "zigzag": sideways = a * (1f - 4f * Mathf.Abs(Mathf.Repeat(cycle + 0.25f, 1f) - 0.5f)); break;
+            case "curve": sideways = side * a * Mathf.Sin(Mathf.PI * Mathf.Clamp01(distance / range)); break;
+            case "orbit":
+                // Shots of a volley turn around a point moving ahead, evenly spaced (two shots: face to face).
+                float angle = 2f * Mathf.PI * cycle + (side > 0f ? 0f : Mathf.PI);
+                sideways = a * Mathf.Sin(angle);
+                ahead = a * (Mathf.Cos(angle) - Mathf.Cos(side > 0f ? 0f : Mathf.PI));
+                break;
+        }
+        return origin + forward * (distance + ahead) + normal * sideways;
+    }
+
+    // Homing: turns toward the nearest opponent in front of it.
+    void Steer(float dt)
+    {
+        if (homingTarget == null || !homingTarget.IsAlive)
+        {
+            homingTarget = null;
+            float best = HomingRange;
+            foreach (var c in FindObjectsByType<Combatant>(FindObjectsSortMode.None))
+            {
+                if (c.team == team || !c.IsAlive) continue;
+                Vector2 to = c.transform.position - transform.position;
+                if (to.magnitude < best && Vector2.Dot(to.normalized, forward) > 0.3f)
+                {
+                    best = to.magnitude;
+                    homingTarget = c;
+                }
+            }
+        }
+        if (homingTarget == null) return;
+        Vector2 wanted = ((Vector2)homingTarget.transform.position - (Vector2)transform.position).normalized;
+        float turn = Mathf.Clamp(Vector2.SignedAngle(forward, wanted), -move.homing * dt, move.homing * dt);
+        // The path restarts as a straight line through the current position, in the new direction.
+        forward = (Vector2)(Quaternion.Euler(0f, 0f, turn) * forward);
+        origin = (Vector2)transform.position - forward * travelled;
+    }
+
+    // The whole move is swept with a circle cast, so a fast shot or a slow frame can never skip over a target.
+    // Returns true when the shot is gone or its move for this step is over (bounce, boomerang turning back).
+    bool Sweep(Vector2 from, Vector2 to)
+    {
+        Vector2 delta = to - from;
+        float length = delta.magnitude;
+        if (length <= 0f) return false;
+        foreach (var h in Physics2D.CircleCastAll(from, radius, delta / length, length))
+        {
+            if (h.collider.isTrigger) continue;
+            var target = h.collider.GetComponentInParent<Combatant>();
+            Vector2 at = h.distance > 0f ? h.point : from; // a cast that starts inside a collider has no usable point
+            if (target != null)
+            {
+                if (target.team == team || !hit.Add(target)) continue;
+                Strike(target);
+                EffectPlayer.Spawn(move.impactEffect, at, delta);
+                if (move.pierce || move.path == "boomerang") continue;
+                Destroy(gameObject);
+                return true;
+            }
+
+            // A wall.
+            if (returning) continue;
+            if (move.path == "boomerang")
+            {
+                transform.position = from;
+                returning = true;
+                hit.Clear();
+                return true;
+            }
+            if (bouncesLeft > 0 && h.distance > 0f)
+            {
+                bouncesLeft--;
+                forward = Vector2.Reflect(forward, h.normal).normalized;
+                origin = h.centroid + h.normal * 0.01f;
+                range -= travelled;
+                travelled = 0f;
+                transform.position = origin;
+                return true;
+            }
+            EffectPlayer.Spawn(move.impactEffect, at, delta);
+            Destroy(gameObject);
+            return true;
+        }
+        return false;
+    }
+
+    // Arc: hits every opponent within the splash radius where it lands.
+    void Land(Vector2 at)
+    {
+        EffectPlayer.Spawn(move.impactEffect, at, forward);
+        foreach (var c in Physics2D.OverlapCircleAll(at, Mathf.Max(radius, move.splash)))
+        {
+            if (c.isTrigger) continue;
+            var target = c.GetComponentInParent<Combatant>();
+            if (target != null && target.team != team && hit.Add(target)) Strike(target);
+        }
+        Destroy(gameObject);
+    }
+
+    void Strike(Combatant target)
+    {
+        if (!target.TakeHit(damage, move.category, out float dealt)) return;
+        target.ApplyEffects(move, false, owner);
+        if (owner != null) owner.HitLanded(move, dealt);
     }
 }

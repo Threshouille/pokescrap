@@ -32,7 +32,9 @@ public static class SaveData
         public int[] startingUnlocked = new int[0];
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;
-        public int startingMoveCount = 2;
+        public int startingMoveCount = 1; // on top of the basic attack
+        public float enemyBasicCooldownMul = 4f; // enemies fire their basic attack less often...
+        public float enemyBasicDamageMul = 2.5f; // ...but it hits harder
         public int enemyMoveCount = 2;
         public float moveOfferChanceWhenFull = 0.5f; // chance that a level-up choice offers a new move once 4 are known
         public float evolvedMoveWeight = 2f; // after evolving, moves of the current form are this much more likely
@@ -102,11 +104,14 @@ public static class SaveData
         Write();
     }
 
-    /// Moves a Pokémon starts a run with: the player's choice if it is still valid, else the default ones.
-    public static int[] StartingMoves(int pokemonId)
+    /// Moves a Pokémon starts a run with: its basic attack (slot R1), then the moves chosen in the menu.
+    public static int[] StartingMoves(int pokemonId) => GameData.WithBasic(pokemonId, ChosenMoves(pokemonId));
+
+    /// Moves picked in the menu on top of the basic attack: the player's choice if it is still valid, else the default ones.
+    public static int[] ChosenMoves(int pokemonId)
     {
         int count = Settings.startingMoveCount;
-        var pool = GameData.MovePool(pokemonId).ConvertAll(m => m.id);
+        var pool = GameData.ChoicePool(pokemonId).ConvertAll(m => m.id);
         var choice = Data.startingMoves.Find(c => c.pokemonId == pokemonId);
         if (choice != null && choice.moves.Length == Math.Min(count, pool.Count) && Array.TrueForAll(choice.moves, pool.Contains))
             return choice.moves;

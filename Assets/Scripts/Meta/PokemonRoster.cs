@@ -26,7 +26,7 @@ public class PokemonRoster : ScriptableObject
 
     /// Can be picked for a team: has sprites and enough moves to choose from.
     public static bool Playable(int pokemonId) => Get(pokemonId) != null
-        && GameData.MovePool(pokemonId).Count >= SaveData.Settings.startingMoveCount;
+        && GameData.ChoicePool(pokemonId).Count >= SaveData.Settings.startingMoveCount;
 
     /// Earliest playable form of a Pokémon's evolution line, going back through its previous forms
     /// (Charizard → Charmander; Raichu → Pikachu while Pichu cannot be played). -1 when none is playable.

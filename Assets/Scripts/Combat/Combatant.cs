@@ -192,7 +192,10 @@ public class Combatant : MonoBehaviour
     public float CooldownLeft(int slot) => Mathf.Max(0f, readyAt[slot] - Time.time);
 
     /// Recharge time of a move for this Pokémon, upgrades included.
-    public float CooldownOf(MoveDef move) => move.cooldown * cooldownMul;
+    public float CooldownOf(MoveDef move) => move.cooldown * cooldownMul * EnemyBasic(move, SaveData.Settings.enemyBasicCooldownMul);
+
+    // Enemies fire their basic attack less often but harder: the factor for enemies, 1 otherwise.
+    float EnemyBasic(MoveDef move, float factor) => move.basic && team == Team.Enemy ? factor : 1f;
 
     /// Stats gained on reaching a new level. A knocked-out Pokémon gets the stats but stays down.
     public void ApplyGrowth(LevelGrowth growth, int newLevel)
@@ -449,13 +452,16 @@ public class Combatant : MonoBehaviour
         direction = Steer(direction.normalized);
         if (move.family == "projectile")
         {
-            // Several shots are fanned out evenly around the aimed direction.
+            // Several shots are fanned out evenly around the aimed direction; a burst fires that volley again
+            // and again, in the same direction, from wherever the user stands.
             int shots = Mathf.Max(1, move.count);
-            for (int i = 0; i < shots; i++)
-            {
-                float angle = shots == 1 ? 0f : Mathf.Lerp(-move.spread / 2f, move.spread / 2f, i / (shots - 1f));
-                Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction);
-            }
+            for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
+                for (int i = 0; i < shots; i++)
+                {
+                    float angle = shots == 1 ? 0f : Mathf.Lerp(-move.spread / 2f, move.spread / 2f, i / (shots - 1f));
+                    angle += UnityEngine.Random.Range(-move.jitter, move.jitter);
+                    Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, volley * move.burstInterval, distance);
+                }
         }
         else if (move.family == "zone")
         {
@@ -549,7 +555,8 @@ public class Combatant : MonoBehaviour
         if (move.power <= 0) return 0f; // pure status moves
         float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
         float burn = move.category == "physical" ? StatusProduct(def => def.physicalAttackMul) : 1f;
-        return (move.power + stat) * Modifier("attack") * burn * damageFactor;
+        float scale = (move.damageScale > 0f ? move.damageScale : 1f) * EnemyBasic(move, SaveData.Settings.enemyBasicDamageMul);
+        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale;
     }
 
     /// A hit from a move: the target's defence (physical or special) reduces it. Returns false when the hit was

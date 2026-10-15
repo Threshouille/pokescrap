@@ -48,13 +48,15 @@ public static class RoleTactics
         float wanted = float.MaxValue; // shortest reach among the ready moves worth walking for
 
         // A support looks at its heals and bonuses before anything else (pass 0), then at its attacks (pass 1).
-        // The other roles take their moves in slot order, so a tank can still raise its defence between two blows.
+        // The other roles take their moves in slot order (basic attack last), so a tank can still raise its defence between two blows.
         for (int pass = 0; pass < 2; pass++)
         {
-            for (int slot = 0; slot < Combatant.MoveSlots; slot++)
+            // The basic attack comes last, once nothing else is worth using.
+            for (int k = 0; k < 2 * Combatant.MoveSlots; k++)
             {
+                int slot = k % Combatant.MoveSlots;
                 var move = self.Moves[slot];
-                if (move == null) continue;
+                if (move == null || move.basic != (k >= Combatant.MoveSlots)) continue;
                 bool care = move.family == "heal" || move.family == "modifier";
                 if (support && care != (pass == 0)) continue;
                 if (!support && pass == 1) continue;

@@ -40,6 +40,20 @@ public class MoveDef
     public float zoneDuration; // zone only: seconds the area stays
     public int count; // projectile only: number of shots fired at once (1 when omitted)
     public float spread; // projectile only: total angle, in degrees, over which the shots are fanned out
+    public bool basic; // basic attack: almost no cooldown, low damage (one per type, see basicByType)
+    public float damageScale; // multiplies the damage (1 when omitted)
+    public string path; // projectile: straight (default), wave, zigzag, curve, orbit, arc, boomerang, homing
+    public float pathAmplitude; // tiles: sideways swing (wave, zigzag, curve), orbit radius, or arc height
+    public float pathPeriod; // tiles travelled per cycle (wave, zigzag, orbit)
+    public int burst; // projectile: volleys fired one after the other (1 when omitted)
+    public float burstInterval; // seconds between two volleys
+    public float jitter; // degrees: random deviation of each shot, either side
+    public float growth; // size multiplier reached at the end of the flight (unchanged when omitted)
+    public float accel; // tiles per second², negative to slow down
+    public bool pierce; // goes through opponents, hitting each once
+    public int bounces; // times the shot bounces off walls
+    public float splash; // arc: radius of the hit where it lands
+    public float homing; // homing: degrees per second the shot turns toward its target
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally
     public float recoil; // share of the damage dealt that the user loses
@@ -76,7 +90,8 @@ public static class GameData
     [Serializable] class TypeColorEntry { public int type; public string color; }
     [Serializable] class Loadout { public int pokemonId; public string role; public int[] moves; }
     [Serializable] class UpgradeFile { public UpgradeDef[] upgrades; }
-    [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; }
+    [Serializable] class BasicEntry { public int type; public int pokemonId; public int move; }
+    [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; public BasicEntry[] basicByType, basicByPokemon; }
 
     // Base speed in the main games goes from 5 to 160; squeezed into a playable range.
     const float MinBaseSpeed = 5f, MaxBaseSpeed = 160f, MinMoveSpeed = 3f, MaxMoveSpeed = 6f;
@@ -86,6 +101,7 @@ public static class GameData
     static Dictionary<int, int[]> loadouts;
     static Dictionary<int, string> roles;
     static Dictionary<int, Color> typeColors;
+    static Dictionary<int, int> basicByType, basicByPokemon;
     static UpgradeDef[] upgrades;
 
     // Statics can outlive a play session in the editor: reload the files each time a game starts.
@@ -115,6 +131,10 @@ public static class GameData
         }
         var upgradeFile = Resources.Load<TextAsset>("Data/upgrades");
         upgrades = upgradeFile != null ? JsonUtility.FromJson<UpgradeFile>(upgradeFile.text).upgrades : new UpgradeDef[0];
+        basicByType = new Dictionary<int, int>();
+        basicByPokemon = new Dictionary<int, int>();
+        foreach (var b in file.basicByType ?? new BasicEntry[0]) basicByType[b.type] = b.move;
+        foreach (var b in file.basicByPokemon ?? new BasicEntry[0]) basicByPokemon[b.pokemonId] = b.move;
         typeColors = new Dictionary<int, Color>();
         foreach (var t in file.typeColors)
             if (ColorUtility.TryParseHtmlString(t.color, out var c)) typeColors[t.type] = c;
@@ -138,11 +158,43 @@ public static class GameData
         return pool;
     }
 
+    /// Basic attack of a Pokémon: its own entry in basicByPokemon, else the one of its first type. Null when none.
+    public static MoveDef BasicMove(int pokemonId)
+    {
+        Load();
+        if (basicByPokemon.TryGetValue(pokemonId, out int id)) return Move(id);
+        var stats = Pokemon(pokemonId);
+        if (stats?.types == null) return null;
+        foreach (int type in stats.types)
+            if (type > 0 && basicByType.TryGetValue(type, out id)) return Move(id);
+        return null;
+    }
+
+    /// Moves the player can pick as starting moves: the pool without the basic attack, which is always given.
+    public static List<MoveDef> ChoicePool(int pokemonId)
+    {
+        var pool = MovePool(pokemonId);
+        var basic = BasicMove(pokemonId);
+        if (basic != null) pool.RemoveAll(m => m.id == basic.id);
+        return pool;
+    }
+
+    /// Basic attack first (slot R1), then the other moves.
+    public static int[] WithBasic(int pokemonId, int[] others)
+    {
+        var basic = BasicMove(pokemonId);
+        var result = new List<int>();
+        if (basic != null) result.Add(basic.id);
+        foreach (int id in others)
+            if (!result.Contains(id)) result.Add(id);
+        return result.ToArray();
+    }
+
     /// Starting moves when the player has not chosen any: the hand-written loadout where it fits, then the pool.
     public static int[] DefaultStartingMoves(int pokemonId, int count)
     {
         Load();
-        var pool = MovePool(pokemonId).ConvertAll(m => m.id);
+        var pool = ChoicePool(pokemonId).ConvertAll(m => m.id);
         var result = new List<int>();
         if (loadouts.TryGetValue(pokemonId, out var ids))
             foreach (int id in ids)
@@ -163,11 +215,19 @@ public static class GameData
         return 0;
     }
 
-    /// "count" moves drawn from the pool, the first one dealing damage when the pool has one (enemies).
+    /// "count" moves for an enemy: its basic attack, then moves drawn from the pool, the first one dealing damage
+    /// when the pool has one.
     public static int[] RandomMoves(int pokemonId, int count, System.Random rng)
     {
         var pool = MovePool(pokemonId);
         var result = new List<int>();
+        var basic = BasicMove(pokemonId);
+        if (basic != null)
+        {
+            result.Add(basic.id);
+            pool.RemoveAll(m => m.id == basic.id);
+            if (result.Count >= count) return result.ToArray();
+        }
         var damaging = pool.FindAll(m => m.power > 0);
         if (damaging.Count > 0) result.Add(damaging[rng.Next(damaging.Count)].id);
         while (result.Count < count)
@@ -186,17 +246,21 @@ public static class GameData
     }
 
     /// AI role deduced from the moves a Pokémon has: support with a heal or a bonus for its allies, ranged when
-    /// shots and zones are at least as many as close-range moves, melee otherwise.
+    /// shots and zones are at least as many as close-range moves, melee otherwise. The basic attack only counts
+    /// when there is nothing else.
     public static string RoleFromMoves(IEnumerable<MoveDef> known)
     {
         int ranged = 0, close = 0;
+        MoveDef basic = null;
         foreach (var move in known)
         {
             if (move == null) continue;
+            if (move.basic) { basic = move; continue; }
             if (move.family == "heal" || (move.family == "modifier" && move.target == "allies")) return "support";
             if (move.family == "projectile" || move.family == "zone") ranged++;
             else if (move.family == "melee" || move.family == "burst") close++;
         }
+        if (ranged == 0 && close == 0 && basic != null) return basic.family == "projectile" ? "ranged" : "melee";
         return ranged > 0 && ranged >= close ? "ranged" : "melee";
     }
 

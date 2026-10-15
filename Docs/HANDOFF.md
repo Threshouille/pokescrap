@@ -27,7 +27,7 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 ## Contenu actuel
 
 - **Jouables** : 6 débloqués au départ (`meta.json`) : Bulbizarre, Salamèche, Carapuce, Pikachu, Goinfrex, Riolu. Les 6 ennemis sont recrutables (taux de la ROM de la première forme jouable de la lignée) et deviennent jouables. 27 Pokémon ont des sprites, dont 14 formes évoluées importées pour l'évolution en partie (Herbizarre, Florizarre, Reptincel, Dracaufeu, Carabaffe, Tortank, Rattatac, Machopeur, Smogogo, Floravol, Cotovol, Kirlia, Gardevoir, Oniglali).
-- **Menu** (scène `Menu`, lancée par Play) : choix de 3 Pokémon, Triangle pour choisir leurs 2 attaques de départ dans leur liste par niveau ; sauvegarde des débloqués, de la dernière équipe et des attaques choisies.
+- **Menu** (scène `Menu`, lancée par Play) : choix de 3 Pokémon, Triangle pour choisir leur attaque de départ (en plus de l'attaque de base, sur R1) dans leur liste par niveau ; sauvegarde des débloqués, de la dernière équipe et des attaques choisies.
 - **Attaques** : 343 attaques génériques (`generate_moves.py`, ROM + PokéAPI, règles dans `Tools/pmd/move_rules.json`) + 28 faites à la main (prioritaires) ; 108 écartées, listées dans `Tools/pmd/generated_moves_report.txt`. Recharge croissante avec la puissance, annonce plus longue pour les attaques à charge, recharge ×1,5 pour celles à recharge, recul.
 - **Statuts** (`statuses.json`) : poison, paralysie, brûlure, sommeil, gel, confusion, piège, bâillement, vampigraine ; durées réduites pour l'équipe du joueur (sommeil, gel) et pour les boss.
 - **En partie** : tous les 10 niveaux, une des 3 cartes est une nouvelle attaque (toujours sous 4 attaques, puis 1 fois sur 2, en remplacement) ; évolution au niveau de la ROM (seulement par niveau et si les sprites existent) ; rôle d'IA déduit des attaques équipées. Ennemis : 2 attaques tirées au hasard dans leur liste (dont une offensive). Boss Groudon inchangé (4 attaques fixes, bulle numérotée, résistances).
@@ -36,7 +36,7 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 
 ## Prochaine session : attaques au cas par cas
 
-Owen veut travailler les attaques en détail. Points de départ :
+Owen veut travailler les attaques en détail. Fait : les 17 **attaques de base** à distance (une par type, `basic: true`, `basicByType` dans `realtime_moves.json`), avec trajectoires et paramètres propres (`Projectile`). Prompt Claude Design envoyé ou à envoyer : `Design/prompt_attaques_de_base.md` (planches à brancher à leur arrivée). À faire ensuite : les attaques de base au corps à corps (chaque Pokémon aura l'une ou l'autre, via `basicByPokemon`), régler les dégâts (`damageScale`) en jeu. Points de départ :
 - `Tools/pmd/generated_moves_report.txt` : 108 attaques écartées (75 de statut sans effet transposable comme Abri, Repos, Morphing, Métronome ; terrain, météo, K.O. en un coup, expulsion ; statuts non gérés comme Attraction, Requiem, Entrave).
 - Les attaques génériques n'ont pas d'effet visuel propre (disque coloré du type) : prévoir des prompts Claude Design par famille ou par attaque.
 - Une attaque se reprend à la main en l'ajoutant à `realtime_moves.json` (même `id`), qui l'emporte sur la version générée.
