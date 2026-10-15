@@ -285,7 +285,8 @@ public class Projectile : MonoBehaviour
     void Land(Vector2 at)
     {
         float area = Mathf.Max(radius, move.splash);
-        if (move.puddle > 0f) Shapes.Puddle(at, area, GameData.TypeColor(move.type), move.puddle);
+        if (move.puddle > 0f)
+            Shapes.Puddle(at, area, ColorUtility.TryParseHtmlString(move.puddleColor, out var tint) ? tint : GameData.TypeColor(move.type), move.puddle, EffectLibrary.Get(move.mark)?.Frame(move.markFrame), move.markFill);
         EffectPlayer.Spawn(move.impactEffect, at, forward);
         foreach (var c in Physics2D.OverlapCircleAll(at, area))
         {

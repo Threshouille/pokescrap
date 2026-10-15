@@ -123,15 +123,17 @@ public static class Shapes
 
     /// Brief translucent disc: provisional feedback for moves that have no sprite sheet (heals, bonuses, penalties).
     /// Flat disc on the floor that fades out over "duration" seconds (e.g. the puddle left where an arc shot lands).
-    public static void Puddle(Vector3 position, float radius, Color color, float duration)
+    /// With a sprite instead (e.g. cracks on the ground), "fill" is the share of its width that the drawing covers,
+    /// so the drawing matches the radius.
+    public static void Puddle(Vector3 position, float radius, Color color, float duration, Sprite sprite = null, float fill = 1f)
     {
         var go = new GameObject("Puddle");
         go.transform.position = position;
-        go.transform.localScale = Vector3.one * radius * 2f;
         var renderer = go.AddComponent<SpriteRenderer>();
-        renderer.sprite = Circle;
-        color.a = 0.45f;
-        renderer.color = color;
+        renderer.sprite = sprite != null ? sprite : Circle;
+        go.transform.localScale = Vector3.one * radius * 2f / (renderer.sprite.bounds.size.x * (fill > 0f ? fill : 1f));
+        color.a = sprite != null ? 1f : 0.45f;
+        renderer.color = sprite != null ? Color.white : color;
         renderer.sortingOrder = 0; // above the floor, under the Pokémon
         go.AddComponent<FadeOut>().duration = duration;
     }

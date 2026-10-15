@@ -55,6 +55,10 @@ public class MoveDef
     public float splash; // arc: radius of the hit where it lands
     public float rangeStep; // projectile: each shot after the first flies this much further (tiles)
     public float puddle; // arc: seconds the puddle showing the splash area stays (fading out); none when 0
+    public string puddleColor; // colour of the puddle (#rrggbb), the type colour when omitted
+    public string mark; // arc: sheet drawn on the ground instead of the puddle disc (e.g. cracks), sized to the splash area
+    public int markFrame; // frame of that sheet
+    public float markFill; // share of the frame width the drawing covers (1 when omitted)
     public float effectScale; // size multiplier of the effect sheets (1 when omitted)
     public float homing; // homing: degrees per second the shot turns toward its target
     public float castTime; // projectile: seconds the user stands still, aim locked, before the shots leave
