@@ -78,8 +78,12 @@ public class MoveDef
     public float strikeOffset; // melee: tiles in front of the user where the strike area starts (arc, thrust)
     public float recovery; // seconds the user stays rooted after the move
     public float hop; // tiles: little jump in place during the cast (melee dash)
-    public float knockback; // melee dash with bounceBack: tiles the target is pushed away
+    public float knockback; // melee: tiles the target is pushed away when hit
     public float teleportDelay; // melee teleport: seconds the user stays gone before reappearing
+    public float stun; // melee: seconds a hit stuns its target (meleeStun of meta.json when omitted)
+    public bool lungeHarmless; // melee dash that hits nobody on the way
+    public bool strikeAfterLunge; // melee dash followed by the move's strikes, strikeDelay seconds after it ends
+    public float strikeDelay;
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally

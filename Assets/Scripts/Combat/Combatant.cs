@@ -100,7 +100,8 @@ public class Combatant : MonoBehaviour
     int chainCount; // strikes landed in a row (chainBonus)
     float chainUntil;
     float lungeSpeed;
-    bool lungeBouncing, lungeFinishPending;
+    bool lungeBouncing, lungeFinishPending, lungeStrikePending;
+    PmdAnimator animator;
     float stunUntil, recoverUntil; // stunned by a melee hit; rooted after one's own move (recovery)
     float knockUntil; // pushed away by a hit: controllers leave the body alone
     Vector2 knockVelocity;
@@ -539,6 +540,13 @@ public class Combatant : MonoBehaviour
         knockUntil = Time.time + time;
     }
 
+    const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
+
+    static float StunOf(MoveDef move) => move.stun > 0f ? move.stun : SaveData.Settings.meleeStun;
+
+    /// True while stunned or pushed away by a hit: the Hurt animation plays.
+    public bool IsHurt => Time.time < stunUntil || Time.time < knockUntil;
+
     /// Neither moving nor attacking for a moment (bosses are immune).
     public void Stun(float duration)
     {
@@ -546,13 +554,13 @@ public class Combatant : MonoBehaviour
         stunUntil = Mathf.Max(stunUntil, Time.time + duration);
     }
 
-    void QueueStrikes(MoveDef move, Vector2 direction)
+    void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f)
     {
         int count = Mathf.Max(1, move.hits);
         for (int i = 0; i < count; i++)
         {
             float angle = move.hitAngles != null && move.hitAngles.Length > 0 ? move.hitAngles[i % move.hitAngles.Length] : 0f;
-            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, at = Time.time + i * move.hitInterval });
+            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, at = Time.time + delay + i * move.hitInterval });
         }
     }
 
@@ -598,7 +606,8 @@ public class Combatant : MonoBehaviour
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move) * factor, move.category, out float dealt))
             {
-                target.Stun(SaveData.Settings.meleeStun);
+                target.Stun(StunOf(move));
+                if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackTime, KnockbackTime);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
             }
@@ -682,6 +691,7 @@ public class Combatant : MonoBehaviour
         lungeSpeed = move.lunge / LungeTime(move);
         lungeBouncing = false;
         lungeFinishPending = move.finishRadius > 0f;
+        lungeStrikePending = move.strikeAfterLunge;
         // Trail just behind the attacker, following it for the length of the dash.
         EffectPlayer.Spawn(move.effect, transform.position - (Vector3)(direction * 0.5f), direction, transform, LungeTime(move));
     }
@@ -796,14 +806,21 @@ public class Combatant : MonoBehaviour
                 lungeFinishPending = false;
                 Strike(lungeMove, lungeDirection, lungeMove.finishRadius);
             }
+            if (lungeStrikePending)
+            {
+                // A blow a moment after the dash, the user standing still meanwhile.
+                lungeStrikePending = false;
+                recoverUntil = Time.time + lungeMove.strikeDelay;
+                QueueStrikes(lungeMove, lungeDirection, lungeMove.strikeDelay);
+            }
             return;
         }
         body.linearVelocity = lungeDirection * lungeSpeed;
-        if (lungeBouncing) return;
+        if (lungeBouncing || lungeMove.lungeHarmless) return;
         if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
         {
             // Both are thrown apart, slowly enough to be seen.
-            const float BounceTime = 0.3f;
+            const float BounceTime = KnockbackTime;
             foreach (var target in lungeHit)
                 if (target != null) target.Knockback(lungeDirection * lungeMove.knockback / BounceTime, BounceTime);
             lungeBouncing = true;
@@ -857,7 +874,7 @@ public class Combatant : MonoBehaviour
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move), move.category, out float dealt))
             {
-                target.Stun(SaveData.Settings.meleeStun);
+                target.Stun(StunOf(move));
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
             }
@@ -939,7 +956,9 @@ public class Combatant : MonoBehaviour
     public void KnockOut()
     {
         lungeUntil = dodgeUntil = 0f;
-        lungeFinishPending = false;
+        lungeFinishPending = lungeStrikePending = false;
+        stunUntil = knockUntil = 0f;
+        if (animator != null) animator.Forced = null;
         strikes.Clear();
         castMove = null;
         if (blinkMove != null) ShowSelf(true);
@@ -961,6 +980,10 @@ public class Combatant : MonoBehaviour
 
     void LateUpdate()
     {
+        // Hurt animation while stunned or pushed away by a hit (the animator is added after this component).
+        if (animator == null) animator = GetComponent<PmdAnimator>();
+        if (animator != null && IsAlive) animator.Forced = IsHurt && animator.Has("Hurt") ? "Hurt" : null;
+
         var tint = StatusTint();
         if (spriteRenderer != null)
             spriteRenderer.color = Time.time < flashUntil ? new Color(1f, 0.4f, 0.4f)

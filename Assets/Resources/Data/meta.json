@@ -11,7 +11,7 @@
   "evolvedMoveWeight": 2,
   "dodgeDistance": 2.5,
   "dodgeTime": 0.2,
-  "meleeStun": 0.25,
+  "meleeStun": 0.4,
   "dodgeCooldown": 3,
   "enemyGroupSize": 3,
   "groupRetargetTime": 2

@@ -38,8 +38,22 @@ public class PmdAnimator : MonoBehaviour
         return ((Mathf.RoundToInt((angle + 90f) / 45f) % 8) + 8) % 8;
     }
 
+    /// Animation that overrides whatever the controllers ask for (e.g. Hurt while stunned); null when none.
+    public string Forced
+    {
+        get => forced;
+        set
+        {
+            if (value == forced) return;
+            forced = value;
+            if (value != null) Play(value);
+        }
+    }
+    string forced;
+
     public void Play(string newAnim)
     {
+        if (forced != null && newAnim != forced) return;
         if (anim != null && newAnim == animName) return;
         animName = newAnim;
         anim = animSet != null ? animSet.Get(newAnim) : null;
