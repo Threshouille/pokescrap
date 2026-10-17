@@ -182,7 +182,8 @@ public class Evolution : MonoBehaviour
         showingAfter = true; // the first swap shows the old form
         var renderer = member.GetComponent<SpriteRenderer>();
         originalMaterial = renderer.sharedMaterial;
-        silhouette ??= new Material(Shader.Find("Pokescrap/Silhouette"));
+        // Unity null check: the material is destroyed when a new run loads its scene, the static survives.
+        if (silhouette == null) silhouette = new Material(Shader.Find("Pokescrap/Silhouette"));
         renderer.sharedMaterial = silhouette;
         member.BeginEvolution(SaveData.Settings.evolveTime);
     }
