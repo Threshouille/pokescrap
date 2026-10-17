@@ -65,6 +65,9 @@ public class Combatant : MonoBehaviour
     /// Where the player controlling this Pokémon aims right now (zero for an AI). A shot that leaves after a cast
     /// or a delay follows it, rather than the direction it was aimed at when the move started.
     public Vector2 LiveAim { get; set; }
+    /// True while the controlling player gives no aim (right stick at rest): melee moves turn toward the nearest
+    /// opponent within reach.
+    public bool AimFree { get; set; }
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
     public bool IsCasting => castMove != null || blinkMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
@@ -531,6 +534,7 @@ public class Combatant : MonoBehaviour
     // A melee move: blink forward first if it teleports, then a dash (hits along the way) or one or more strikes.
     void Melee(MoveDef move, Vector2 direction)
     {
+        direction = MeleeAutoAim(move, direction);
         if (move.teleport)
         {
             EffectPlayer.Spawn(move.trailEffect, transform.position, direction, null, 0.25f);
@@ -595,6 +599,23 @@ public class Combatant : MonoBehaviour
             strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, offset = angle != 0f ? offset : Vector2.zero,
                 at = Time.time + delay + i * move.hitInterval, followAim = followAim });
         }
+    }
+
+    // Without aim from the player, a melee move goes toward the nearest opponent a little beyond its reach.
+    Vector2 MeleeAutoAim(MoveDef move, Vector2 direction)
+    {
+        if (!AimFree) return direction;
+        float best = Mathf.Max(move.Reach + 1f, 2.5f);
+        Vector2 result = direction;
+        foreach (var c in all)
+        {
+            if (c.team == team || !c.IsAlive) continue;
+            Vector2 to = c.transform.position - transform.position;
+            if (to.magnitude >= best || to == Vector2.zero) continue;
+            best = to.magnitude;
+            result = to.normalized;
+        }
+        return result;
     }
 
     // Moves the user up to "distance" tiles, through opponents but stopping short of walls.
@@ -823,7 +844,7 @@ public class Combatant : MonoBehaviour
             if (Time.time < strike.at) continue;
             strikes.RemoveAt(i--);
             if (!CanAttack) continue;
-            if (strike.followAim && LiveAim != Vector2.zero) strike.direction = Steer(LiveAim.normalized);
+            if (strike.followAim && LiveAim != Vector2.zero) strike.direction = MeleeAutoAim(strike.move, Steer(LiveAim.normalized));
             if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
             Strike(strike.move, strike.direction, -1f, strike.offset);
             if (strike.move.recovery > 0f && !strikes.Exists(x => x.move == strike.move))

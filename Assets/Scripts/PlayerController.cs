@@ -150,6 +150,7 @@ public class PlayerController : MonoBehaviour
         {
             m.ai.enabled = m != Current && m.combatant.IsAlive;
             m.combatant.LiveAim = Vector2.zero; // the AI aims for itself
+            m.combatant.AimFree = false;
         }
     }
 
@@ -189,6 +190,7 @@ public class PlayerController : MonoBehaviour
         if (aim != Vector2.zero) facing = aim;
         else if (move != Vector2.zero) facing = move.normalized;
         member.combatant.LiveAim = facing; // shots leaving after a cast follow the aim
+        member.combatant.AimFree = aim == Vector2.zero; // no aim given: melee moves pick the nearest opponent
 
         if (DodgePressed()) member.combatant.TryDodge(move != Vector2.zero ? move : facing);
 
