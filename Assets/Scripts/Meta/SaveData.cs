@@ -43,6 +43,7 @@ public static class SaveData
         public float dodgeTime = 0.2f;
         public float aimCone = 45f; // degrees either side of the aim within which the player's target is picked
         public float aimRange = 8f; // tiles
+        public float aimKeepCone = 60f; // the current target is kept while it stays within this cone
         public float meleeStun = 0.4f; // seconds a melee hit stuns its target (bosses are immune)
         public float dodgeCooldown = 3f;
         public float enemyDodgeCooldown = 5f;

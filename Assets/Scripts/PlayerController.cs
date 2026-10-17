@@ -181,6 +181,12 @@ public class PlayerController : MonoBehaviour
         else gameOver = true;
     }
 
+    static bool InCone(Combatant from, Combatant target, Vector2 aim, float cone, float range)
+    {
+        Vector2 to = target.transform.position - from.transform.position;
+        return to.magnitude <= range && (to.sqrMagnitude < 0.0001f || Vector2.Angle(aim, to) <= cone);
+    }
+
     // Red circle under the player's target.
     void ShowTargetRing(Combatant target)
     {
@@ -209,7 +215,10 @@ public class PlayerController : MonoBehaviour
         else if (move != Vector2.zero) facing = move.normalized;
         // Target: the opponent closest to where the player aims (or faces); the moves go toward it.
         var settings = SaveData.Settings;
-        var target = Combatant.FindAimTarget(member.combatant, facing, settings.aimCone, settings.aimRange);
+        // The current target is kept while it stays within a wider cone, so it does not jump around inside a group.
+        var target = member.combatant.AimTarget;
+        if (target == null || !target.IsAlive || !InCone(member.combatant, target, facing, settings.aimKeepCone, settings.aimRange))
+            target = Combatant.FindAimTarget(member.combatant, facing, settings.aimCone, settings.aimRange);
         member.combatant.AimTarget = target;
         Vector2 shoot = target != null && target.transform.position != member.combatant.transform.position
             ? ((Vector2)(target.transform.position - member.combatant.transform.position)).normalized : facing;

@@ -13,6 +13,7 @@
   "dodgeTime": 0.2,
   "aimCone": 45,
   "aimRange": 8,
+  "aimKeepCone": 60,
   "meleeStun": 0.4,
   "dodgeCooldown": 3,
   "enemyDodgeCooldown": 5,
