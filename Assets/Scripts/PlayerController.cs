@@ -195,7 +195,7 @@ public class PlayerController : MonoBehaviour
             targetRing = new GameObject("TargetRing").AddComponent<SpriteRenderer>();
             targetRing.sprite = Shapes.Ring;
             targetRing.color = new Color(0.95f, 0.08f, 0.08f, 0.5f);
-            targetRing.sortingOrder = 1; // above puddles, under the Pokémon
+            targetRing.sortingOrder = 0; // on the ground: the Pokémon (order 1) are always drawn over it
             targetRing.transform.localScale = Vector3.one * TargetRingSize;
         }
         targetRing.enabled = target != null;
