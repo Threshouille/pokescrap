@@ -72,7 +72,6 @@ public class MoveDef
     public float markFill; // share of the frame width the drawing covers (1 when omitted)
     public float effectScale; // size multiplier of the effect sheets (1 when omitted)
     public float homing; // homing: degrees per second the shot turns toward its target
-    public float aimAssist; // projectile fired by the player: degrees either side of the aim within which it bends toward an opponent (leading it)
     public float castTime; // projectile: seconds the user stands still, aim locked, before the shots leave
     public bool sequential; // projectile: the shots of a fan leave one by one (burstInterval apart), middle first, then left, right
     public string shape; // melee: circle (default: in front, range away), arc (sector around the user: range, arc), thrust (line from the user: range long, radius wide), around (circle around the user)

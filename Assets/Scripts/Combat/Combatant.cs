@@ -65,9 +65,31 @@ public class Combatant : MonoBehaviour
     /// Where the player controlling this Pokémon aims right now (zero for an AI). A shot that leaves after a cast
     /// or a delay follows it, rather than the direction it was aimed at when the move started.
     public Vector2 LiveAim { get; set; }
-    /// True while the controlling player gives no aim (right stick at rest): melee moves turn toward the nearest
-    /// opponent within reach.
-    public bool AimFree { get; set; }
+    /// Opponent the controlling player is aiming at (red circle), or null; always null for an AI. The player's moves
+    /// go toward it: shots lead it, arc shots land on it, zones are laid on it.
+    public Combatant AimTarget { get; set; }
+
+    /// Opponent of "from" closest to the direction "aim" (then the nearest), within "cone" degrees either side and
+    /// "range" tiles; null when there is none.
+    public static Combatant FindAimTarget(Combatant from, Vector2 aim, float cone, float range)
+    {
+        Combatant best = null;
+        float bestAngle = float.MaxValue, bestDistance = float.MaxValue;
+        foreach (var c in all)
+        {
+            if (c.team == from.team || !c.IsAlive) continue;
+            Vector2 to = c.transform.position - from.transform.position;
+            float d = to.magnitude, angle = d > 0.001f ? Vector2.Angle(aim, to) : 0f;
+            if (d > range || angle > cone) continue;
+            if (angle < bestAngle - 1f || (angle < bestAngle + 1f && d < bestDistance))
+            {
+                best = c;
+                bestAngle = angle;
+                bestDistance = d;
+            }
+        }
+        return best;
+    }
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
     public bool IsCasting => castMove != null || blinkMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
@@ -524,6 +546,8 @@ public class Combatant : MonoBehaviour
         else if (move.family == "projectile") FireProjectiles(move, direction, distance);
         else if (move.family == "zone")
         {
+            if (distance <= 0f && AimTarget != null && AimTarget.IsAlive)
+                distance = Vector2.Distance(transform.position, AimTarget.transform.position);
             float reach = distance > 0f ? Mathf.Min(distance, move.range) : move.range;
             Zone.Spawn(this, move, (Vector2)transform.position + direction * reach);
         }
@@ -534,7 +558,7 @@ public class Combatant : MonoBehaviour
     // A melee move: blink forward first if it teleports, then a dash (hits along the way) or one or more strikes.
     void Melee(MoveDef move, Vector2 direction)
     {
-        direction = MeleeAutoAim(move, direction);
+        direction = MeleeAutoAim(direction);
         if (move.teleport)
         {
             EffectPlayer.Spawn(move.trailEffect, transform.position, direction, null, 0.25f);
@@ -601,21 +625,12 @@ public class Combatant : MonoBehaviour
         }
     }
 
-    // Without aim from the player, a melee move goes toward the nearest opponent a little beyond its reach.
-    Vector2 MeleeAutoAim(MoveDef move, Vector2 direction)
+    // The player's melee moves go toward the aimed target.
+    Vector2 MeleeAutoAim(Vector2 direction)
     {
-        if (!AimFree) return direction;
-        float best = Mathf.Max(move.Reach + 1f, 2.5f);
-        Vector2 result = direction;
-        foreach (var c in all)
-        {
-            if (c.team == team || !c.IsAlive) continue;
-            Vector2 to = c.transform.position - transform.position;
-            if (to.magnitude >= best || to == Vector2.zero) continue;
-            best = to.magnitude;
-            result = to.normalized;
-        }
-        return result;
+        if (AimTarget == null || !AimTarget.IsAlive) return direction;
+        Vector2 to = AimTarget.transform.position - transform.position;
+        return to.sqrMagnitude > 0.0001f ? to.normalized : direction;
     }
 
     // Moves the user up to "distance" tiles, through opponents but stopping short of walls.
@@ -758,7 +773,7 @@ public class Combatant : MonoBehaviour
     void FireProjectiles(MoveDef move, Vector2 direction, float distance)
     {
         int shots = Mathf.Max(1, move.count);
-        if ((move.path == "arc" || move.aimAssist > 0f) && distance <= 0f) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
+        if (AimTarget != null && distance <= 0f) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
         for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
             for (int i = 0; i < shots; i++)
             {
@@ -776,26 +791,13 @@ public class Combatant : MonoBehaviour
             }
     }
 
-    // Shots fired without a distance (the player) get help: arc shots land on the nearest opponent within reach close
-    // to the aimed direction (shots landing further and further, rangeStep, are centred on it); straight shots with
-    // aimAssist bend slightly toward one. Both lead their target: they aim where it will be when the shot arrives.
+    // The player's shots go toward the aimed target, leading it (where it will be when the shot arrives); arc shots
+    // land there when it is within reach (shots landing further and further, rangeStep, are centred on it).
     void AutoAim(MoveDef move, int total, ref Vector2 direction, ref float distance)
     {
+        var target = AimTarget;
+        if (target == null || !target.IsAlive) return;
         bool arc = move.path == "arc";
-        float cone = arc ? 40f : move.aimAssist; // degrees either side of the aim
-        float reach = move.range + (total - 1) * move.rangeStep, best = float.MaxValue;
-        Combatant target = null;
-        foreach (var c in all)
-        {
-            if (c.team == team || !c.IsAlive) continue;
-            Vector2 to = c.transform.position - transform.position;
-            float d = to.magnitude;
-            if (d > reach || d >= best || Vector2.Angle(direction, to) > cone) continue;
-            best = d;
-            target = c;
-        }
-        if (target == null) return;
-
         Vector2 from = transform.position, at = target.transform.position;
         Vector2 velocity = target.body != null ? target.body.linearVelocity : Vector2.zero;
         float speed = Mathf.Max(0.1f, move.speed * projectileSpeedMul);
@@ -805,7 +807,8 @@ public class Combatant : MonoBehaviour
         Vector2 toAimed = aimed - from;
         if (toAimed.sqrMagnitude < 0.0001f) return;
         direction = toAimed.normalized;
-        if (arc) distance = Mathf.Clamp(toAimed.magnitude - (total - 1) / 2f * move.rangeStep, 0.5f, move.range);
+        float reach = move.range + (total - 1) * move.rangeStep;
+        if (arc && toAimed.magnitude <= reach) distance = Mathf.Clamp(toAimed.magnitude - (total - 1) / 2f * move.rangeStep, 0.5f, move.range);
     }
 
     void FixedUpdate()
@@ -844,7 +847,7 @@ public class Combatant : MonoBehaviour
             if (Time.time < strike.at) continue;
             strikes.RemoveAt(i--);
             if (!CanAttack) continue;
-            if (strike.followAim && LiveAim != Vector2.zero) strike.direction = MeleeAutoAim(strike.move, Steer(LiveAim.normalized));
+            if (strike.followAim && LiveAim != Vector2.zero) strike.direction = MeleeAutoAim(Steer(LiveAim.normalized));
             if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
             Strike(strike.move, strike.direction, -1f, strike.offset);
             if (strike.move.recovery > 0f && !strikes.Exists(x => x.move == strike.move))

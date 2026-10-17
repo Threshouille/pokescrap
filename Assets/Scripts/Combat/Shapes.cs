@@ -151,6 +151,27 @@ public static class Shapes
         Object.Destroy(go, 0.35f);
     }
 
+    /// Thin ring (target marker), white to be tinted.
+    public static Sprite Ring
+    {
+        get
+        {
+            if (ring != null) return ring;
+            const int size = 24;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+            float r = size / 2f;
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++)
+                {
+                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(r, r));
+                    tex.SetPixel(x, y, d <= r && d >= r - 3f ? Color.white : Color.clear);
+                }
+            tex.Apply();
+            return ring = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        }
+    }
+    static Sprite ring;
+
     // Runtime sprites are destroyed when play mode ends while statics can survive: hence the null checks.
     public static Sprite Circle
     {

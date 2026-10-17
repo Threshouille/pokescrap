@@ -56,6 +56,9 @@ public class PlayerController : MonoBehaviour
     Vector2 facing = Vector2.down;
     float attackUntil;
     string attackAnim = "Attack";
+    Vector2 attackFacing = Vector2.down; // direction of the last attack, for its animation
+    SpriteRenderer targetRing;
+    const float TargetRingSize = 0.9f, TargetRingDrop = 0f; // tiles
     bool gameOver;
     Transform aimArrow;
 
@@ -150,7 +153,7 @@ public class PlayerController : MonoBehaviour
         {
             m.ai.enabled = m != Current && m.combatant.IsAlive;
             m.combatant.LiveAim = Vector2.zero; // the AI aims for itself
-            m.combatant.AimFree = false;
+            m.combatant.AimTarget = null;
         }
     }
 
@@ -178,9 +181,24 @@ public class PlayerController : MonoBehaviour
         else gameOver = true;
     }
 
+    // Red circle under the player's target.
+    void ShowTargetRing(Combatant target)
+    {
+        if (targetRing == null)
+        {
+            targetRing = new GameObject("TargetRing").AddComponent<SpriteRenderer>();
+            targetRing.sprite = Shapes.Ring;
+            targetRing.color = new Color(0.95f, 0.08f, 0.08f, 0.95f);
+            targetRing.sortingOrder = 1; // above puddles, under the Pokémon
+            targetRing.transform.localScale = Vector3.one * TargetRingSize;
+        }
+        targetRing.enabled = target != null;
+        if (target != null) targetRing.transform.position = target.transform.position + Vector3.down * TargetRingDrop;
+    }
+
     void Update()
     {
-        if (gameOver) return; // EnemySpawner draws the end screen and handles what comes next
+        if (gameOver) { ShowTargetRing(null); return; } // EnemySpawner draws the end screen and handles what comes next
 
         if (Time.timeScale == 0f) return; // paused by the upgrade screen
 
@@ -189,21 +207,28 @@ public class PlayerController : MonoBehaviour
         Vector2 aim = ReadAim();
         if (aim != Vector2.zero) facing = aim;
         else if (move != Vector2.zero) facing = move.normalized;
-        member.combatant.LiveAim = facing; // shots leaving after a cast follow the aim
-        member.combatant.AimFree = aim == Vector2.zero; // no aim given: melee moves pick the nearest opponent
+        // Target: the opponent closest to where the player aims (or faces); the moves go toward it.
+        var settings = SaveData.Settings;
+        var target = Combatant.FindAimTarget(member.combatant, facing, settings.aimCone, settings.aimRange);
+        member.combatant.AimTarget = target;
+        Vector2 shoot = target != null && target.transform.position != member.combatant.transform.position
+            ? ((Vector2)(target.transform.position - member.combatant.transform.position)).normalized : facing;
+        member.combatant.LiveAim = shoot; // moves leaving after a cast follow the aim
+        ShowTargetRing(target);
 
         if (DodgePressed()) member.combatant.TryDodge(move != Vector2.zero ? move : facing);
 
         for (int slot = 0; slot < Combatant.MoveSlots; slot++)
-            if (SlotHeld(slot) && member.combatant.TryUseMove(slot, facing))
+            if (SlotHeld(slot) && member.combatant.TryUseMove(slot, shoot))
             {
+                attackFacing = shoot;
                 attackUntil = Time.time + AttackAnimTime;
                 attackAnim = GameData.AttackAnim(member.combatant.Moves[slot], member.animator);
             }
 
         if (Time.time < attackUntil)
         {
-            member.animator.direction = PmdAnimator.DirectionIndex(facing);
+            member.animator.direction = PmdAnimator.DirectionIndex(attackFacing);
             member.animator.Play(attackAnim);
         }
         else if (move != Vector2.zero)

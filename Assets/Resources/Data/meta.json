@@ -11,6 +11,8 @@
   "evolvedMoveWeight": 2,
   "dodgeDistance": 2.5,
   "dodgeTime": 0.2,
+  "aimCone": 45,
+  "aimRange": 8,
   "meleeStun": 0.4,
   "dodgeCooldown": 3,
   "enemyDodgeCooldown": 5,
