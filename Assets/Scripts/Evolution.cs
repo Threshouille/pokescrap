@@ -43,6 +43,7 @@ public class Evolution : MonoBehaviour
 
     // Evolution in progress.
     Combatant evolving;
+    public bool Evolving => evolving != null;
     PmdAnimSet before, after;
     int into;
     float startedAt, nextSwap;

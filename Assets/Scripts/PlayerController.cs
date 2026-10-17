@@ -73,6 +73,7 @@ public class PlayerController : MonoBehaviour
         gameObject.AddComponent<Progression>();
         gameObject.AddComponent<Evolution>();
         gameObject.AddComponent<TeamHud>();
+        gameObject.AddComponent<PauseMenu>();
     }
 
     void OnDestroy()

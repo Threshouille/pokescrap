@@ -58,6 +58,7 @@ public class EnemySpawner : MonoBehaviour
     public int CurrentStage { get; private set; } // 0-based
     public int CurrentWave { get; private set; } // 1-based, 0 before the first wave
     public bool Victory => phase == Phase.Won;
+    public bool Fading => phase == Phase.FadingOut || phase == Phase.FadingIn;
 
     readonly System.Random rng = new();
     PlayerController team;
