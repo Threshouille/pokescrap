@@ -49,7 +49,6 @@ public class Combatant : MonoBehaviour
     public static event Action<Combatant> AnyDied;
     public bool IsAlive => hp > 0f;
     public bool IsPoisoned => HasStatus("poison");
-    public bool IsParalysed => HasStatus("paralysis");
     /// False while a status (sleep, freeze, trap) holds this Pokémon in place.
     public bool CanMove => StatusAllows(def => def.canMove) && Time.time >= stunUntil && !IsEvolving;
     /// False while a status (sleep, freeze) prevents attacking.
@@ -477,7 +476,7 @@ public class Combatant : MonoBehaviour
     public bool TryUseMove(int slot, Vector2 direction, float distance = -1f)
     {
         var move = Moves[slot];
-        if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || Time.time < recoverUntil) return false;
+        if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
 
         if (move.family == "heal")
         {

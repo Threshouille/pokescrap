@@ -9,8 +9,8 @@ public static class Shapes
     static Sprite circle, square, arrow;
     static readonly Dictionary<string, Sprite> icons = new();
 
-    // Provisional status icons (original drawings). Letters are looked up in each icon's palette.
-    static readonly string[] PoisonPixels =
+    // Fallback icon (original drawing) for a status without its own sheet, in the status tint.
+    static readonly string[] DropPixels =
     {
         "..pppp..",
         ".pPPPPp.",
@@ -20,17 +20,6 @@ public static class Shapes
         ".pPddPp.",
         "..pPPp..",
         "...pp...",
-    };
-    static readonly string[] ParalysisPixels =
-    {
-        "....ppp.",
-        "...pPPp.",
-        "..pPPp..",
-        ".pPPPPpp",
-        "ppPPPPp.",
-        "..pPPp..",
-        ".pPPp...",
-        ".ppp....",
     };
 
     static readonly string[] ArrowPixels = // pointing up; flipped for penalties
@@ -46,31 +35,20 @@ public static class Shapes
     };
 
     /// Icon shown above a Pokémon for a status or a stat change (attack_up, defense_down...). A sheet named status_<name> in Resources/Effects takes precedence.
-    /// Statuses without their own drawing use the drop shape in their tint.
+    /// Without a sheet: an arrow for stat changes, a drop in the status tint otherwise.
     public static Sprite StatusIcon(string status, Color? tint = null)
     {
         var sheet = EffectLibrary.Get("status_" + status);
         if (sheet != null) return sheet.Frame(0);
         if (icons.TryGetValue(status, out var cached) && cached != null) return cached;
-        bool poison = status == "poison";
         bool up = status.EndsWith("_up"), down = status.EndsWith("_down");
-        var pixels = poison ? PoisonPixels : up || down ? ArrowPixels : ParalysisPixels;
-        Color32 outline = poison ? new Color32(74, 26, 107, 255) : new Color32(110, 80, 0, 255);
-        Color32 fill = poison ? new Color32(176, 79, 216, 255) : new Color32(255, 222, 60, 255);
-        if (!poison && !up && !down && status != "paralysis" && tint.HasValue)
-        {
-            pixels = PoisonPixels;
-            fill = tint.Value;
-            outline = new Color32(30, 30, 40, 255);
-        }
-        if (up || down)
-        {
-            // Provisional: an arrow in the colour of the stat (red attack, blue defence, green speed).
-            outline = new Color32(30, 30, 40, 255);
-            fill = status.StartsWith("attack") ? new Color32(235, 80, 60, 255)
-                : status.StartsWith("defense") ? new Color32(80, 140, 240, 255)
-                : new Color32(90, 210, 90, 255);
-        }
+        var pixels = up || down ? ArrowPixels : DropPixels;
+        Color32 outline = new(30, 30, 40, 255);
+        // Provisional: an arrow in the colour of the stat (red attack, blue defence, green speed).
+        Color32 fill = !up && !down ? (Color32)(tint ?? Color.white)
+            : status.StartsWith("attack") ? new Color32(235, 80, 60, 255)
+            : status.StartsWith("defense") ? new Color32(80, 140, 240, 255)
+            : new Color32(90, 210, 90, 255);
         int size = pixels.Length;
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
         for (int y = 0; y < size; y++)
@@ -121,7 +99,6 @@ public static class Shapes
         return bubbles[index] = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
 
-    /// Brief translucent disc: provisional feedback for moves that have no sprite sheet (heals, bonuses, penalties).
     /// Flat disc on the floor that fades out over "duration" seconds (e.g. the puddle left where an arc shot lands).
     /// With a sprite instead (e.g. cracks on the ground), "fill" is the share of its width that the drawing covers,
     /// so the drawing matches the radius.
@@ -138,6 +115,7 @@ public static class Shapes
         go.AddComponent<FadeOut>().duration = duration;
     }
 
+    /// Brief translucent disc: provisional feedback for moves that have no sprite sheet (heals, bonuses, penalties).
     public static void Pulse(Vector3 position, float radius, Color color)
     {
         var go = new GameObject("Pulse");

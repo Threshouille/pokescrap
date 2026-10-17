@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
 {
     const float DeadZone = 0.2f;
     const float AttackAnimTime = 0.3f;
+    const float InputBlockTime = 0.25f; // seconds (unscaled) without moves or dodges after a menu closes
     const float ArrowDistance = 0.9f, ArrowSize = 0.4f;
     static readonly Vector3 FeetOffset = new(0f, -0.25f, 0f);
     static readonly Color ArrowColor = new(1f, 1f, 1f, 0.8f);
@@ -58,9 +59,14 @@ public class PlayerController : MonoBehaviour
     string attackAnim = "Attack";
     Vector2 attackFacing = Vector2.down; // direction of the last attack, for its animation
     SpriteRenderer targetRing;
-    const float TargetRingSize = 0.9f, TargetRingDrop = 0f; // tiles
+    const float TargetRingSize = 0.9f; // tiles
     bool gameOver;
     Transform aimArrow;
+    float inputBlockedUntil; // unscaled time
+
+    /// Ignores moves and dodges for a moment, so the button that closed a menu (Cross, Space) does not also act in
+    /// the arena.
+    public void SuppressInput() => inputBlockedUntil = Time.unscaledTime + InputBlockTime;
 
     Member Current => members[current];
 
@@ -199,7 +205,7 @@ public class PlayerController : MonoBehaviour
             targetRing.transform.localScale = Vector3.one * TargetRingSize;
         }
         targetRing.enabled = target != null;
-        if (target != null) targetRing.transform.position = target.transform.position + Vector3.down * TargetRingDrop;
+        if (target != null) targetRing.transform.position = target.transform.position;
     }
 
     void Update()
@@ -225,9 +231,10 @@ public class PlayerController : MonoBehaviour
         member.combatant.LiveAim = shoot; // moves leaving after a cast follow the aim
         ShowTargetRing(target);
 
-        if (DodgePressed()) member.combatant.TryDodge(move != Vector2.zero ? move : facing);
+        bool acting = Time.unscaledTime >= inputBlockedUntil;
+        if (acting && DodgePressed()) member.combatant.TryDodge(move != Vector2.zero ? move : facing);
 
-        for (int slot = 0; slot < Combatant.MoveSlots; slot++)
+        for (int slot = 0; acting && slot < Combatant.MoveSlots; slot++)
             if (SlotHeld(slot) && member.combatant.TryUseMove(slot, shoot))
             {
                 attackFacing = shoot;

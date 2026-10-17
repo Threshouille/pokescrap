@@ -26,8 +26,6 @@ public class BossAI : MonoBehaviour
     public float enragedAnnounce = 0.6f;
 
     public bool Enraged => combatant.maxHp > 0f && combatant.hp / combatant.maxHp < enragedHealth;
-    /// Number shown in the bubble (1 to 4), or 0 when the boss is not announcing anything.
-    public int Announcing => state == State.Announce ? slot + 1 : 0;
 
     readonly Navigator navigator = new();
     readonly List<int> choices = new();

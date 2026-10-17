@@ -214,7 +214,7 @@ public class Projectile : MonoBehaviour
         {
             homingTarget = null;
             float best = HomingRange;
-            foreach (var c in FindObjectsByType<Combatant>(FindObjectsSortMode.None))
+            foreach (var c in FindObjectsByType<Combatant>())
             {
                 if (c.team == team || !c.IsAlive) continue;
                 Vector2 to = c.transform.position - transform.position;

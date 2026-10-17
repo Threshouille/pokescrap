@@ -21,7 +21,7 @@ public class EnemyAI : MonoBehaviour
     [Tooltip("Delay after each attack before the next announcement (the enemy keeps moving)")]
     public float recoverTime = 1.5f;
 
-    public EnemyGroup group; // set by EnemySpawner: the group's members share their target
+    [System.NonSerialized] public EnemyGroup group; // set by EnemySpawner: the group's members share their target
 
     readonly Navigator navigator = new();
     Rigidbody2D body;
@@ -57,7 +57,7 @@ public class EnemyAI : MonoBehaviour
                 break;
 
             case State.Windup:
-                body.linearVelocity = Vector2.zero;
+                if (!combatant.IsDashing) body.linearVelocity = Vector2.zero; // a push still carries it away
                 if (Time.time < stateUntil) break;
                 if (telegraph != null) Destroy(telegraph);
                 var move = combatant.Moves[attackSlot];

@@ -130,6 +130,7 @@ public class Progression : MonoBehaviour
         }
         options = null;
         Time.timeScale = 1f;
+        team.SuppressInput();
     }
 
     /// A move to offer this time, or null: always while the Pokémon knows fewer than 4, then only by chance.
@@ -170,13 +171,15 @@ public class Progression : MonoBehaviour
         NextChoice();
     }
 
-    /// slot 0-3 replaces that move with the offered one; any other value goes back to the three cards.
+    /// slot 0-3 replaces that move with the offered one, 4 ("keep") gives the new move up; any other value goes back
+    /// to the three cards.
     public void Replace(int slot)
     {
         if (!replacing) return;
         replacing = false;
-        if (slot < 0 || slot >= Combatant.MoveSlots) return;
-        pending.Dequeue().LearnMove(slot, options[selected].move);
+        if (slot < 0 || slot > Combatant.MoveSlots) return;
+        var who = pending.Dequeue();
+        if (slot < Combatant.MoveSlots) who.LearnMove(slot, options[selected].move);
         NextChoice();
     }
 

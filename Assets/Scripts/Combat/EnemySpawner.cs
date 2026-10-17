@@ -66,6 +66,8 @@ public class EnemySpawner : MonoBehaviour
     Phase phase;
     float phaseUntil, nextWaveAt;
     float runTime;
+    float overAt; // unscaled time the end screen appeared
+    const float EndInputDelay = 1f; // seconds before the end screen accepts a button (a dodge pressed as the run ends)
     int defeated;
     bool recorded;
     Recruitment recruitment;
@@ -88,7 +90,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-        team = FindFirstObjectByType<PlayerController>();
+        team = FindAnyObjectByType<PlayerController>();
         BeginStage();
     }
 
@@ -162,9 +164,9 @@ public class EnemySpawner : MonoBehaviour
         bool bossStage = Current.boss != null;
         if (bossStage && (boss == null || !boss.IsAlive))
         {
-            // The boss is down: its escort goes with it.
+            // The boss is down: its escort leaves with it (no experience, no recruit, not counted as defeated).
             foreach (var escort in GetComponentsInChildren<Combatant>())
-                if (escort.IsAlive) escort.TakeDamage(float.MaxValue);
+                if (escort.IsAlive) Destroy(escort.gameObject);
             Enter(Phase.Cleared, stagePause);
             return;
         }
@@ -184,8 +186,8 @@ public class EnemySpawner : MonoBehaviour
     {
         CurrentStage++;
         // Leftovers of the previous fight.
-        foreach (var zone in FindObjectsByType<Zone>(FindObjectsSortMode.None)) Destroy(zone.gameObject);
-        foreach (var shot in FindObjectsByType<Projectile>(FindObjectsSortMode.None)) Destroy(shot.gameObject);
+        foreach (var zone in FindObjectsByType<Zone>()) Destroy(zone.gameObject);
+        foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
 
         if (Current.tileset != null) generator.tileset = Current.tileset;
         generator.Generate(); // also moves the team object to the centre of the new arena
@@ -224,8 +226,15 @@ public class EnemySpawner : MonoBehaviour
     void SpawnGroup(List<PmdAnimSet> sets)
     {
         var group = new EnemyGroup();
+        if (sets.Count < 2) // a lone enemy keeps its natural role: nobody to support
+        {
+            var alone = Spawn(sets[0], SpawnPoint(), false);
+            alone.GetComponent<EnemyAI>().group = group;
+            group.members.Add(alone);
+            return;
+        }
         int support = sets.FindIndex(set => GameData.CanTakeRole(set.pokemonId, "support"));
-        if (support < 0 && sets.Count >= 2) // a lone enemy stays as it is
+        if (support < 0)
         {
             var healer = SupportCandidate();
             if (healer != null) sets[support = 0] = healer;
@@ -298,8 +307,10 @@ public class EnemySpawner : MonoBehaviour
         if (!recorded)
         {
             recorded = true;
+            overAt = Time.unscaledTime;
             SaveData.RecordRun(Victory);
         }
+        if (Time.unscaledTime < overAt + EndInputDelay) return;
         // Cross (or Enter / Options) plays again with the same team, Circle (or Escape) goes back to the menu.
         var pad = Gamepad.current;
         var kb = Keyboard.current;

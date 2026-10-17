@@ -87,6 +87,7 @@ public class PauseMenu : MonoBehaviour
         selected = 0;
         stickNeutral = false; // the stick may still be held from moving
         Time.timeScale = open ? 0f : 1f;
+        if (!open && team != null) team.SuppressInput();
     }
 
     void Choose(int index)

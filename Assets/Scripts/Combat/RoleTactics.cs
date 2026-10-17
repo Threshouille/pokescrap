@@ -55,7 +55,6 @@ public static class RoleTactics
         // The other roles take their moves in slot order (basic attack last), so a tank can still raise its defence between two blows.
         for (int pass = 0; canAttack && pass < 2; pass++)
         {
-            // The basic attack comes last, once nothing else is worth using.
             for (int k = 0; k < 2 * Combatant.MoveSlots; k++)
             {
                 int slot = k % Combatant.MoveSlots;

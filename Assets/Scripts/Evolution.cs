@@ -22,7 +22,6 @@ public class Evolution : MonoBehaviour
         public bool male, randomA;
         public float iq, beauty;
         public int itemForm; // form chosen with an item card, 0 when none
-        public string itemName;
         public bool traded;
         public bool announced; // the "can evolve" banner was shown for the current form
     }
@@ -137,11 +136,7 @@ public class Evolution : MonoBehaviour
     {
         var state = StateOf(member);
         if (card.trade) state.traded = true;
-        else
-        {
-            state.itemForm = card.form;
-            state.itemName = card.name;
-        }
+        else state.itemForm = card.form;
     }
 
     void Update()
@@ -234,7 +229,7 @@ public class Evolution : MonoBehaviour
         if (wave != null) wave.GetComponent<SpriteRenderer>().sortingOrder = AuraSortingOrder; // on the ground
         else Shapes.Pulse(centre, settings.shockwaveRadius, Color.white);
         float damage = settings.shockwaveDamage + settings.shockwaveDamagePerLevel * progression.Level;
-        foreach (var enemy in Object.FindObjectsByType<Combatant>(FindObjectsSortMode.None))
+        foreach (var enemy in Object.FindObjectsByType<Combatant>())
         {
             if (enemy.team == member.team || !enemy.IsAlive) continue;
             Vector2 away = (Vector2)enemy.transform.position - centre;
