@@ -85,17 +85,18 @@ public class EffectPlayer : MonoBehaviour
     }
 
     /// Creates a standalone effect. One-shot sheets remove themselves at the end; looping ones need a lifetime.
-    /// size: width in tiles the frame is stretched to (its own size when ≤ 0).
-    public static void Spawn(string name, Vector3 position, Vector2 direction, Transform parent = null, float lifetime = 0f, float size = 0f)
+    /// size: width in tiles the frame is stretched to (its own size when ≤ 0). Returns the effect, or null.
+    public static GameObject Spawn(string name, Vector3 position, Vector2 direction, Transform parent = null, float lifetime = 0f, float size = 0f)
     {
         var sheet = EffectLibrary.Get(name);
-        if (sheet == null) return;
+        if (sheet == null) return null;
         var go = new GameObject(name);
         go.transform.position = position;
         if (size > 0f) go.transform.localScale = Vector3.one * size * EffectLibrary.PixelsPerUnit / sheet.frame_width;
         if (parent != null) go.transform.SetParent(parent, true);
         Attach(go, name, direction);
         if (lifetime > 0f) go.GetComponent<EffectPlayer>().dieAt = Time.time + lifetime;
+        return go;
     }
 
     void Update()

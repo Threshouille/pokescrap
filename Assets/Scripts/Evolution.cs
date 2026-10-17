@@ -13,6 +13,8 @@ using UnityEngine.InputSystem;
 public class Evolution : MonoBehaviour
 {
     const int Shedinja = 320, Nincada = 318; // Munja joins when Ningale evolves, if there is room
+    const float AuraHeight = 0.65f; // lifts the aura sheet so its glowing oval sits under the Pokémon's feet
+    const int AuraSortingOrder = 0; // behind the Pokémon (aura and shock wave)
 
     /// Run state of a team member that its evolution may depend on.
     class State
@@ -186,6 +188,9 @@ public class Evolution : MonoBehaviour
         if (silhouette == null) silhouette = new Material(Shader.Find("Pokescrap/Silhouette"));
         renderer.sharedMaterial = silhouette;
         member.BeginEvolution(SaveData.Settings.evolveTime);
+        var aura = EffectPlayer.Spawn("evolution_aura", member.transform.position + Vector3.up * AuraHeight, Vector2.right,
+            member.transform, SaveData.Settings.evolveTime);
+        if (aura != null) aura.GetComponent<SpriteRenderer>().sortingOrder = AuraSortingOrder;
     }
 
     // Old and new silhouettes alternate faster and faster, then the new form appears with a shock wave.
@@ -223,7 +228,10 @@ public class Evolution : MonoBehaviour
         progression.Announce($"{name} évolue en {member.Stats.name} !");
 
         Vector2 centre = member.transform.position;
-        Shapes.Pulse(centre, settings.shockwaveRadius, Color.white);
+        EffectPlayer.Spawn("evolution_eclat", centre, Vector2.right);
+        var wave = EffectPlayer.Spawn("evolution_onde", centre, Vector2.right, size: 2f * settings.shockwaveRadius);
+        if (wave != null) wave.GetComponent<SpriteRenderer>().sortingOrder = AuraSortingOrder; // on the ground
+        else Shapes.Pulse(centre, settings.shockwaveRadius, Color.white);
         float damage = settings.shockwaveDamage + settings.shockwaveDamagePerLevel * progression.Level;
         foreach (var enemy in Object.FindObjectsByType<Combatant>(FindObjectsSortMode.None))
         {
@@ -232,6 +240,7 @@ public class Evolution : MonoBehaviour
             if (away.magnitude > settings.shockwaveRadius) continue;
             if (away == Vector2.zero) away = Random.insideUnitCircle;
             enemy.Knockback(away.normalized * settings.shockwaveKnockback / Combatant.KnockbackTime, Combatant.KnockbackTime);
+            EffectPlayer.Spawn("evolution_impact", enemy.transform.position, Vector2.right);
             enemy.TakeFixedDamage(damage);
         }
 

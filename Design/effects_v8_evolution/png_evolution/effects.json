@@ -1,0 +1,91 @@
+{
+  "scale": "24 px = 1 case",
+  "sheets": [
+    {
+      "file": "evolution_aura.png",
+      "frame_width": 48,
+      "frame_height": 64,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#3a5ab8",
+        "#8cc8ff",
+        "#ffd23a",
+        "#d8f0ff",
+        "#fff2a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "evolution_eclat.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a5ab8",
+        "#ffd23a",
+        "#d8f0ff",
+        "#fff2a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "evolution_onde.png",
+      "frame_width": 120,
+      "frame_height": 120,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a5ab8",
+        "#8cc8ff",
+        "#ffd23a",
+        "#d8f0ff",
+        "#fff2a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "evolution_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a5ab8",
+        "#ffd23a",
+        "#d8f0ff",
+        "#fff2a8",
+        "#ffffff"
+      ]
+    }
+  ]
+}
