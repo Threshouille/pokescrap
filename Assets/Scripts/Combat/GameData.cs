@@ -90,6 +90,7 @@ public class MoveDef
     public float recovery; // seconds the user stays rooted after the move
     public float hop; // tiles: little jump in place during the cast (melee dash)
     public float knockback; // melee: tiles the target is pushed away when hit
+    public float knockbackTime; // seconds the push lasts, slowing down (Combatant.KnockbackTime when omitted)
     public float teleportDelay; // melee teleport: seconds the user stays gone before reappearing
     public float stun; // melee: seconds a hit stuns its target (meleeStun of meta.json when omitted)
     public bool lungeHarmless; // melee dash that hits nobody on the way

@@ -108,7 +108,8 @@ public class Combatant : MonoBehaviour
     PmdAnimator animator;
     float stunUntil, recoverUntil; // stunned by a melee hit; rooted after one's own move (recovery)
     float knockUntil; // pushed away by a hit: controllers leave the body alone
-    Vector2 knockVelocity;
+    Vector2 knockVelocity; // average speed of the push, which slows down to a stop
+    float knockTime;
     float hopOffset; // height of the jump during a cast (hop)
     MoveDef blinkMove; // teleport in progress: gone until blinkUntil
     Vector2 blinkDirection;
@@ -562,10 +563,13 @@ public class Combatant : MonoBehaviour
     {
         if (isBoss || !IsAlive || body == null) return;
         knockVelocity = velocity;
+        knockTime = time;
         knockUntil = Time.time + time;
     }
 
     public const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
+
+    static float KnockbackOf(MoveDef move) => move.knockbackTime > 0f ? move.knockbackTime : KnockbackTime;
 
     static float StunOf(MoveDef move) => move.stun > 0f ? move.stun : SaveData.Settings.meleeStun;
 
@@ -633,7 +637,7 @@ public class Combatant : MonoBehaviour
             {
                 target.Stun(StunOf(move));
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
-                if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackTime, KnockbackTime);
+                if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
             }
@@ -811,7 +815,7 @@ public class Combatant : MonoBehaviour
 
         if (Time.time < knockUntil)
         {
-            body.linearVelocity = knockVelocity;
+            body.linearVelocity = knockVelocity * (2f * (knockUntil - Time.time) / knockTime);
             return;
         }
 
@@ -848,7 +852,7 @@ public class Combatant : MonoBehaviour
             // Both are thrown apart, slowly enough to be seen.
             const float BounceTime = KnockbackTime;
             foreach (var target in lungeHit)
-                if (target != null) target.Knockback(lungeDirection * lungeMove.knockback / BounceTime, BounceTime);
+                if (target != null) target.Knockback(lungeDirection * lungeMove.knockback / KnockbackOf(lungeMove), KnockbackOf(lungeMove));
             lungeBouncing = true;
             lungeFinishPending = false;
             lungeDirection = -lungeDirection;
@@ -903,6 +907,9 @@ public class Combatant : MonoBehaviour
             if (target.TakeHit(DamageOf(move), move, out float dealt))
             {
                 target.Stun(StunOf(move));
+                // A dash pushes what it hits (a bouncing dash pushes its target when it bounces).
+                if (move.knockback > 0f && move.bounceBack <= 0f)
+                    target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
             }
