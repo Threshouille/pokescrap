@@ -99,7 +99,7 @@ public class Combatant : MonoBehaviour
     float dodgeUntil, dodgeReadyAt;
     readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
-    struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; }
+    struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; public bool followAim; }
     readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
     int chainCount; // strikes landed in a row (chainBonus)
     float chainUntil;
@@ -583,7 +583,8 @@ public class Combatant : MonoBehaviour
         stunUntil = Mathf.Max(stunUntil, Time.time + duration);
     }
 
-    void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f)
+    /// followAim: each strike goes where the player aims when it lands rather than at the start (blow after a dash).
+    void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f, bool followAim = false)
     {
         int count = Mathf.Max(1, move.hits);
         for (int i = 0; i < count; i++)
@@ -592,7 +593,7 @@ public class Combatant : MonoBehaviour
             // With a side offset, a strike angled to the left starts on the right (and the other way round).
             Vector2 offset = new Vector2(-direction.y, direction.x) * (-Mathf.Sign(angle) * move.sideOffset);
             strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, offset = angle != 0f ? offset : Vector2.zero,
-                at = Time.time + delay + i * move.hitInterval });
+                at = Time.time + delay + i * move.hitInterval, followAim = followAim });
         }
     }
 
@@ -811,6 +812,7 @@ public class Combatant : MonoBehaviour
             if (Time.time < strike.at) continue;
             strikes.RemoveAt(i--);
             if (!CanAttack) continue;
+            if (strike.followAim && LiveAim != Vector2.zero) strike.direction = Steer(LiveAim.normalized);
             if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
             Strike(strike.move, strike.direction, -1f, strike.offset);
             if (strike.move.recovery > 0f && !strikes.Exists(x => x.move == strike.move))
@@ -845,7 +847,7 @@ public class Combatant : MonoBehaviour
                 // A blow a moment after the dash, the user standing still meanwhile.
                 lungeStrikePending = false;
                 recoverUntil = Time.time + lungeMove.strikeDelay;
-                QueueStrikes(lungeMove, lungeDirection, lungeMove.strikeDelay);
+                QueueStrikes(lungeMove, lungeDirection, lungeMove.strikeDelay, true);
             }
             return;
         }
