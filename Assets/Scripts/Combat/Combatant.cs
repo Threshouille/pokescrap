@@ -737,7 +737,7 @@ public class Combatant : MonoBehaviour
     void FireProjectiles(MoveDef move, Vector2 direction, float distance)
     {
         int shots = Mathf.Max(1, move.count);
-        if (move.path == "arc" && distance <= 0f) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
+        if ((move.path == "arc" || move.aimAssist > 0f) && distance <= 0f) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
         for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
             for (int i = 0; i < shots; i++)
             {
@@ -755,11 +755,13 @@ public class Combatant : MonoBehaviour
             }
     }
 
-    // Arc shots fired without a distance (the player) land on the nearest opponent within reach close to the aimed
-    // direction; shots landing further and further (rangeStep) are centred on it.
+    // Shots fired without a distance (the player) get help: arc shots land on the nearest opponent within reach close
+    // to the aimed direction (shots landing further and further, rangeStep, are centred on it); straight shots with
+    // aimAssist bend slightly toward one. Both lead their target: they aim where it will be when the shot arrives.
     void AutoAim(MoveDef move, int total, ref Vector2 direction, ref float distance)
     {
-        const float Cone = 40f; // degrees either side of the aim
+        bool arc = move.path == "arc";
+        float cone = arc ? 40f : move.aimAssist; // degrees either side of the aim
         float reach = move.range + (total - 1) * move.rangeStep, best = float.MaxValue;
         Combatant target = null;
         foreach (var c in all)
@@ -767,13 +769,22 @@ public class Combatant : MonoBehaviour
             if (c.team == team || !c.IsAlive) continue;
             Vector2 to = c.transform.position - transform.position;
             float d = to.magnitude;
-            if (d > reach || d >= best || Vector2.Angle(direction, to) > Cone) continue;
+            if (d > reach || d >= best || Vector2.Angle(direction, to) > cone) continue;
             best = d;
             target = c;
         }
         if (target == null) return;
-        direction = ((Vector2)(target.transform.position - transform.position)).normalized;
-        distance = Mathf.Max(0.5f, best - (total - 1) / 2f * move.rangeStep);
+
+        Vector2 from = transform.position, at = target.transform.position;
+        Vector2 velocity = target.body != null ? target.body.linearVelocity : Vector2.zero;
+        float speed = Mathf.Max(0.1f, move.speed * projectileSpeedMul);
+        Vector2 aimed = at;
+        for (int i = 0; i < 3; i++) // a few refinements of the flight time are enough
+            aimed = at + velocity * (Vector2.Distance(from, aimed) / speed);
+        Vector2 toAimed = aimed - from;
+        if (toAimed.sqrMagnitude < 0.0001f) return;
+        direction = toAimed.normalized;
+        if (arc) distance = Mathf.Clamp(toAimed.magnitude - (total - 1) / 2f * move.rangeStep, 0.5f, move.range);
     }
 
     void FixedUpdate()
