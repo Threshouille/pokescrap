@@ -96,6 +96,8 @@ public class MoveDef
     public bool lungeHarmless; // melee dash that hits nobody on the way
     public bool strikeAfterLunge; // melee dash followed by the move's strikes, strikeDelay seconds after it ends
     public float strikeDelay;
+    public string strikeEffect; // melee: sheet of the strikes when "effect" is a dash trail (Pisto-Poing)
+    public float sideOffset; // melee: strikes start this far to the side, on the side opposite to their hitAngle, so they cross
     public string anim; // animation played when the move is used (Shoot / Attack when omitted); PMD Attack sheets step forward
     public string dashAnim; // melee dash: animation during the dash (Walk when omitted)
     public string castAnim; // animation during the cast (e.g. Hop)

@@ -99,7 +99,7 @@ public class Combatant : MonoBehaviour
     float dodgeUntil, dodgeReadyAt;
     readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
-    struct PendingStrike { public MoveDef move; public Vector2 direction; public float at; }
+    struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; }
     readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
     int chainCount; // strikes landed in a row (chainBonus)
     float chainUntil;
@@ -589,7 +589,10 @@ public class Combatant : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             float angle = move.hitAngles != null && move.hitAngles.Length > 0 ? move.hitAngles[i % move.hitAngles.Length] : 0f;
-            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, at = Time.time + delay + i * move.hitInterval });
+            // With a side offset, a strike angled to the left starts on the right (and the other way round).
+            Vector2 offset = new Vector2(-direction.y, direction.x) * (-Mathf.Sign(angle) * move.sideOffset);
+            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, offset = angle != 0f ? offset : Vector2.zero,
+                at = Time.time + delay + i * move.hitInterval });
         }
     }
 
@@ -606,11 +609,11 @@ public class Combatant : MonoBehaviour
     }
 
     /// One strike of a melee move, shaped by move.shape; radius overrides the size (dash finish). Returns the opponents hit.
-    int Strike(MoveDef move, Vector2 direction, float radius = -1f)
+    int Strike(MoveDef move, Vector2 direction, float radius = -1f, Vector2 offset = default)
     {
         float mul = meleeAreaMul;
         string shape = radius > 0f ? "around" : move.shape;
-        Vector2 at = (Vector2)transform.position + (shape == "arc" || shape == "thrust" ? direction * move.strikeOffset : Vector2.zero);
+        Vector2 at = (Vector2)transform.position + offset + (shape == "arc" || shape == "thrust" ? direction * move.strikeOffset : Vector2.zero);
         float reach = radius > 0f ? radius : move.radiusMin > 0f ? UnityEngine.Random.Range(move.radiusMin, move.range) : move.range;
         Collider2D[] found = shape switch
         {
@@ -654,7 +657,7 @@ public class Combatant : MonoBehaviour
     // A dash finish uses finishEffect; a chained strike uses the brighter sheets <effect>_2, <effect>_3 when they exist.
     void ShowStrike(MoveDef move, string shape, Vector2 at, Vector2 direction, float reach, bool finish = false)
     {
-        string sheet = finish ? move.finishEffect : move.effect;
+        string sheet = finish ? move.finishEffect : !string.IsNullOrEmpty(move.strikeEffect) ? move.strikeEffect : move.lunge > 0f && !move.teleport ? null : move.effect;
         if (!finish && move.chainBonus > 0f && chainCount > 0)
         {
             string brighter = $"{move.effect}_{Mathf.Min(chainCount + 1, 3)}";
@@ -671,7 +674,8 @@ public class Combatant : MonoBehaviour
             // An area around the user is stretched to its size; the other strikes keep the sheet's own size.
             float size = shape == "around" ? reach * 2f
                 : move.effectScale > 0f ? EffectLibrary.Get(sheet).frame_width / (float)EffectLibrary.PixelsPerUnit * move.effectScale : 0f;
-            EffectPlayer.Spawn(sheet, centre, direction, null, 0f, size);
+            // A looping sheet would never end on its own.
+            EffectPlayer.Spawn(sheet, centre, direction, null, EffectLibrary.Get(sheet).loop ? 0.3f : 0f, size);
             return;
         }
         var colour = GameData.TypeColor(move.type);
@@ -808,7 +812,7 @@ public class Combatant : MonoBehaviour
             strikes.RemoveAt(i--);
             if (!CanAttack) continue;
             if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
-            Strike(strike.move, strike.direction);
+            Strike(strike.move, strike.direction, -1f, strike.offset);
             if (strike.move.recovery > 0f && !strikes.Exists(x => x.move == strike.move))
                 recoverUntil = Time.time + strike.move.recovery;
         }
