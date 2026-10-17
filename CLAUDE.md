@@ -51,6 +51,8 @@ Conception : `Docs/GDD.md` (décisions d'Owen + points ouverts) ; le lire avant 
 - Play dans l'éditeur démarre toujours sur la scène `Menu` (`Assets/Editor/PlayFromMenu.cs`).
 - Interface : `TeamHud` (ajouté à l'exécution par `PlayerController`), dessinée en IMGUI à l'échelle de l'écran. Réanimation des alliés K.O. gérée dans `PlayerController.UpdateRevives`.
 - Tests en jeu : la fenêtre Unity tourne lentement en arrière-plan ; toute logique de jeu doit passer par `FixedUpdate`, pas par `Update`.
+- Types : `TypeChart.Multiplier` lit `Assets/Resources/Data/type_chart.json` (`python3 -I Tools/pmd/extract_type_chart.py .`, CSV PokéAPI, table de la 4e génération, ids de types de la ROM) ; multiplicateurs, bornes et STAB dans `meta.json`, appliqués dans `Combatant.TakeHit(raw, move, …)` et `DamageOf`. `DamageNumber` affiche dégâts (couleur selon l'efficacité), dégâts de statut et soins (couleurs dans `meta.json`).
+- Conditions d'évolution : champ `evolution` de `pokemon_rt.json` (voir GDD).
 - Pas encore extraits : eau/lave des décors, objets, effets d'attaque du jeu d'origine, musiques.
 - La ROM et tout ce qui en est extrait restent locaux, hors de tout dépôt public.
 - Le jeu lit ses données depuis des fichiers (JSON / ScriptableObjects), jamais en dur dans le code.

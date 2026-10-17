@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 # String block starts in MESSAGE/text_*.str for the EU release.
-STR_MOVES, STR_POKEMON, STR_TYPES, STR_ABILITIES = 8175, 8736, 13772, 13791
+STR_MOVES, STR_POKEMON, STR_TYPES, STR_ABILITIES, STR_ITEMS = 8175, 8736, 13772, 13791, 6775
 N_TYPES, N_SPECIES = 19, 600
 MD_ENTRY, MOVE_ENTRY = 0x44, 26
 CATEGORIES = ["physical", "special", "status"]
@@ -118,6 +118,32 @@ def main(rom_dir, out_dir):
         for entry in pokemon:
             entry["base_speed"] = speeds.get(entry["dex"], 0)
 
+    # Evolution condition of a form, in the ROM's terms (method, param1, param2) turned into named fields.
+    move_ids = {m["name_en"]: m["id"] for m in moves}
+    known_move = {12: "AncientPower", 13: "Rollout", 14: "Double Hit", 15: "Mimic"}
+    extra = {1: "trade", 2: "atkAboveDef", 3: "atkBelowDef", 4: "atkEqualsDef", 5: "day", 6: "night",
+             7: "beauty", 8: "randomA", 9: "randomB", 10: "male", 11: "female"}
+
+    def evolution(e):
+        method, p1, p2 = e["evolution"]["method"], e["evolution"]["param1"], e["evolution"]["param2"]
+        if method == 0 or e["evolution"]["from"] == 0:
+            return None
+        ev = {"method": {1: "level", 2: "iq", 3: "item", 4: "party", 5: "trade"}.get(method, "unknown")}
+        if method == 1:
+            ev["level"] = p1
+        elif method == 2:
+            ev["iq"] = p1
+        elif method == 3:
+            ev["item"] = p1
+            ev["itemName"] = fr[STR_ITEMS + p1]
+        elif method == 4:
+            ev["party"] = p1
+        if p2 in known_move:
+            ev["condition"], ev["move"] = "move", move_ids.get(known_move[p2], 0)
+        elif p2 in extra and not (method == 5 and p2 == 1):
+            ev["condition"] = extra[p2]
+        return ev
+
     runtime = [{
         "id": e["id"], "name": e["name"], "types": e["types"], "baseHp": e["base_hp"],
         "baseAtk": e["base_atk"], "baseSpAtk": e["base_sp_atk"], "baseDef": e["base_def"],
@@ -125,6 +151,7 @@ def main(rom_dir, out_dir):
         "baseForm": e["base_form"], "evolvesFrom": e["evolution"]["from"],
         "evolveLevel": e["evolution"]["param1"] if e["evolution"]["method"] == 1 and e["evolution"]["param2"] == 0 else 0,
         "recruitRate": e["recruit_rate"],
+        **({"evolution": ev} if (ev := evolution(e)) else {}),
         "levelUpMoves": list(dict.fromkeys(m["move"] for m in e.get("learnset", {}).get("level_up", []))),
     } for e in pokemon]
     rt_dir = out.parent / "Resources" / "Data"

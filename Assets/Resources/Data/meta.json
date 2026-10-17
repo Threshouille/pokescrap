@@ -15,5 +15,18 @@
   "dodgeCooldown": 3,
   "enemyDodgeCooldown": 5,
   "enemyGroupSize": 3,
-  "groupRetargetTime": 2
+  "groupRetargetTime": 2,
+  "superEffective": 1.5,
+  "notVeryEffective": 0.6,
+  "noEffect": 0.25,
+  "typeFactorMin": 0.2,
+  "typeFactorMax": 2,
+  "stab": 1.25,
+  "normalDamageColor": "#ffffff",
+  "superEffectiveColor": "#ffb020",
+  "notVeryEffectiveColor": "#8ca4c8",
+  "noEffectColor": "#5a5a66",
+  "healColor": "#60e070",
+  "bigNumberScale": 1.5,
+  "smallNumberScale": 0.75
 }

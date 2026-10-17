@@ -299,7 +299,7 @@ public class Projectile : MonoBehaviour
 
     void Strike(Combatant target)
     {
-        if (!target.TakeHit(damage, move.category, out float dealt)) return;
+        if (!target.TakeHit(damage, move, out float dealt)) return;
         target.ApplyEffects(move, false, owner);
         if (owner != null) owner.HitLanded(move, dealt);
     }

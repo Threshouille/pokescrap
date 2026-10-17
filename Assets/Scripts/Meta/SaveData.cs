@@ -46,6 +46,14 @@ public static class SaveData
         public float enemyDodgeCooldown = 5f;
         public int enemyGroupSize = 3; // enemies of a wave are split into groups that share a target, each with a support
         public float groupRetargetTime = 2f;
+        // Type matchups: multipliers replacing the chart's ×2 / ×0.5 / ×0, clamped once the defender's types are combined.
+        public float superEffective = 1.5f, notVeryEffective = 0.6f, noEffect = 0.25f;
+        public float typeFactorMin = 0.2f, typeFactorMax = 2f;
+        public float stab = 1.25f; // move of one of the user's types
+        // Damage numbers.
+        public string normalDamageColor = "#ffffff", superEffectiveColor = "#ffb020", notVeryEffectiveColor = "#8ca4c8";
+        public string noEffectColor = "#5a5a66", healColor = "#60e070";
+        public float bigNumberScale = 1.5f, smallNumberScale = 0.75f;
     }
 
     static File data;

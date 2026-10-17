@@ -1,0 +1,554 @@
+{
+ "matchups": [
+  {
+   "attack": 1,
+   "defend": 13,
+   "factor": 0.5
+  },
+  {
+   "attack": 1,
+   "defend": 14,
+   "factor": 0.0
+  },
+  {
+   "attack": 1,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 7,
+   "defend": 1,
+   "factor": 2.0
+  },
+  {
+   "attack": 7,
+   "defend": 10,
+   "factor": 0.5
+  },
+  {
+   "attack": 7,
+   "defend": 8,
+   "factor": 0.5
+  },
+  {
+   "attack": 7,
+   "defend": 13,
+   "factor": 2.0
+  },
+  {
+   "attack": 7,
+   "defend": 12,
+   "factor": 0.5
+  },
+  {
+   "attack": 7,
+   "defend": 14,
+   "factor": 0.0
+  },
+  {
+   "attack": 7,
+   "defend": 17,
+   "factor": 2.0
+  },
+  {
+   "attack": 7,
+   "defend": 11,
+   "factor": 0.5
+  },
+  {
+   "attack": 7,
+   "defend": 6,
+   "factor": 2.0
+  },
+  {
+   "attack": 7,
+   "defend": 16,
+   "factor": 2.0
+  },
+  {
+   "attack": 10,
+   "defend": 7,
+   "factor": 2.0
+  },
+  {
+   "attack": 10,
+   "defend": 13,
+   "factor": 0.5
+  },
+  {
+   "attack": 10,
+   "defend": 12,
+   "factor": 2.0
+  },
+  {
+   "attack": 10,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 10,
+   "defend": 4,
+   "factor": 2.0
+  },
+  {
+   "attack": 10,
+   "defend": 5,
+   "factor": 0.5
+  },
+  {
+   "attack": 8,
+   "defend": 8,
+   "factor": 0.5
+  },
+  {
+   "attack": 8,
+   "defend": 9,
+   "factor": 0.5
+  },
+  {
+   "attack": 8,
+   "defend": 13,
+   "factor": 0.5
+  },
+  {
+   "attack": 8,
+   "defend": 14,
+   "factor": 0.5
+  },
+  {
+   "attack": 8,
+   "defend": 17,
+   "factor": 0.0
+  },
+  {
+   "attack": 8,
+   "defend": 4,
+   "factor": 2.0
+  },
+  {
+   "attack": 9,
+   "defend": 10,
+   "factor": 0.0
+  },
+  {
+   "attack": 9,
+   "defend": 8,
+   "factor": 2.0
+  },
+  {
+   "attack": 9,
+   "defend": 13,
+   "factor": 2.0
+  },
+  {
+   "attack": 9,
+   "defend": 12,
+   "factor": 0.5
+  },
+  {
+   "attack": 9,
+   "defend": 17,
+   "factor": 2.0
+  },
+  {
+   "attack": 9,
+   "defend": 2,
+   "factor": 2.0
+  },
+  {
+   "attack": 9,
+   "defend": 4,
+   "factor": 0.5
+  },
+  {
+   "attack": 9,
+   "defend": 5,
+   "factor": 2.0
+  },
+  {
+   "attack": 13,
+   "defend": 7,
+   "factor": 0.5
+  },
+  {
+   "attack": 13,
+   "defend": 10,
+   "factor": 2.0
+  },
+  {
+   "attack": 13,
+   "defend": 9,
+   "factor": 0.5
+  },
+  {
+   "attack": 13,
+   "defend": 12,
+   "factor": 2.0
+  },
+  {
+   "attack": 13,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 13,
+   "defend": 2,
+   "factor": 2.0
+  },
+  {
+   "attack": 13,
+   "defend": 6,
+   "factor": 2.0
+  },
+  {
+   "attack": 12,
+   "defend": 7,
+   "factor": 0.5
+  },
+  {
+   "attack": 12,
+   "defend": 10,
+   "factor": 0.5
+  },
+  {
+   "attack": 12,
+   "defend": 8,
+   "factor": 0.5
+  },
+  {
+   "attack": 12,
+   "defend": 14,
+   "factor": 0.5
+  },
+  {
+   "attack": 12,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 12,
+   "defend": 2,
+   "factor": 0.5
+  },
+  {
+   "attack": 12,
+   "defend": 4,
+   "factor": 2.0
+  },
+  {
+   "attack": 12,
+   "defend": 11,
+   "factor": 2.0
+  },
+  {
+   "attack": 12,
+   "defend": 16,
+   "factor": 2.0
+  },
+  {
+   "attack": 14,
+   "defend": 1,
+   "factor": 0.0
+  },
+  {
+   "attack": 14,
+   "defend": 14,
+   "factor": 2.0
+  },
+  {
+   "attack": 14,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 14,
+   "defend": 11,
+   "factor": 2.0
+  },
+  {
+   "attack": 14,
+   "defend": 16,
+   "factor": 0.5
+  },
+  {
+   "attack": 17,
+   "defend": 13,
+   "factor": 2.0
+  },
+  {
+   "attack": 17,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 17,
+   "defend": 2,
+   "factor": 0.5
+  },
+  {
+   "attack": 17,
+   "defend": 3,
+   "factor": 0.5
+  },
+  {
+   "attack": 17,
+   "defend": 5,
+   "factor": 0.5
+  },
+  {
+   "attack": 17,
+   "defend": 6,
+   "factor": 2.0
+  },
+  {
+   "attack": 2,
+   "defend": 13,
+   "factor": 0.5
+  },
+  {
+   "attack": 2,
+   "defend": 12,
+   "factor": 2.0
+  },
+  {
+   "attack": 2,
+   "defend": 17,
+   "factor": 2.0
+  },
+  {
+   "attack": 2,
+   "defend": 2,
+   "factor": 0.5
+  },
+  {
+   "attack": 2,
+   "defend": 3,
+   "factor": 0.5
+  },
+  {
+   "attack": 2,
+   "defend": 4,
+   "factor": 2.0
+  },
+  {
+   "attack": 2,
+   "defend": 6,
+   "factor": 2.0
+  },
+  {
+   "attack": 2,
+   "defend": 15,
+   "factor": 0.5
+  },
+  {
+   "attack": 3,
+   "defend": 9,
+   "factor": 2.0
+  },
+  {
+   "attack": 3,
+   "defend": 13,
+   "factor": 2.0
+  },
+  {
+   "attack": 3,
+   "defend": 2,
+   "factor": 2.0
+  },
+  {
+   "attack": 3,
+   "defend": 3,
+   "factor": 0.5
+  },
+  {
+   "attack": 3,
+   "defend": 4,
+   "factor": 0.5
+  },
+  {
+   "attack": 3,
+   "defend": 15,
+   "factor": 0.5
+  },
+  {
+   "attack": 4,
+   "defend": 10,
+   "factor": 0.5
+  },
+  {
+   "attack": 4,
+   "defend": 8,
+   "factor": 0.5
+  },
+  {
+   "attack": 4,
+   "defend": 9,
+   "factor": 2.0
+  },
+  {
+   "attack": 4,
+   "defend": 13,
+   "factor": 2.0
+  },
+  {
+   "attack": 4,
+   "defend": 12,
+   "factor": 0.5
+  },
+  {
+   "attack": 4,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 4,
+   "defend": 2,
+   "factor": 0.5
+  },
+  {
+   "attack": 4,
+   "defend": 3,
+   "factor": 2.0
+  },
+  {
+   "attack": 4,
+   "defend": 4,
+   "factor": 0.5
+  },
+  {
+   "attack": 4,
+   "defend": 15,
+   "factor": 0.5
+  },
+  {
+   "attack": 5,
+   "defend": 10,
+   "factor": 2.0
+  },
+  {
+   "attack": 5,
+   "defend": 9,
+   "factor": 0.0
+  },
+  {
+   "attack": 5,
+   "defend": 3,
+   "factor": 2.0
+  },
+  {
+   "attack": 5,
+   "defend": 4,
+   "factor": 0.5
+  },
+  {
+   "attack": 5,
+   "defend": 5,
+   "factor": 0.5
+  },
+  {
+   "attack": 5,
+   "defend": 15,
+   "factor": 0.5
+  },
+  {
+   "attack": 11,
+   "defend": 7,
+   "factor": 2.0
+  },
+  {
+   "attack": 11,
+   "defend": 8,
+   "factor": 2.0
+  },
+  {
+   "attack": 11,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 11,
+   "defend": 11,
+   "factor": 0.5
+  },
+  {
+   "attack": 11,
+   "defend": 16,
+   "factor": 0.0
+  },
+  {
+   "attack": 6,
+   "defend": 10,
+   "factor": 2.0
+  },
+  {
+   "attack": 6,
+   "defend": 9,
+   "factor": 2.0
+  },
+  {
+   "attack": 6,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 6,
+   "defend": 2,
+   "factor": 0.5
+  },
+  {
+   "attack": 6,
+   "defend": 3,
+   "factor": 0.5
+  },
+  {
+   "attack": 6,
+   "defend": 4,
+   "factor": 2.0
+  },
+  {
+   "attack": 6,
+   "defend": 6,
+   "factor": 0.5
+  },
+  {
+   "attack": 6,
+   "defend": 15,
+   "factor": 2.0
+  },
+  {
+   "attack": 15,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 15,
+   "defend": 15,
+   "factor": 2.0
+  },
+  {
+   "attack": 16,
+   "defend": 7,
+   "factor": 0.5
+  },
+  {
+   "attack": 16,
+   "defend": 14,
+   "factor": 2.0
+  },
+  {
+   "attack": 16,
+   "defend": 17,
+   "factor": 0.5
+  },
+  {
+   "attack": 16,
+   "defend": 11,
+   "factor": 2.0
+  },
+  {
+   "attack": 16,
+   "defend": 16,
+   "factor": 0.5
+  }
+ ]
+}

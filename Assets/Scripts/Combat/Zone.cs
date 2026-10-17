@@ -89,7 +89,7 @@ public class Zone : MonoBehaviour
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team) continue;
             target.ApplyEffects(move, true, owner);
-            if (tick) target.TakeHit(damage, move.category, out _);
+            if (tick) target.TakeHit(damage, move, out _);
         }
     }
 }

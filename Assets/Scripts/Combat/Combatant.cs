@@ -417,7 +417,12 @@ public class Combatant : MonoBehaviour
             MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
         if (!string.IsNullOrEmpty(move.selfModStat) && (move.selfStatChance <= 0f || UnityEngine.Random.value <= move.selfStatChance))
             AddModifier(move.selfModStat, move.selfModValue, move.selfModDuration > 0f ? move.selfModDuration : DefaultStatusDuration);
-        if (dealt > 0f && move.recoil > 0f && IsAlive) LoseHp(Mathf.Max(1f, dealt * move.recoil));
+        if (dealt > 0f && move.recoil > 0f && IsAlive)
+        {
+            float recoil = Mathf.Max(1f, dealt * move.recoil);
+            DamageNumber.Damage(transform.position, recoil, Efficacy.Normal);
+            LoseHp(recoil);
+        }
     }
 
     // ---- Moves ----
@@ -462,7 +467,7 @@ public class Combatant : MonoBehaviour
             readyAt[slot] = Time.time + CooldownOf(move);
             foreach (var c in all.ToArray()) // a hit can remove a Pokémon from the list
                 if (c.team != team && c.IsAlive && Vector2.Distance(c.transform.position, transform.position) <= move.radius
-                    && c.TakeHit(DamageOf(move), move.category, out float dealt))
+                    && c.TakeHit(DamageOf(move), move, out float dealt))
                 {
                     c.ApplyEffects(move, false, this);
                     HitLanded(move, dealt);
@@ -604,7 +609,7 @@ public class Combatant : MonoBehaviour
             Vector2 to = (Vector2)target.transform.position - at;
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
-            if (target.TakeHit(DamageOf(move) * factor, move.category, out float dealt))
+            if (target.TakeHit(DamageOf(move) * factor, move, out float dealt))
             {
                 target.Stun(StunOf(move));
                 if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackTime, KnockbackTime);
@@ -848,6 +853,7 @@ public class Combatant : MonoBehaviour
             st.nextTick += st.def.tick;
             // Damage over time ignores defence and the post-hit protection.
             float amount = Mathf.Max(1f, maxHp * st.def.damageShare * (isBoss ? st.def.bossDamageFactor : 1f));
+            DamageNumber.Status(transform.position, amount, st.def.color);
             LoseHp(amount);
             if (st.def.drainToSource && st.source != null && st.source.IsAlive) st.source.Heal(amount);
             if (!IsAlive) return false;
@@ -872,7 +878,7 @@ public class Combatant : MonoBehaviour
             if (target == null || target.team == team || !hit.Add(target)) continue;
             count++;
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
-            if (target.TakeHit(DamageOf(move), move.category, out float dealt))
+            if (target.TakeHit(DamageOf(move), move, out float dealt))
             {
                 target.Stun(StunOf(move));
                 target.ApplyEffects(move, false, this);
@@ -889,21 +895,24 @@ public class Combatant : MonoBehaviour
         float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
         float burn = move.category == "physical" ? StatusProduct(def => def.physicalAttackMul) : 1f;
         float scale = (move.damageScale > 0f ? move.damageScale : 1f) * EnemyBasic(move, SaveData.Settings.enemyBasicDamageMul);
-        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale;
+        float stab = Stats?.types != null && System.Array.IndexOf(Stats.types, move.type) >= 0 ? SaveData.Settings.stab : 1f;
+        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab;
     }
 
-    /// A hit from a move: the target's defence (physical or special) reduces it. Returns false when the hit was
-    /// ignored (already down, or protected just after a previous hit); "dealt" is the health actually lost.
-    public bool TakeHit(float raw, string category, out float dealt)
+    /// A hit from a move: the target's types and defence (physical or special) change it. Returns false when the hit
+    /// was ignored (already down, or protected just after a previous hit); "dealt" is the health actually lost.
+    public bool TakeHit(float raw, MoveDef move, out float dealt)
     {
         dealt = 0f;
         if (!IsAlive || blinkMove != null) return false;
         if (team == Team.Player && Time.time < invulnerableUntil) return false;
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
-        float defence = category == "physical" ? def : spDef;
-        dealt = Mathf.Max(1f, raw * DefenseScale / (DefenseScale + defence) / Modifier("defense"));
+        float defence = move.category == "physical" ? def : spDef;
+        float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
+        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense"));
         statuses.RemoveAll(st => st.def.wakeOnHit);
+        DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
         return true;
     }
@@ -924,6 +933,8 @@ public class Combatant : MonoBehaviour
     public void Heal(float amount)
     {
         if (!IsAlive || amount <= 0f) return;
+        float healed = Mathf.Min(maxHp, hp + amount) - hp;
+        if (healed >= 0.5f) DamageNumber.Heal(transform.position, healed);
         hp = Mathf.Min(maxHp, hp + amount);
         healFlashUntil = Time.time + 2f * HitFlashTime;
     }

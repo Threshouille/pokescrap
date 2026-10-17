@@ -43,7 +43,19 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Les statistiques suivent les données réelles : un joueur qui connaît Pokémon doit reconnaître qui est résistant, qui frappe fort, au corps à corps ou à distance.
 - Expérience commune à l'équipe.
 - Tous les 5 ou 10 niveaux : 1 choix parmi 3 améliorations aléatoires par Pokémon (statistique, modification d'une famille d'attaques comme +50 % de taille de projectile, nouvelle attaque). Les 3 Pokémon montant de niveau ensemble, une seule coupure sert à faire les 3 choix.
-- Les Pokémon évoluent au niveau réel du jeu d'origine. On débloque toujours la première forme d'une lignée, qui évolue pendant la partie. Les évolutions sans niveau (pierre, échange, bonheur) restent à définir.
+- Les Pokémon évoluent pendant la partie. On débloque toujours la première forme d'une lignée.
+- Évolution (plan validé par Owen le 17/10/2026, à faire) :
+  - Manuelle : quand les conditions sont réunies (y compris par niveau), le joueur appuie sur Triangle. Animation : silhouettes blanches de l'ancienne et de la nouvelle forme qui alternent (environ 2,5 s, Pokémon immobile et invincible), puis onde de choc de 5 cases (recul de 2 cases, dégâts 15 + niveau).
+  - Jour et nuit alternent à chaque étape (évolutions de jour ou de nuit).
+  - QI : +1 par seconde quand le Pokémon est contrôlé par le joueur (remplace le bonheur).
+  - Genre et hasard (Chenipotte) tirés en début de partie.
+  - Beauté (Barpau) : +1 par seconde sans être touché, −10 par coup reçu, évolution à 100.
+  - Pierres et objets : une carte remplace l'une des 3 propositions d'amélioration, 1 fois sur 2, seulement si le Pokémon peut s'en servir ; la carte choisit la branche d'évolution.
+  - Échange avec objet : la carte de l'objet, puis une carte « Échange » ; échange seul : une carte « Échange ».
+  - Babimanta : avec Rémoraid dans l'équipe.
+  - Équipe de 1 à 3 Pokémon ; Munja rejoint l'équipe si une place est libre quand Ningale évolue.
+  - Menu : Rond retire le dernier Pokémon choisi.
+- Données : champ `evolution` de `pokemon_rt.json` (méthode `level`, `iq`, `item`, `party`, `trade`, et `condition` éventuelle : `move`, `day`, `night`, `beauty`, `male`, `female`, `randomA`/`randomB`, `atkAboveDef`…), produit par `extract_data.py`.
 - Vitesse : reprise des jeux principaux (absente de la ROM), elle détermine la vitesse de déplacement.
 
 ### Structure d'une partie
@@ -53,7 +65,9 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Boutiques possibles entre les niveaux, avec un système d'objets (à préciser).
 
 ### Types et environnement
-- La table des types est conservée (avantages et faiblesses).
+- La table des types est conservée (avantages et faiblesses), celle de la 4e génération (époque de la ROM).
+- Multiplicateurs adoucis (17/10/2026, `meta.json`) : super efficace × 1,5, pas très efficace × 0,6, sans effet × 0,25 (pas d'immunité totale) ; une faiblesse et une résistance s'annulent ; résultat borné entre × 0,2 et × 2. Bonus d'attaque du même type (STAB) × 1,25.
+- Chiffres de dégâts (17/10/2026) : au-dessus du Pokémon touché, en pixel art. Blanc normal, orange et plus gros si super efficace, gris-bleu et plus petit si pas très efficace, gris foncé sans effet, couleur du statut pour les dégâts de statut, vert précédé de « + » pour les soins.
 - L'environnement réagit au type ou à la nature du Pokémon : les Pokémon volants survolent les trous, les Pokémon aquatiques vont dans l'eau.
 
 ### Boss
@@ -137,10 +151,10 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 6. Formule de dégâts.
 7. IA alliée : niveau d'autonomie, ordres possibles ?
 8. Équilibrage solo / 2 joueurs / 3 joueurs.
-9. Lisibilité du type d'un ennemi à l'écran.
+9. Lisibilité du type d'un ennemi à l'écran (en partie réglée par la couleur des chiffres de dégâts).
 
 ### Progression
-10. Évolutions sans niveau (pierre, échange, bonheur) : pas encore décidé (Owen, 15/10/2026). Touche aussi les bébés : la ROM range Pikachu sous Pichu, qui évolue par bonheur.
+10. Évolutions sans niveau : décidé le 17/10/2026 (voir Progression en partie).
 11. Talents : un par Pokémon, passif permanent ou à déclencher ?
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?
