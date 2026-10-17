@@ -9,7 +9,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 ## 2. Décidé
 
 ### Équipe et contrôle
-- 3 Pokémon choisis avant la partie, tous présents en même temps dans l'arène.
+- 1 à 3 Pokémon choisis avant la partie (3 au départ, 1 à 3 depuis le 17/10/2026), tous présents en même temps dans l'arène.
 - Les Pokémon non joués sont contrôlés par l'IA ou par d'autres joueurs (coopération).
 - En solo, le joueur change à la volée le Pokémon qu'il contrôle.
 - Un Pokémon K.O. : le joueur bascule sur un Pokémon encore en vie. La partie se termine quand les 3 sont K.O.
@@ -44,7 +44,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Expérience commune à l'équipe.
 - Tous les 5 ou 10 niveaux : 1 choix parmi 3 améliorations aléatoires par Pokémon (statistique, modification d'une famille d'attaques comme +50 % de taille de projectile, nouvelle attaque). Les 3 Pokémon montant de niveau ensemble, une seule coupure sert à faire les 3 choix.
 - Les Pokémon évoluent pendant la partie. On débloque toujours la première forme d'une lignée.
-- Évolution (plan validé par Owen le 17/10/2026, à faire) :
+- Évolution (plan validé par Owen le 17/10/2026, fait le même jour ; à tester à la manette) :
   - Manuelle : quand les conditions sont réunies (y compris par niveau), le joueur appuie sur Triangle. Animation : silhouettes blanches de l'ancienne et de la nouvelle forme qui alternent (environ 2,5 s, Pokémon immobile et invincible), puis onde de choc de 5 cases (recul de 2 cases, dégâts 15 + niveau).
   - Jour et nuit alternent à chaque étape (évolutions de jour ou de nuit).
   - QI : +1 par seconde quand le Pokémon est contrôlé par le joueur (remplace le bonheur).
@@ -55,6 +55,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Babimanta : avec Rémoraid dans l'équipe.
   - Équipe de 1 à 3 Pokémon ; Munja rejoint l'équipe si une place est libre quand Ningale évolue.
   - Menu : Rond retire le dernier Pokémon choisi.
+  - Mise en œuvre : la nuit assombrit l'arène et s'affiche dans l'indicateur d'étape ; le HUD affiche « Triangle : évoluer » et un bandeau prévient quand une évolution devient possible ; Debugant compare Attaque et Défense actuelles (égales à 10 % près) ; les formes alternatives d'une même espèce (Cheniselle) comptent une fois. Le genre est tiré à 50/50 (taux réels absents des données).
 - Données : champ `evolution` de `pokemon_rt.json` (méthode `level`, `iq`, `item`, `party`, `trade`, et `condition` éventuelle : `move`, `day`, `night`, `beauty`, `male`, `female`, `randomA`/`randomB`, `atkAboveDef`…), produit par `extract_data.py`.
 - Vitesse : reprise des jeux principaux (absente de la ROM), elle détermine la vitesse de déplacement.
 

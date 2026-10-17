@@ -54,6 +54,16 @@ public static class SaveData
         public string normalDamageColor = "#ffffff", superEffectiveColor = "#ffb020", notVeryEffectiveColor = "#8ca4c8";
         public string noEffectColor = "#5a5a66", healColor = "#60e070";
         public float bigNumberScale = 1.5f, smallNumberScale = 0.75f;
+        // Evolution (Evolution.cs).
+        public float evolveTime = 2.5f; // silhouettes alternate, the Pokémon stands still and cannot be hurt
+        public float shockwaveRadius = 5f, shockwaveKnockback = 2f; // tiles
+        public float shockwaveDamage = 15f, shockwaveDamagePerLevel = 1f;
+        public float iqPerSecond = 1f; // while controlled by the player
+        public float beautyPerSecond = 1f, beautyPerHit = 10f, beautyThreshold = 100f;
+        public float evolutionCardChance = 0.5f; // an item or trade card replaces an upgrade, when the Pokémon can use one
+        public float statTieMargin = 0.1f; // Attack and Defence within this share count as equal (Debugant)
+        public string nightColor = "#0a1440";
+        public float nightAlpha = 0.3f;
     }
 
     static File data;

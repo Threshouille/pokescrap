@@ -19,6 +19,7 @@ public class Progression : MonoBehaviour
     {
         public UpgradeDef upgrade;
         public MoveDef move;
+        public Evolution.Card card; // evolution item or trade
     }
 
     [Tooltip("An upgrade is offered to each Pokémon every this many levels")]
@@ -47,10 +48,17 @@ public class Progression : MonoBehaviour
     bool stickNeutral = true;
     GUIStyle title, cardTitle, cardText;
 
+    Evolution evolution;
+
     void Awake()
     {
         team = GetComponent<PlayerController>();
     }
+
+    void Start() => evolution = GetComponent<Evolution>(); // added after this component
+
+    /// A message at the top of the screen for a moment.
+    public void Announce(string text) => banners.Add((text, Time.unscaledTime + BannerTime));
 
     void OnEnable() => Combatant.AnyDied += OnDied;
 
@@ -84,22 +92,10 @@ public class Progression : MonoBehaviour
         {
             if (member.Stats == null) continue;
             member.ApplyGrowth(LevelData.Growth(member.Stats.id, Level), Level);
-            int evolution = GameData.LevelEvolution(member.Stats.id, Level);
-            if (evolution > 0) Evolve(member, evolution);
         }
         if (choiceInterval > 0 && Level % choiceInterval == 0)
             foreach (var member in team.Members) pending.Enqueue(member);
         if (pending.Count > 0 && options == null) NextChoice();
-    }
-
-    void Evolve(Combatant member, int into)
-    {
-        string before = member.Stats.name;
-        member.Evolve(into);
-        if (member.GetComponent<PmdAnimator>() is { } animator) animator.SetAnimSet(PokemonRoster.Get(into));
-        member.gameObject.name = member.Stats.name;
-        Shapes.Pulse(member.transform.position, 1f, Color.white);
-        banners.Add(($"{before} évolue en {member.Stats.name} !", Time.unscaledTime + BannerTime));
     }
 
     void NextChoice()
@@ -115,6 +111,13 @@ public class Progression : MonoBehaviour
             {
                 if (offers.Count >= Options) offers.RemoveAt(rng.Next(offers.Count));
                 offers.Insert(rng.Next(offers.Count + 1), new Offer { move = move });
+            }
+            if (evolution != null && evolution.CardFor(who, rng) is { } card)
+            {
+                // The card takes the place of an upgrade (never of the new move).
+                var upgrades = offers.FindAll(o => o.upgrade != null);
+                if (offers.Count >= Options && upgrades.Count > 0) offers.Remove(upgrades[rng.Next(upgrades.Count)]);
+                offers.Insert(rng.Next(offers.Count + 1), new Offer { card = card });
             }
             options = offers.ToArray();
             if (options.Length > 0)
@@ -150,7 +153,8 @@ public class Progression : MonoBehaviour
         if (options == null || index < 0 || index >= options.Length) return;
         var who = pending.Peek();
         var offer = options[index];
-        if (offer.move == null) who.ApplyUpgrade(offer.upgrade);
+        if (offer.card != null) evolution.Take(who, offer.card);
+        else if (offer.move == null) who.ApplyUpgrade(offer.upgrade);
         else
         {
             int free = System.Array.IndexOf(who.Moves, null);
@@ -230,7 +234,7 @@ public class Progression : MonoBehaviour
         banners.RemoveAll(b => Time.unscaledTime >= b.until);
         for (int i = 0; i < banners.Count; i++)
         {
-            var rect = new Rect(Screen.width / 2f - 110f * s, (52f + i * 16f) * s, 220f * s, 14f * s);
+            var rect = new Rect(Screen.width / 2f - 160f * s, (52f + i * 16f) * s, 320f * s, 14f * s);
             Fill(rect, new Color(0.08f, 0.08f, 0.12f, 0.85f));
             GUI.Label(rect, banners[i].text, cardTitle);
         }
@@ -265,6 +269,7 @@ public class Progression : MonoBehaviour
                 description = (replacing ? "" : "Nouvelle attaque\n") + MoveText.Summary(move) + "\n" + MoveText.Effects(move);
                 Fill(new Rect(card.x + 4f * s, card.y + 4f * s, card.width - 8f * s, 2f * s), GameData.TypeColor(move.type));
             }
+            else if (options[i].card != null) (name, description) = (options[i].card.name, options[i].card.description);
             else (name, description) = (options[i].upgrade.name, options[i].upgrade.description);
             GUI.Label(new Rect(card.x, card.y + 8f * s, card.width, 14f * s), name, cardTitle);
             GUI.Label(new Rect(card.x + 6f * s, card.y + 26f * s, card.width - 12f * s, card.height - 30f * s), description, cardText);

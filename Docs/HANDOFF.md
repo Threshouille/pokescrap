@@ -1,6 +1,6 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 17/10/2026 (attaques de base à distance et au corps à corps faites et réglées avec Owen ; **suite : reprendre les autres attaques au cas par cas**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
+Dernière mise à jour : 17/10/2026 (types, chiffres de dégâts, évolution manuelle faits ; **suite : reprendre les autres attaques au cas par cas**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
 
 ## Méthode de travail avec Owen
 
@@ -46,7 +46,7 @@ Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps 
 ## En attente
 
 - **Icônes de bonus/malus** (`status_attack_up`… six fichiers) : prompt donné plus tôt, archive pas encore reçue ; flèches colorées provisoires.
-- **Évolutions sans niveau** (pierre, échange, bonheur, bébés comme Pichu) : pas décidé par Owen. En attendant, on remonte la lignée jusqu'à la première forme jouable (Raichu → Pichu). Le menu ne propose que ces premières formes.
+- **Évolution manuelle** (17/10/2026) : faite et testée par code (niveau, carte Pierre Givre d'Évoli, Ningale → Ninjask + Munja, onde de choc, nuit à l'étape 2). Pas testés : Triangle à la manette, échange, Babimanta, Barpau, Debugant, menu avec Rond et équipe de 1 ou 2. Le voile de nuit est discret (alpha 0,3) ; le gris « sans effet » des chiffres de dégâts se lit mal.
 - Archives qui ne servent plus (Owen peut les supprimer) : `Jeu d'action 2D pixel art*.zip`, `Groudon.zip`, `Statuts.zip` à la racine ; `Design/Attaquesbasedistance.zip`, `Design/CaC.zip`. Garder l'archive de la ROM.
 
 ## Problèmes connus et points à surveiller

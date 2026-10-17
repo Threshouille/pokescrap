@@ -28,5 +28,18 @@
   "noEffectColor": "#5a5a66",
   "healColor": "#60e070",
   "bigNumberScale": 1.5,
-  "smallNumberScale": 0.75
+  "smallNumberScale": 0.75,
+  "evolveTime": 2.5,
+  "shockwaveRadius": 5,
+  "shockwaveKnockback": 2,
+  "shockwaveDamage": 15,
+  "shockwaveDamagePerLevel": 1,
+  "iqPerSecond": 1,
+  "beautyPerSecond": 1,
+  "beautyPerHit": 10,
+  "beautyThreshold": 100,
+  "evolutionCardChance": 0.5,
+  "statTieMargin": 0.1,
+  "nightColor": "#0a1440",
+  "nightAlpha": 0.3
 }

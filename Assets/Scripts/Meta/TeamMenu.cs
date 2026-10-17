@@ -79,7 +79,8 @@ public class TeamMenu : MonoBehaviour
         }
 
         if (cross) Toggle(choices[cursor]);
-        if (team.Count == teamSize
+        if (circle && team.Count > 0) team.RemoveAt(team.Count - 1);
+        if (team.Count > 0
             && ((pad != null && pad.startButton.wasPressedThisFrame) || (kb != null && kb.enterKey.wasPressedThisFrame)))
             Run.Start(team.ToArray());
     }
@@ -208,8 +209,8 @@ public class TeamMenu : MonoBehaviour
         }
         string help = editingMoves
             ? $"Haut / bas : parcourir     Croix ou Espace : choisir ({picked.Count}/{MoveCount})     Rond, Triangle ou Échap : valider"
-            : "Croix directionnelle : déplacer     Croix ou Espace : ajouter / retirer     Triangle ou E : attaques     "
-              + (team.Count == teamSize ? "Options ou Entrée : lancer la partie" : $"(choisir {teamSize} Pokémon)");
+            : "Croix directionnelle : déplacer     Croix ou Espace : ajouter / retirer     Rond ou Échap : retirer le dernier     Triangle ou E : attaques     "
+              + (team.Count > 0 ? "Options ou Entrée : lancer la partie" : $"(choisir 1 à {teamSize} Pokémon)");
         Label(new Rect(0, by + 38f * s, Screen.width, 12f * s), help, TextAnchor.MiddleCenter);
         Label(new Rect(0, by + 52f * s, Screen.width, 12f * s),
             $"Débloqués : {unlocked}/{choices.Count}     Parties : {SaveData.Runs}     Victoires : {SaveData.Wins}", TextAnchor.MiddleCenter);

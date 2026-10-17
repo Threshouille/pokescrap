@@ -43,15 +43,19 @@ public class Combatant : MonoBehaviour
     /// melee, ranged or support: drives the AI.
     public string Role { get; private set; } = "melee";
     public event Action<Combatant> Died;
+    /// Raised when a move's hit takes health away.
+    public event Action<Combatant> Hurt;
     /// Raised for every Pokémon that goes down, whatever its team.
     public static event Action<Combatant> AnyDied;
     public bool IsAlive => hp > 0f;
     public bool IsPoisoned => HasStatus("poison");
     public bool IsParalysed => HasStatus("paralysis");
     /// False while a status (sleep, freeze, trap) holds this Pokémon in place.
-    public bool CanMove => StatusAllows(def => def.canMove) && Time.time >= stunUntil;
+    public bool CanMove => StatusAllows(def => def.canMove) && Time.time >= stunUntil && !IsEvolving;
     /// False while a status (sleep, freeze) prevents attacking.
-    public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil;
+    public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil && !IsEvolving;
+    /// True during the evolution animation: the Pokémon stands still and nothing hurts it.
+    public bool IsEvolving => Time.time < evolvingUntil;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
     public bool IsDodging => Time.time < dodgeUntil;
@@ -116,6 +120,7 @@ public class Combatant : MonoBehaviour
     SpriteRenderer spriteRenderer;
     float flashUntil, healFlashUntil;
     float invulnerableUntil;
+    float evolvingUntil;
 
     // Statics can outlive a play session in the editor.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -241,6 +246,21 @@ public class Combatant : MonoBehaviour
         spAtk += growth.spAtk;
         def += growth.def;
         spDef += growth.spDef;
+    }
+
+    /// Holds the Pokémon still and out of harm's way for the evolution animation.
+    public void BeginEvolution(float duration)
+    {
+        evolvingUntil = Time.time + duration;
+        if (body != null) body.linearVelocity = Vector2.zero;
+    }
+
+    /// Damage that ignores defence, types and the protection after a hit (evolution shock wave).
+    public void TakeFixedDamage(float amount)
+    {
+        if (!IsAlive || blinkMove != null || IsEvolving || amount <= 0f) return;
+        DamageNumber.Damage(transform.position, amount, Efficacy.Normal);
+        LoseHp(amount);
     }
 
     /// Turns into another form: its base stats replace the old ones, level gains are kept.
@@ -545,7 +565,7 @@ public class Combatant : MonoBehaviour
         knockUntil = Time.time + time;
     }
 
-    const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
+    public const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
 
     static float StunOf(MoveDef move) => move.stun > 0f ? move.stun : SaveData.Settings.meleeStun;
 
@@ -851,6 +871,7 @@ public class Combatant : MonoBehaviour
             }
             if (st.def.damageShare <= 0f || Time.time < st.nextTick) continue;
             st.nextTick += st.def.tick;
+            if (IsEvolving) continue; // nothing hurts during the evolution
             // Damage over time ignores defence and the post-hit protection.
             float amount = Mathf.Max(1f, maxHp * st.def.damageShare * (isBoss ? st.def.bossDamageFactor : 1f));
             DamageNumber.Status(transform.position, amount, st.def.color);
@@ -904,7 +925,7 @@ public class Combatant : MonoBehaviour
     public bool TakeHit(float raw, MoveDef move, out float dealt)
     {
         dealt = 0f;
-        if (!IsAlive || blinkMove != null) return false;
+        if (!IsAlive || blinkMove != null || IsEvolving) return false;
         if (team == Team.Player && Time.time < invulnerableUntil) return false;
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
@@ -914,6 +935,7 @@ public class Combatant : MonoBehaviour
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
+        Hurt?.Invoke(this);
         return true;
     }
 
@@ -997,7 +1019,8 @@ public class Combatant : MonoBehaviour
 
         var tint = StatusTint();
         if (spriteRenderer != null)
-            spriteRenderer.color = Time.time < flashUntil ? new Color(1f, 0.4f, 0.4f)
+            spriteRenderer.color = IsEvolving ? Color.white
+                : Time.time < flashUntil ? new Color(1f, 0.4f, 0.4f)
                 : Time.time < healFlashUntil ? HealTint
                 : Time.time < invulnerableUntil ? new Color(1f, 1f, 1f, 0.5f) // half transparent while protected
                 : tint;

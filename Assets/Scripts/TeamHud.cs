@@ -24,6 +24,7 @@ public class TeamHud : MonoBehaviour
     readonly List<Combatant.EffectIcon> effects = new();
     PlayerController team;
     Progression progression;
+    Evolution evolution;
     GUIStyle text;
 
     // Statics can outlive a play session in the editor.
@@ -34,6 +35,7 @@ public class TeamHud : MonoBehaviour
     {
         team = GetComponent<PlayerController>();
         progression = GetComponent<Progression>();
+        evolution = GetComponent<Evolution>();
     }
 
     static Texture2D PortraitOf(int pokemonId)
@@ -67,7 +69,8 @@ public class TeamHud : MonoBehaviour
 
         // Name and health bar.
         float x = portrait.xMax + Gap * s;
-        Label(new Rect(x, portrait.y - 12f * s, BarWidth * s, 10f * s), $"{combatant.Stats.name}   Niv. {combatant.level}", TextAnchor.MiddleLeft);
+        string evolve = evolution != null && evolution.ReadyForm(combatant) != null ? "   Triangle : évoluer" : "";
+        Label(new Rect(x, portrait.y - 12f * s, BarWidth * 2f * s, 10f * s), $"{combatant.Stats.name}   Niv. {combatant.level}{evolve}", TextAnchor.MiddleLeft);
         if (progression != null)
         {
             // Thin experience bar between the name and the health bar.

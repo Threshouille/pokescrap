@@ -14,6 +14,17 @@ public class PokemonStats
     public int evolveLevel; // level at which the previous form turns into this one (0: not by level)
     public float recruitRate; // percent chance to join when knocked out, from the ROM (≤ 0: never)
     public int[] levelUpMoves; // moves learnt by level in the ROM, in level order (TMs and egg moves left out)
+    public EvolutionDef evolution; // how the previous form turns into this one (method empty: not by itself)
+}
+
+/// Evolution condition from the ROM (extract_data.py). method: level, iq, item, party (a Pokémon in the team),
+/// trade; condition, on top of it: move (knows that move), day, night, beauty, male, female, randomA, randomB,
+/// atkAboveDef, atkBelowDef, atkEqualsDef, trade (an item evolution that also needs a trade).
+[Serializable]
+public class EvolutionDef
+{
+    public string method, condition, itemName;
+    public int level, iq, item, party, move;
 }
 
 [Serializable]
@@ -248,15 +259,18 @@ public static class GameData
         return result.ToArray();
     }
 
-    /// Form this Pokémon turns into at that level, or 0. Only evolutions by level with sprites in the project.
-    public static int LevelEvolution(int pokemonId, int level)
+    /// Forms this Pokémon can evolve into, whatever the condition. Only those with sprites in the project; forms
+    /// without a condition of their own (Munja, which comes with Ninjask) are left out.
+    public static List<PokemonStats> Evolutions(int pokemonId)
     {
         Load();
+        var result = new List<PokemonStats>();
+        var names = new HashSet<string>(); // alternative forms of a species (several Cheniselle) count once
         foreach (var p in pokemon.Values)
-            if (p.evolvesFrom == pokemonId && p.id != pokemonId && p.evolveLevel > 0 && level >= p.evolveLevel
-                && PokemonRoster.Has(p.id))
-                return p.id;
-        return 0;
+            if (p.evolvesFrom == pokemonId && p.id != pokemonId && !string.IsNullOrEmpty(p.evolution?.method)
+                && PokemonRoster.Has(p.id) && names.Add(p.name))
+                result.Add(p);
+        return result;
     }
 
     /// "count" moves for an enemy: one of its basic attacks (style matching its stats), then moves drawn from the pool, the first one dealing

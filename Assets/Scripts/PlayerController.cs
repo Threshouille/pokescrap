@@ -31,6 +31,7 @@ public class PlayerController : MonoBehaviour
     /// The Pokémon the player currently controls.
     public Combatant Controlled => members.Count > 0 ? Current.combatant : null;
     public bool GameOver => gameOver;
+    public int Count => members.Count;
     /// Every member of the team, knocked out or not.
     public IEnumerable<Combatant> Members => members.Select(m => m.combatant);
 
@@ -70,6 +71,7 @@ public class PlayerController : MonoBehaviour
         arrowRenderer.sortingOrder = 0; // above the floor, under the Pokémon
         aimArrow.gameObject.SetActive(false);
         gameObject.AddComponent<Progression>();
+        gameObject.AddComponent<Evolution>();
         gameObject.AddComponent<TeamHud>();
     }
 
@@ -125,6 +127,18 @@ public class PlayerController : MonoBehaviour
         member.ai.leader = transform;
         go.AddComponent<HealthBar>();
         return member;
+    }
+
+    /// A Pokémon joining the team during the run (Munja), placed at that point; null when the team is full.
+    public Combatant AddMember(int pokemonId, Vector3 position)
+    {
+        if (members.Count >= teamSize || PokemonRoster.Get(pokemonId) is not { } set) return null;
+        var member = SpawnMember(set, members.Count);
+        member.go.transform.position = position;
+        member.body.position = position;
+        members.Add(member);
+        member.ai.enabled = true;
+        return member.combatant;
     }
 
     void SetControlled(int index)

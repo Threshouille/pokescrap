@@ -71,6 +71,9 @@ public class EnemySpawner : MonoBehaviour
     GUIStyle label, title, text;
 
     Stage Current => stages[CurrentStage];
+    /// Day and night alternate from one stage to the next (some evolutions need one or the other).
+    public bool Night => CurrentStage % 2 == 1;
+    SpriteRenderer nightShade;
 
     void Awake() => recruitment = gameObject.AddComponent<Recruitment>();
 
@@ -93,8 +96,31 @@ public class EnemySpawner : MonoBehaviour
         CurrentWave = 0;
         nextWaveAt = 0f;
         boss = null;
+        ShowNight();
         if (Current.boss != null) boss = Spawn(Current.boss, SpawnPoint(), true);
         SpawnNextWave();
+    }
+
+    // A dark veil over the arena at night, under health bars and numbers.
+    void ShowNight()
+    {
+        var cam = Camera.main;
+        if (nightShade == null && cam != null)
+        {
+            var go = new GameObject("NightShade");
+            go.transform.SetParent(cam.transform, false);
+            go.transform.localPosition = new Vector3(0f, 0f, 1f);
+            go.transform.localScale = new Vector3(200f, 200f, 1f);
+            nightShade = go.AddComponent<SpriteRenderer>();
+            nightShade.sprite = Shapes.Square;
+            nightShade.sortingOrder = 2; // above the floor and the Pokémon
+        }
+        if (nightShade == null) return;
+        var settings = SaveData.Settings;
+        ColorUtility.TryParseHtmlString(settings.nightColor, out var color);
+        color.a = settings.nightAlpha;
+        nightShade.color = color;
+        nightShade.gameObject.SetActive(Night);
     }
 
     void FixedUpdate()
@@ -300,11 +326,12 @@ public class EnemySpawner : MonoBehaviour
         if (!Victory && !defeat)
         {
             bool bossStage = Current.boss != null;
-            string where = bossStage ? Current.name
+            string where = Night ? "Nuit — " : "Jour — ";
+            where += bossStage ? Current.name
                 : nextWaveAt > 0f ? $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length} terminée"
                 : $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length}";
-            Fill(new Rect(cx - 75f * s, 4f * s, 150f * s, 12f * s), new Color(0f, 0f, 0f, 0.6f));
-            GUI.Label(new Rect(cx - 75f * s, 4f * s, 150f * s, 12f * s), where, label);
+            Fill(new Rect(cx - 110f * s, 4f * s, 220f * s, 12f * s), new Color(0f, 0f, 0f, 0.6f));
+            GUI.Label(new Rect(cx - 110f * s, 4f * s, 220f * s, 12f * s), where, label);
 
             if (bossStage && boss != null && boss.IsAlive)
             {
