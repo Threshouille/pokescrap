@@ -53,6 +53,7 @@ public static class SaveData
         // Damage numbers.
         public string normalDamageColor = "#ffffff", superEffectiveColor = "#ffb020", notVeryEffectiveColor = "#8ca4c8";
         public string noEffectColor = "#5a5a66", healColor = "#60e070";
+        public string multiplierColor = "#ffb020"; // damage multiplier of chained strikes (Taillade)
         public float bigNumberScale = 1.5f, smallNumberScale = 0.75f;
         // Evolution (Evolution.cs).
         public float evolveTime = 2.5f; // silhouettes alternate, the Pokémon stands still and cannot be hurt

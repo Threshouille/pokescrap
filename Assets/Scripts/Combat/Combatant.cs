@@ -632,6 +632,7 @@ public class Combatant : MonoBehaviour
             if (target.TakeHit(DamageOf(move) * factor, move, out float dealt))
             {
                 target.Stun(StunOf(move));
+                if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
                 if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackTime, KnockbackTime);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);

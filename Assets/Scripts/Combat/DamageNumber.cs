@@ -5,7 +5,7 @@ using UnityEngine;
 /// dealt it) or health given back. Drawn with a small pixel font, outlined, so it reads on any floor.
 public class DamageNumber : MonoBehaviour
 {
-    const float Life = 0.7f, Rise = 0.5f, StartHeight = 0.9f, Jitter = 0.25f;
+    const float Life = 0.7f, Rise = 0.5f, StartHeight = 0.9f, Jitter = 0.25f, MultiplierHeight = 0.45f;
     const float GlyphSpacing = 4f / PmdAnimSet.PixelsPerUnit; // 3 px wide glyphs, 1 px apart (outlines overlap)
     const int SortingOrder = 20; // above icons and health bars
 
@@ -23,6 +23,8 @@ public class DamageNumber : MonoBehaviour
         { '8', new[] { "###", "#.#", "###", "#.#", "###" } },
         { '9', new[] { "###", "#.#", "###", "..#", "###" } },
         { '+', new[] { "...", ".#.", "###", ".#.", "..." } },
+        { 'x', new[] { "...", "#.#", ".#.", "#.#", "..." } },
+        { '.', new[] { "...", "...", "...", "...", ".#." } },
     };
     static readonly Dictionary<char, Sprite> sprites = new();
 
@@ -59,14 +61,23 @@ public class DamageNumber : MonoBehaviour
         Spawn(at, amount, c, scale, prefix);
     }
 
-    static void Spawn(Vector3 at, float amount, Color color, float scale, string prefix)
+    /// Damage multiplier of a chained strike (Taillade), above the damage numbers: "x1.5".
+    public static void Multiplier(Vector3 at, float factor)
     {
-        int value = Mathf.Max(1, Mathf.RoundToInt(amount));
-        string text = prefix + value;
+        ColorUtility.TryParseHtmlString(SaveData.Settings.multiplierColor, out var c);
+        Show(at + Vector3.up * MultiplierHeight, "x" + factor.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture), c,
+            SaveData.Settings.bigNumberScale, false);
+    }
+
+    static void Spawn(Vector3 at, float amount, Color color, float scale, string prefix) =>
+        Show(at, prefix + Mathf.Max(1, Mathf.RoundToInt(amount)), color, scale, true);
+
+    static void Show(Vector3 at, string text, Color color, float scale, bool jitter)
+    {
         var go = new GameObject("DamageNumber");
         var number = go.AddComponent<DamageNumber>();
         number.color = color;
-        number.origin = at + new Vector3(Random.Range(-Jitter, Jitter), StartHeight + Random.Range(0f, Jitter), 0f);
+        number.origin = at + (jitter ? new Vector3(Random.Range(-Jitter, Jitter), StartHeight + Random.Range(0f, Jitter), 0f) : Vector3.up * StartHeight);
         go.transform.position = number.origin;
         go.transform.localScale = Vector3.one * scale;
         float left = -(text.Length - 1) * GlyphSpacing / 2f;

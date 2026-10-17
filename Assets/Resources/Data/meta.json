@@ -27,6 +27,7 @@
   "notVeryEffectiveColor": "#8ca4c8",
   "noEffectColor": "#5a5a66",
   "healColor": "#60e070",
+  "multiplierColor": "#ffb020",
   "bigNumberScale": 1.5,
   "smallNumberScale": 0.75,
   "evolveTime": 2.5,

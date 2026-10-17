@@ -56,7 +56,6 @@ Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps 
 - `meta.json` a `"unlockAll": true` pour les tests d'Owen : le repasser à `false` pour retrouver les vrais déblocages.
 - L'annonce des attaques au corps à corps ennemies reste un disque rouge, qui ne correspond pas aux arcs ni aux estocs.
 - Coup de Pisto-Poing et coup final sans planche : flash de la couleur du type (`Combatant.ShowStrike`).
-- Taillade (dégâts croissants) jamais vérifiée en jeu.
 - Jamais testés à la manette : navigation du menu (grille et écran des attaques), écran de remplacement d'attaque, Croix/Rond des écrans de fin. Le symbole ✕ de la ligne d'aide de l'écran d'amélioration semble mal rendu par la police.
 - Pas testés en situation réelle : recul, bonus au lanceur à l'impact, soin de Vampigraine générique, comportement des IA sous statut.
 - Jamais observés en jeu : clignotement des icônes en fin d'effet, navigation manette dans l'écran d'amélioration, effets animés de Groudon (seulement les fichiers), alliés au repos qui se répartissent.
