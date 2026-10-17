@@ -49,22 +49,22 @@ public class Combatant : MonoBehaviour
     public bool IsPoisoned => HasStatus("poison");
     public bool IsParalysed => HasStatus("paralysis");
     /// False while a status (sleep, freeze, trap) holds this Pokémon in place.
-    public bool CanMove => StatusAllows(def => def.canMove);
+    public bool CanMove => StatusAllows(def => def.canMove) && Time.time >= stunUntil;
     /// False while a status (sleep, freeze) prevents attacking.
-    public bool CanAttack => StatusAllows(def => def.canAttack);
+    public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
     public bool IsDodging => Time.time < dodgeUntil;
     /// True while a dash (melee lunge or dodge) drives the body: controllers leave its velocity alone.
-    public bool IsDashing => IsLunging || IsDodging;
+    public bool IsDashing => IsLunging || IsDodging || Time.time < knockUntil;
     public float DodgeCooldownLeft => Mathf.Max(0f, dodgeReadyAt - Time.time);
     /// Where the player controlling this Pokémon aims right now (zero for an AI). A shot that leaves after a cast
     /// or a delay follows it, rather than the direction it was aimed at when the move started.
     public Vector2 LiveAim { get; set; }
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
-    public bool IsCasting => castMove != null;
+    public bool IsCasting => castMove != null || blinkMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
-    public float CurrentSpeed => CanMove && !IsCasting ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) : 0f;
+    public float CurrentSpeed => CanMove && !IsCasting && Time.time >= recoverUntil ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) : 0f;
 
     class TimedModifier
     {
@@ -101,6 +101,13 @@ public class Combatant : MonoBehaviour
     float chainUntil;
     float lungeSpeed;
     bool lungeBouncing, lungeFinishPending;
+    float stunUntil, recoverUntil; // stunned by a melee hit; rooted after one's own move (recovery)
+    float knockUntil; // pushed away by a hit: controllers leave the body alone
+    Vector2 knockVelocity;
+    float hopOffset; // height of the jump during a cast (hop)
+    MoveDef blinkMove; // teleport in progress: gone until blinkUntil
+    Vector2 blinkDirection;
+    float blinkUntil;
     Vector2 castDirection;
     float castDistance, castUntil;
     float confusionOffset, nextConfusionChange;
@@ -210,6 +217,9 @@ public class Combatant : MonoBehaviour
         modifiers.Clear();
         castMove = null;
         strikes.Clear();
+        blinkMove = null;
+        stunUntil = recoverUntil = knockUntil = 0f;
+        hopOffset = 0f;
     }
 
     public float CooldownLeft(int slot) => Mathf.Max(0f, readyAt[slot] - Time.time);
@@ -415,7 +425,7 @@ public class Combatant : MonoBehaviour
     public bool TryUseMove(int slot, Vector2 direction, float distance = -1f)
     {
         var move = Moves[slot];
-        if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting) return false;
+        if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || Time.time < recoverUntil) return false;
 
         if (move.family == "heal")
         {
@@ -496,7 +506,16 @@ public class Combatant : MonoBehaviour
     {
         if (move.teleport)
         {
-            EffectPlayer.Spawn(move.trailEffect, transform.position + (Vector3)(direction * move.lunge * 0.5f), direction, null, 0.25f);
+            EffectPlayer.Spawn(move.trailEffect, transform.position, direction, null, 0.25f);
+            if (move.teleportDelay > 0f)
+            {
+                // Gone for a moment (no hit can land), then back further on, striking.
+                blinkMove = move;
+                blinkDirection = direction;
+                blinkUntil = Time.time + move.teleportDelay;
+                ShowSelf(false);
+                return;
+            }
             MoveSafely(direction, move.lunge);
         }
         else if (move.lunge > 0f && body != null)
@@ -504,6 +523,31 @@ public class Combatant : MonoBehaviour
             StartLunge(move, direction);
             return;
         }
+        QueueStrikes(move, direction);
+    }
+
+    void ShowSelf(bool visible)
+    {
+        foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = visible;
+    }
+
+    /// Pushes this Pokémon away for "time" seconds (bosses do not budge).
+    public void Knockback(Vector2 velocity, float time)
+    {
+        if (isBoss || !IsAlive || body == null) return;
+        knockVelocity = velocity;
+        knockUntil = Time.time + time;
+    }
+
+    /// Neither moving nor attacking for a moment (bosses are immune).
+    public void Stun(float duration)
+    {
+        if (isBoss || duration <= 0f) return;
+        stunUntil = Mathf.Max(stunUntil, Time.time + duration);
+    }
+
+    void QueueStrikes(MoveDef move, Vector2 direction)
+    {
         int count = Mathf.Max(1, move.hits);
         for (int i = 0; i < count; i++)
         {
@@ -528,8 +572,8 @@ public class Combatant : MonoBehaviour
     int Strike(MoveDef move, Vector2 direction, float radius = -1f)
     {
         float mul = meleeAreaMul;
-        Vector2 at = transform.position;
         string shape = radius > 0f ? "around" : move.shape;
+        Vector2 at = (Vector2)transform.position + (shape == "arc" || shape == "thrust" ? direction * move.strikeOffset : Vector2.zero);
         float reach = radius > 0f ? radius : move.radiusMin > 0f ? UnityEngine.Random.Range(move.radiusMin, move.range) : move.range;
         Collider2D[] found = shape switch
         {
@@ -549,11 +593,12 @@ public class Combatant : MonoBehaviour
         {
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team || !hit.Add(target)) continue;
-            Vector2 to = target.transform.position - transform.position;
+            Vector2 to = (Vector2)target.transform.position - at;
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move) * factor, move.category, out float dealt))
             {
+                target.Stun(SaveData.Settings.meleeStun);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
             }
@@ -585,7 +630,9 @@ public class Combatant : MonoBehaviour
         if (EffectLibrary.Get(sheet) != null)
         {
             // An area around the user is stretched to its size; the other strikes keep the sheet's own size.
-            EffectPlayer.Spawn(sheet, centre, direction, null, 0f, shape == "around" ? reach * 2f : 0f);
+            float size = shape == "around" ? reach * 2f
+                : move.effectScale > 0f ? EffectLibrary.Get(sheet).frame_width / (float)EffectLibrary.PixelsPerUnit * move.effectScale : 0f;
+            EffectPlayer.Spawn(sheet, centre, direction, null, 0f, size);
             return;
         }
         var colour = GameData.TypeColor(move.type);
@@ -688,6 +735,24 @@ public class Combatant : MonoBehaviour
     {
         if (!UpdateStatuses()) { castMove = null; return; }
 
+        // Little jump in place while casting a move with a hop.
+        float hop = castMove != null && castMove.hop > 0f
+            ? castMove.hop * Mathf.Sin(Mathf.PI * Mathf.Clamp01(1f - (castUntil - Time.time) / castMove.castTime)) : 0f;
+        if (body != null && hop != hopOffset)
+        {
+            body.position += Vector2.up * (hop - hopOffset);
+            hopOffset = hop;
+        }
+
+        if (blinkMove != null && Time.time >= blinkUntil)
+        {
+            var move = blinkMove;
+            blinkMove = null;
+            MoveSafely(blinkDirection, move.lunge);
+            ShowSelf(true);
+            QueueStrikes(move, blinkDirection);
+        }
+
         if (castMove != null && Time.time >= castUntil)
         {
             var aim = LiveAim != Vector2.zero ? Steer(LiveAim.normalized) : castDirection;
@@ -704,6 +769,14 @@ public class Combatant : MonoBehaviour
             if (!CanAttack) continue;
             if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
             Strike(strike.move, strike.direction);
+            if (strike.move.recovery > 0f && !strikes.Exists(x => x.move == strike.move))
+                recoverUntil = Time.time + strike.move.recovery;
+        }
+
+        if (Time.time < knockUntil)
+        {
+            body.linearVelocity = knockVelocity;
+            return;
         }
 
         if (IsDodging)
@@ -729,7 +802,10 @@ public class Combatant : MonoBehaviour
         if (lungeBouncing) return;
         if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
         {
-            const float BounceTime = 0.15f;
+            // Both are thrown apart, slowly enough to be seen.
+            const float BounceTime = 0.3f;
+            foreach (var target in lungeHit)
+                if (target != null) target.Knockback(lungeDirection * lungeMove.knockback / BounceTime, BounceTime);
             lungeBouncing = true;
             lungeFinishPending = false;
             lungeDirection = -lungeDirection;
@@ -781,6 +857,7 @@ public class Combatant : MonoBehaviour
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move), move.category, out float dealt))
             {
+                target.Stun(SaveData.Settings.meleeStun);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
             }
@@ -803,7 +880,7 @@ public class Combatant : MonoBehaviour
     public bool TakeHit(float raw, string category, out float dealt)
     {
         dealt = 0f;
-        if (!IsAlive) return false;
+        if (!IsAlive || blinkMove != null) return false;
         if (team == Team.Player && Time.time < invulnerableUntil) return false;
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
@@ -865,6 +942,8 @@ public class Combatant : MonoBehaviour
         lungeFinishPending = false;
         strikes.Clear();
         castMove = null;
+        if (blinkMove != null) ShowSelf(true);
+        blinkMove = null;
         EndDodge();
         ClearEffects();
         foreach (var collider in GetComponents<Collider2D>()) collider.enabled = false;

@@ -75,6 +75,11 @@ public class MoveDef
     public bool teleport; // melee: the user blinks lunge tiles forward (through opponents, not walls), then strikes
     public string finishEffect; // melee dash: sheet of the strike where the dash ends, stretched to finishRadius
     public string trailEffect; // melee teleport: sheet left where the user blinked from
+    public float strikeOffset; // melee: tiles in front of the user where the strike area starts (arc, thrust)
+    public float recovery; // seconds the user stays rooted after the move
+    public float hop; // tiles: little jump in place during the cast (melee dash)
+    public float knockback; // melee dash with bounceBack: tiles the target is pushed away
+    public float teleportDelay; // melee teleport: seconds the user stays gone before reappearing
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally
