@@ -27,7 +27,8 @@ public static class RoleTactics
     }
 
     /// "target": opponent to fight (an enemy group's shared target); the nearest one within aggroRange when null.
-    public static Decision Decide(Combatant self, Navigator navigator, float aggroRange, Combatant target = null)
+    /// "canAttack" false: only where to stand (an enemy between two attacks).
+    public static Decision Decide(Combatant self, Navigator navigator, float aggroRange, Combatant target = null, bool canAttack = true)
     {
         var decision = new Decision { slot = -1 };
         Vector2 position = self.transform.position;
@@ -52,7 +53,7 @@ public static class RoleTactics
 
         // A support looks at its heals and bonuses before anything else (pass 0), then at its attacks (pass 1).
         // The other roles take their moves in slot order (basic attack last), so a tank can still raise its defence between two blows.
-        for (int pass = 0; pass < 2; pass++)
+        for (int pass = 0; canAttack && pass < 2; pass++)
         {
             // The basic attack comes last, once nothing else is worth using.
             for (int k = 0; k < 2 * Combatant.MoveSlots; k++)
@@ -170,7 +171,7 @@ public static class RoleTactics
     }
 
     /// Direction that takes the Pokémon away from an opponent: straight back, else sideways, else zero (cornered).
-    static Vector2 Away(Combatant self, DungeonGenerator grid, Vector2 position, Vector2 toFoe)
+    public static Vector2 Away(Combatant self, DungeonGenerator grid, Vector2 position, Vector2 toFoe)
     {
         Vector2 back = -toFoe.normalized;
         if (Passable(self, grid, position, back)) return back;

@@ -43,6 +43,7 @@ public static class SaveData
         public float dodgeTime = 0.2f;
         public float meleeStun = 0.4f; // seconds a melee hit stuns its target (bosses are immune)
         public float dodgeCooldown = 3f;
+        public float enemyDodgeCooldown = 5f;
         public int enemyGroupSize = 3; // enemies of a wave are split into groups that share a target, each with a support
         public float groupRetargetTime = 2f;
     }

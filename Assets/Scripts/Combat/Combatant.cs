@@ -657,7 +657,7 @@ public class Combatant : MonoBehaviour
         var settings = SaveData.Settings;
         dodgeDirection = direction.normalized;
         dodgeUntil = Time.time + settings.dodgeTime;
-        dodgeReadyAt = Time.time + settings.dodgeCooldown;
+        dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown);
         Team opponents = team == Team.Player ? Team.Enemy : Team.Player;
         var mine = GetComponents<Collider2D>();
         foreach (var other in all)

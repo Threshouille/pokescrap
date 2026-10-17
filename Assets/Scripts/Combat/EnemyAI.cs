@@ -2,18 +2,23 @@ using UnityEngine;
 
 /// Enemy played by the computer. Its role (melee, ranged or support, see RoleTactics) decides how it fights;
 /// this class adds what is specific to an enemy: every move is announced (wind-up with a visible danger area)
-/// before it is used, then the enemy pauses. It walks around walls and harmful zones.
+/// before it is used; it keeps moving right after, but waits a moment before announcing the next one. It walks
+/// around walls and harmful zones. Its dodge lets a ranged or support enemy flee an opponent that gets too close,
+/// and a melee enemy rush at its target.
 [RequireComponent(typeof(Rigidbody2D), typeof(PmdAnimator), typeof(Combatant))]
 public class EnemyAI : MonoBehaviour
 {
-    enum State { Chase, Windup, Recover }
+    enum State { Chase, Windup }
 
     const float DefaultWindup = 0.5f;
+    const float AttackAnimTime = 0.3f;
+    const float FleeDistance = 2.5f; // ranged and support: dodge away from an opponent this close
+    const float RushMin = 3f, RushMax = 6f; // melee: dodge toward a target this far away
     static readonly Color TelegraphColor = new(1f, 0.15f, 0.15f, 0.35f);
 
     [Tooltip("Share of the Pokémon's own speed used while moving")]
     public float speedFactor = 0.6f;
-    [Tooltip("Pause after each attack, on top of the move's cooldown")]
+    [Tooltip("Delay after each attack before the next announcement (the enemy keeps moving)")]
     public float recoverTime = 1.5f;
 
     public EnemyGroup group; // set by EnemySpawner: the group's members share their target
@@ -24,6 +29,8 @@ public class EnemyAI : MonoBehaviour
     Combatant combatant;
     State state;
     float stateUntil;
+    float nextAttackAt, attackAnimUntil;
+    string attackAnim;
     int attackSlot;
     Vector2 attackDirection;
     float attackDistance;
@@ -55,21 +62,18 @@ public class EnemyAI : MonoBehaviour
                 if (telegraph != null) Destroy(telegraph);
                 var move = combatant.Moves[attackSlot];
                 combatant.TryUseMove(attackSlot, attackDirection, attackDistance);
-                animator.Play(move.family != "melee" && animator.Has("Shoot") ? "Shoot" : animator.Has("Attack") ? "Attack" : "Idle");
-                state = State.Recover;
-                stateUntil = Time.time + recoverTime;
-                break;
-
-            case State.Recover:
-                if (combatant.IsDashing) break; // the dash drives the body
-                body.linearVelocity = Vector2.zero;
-                if (Time.time >= stateUntil) state = State.Chase;
+                attackAnim = move.family != "melee" && animator.Has("Shoot") ? "Shoot" : animator.Has("Attack") ? "Attack" : "Idle";
+                attackAnimUntil = Time.time + AttackAnimTime;
+                animator.Play(attackAnim);
+                state = State.Chase;
+                nextAttackAt = Time.time + recoverTime;
                 break;
         }
     }
 
     void Chase()
     {
+        if (combatant.IsDashing) return; // the dash drives the body
         Vector2 position = transform.position;
         var grid = DungeonGenerator.Current;
 
@@ -81,7 +85,9 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
-        var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target());
+        bool canAttack = Time.time >= nextAttackAt;
+        var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target(), canAttack);
+        if (TryDodge(decision, position, grid)) return;
         if (decision.slot >= 0)
         {
             Vector2 aim = decision.aim != Vector2.zero ? decision.aim.normalized : Vector2.right;
@@ -91,9 +97,42 @@ public class EnemyAI : MonoBehaviour
         Move(decision.engaged ? decision.move : Vector2.zero, decision.look);
     }
 
+    bool TryDodge(RoleTactics.Decision decision, Vector2 position, DungeonGenerator grid)
+    {
+        if (combatant.DodgeCooldownLeft > 0f) return false;
+        Vector2 direction = Vector2.zero;
+        if (combatant.Role != "melee")
+        {
+            // Flees the nearest opponent when it gets too close; cornered, it stays and fights.
+            Team opponents = combatant.team == Team.Player ? Team.Enemy : Team.Player;
+            var near = Combatant.Nearest(opponents, position, FleeDistance);
+            if (near != null) direction = RoleTactics.Away(combatant, grid, position, (Vector2)near.transform.position - position);
+        }
+        else if (decision.slot < 0 && decision.foe != null)
+        {
+            // Rushes at a target out of reach, unless the way is blocked or ends in a harmful zone.
+            Vector2 toFoe = (Vector2)decision.foe.transform.position - position;
+            float distance = toFoe.magnitude;
+            Vector2 landing = position + toFoe.normalized * Mathf.Min(SaveData.Settings.dodgeDistance, distance - 1f);
+            if (distance >= RushMin && distance <= RushMax
+                && (grid == null || grid.LineClear(position, decision.foe.transform.position, 0.3f))
+                && !Zone.Inside(landing, combatant.team, RoleTactics.ZoneMargin))
+                direction = toFoe;
+        }
+        if (direction == Vector2.zero || !combatant.TryDodge(direction)) return false;
+        animator.direction = PmdAnimator.DirectionIndex(direction);
+        animator.Play("Walk");
+        return true;
+    }
+
     void Move(Vector2 direction, Vector2 lookAt)
     {
         body.linearVelocity = combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor;
+        if (Time.time < attackAnimUntil)
+        {
+            animator.Play(attackAnim);
+            return;
+        }
         Vector2 facing = direction != Vector2.zero ? direction : lookAt;
         if (facing != Vector2.zero) animator.direction = PmdAnimator.DirectionIndex(facing);
         animator.Play(direction != Vector2.zero ? "Walk" : "Idle");
