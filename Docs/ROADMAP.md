@@ -74,12 +74,13 @@ Reporté à l'approfondissement :
 
 Objectif décidé par Owen : à terme, les 558 Pokémon de la ROM sont jouables et peuvent tous apparaître comme ennemis.
 
-- Import automatique des sprites de tous les Pokémon (aujourd'hui copiés à la main, un par un).
+- Fait : import des sprites de tous les Pokémon de la ROM (`import_all_pokemon.py`).
 - Fait (15/10/2026) : génération automatique des attaques apprenables par niveau (`generate_moves.py`, ROM + PokéAPI : 343 générées, 108 écartées) ; les attaques faites à la main gardent la priorité.
 - Fait (15/10/2026) : attaques de départ choisies dans la liste par niveau de la forme de base ; nouvelles attaques proposées en partie ; ennemis à 2 attaques tirées au hasard ; rôle d'IA déduit des attaques.
 - Fait (15/10/2026) : statuts brûlure, sommeil, gel, confusion, piège, bâillement, vampigraine ; recul ; bonus au lanceur.
 - Fait (15/10/2026) : évolution en partie au niveau de la ROM (évolutions par niveau, si les sprites existent).
-- **Suivant (décidé par Owen) : reprise des attaques au cas par cas** pour leur donner un aspect unique, en commençant par les 108 écartées et les effets visuels.
+- Fait (15-17/10/2026) : 34 attaques de base (une à distance et une au corps à corps par type), réglées une par une, avec planches d'effets ; icônes des 9 statuts ; menu limité aux premières formes.
+- **Suivant (décidé par Owen) : reprise des autres attaques au cas par cas** pour leur donner un aspect unique (dont les 108 écartées) et leurs effets visuels.
 - Reste : évolutions sans niveau (non décidé), nouvelles familles (mur…), talents.
 - Terrains spéciaux (eau, lave, trous) et types de déplacement.
 - Plus de décors, les 3 cycles et le boss final.
