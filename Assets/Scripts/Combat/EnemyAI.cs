@@ -62,7 +62,7 @@ public class EnemyAI : MonoBehaviour
                 if (telegraph != null) Destroy(telegraph);
                 var move = combatant.Moves[attackSlot];
                 combatant.TryUseMove(attackSlot, attackDirection, attackDistance);
-                attackAnim = move.family != "melee" && animator.Has("Shoot") ? "Shoot" : animator.Has("Attack") ? "Attack" : "Idle";
+                attackAnim = GameData.AttackAnim(move, animator);
                 attackAnimUntil = Time.time + AttackAnimTime;
                 animator.Play(attackAnim);
                 state = State.Chase;

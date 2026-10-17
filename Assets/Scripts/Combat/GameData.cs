@@ -96,6 +96,9 @@ public class MoveDef
     public bool lungeHarmless; // melee dash that hits nobody on the way
     public bool strikeAfterLunge; // melee dash followed by the move's strikes, strikeDelay seconds after it ends
     public float strikeDelay;
+    public string anim; // animation played when the move is used (Shoot / Attack when omitted); PMD Attack sheets step forward
+    public string dashAnim; // melee dash: animation during the dash (Walk when omitted)
+    public string castAnim; // animation during the cast (e.g. Hop)
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally
@@ -378,6 +381,17 @@ public static class GameData
             (pool[i], pool[j]) = (pool[j], pool[i]);
         }
         return pool.GetRange(0, Mathf.Min(count, pool.Count)).ToArray();
+    }
+
+    /// Animation a controller plays when a move is used. Dashes run (the PMD Attack animation steps forward, which
+    /// would put the sprite ahead of the body); shots use Shoot, the rest Attack, when the Pokémon has them.
+    public static string AttackAnim(MoveDef move, PmdAnimator animator)
+    {
+        string wanted = !string.IsNullOrEmpty(move.anim) ? move.anim
+            : move.family == "melee" && move.lunge > 0f && !move.teleport ? (string.IsNullOrEmpty(move.dashAnim) ? "Walk" : move.dashAnim)
+            : move.family != "melee" && move.family != "burst" ? "Shoot" : "Attack";
+        if (animator.Has(wanted)) return wanted;
+        return animator.Has("Attack") ? "Attack" : "Idle";
     }
 
     public static Color TypeColor(int type)

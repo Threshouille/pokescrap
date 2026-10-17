@@ -1021,9 +1021,16 @@ public class Combatant : MonoBehaviour
 
     void LateUpdate()
     {
-        // Hurt animation while stunned or pushed away by a hit (the animator is added after this component).
+        // Animation imposed over the controllers' (the animator is added after this component).
         if (animator == null) animator = GetComponent<PmdAnimator>();
-        if (animator != null && IsAlive) animator.Forced = IsHurt && animator.Has("Hurt") ? "Hurt" : null;
+        if (animator != null && IsAlive)
+        {
+            // Hurt first, then what the current move asks for: running (or rolling) during a dash, its cast animation.
+            string forced = IsHurt ? "Hurt"
+                : IsLunging && lungeMove != null ? (string.IsNullOrEmpty(lungeMove.dashAnim) ? "Walk" : lungeMove.dashAnim)
+                : castMove != null && !string.IsNullOrEmpty(castMove.castAnim) ? castMove.castAnim : null;
+            animator.Forced = forced != null && animator.Has(forced) ? forced : null;
+        }
 
         var tint = StatusTint();
         if (spriteRenderer != null)

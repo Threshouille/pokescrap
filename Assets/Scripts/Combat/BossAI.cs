@@ -87,7 +87,7 @@ public class BossAI : MonoBehaviour
                 bubble.gameObject.SetActive(false);
                 var move = combatant.Moves[slot];
                 combatant.TryUseMove(slot, aim, aimDistance);
-                animator.Play(move.family == "projectile" && animator.Has("Shoot") ? "Shoot" : animator.Has("Attack") ? "Attack" : "Idle");
+                animator.Play(GameData.AttackAnim(move, animator));
                 Enter(State.Recover, recoverTime);
                 break;
 

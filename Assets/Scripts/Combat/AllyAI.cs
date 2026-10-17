@@ -77,7 +77,7 @@ public class AllyAI : MonoBehaviour
         {
             var move = combatant.Moves[decision.slot];
             attackUntil = Time.time + AttackAnimTime;
-            attackAnim = move.family != "melee" && animator.Has("Shoot") ? "Shoot" : "Attack";
+            attackAnim = GameData.AttackAnim(move, animator);
             attackDirection = decision.aim;
             Steer(Vector2.zero, decision.aim);
             return;

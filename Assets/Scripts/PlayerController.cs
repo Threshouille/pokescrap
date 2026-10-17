@@ -195,7 +195,7 @@ public class PlayerController : MonoBehaviour
             if (SlotHeld(slot) && member.combatant.TryUseMove(slot, facing))
             {
                 attackUntil = Time.time + AttackAnimTime;
-                attackAnim = member.combatant.Moves[slot].family == "projectile" && member.animator.Has("Shoot") ? "Shoot" : "Attack";
+                attackAnim = GameData.AttackAnim(member.combatant.Moves[slot], member.animator);
             }
 
         if (Time.time < attackUntil)
