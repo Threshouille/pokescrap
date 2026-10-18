@@ -114,7 +114,7 @@ public class MoveDef
     public float modDuration; // seconds
 
     /// Distance from which an AI can expect the move to connect.
-    public float Reach => family == "melee" ? lunge + (shape == "arc" || shape == "thrust" ? range
+    public float Reach => family == "melee" ? lunge + (shape == "arc" || shape == "thrust" ? strikeOffset + range
             : shape == "around" ? (radiusMin > 0f ? radiusMin : range) * 0.9f : range + radius * 0.5f)
         : family == "heal" ? range
         : family == "modifier" || family == "burst" ? radius * 0.9f
