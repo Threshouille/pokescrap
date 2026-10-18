@@ -58,7 +58,7 @@ public class PlayerController : MonoBehaviour
     float attackUntil;
     string attackAnim = "Attack";
     Vector2 attackFacing = Vector2.down; // direction of the last attack, for its animation
-    SpriteRenderer targetRing;
+    SpriteRenderer targetRing, playerRing;
     const float TargetRingSize = 0.9f; // tiles
     bool gameOver;
     Transform aimArrow;
@@ -193,19 +193,26 @@ public class PlayerController : MonoBehaviour
         return to.magnitude <= range && (to.sqrMagnitude < 0.0001f || Vector2.Angle(aim, to) <= cone);
     }
 
-    // Red circle under the player's target.
+    // Red circle under the player's target, blue one under the Pokémon the player controls.
     void ShowTargetRing(Combatant target)
     {
-        if (targetRing == null)
-        {
-            targetRing = new GameObject("TargetRing").AddComponent<SpriteRenderer>();
-            targetRing.sprite = Shapes.Ring;
-            targetRing.color = new Color(0.95f, 0.08f, 0.08f, 0.5f);
-            targetRing.sortingOrder = 0; // on the ground: the Pokémon (order 1) are always drawn over it
-            targetRing.transform.localScale = Vector3.one * TargetRingSize;
-        }
+        targetRing ??= MakeRing("TargetRing", new Color(0.95f, 0.08f, 0.08f, 0.5f));
+        playerRing ??= MakeRing("PlayerRing", new Color(0.15f, 0.45f, 1f, 0.5f));
         targetRing.enabled = target != null;
         if (target != null) targetRing.transform.position = target.transform.position;
+        var player = !gameOver && members.Count > 0 && Current.combatant.IsAlive ? Current.combatant : null;
+        playerRing.enabled = player != null;
+        if (player != null) playerRing.transform.position = player.transform.position;
+    }
+
+    static SpriteRenderer MakeRing(string name, Color color)
+    {
+        var ring = new GameObject(name).AddComponent<SpriteRenderer>();
+        ring.sprite = Shapes.Ring;
+        ring.color = color;
+        ring.sortingOrder = 0; // on the ground: the Pokémon (order 1) are always drawn over it
+        ring.transform.localScale = Vector3.one * TargetRingSize;
+        return ring;
     }
 
     void Update()
@@ -224,7 +231,7 @@ public class PlayerController : MonoBehaviour
         // The current target is kept while it stays within a wider cone, so it does not jump around inside a group.
         var target = member.combatant.AimTarget;
         if (target == null || !target.IsAlive || !InCone(member.combatant, target, facing, settings.aimKeepCone, settings.aimRange))
-            target = Combatant.FindAimTarget(member.combatant, facing, settings.aimCone, settings.aimRange);
+            target = Combatant.FindAimTarget(member.combatant, facing, settings.aimCone, settings.aimRange, settings.aimDistanceWeight);
         member.combatant.AimTarget = target;
         Vector2 shoot = target != null && target.transform.position != member.combatant.transform.position
             ? ((Vector2)(target.transform.position - member.combatant.transform.position)).normalized : facing;

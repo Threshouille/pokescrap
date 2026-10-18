@@ -68,24 +68,23 @@ public class Combatant : MonoBehaviour
     /// go toward it: shots lead it, arc shots land on it, zones are laid on it.
     public Combatant AimTarget { get; set; }
 
-    /// Opponent of "from" closest to the direction "aim" (then the nearest), within "cone" degrees either side and
-    /// "range" tiles; null when there is none.
-    public static Combatant FindAimTarget(Combatant from, Vector2 aim, float cone, float range)
+    /// Opponent of "from" best placed for the aim "aim", within "cone" degrees either side and "range" tiles: the
+    /// score adds the angle to the aim and the distance (distanceWeight degrees per tile), so a near opponent wins
+    /// over a far one almost in line. Null when there is none.
+    public static Combatant FindAimTarget(Combatant from, Vector2 aim, float cone, float range, float distanceWeight)
     {
         Combatant best = null;
-        float bestAngle = float.MaxValue, bestDistance = float.MaxValue;
+        float bestScore = float.MaxValue;
         foreach (var c in all)
         {
             if (c.team == from.team || !c.IsAlive) continue;
             Vector2 to = c.transform.position - from.transform.position;
             float d = to.magnitude, angle = d > 0.001f ? Vector2.Angle(aim, to) : 0f;
             if (d > range || angle > cone) continue;
-            if (angle < bestAngle - 1f || (angle < bestAngle + 1f && d < bestDistance))
-            {
-                best = c;
-                bestAngle = angle;
-                bestDistance = d;
-            }
+            float score = angle + d * distanceWeight;
+            if (score >= bestScore) continue;
+            best = c;
+            bestScore = score;
         }
         return best;
     }
