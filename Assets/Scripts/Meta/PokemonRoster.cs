@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// Ids of every Pokémon that has sprites in the project, filled by the "Pokescrap > Build Anim Sets" menu.
@@ -28,12 +29,14 @@ public class PokemonRoster : ScriptableObject
     /// Has sprites, without loading them.
     public static bool Has(int pokemonId)
     {
+        pokemonId = GameData.ModelOf(pokemonId);
         if (known == null) known = Instance != null ? new HashSet<int>(Instance.ids) : new HashSet<int>();
         return known.Contains(pokemonId);
     }
 
     public static PmdAnimSet Get(int pokemonId)
     {
+        pokemonId = GameData.ModelOf(pokemonId);
         if (!Has(pokemonId)) return null;
         if (!loaded.TryGetValue(pokemonId, out var set) || set == null)
             loaded[pokemonId] = set = Resources.Load<PmdAnimSet>($"{AnimSetPath}/{pokemonId}");
@@ -70,6 +73,10 @@ public class PokemonRoster : ScriptableObject
             result.Add(stats.id);
         }
         result.Sort();
+        result.InsertRange(0, GameData.DevCharacters.Where(Playable)); // dev mode: first in the grid
         return result;
     }
+
+    /// Portrait shown for a Pokémon (dev characters show the one of their model).
+    public static Texture2D Portrait(int pokemonId) => Resources.Load<Texture2D>("Portraits/" + GameData.ModelOf(pokemonId));
 }

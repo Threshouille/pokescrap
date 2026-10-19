@@ -5,8 +5,9 @@ using UnityEngine.InputSystem;
 /// Menu scene: pick 3 Pokémon among the unlocked ones and their starting moves, then start a run.
 /// Locked Pokémon show as silhouettes.
 /// Gamepad: d-pad or left stick moves the cursor, Cross adds or removes, Triangle opens the starting moves of the
-/// Pokémon under the cursor (Cross picks, Circle or Triangle closes), Options starts once the team is full.
-/// Keyboard: arrows, Space, E (moves), Escape, Enter.
+/// Pokémon under the cursor (Cross picks, L1 / R1 filter by type, Circle or Triangle closes), Options starts once
+/// the team is full.
+/// Keyboard: arrows, Space, E (moves), Page Up / Page Down (type filter), Escape, Enter.
 public class TeamMenu : MonoBehaviour
 {
     const float ReferenceHeight = 360f;
@@ -26,8 +27,11 @@ public class TeamMenu : MonoBehaviour
     int cursor;
     int firstRow; // first grid row on screen: the grid scrolls to keep the cursor visible
     // Starting moves screen: open for one Pokémon, with its move pool and the moves picked so far.
+    // The pool can be filtered by type: "pool" holds the moves shown, "fullPool" all of them.
     bool editingMoves;
-    List<MoveDef> pool;
+    List<MoveDef> fullPool, pool;
+    readonly List<int> filterTypes = new(); // types found in the pool; filter -1 shows every move
+    int filter = -1;
     readonly List<int> picked = new();
     int moveCursor;
     Vector2Int heldDirection;
@@ -61,6 +65,9 @@ public class TeamMenu : MonoBehaviour
         if (editingMoves)
         {
             if (repeat && direction.y != 0) moveCursor = Mathf.Clamp(moveCursor + direction.y, 0, pool.Count - 1);
+            bool previous = (pad != null && pad.leftShoulder.wasPressedThisFrame) || (kb != null && kb.pageUpKey.wasPressedThisFrame);
+            bool next = (pad != null && pad.rightShoulder.wasPressedThisFrame) || (kb != null && kb.pageDownKey.wasPressedThisFrame);
+            if ((previous || next) && filterTypes.Count > 1) SetFilter(filter + (next ? 1 : -1));
             if (cross) ToggleMove(pool[moveCursor].id);
             if (triangle || circle) CloseMoves();
             return;
@@ -114,13 +121,27 @@ public class TeamMenu : MonoBehaviour
     void OpenMoves(int id)
     {
         editingMoves = true;
-        pool = GameData.MovePool(id);
+        pool = fullPool = GameData.MovePool(id);
+        filterTypes.Clear();
+        foreach (var move in fullPool)
+            if (!filterTypes.Contains(move.type)) filterTypes.Add(move.type);
+        filterTypes.Sort();
+        filter = -1;
         picked.Clear();
         picked.AddRange(SaveData.StartingMoves(id));
         moveCursor = picked.Count > 0 ? Mathf.Max(0, pool.FindIndex(m => m.id == picked[0])) : 0;
     }
 
-    int MoveCount => Mathf.Min(SaveData.Settings.startingMoveCount, pool.Count);
+    // -1: every move, then each type of the pool in turn (wrapping around).
+    void SetFilter(int index)
+    {
+        int count = filterTypes.Count + 1;
+        filter = (index + 1 + count) % count - 1;
+        pool = filter < 0 ? fullPool : fullPool.FindAll(m => m.type == filterTypes[filter]);
+        moveCursor = 0;
+    }
+
+    int MoveCount => Mathf.Min(SaveData.StartingMoveCount(choices[cursor]), fullPool.Count);
 
     // A full selection drops its oldest move to make room, so the player never has to remove one first.
     void ToggleMove(int id)
@@ -140,7 +161,7 @@ public class TeamMenu : MonoBehaviour
     Texture2D PortraitOf(int id)
     {
         if (!portraits.TryGetValue(id, out var texture))
-            portraits[id] = texture = Resources.Load<Texture2D>("Portraits/" + id);
+            portraits[id] = texture = PokemonRoster.Portrait(id);
         return texture;
     }
 
@@ -263,6 +284,13 @@ public class TeamMenu : MonoBehaviour
         float y = panel.y + pad;
         Label(new Rect(panel.x + pad, y, width, line), $"{GameData.Pokemon(id)?.name} : {MoveCount} attaques de départ", TextAnchor.MiddleLeft);
         y += line + 2f * s;
+        if (filterTypes.Count > 1)
+        {
+            if (filter >= 0) Fill(new Rect(panel.x + pad, y + 3f * s, 6f * s, 6f * s), GameData.TypeColor(filterTypes[filter]));
+            string shown = filter < 0 ? "Tous les types" : GameData.TypeName(filterTypes[filter]);
+            Label(new Rect(panel.x + pad + 10f * s, y, width - 10f * s, line), $"L1 ‹ {shown} ({pool.Count}) › R1", TextAnchor.MiddleLeft);
+            y += line;
+        }
 
         int first = Mathf.Clamp(moveCursor - VisibleMoves / 2, 0, Mathf.Max(0, pool.Count - VisibleMoves));
         for (int i = first; i < pool.Count && i < first + VisibleMoves; i++)

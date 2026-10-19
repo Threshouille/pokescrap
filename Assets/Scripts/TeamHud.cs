@@ -41,7 +41,7 @@ public class TeamHud : MonoBehaviour
     static Texture2D PortraitOf(int pokemonId)
     {
         if (!portraits.TryGetValue(pokemonId, out var texture))
-            portraits[pokemonId] = texture = Resources.Load<Texture2D>("Portraits/" + pokemonId);
+            portraits[pokemonId] = texture = PokemonRoster.Portrait(pokemonId);
         return texture;
     }
 

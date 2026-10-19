@@ -1,0 +1,8 @@
+{
+  "comment": "Dev characters (devMode in meta.json): they can learn every move the game can play, to test moves. Stats on the scale of the starters; model: the Pokémon whose sprites and portrait they use; growthOf: the Pokémon whose level-up gains they get. No type (no STAB), standard movement (terrain applies). Never recruited, saved as unlocked or met as enemies.",
+  "characters": [
+    {"id": 9001, "name": "Dev Mew", "model": 151, "growthOf": 1, "baseHp": 26, "baseAtk": 4, "baseSpAtk": 4, "baseDef": 3, "baseSpDef": 3, "baseSpeed": 70},
+    {"id": 9002, "name": "Dev Métamorph", "model": 132, "growthOf": 1, "baseHp": 26, "baseAtk": 5, "baseSpAtk": 3, "baseDef": 3, "baseSpDef": 3, "baseSpeed": 70},
+    {"id": 9003, "name": "Dev Porygon", "model": 137, "growthOf": 1, "baseHp": 26, "baseAtk": 3, "baseSpAtk": 5, "baseDef": 3, "baseSpDef": 3, "baseSpeed": 70}
+  ]
+}

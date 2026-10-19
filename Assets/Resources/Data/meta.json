@@ -1,5 +1,7 @@
 {
   "unlockAll": true,
+  "devMode": true,
+  "devStartingMoveCount": 4,
   "startingUnlocked": [1, 4, 7, 172, 488, 489],
   "recruitMultiplier": 1,
   "recruitMessageTime": 3,

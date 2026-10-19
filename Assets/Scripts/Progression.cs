@@ -91,7 +91,7 @@ public class Progression : MonoBehaviour
         foreach (var member in team.Members)
         {
             if (member.Stats == null) continue;
-            member.ApplyGrowth(LevelData.Growth(member.Stats.id, Level), Level);
+            member.ApplyGrowth(LevelData.Growth(GameData.GrowthOf(member.Stats.id), Level), Level);
         }
         if (choiceInterval > 0 && Level % choiceInterval == 0)
             foreach (var member in team.Members) pending.Enqueue(member);

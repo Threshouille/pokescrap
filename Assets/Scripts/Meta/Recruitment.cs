@@ -55,7 +55,7 @@ public class Recruitment : MonoBehaviour
         float width = height + 2f * pad + text.CalcSize(message).x + 4f * s;
         var box = new Rect((Screen.width - width) / 2f, 36f * s, width, height);
         Fill(box, new Color(0.08f, 0.08f, 0.12f, 0.85f));
-        var portrait = Resources.Load<Texture2D>("Portraits/" + shown);
+        var portrait = PokemonRoster.Portrait(shown);
         if (portrait != null) GUI.DrawTexture(new Rect(box.x + pad, box.y + pad, height - 2f * pad, height - 2f * pad), portrait);
         GUI.Label(new Rect(box.x + height + pad, box.y, width - height - pad, height), message, text);
     }

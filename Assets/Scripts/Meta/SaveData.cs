@@ -31,6 +31,8 @@ public static class SaveData
     {
         public int[] startingUnlocked = new int[0];
         public bool unlockAll; // tests: every playable Pokémon can be picked, whatever the save says
+        public bool devMode; // tests: the dev characters of dev_characters.json are offered in the menu
+        public int devStartingMoveCount = 4; // starting moves of a dev character
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;
         public int startingMoveCount = 2;
@@ -119,11 +121,14 @@ public static class SaveData
     public static int Runs => Data.runs;
     public static int Wins => Data.wins;
 
-    public static bool IsUnlocked(int pokemonId) => Settings.unlockAll || Data.unlocked.Contains(pokemonId);
+    public static bool IsUnlocked(int pokemonId) => Settings.unlockAll || Data.unlocked.Contains(pokemonId) || GameData.IsDev(pokemonId);
+
+    /// Number of moves a Pokémon starts a run with.
+    public static int StartingMoveCount(int pokemonId) => GameData.IsDev(pokemonId) ? Settings.devStartingMoveCount : Settings.startingMoveCount;
 
     public static void Unlock(int pokemonId)
     {
-        if (IsUnlocked(pokemonId)) return;
+        if (IsUnlocked(pokemonId) || GameData.IsDev(pokemonId)) return;
         Data.unlocked.Add(pokemonId);
         Write();
     }
@@ -137,7 +142,7 @@ public static class SaveData
     /// Moves a Pokémon starts a run with: the player's choice if it is still valid, else the default ones.
     public static int[] StartingMoves(int pokemonId)
     {
-        int count = Settings.startingMoveCount;
+        int count = StartingMoveCount(pokemonId);
         var pool = GameData.MovePool(pokemonId).ConvertAll(m => m.id);
         var choice = Data.startingMoves.Find(c => c.pokemonId == pokemonId);
         if (choice != null && choice.moves.Length == Math.Min(count, pool.Count) && Array.TrueForAll(choice.moves, pool.Contains))

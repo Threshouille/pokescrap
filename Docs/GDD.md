@@ -17,6 +17,9 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Interface : en bas à gauche, portrait du Pokémon contrôlé (tiré de la ROM), nom, barre de vie, et 4 cadres pour ses attaques (bouton, nom abrégé, couleur du type) qui se grisent pendant la recharge avec le temps restant. Au-dessus, les petits portraits des deux alliés avec leur barre de vie, dans l'ordre de la croix (gauche / droite) ; un allié K.O. est assombri, un allié empoisonné a un coin violet.
 - Des Pokémon « support » sont envisagés, pour donner un rôle aux attaques de statut.
 
+### Outils de test
+- Persos de dev (décidé le 19/10/2026) : 3 personnages réservés au développement (Dev Mew, Dev Métamorph, Dev Porygon), visibles en tête du menu quand `devMode` est actif. Ils peuvent apprendre toutes les attaques du jeu (4 au départ, filtre par type au menu), n'ont pas de type (pas de STAB), se déplacent normalement (le terrain s'applique à eux) et ont des statistiques de starter (un physique, un spécial, un équilibré). Ils ne sont ni recrutables, ni sauvegardés, ni ennemis. But : tester les attaques et les effets de terrain.
+
 ### Attaques
 - 4 emplacements par Pokémon. On commence la partie avec 2 attaques choisies avant la partie parmi toutes celles que la forme de base apprend par niveau (1 à 100) ; CT et attaques par œufs exclues (décidé le 15/10/2026).
 - Pendant la partie, tous les 10 niveaux, l'une des 3 propositions du choix d'amélioration est une nouvelle attaque tirée au hasard dans la liste du Pokémon, jusqu'à 4 attaques ; ensuite cette proposition n'apparaît qu'une fois sur deux et sert à remplacer une attaque apprise (« Garder » renonce à la nouvelle attaque, 17/10/2026). Après une évolution, les attaques de la forme évoluée ont plus de chances d'être proposées (15/10/2026).

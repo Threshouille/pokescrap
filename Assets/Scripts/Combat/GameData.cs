@@ -15,6 +15,8 @@ public class PokemonStats
     public float recruitRate; // percent chance to join when knocked out, from the ROM (≤ 0: never)
     public int[] levelUpMoves; // moves learnt by level in the ROM, in level order (TMs and egg moves left out)
     public EvolutionDef evolution; // how the previous form turns into this one (method empty: not by itself)
+    public int model; // dev characters: Pokémon whose sprites and portrait they use (0: their own)
+    public int growthOf; // dev characters: Pokémon whose level-up gains they get (0: their own)
 }
 
 /// Evolution condition from the ROM (extract_data.py). method: level, iq, item, party (a Pokémon in the team),
@@ -136,7 +138,8 @@ public class UpgradeDef
 public static class GameData
 {
     [Serializable] class PokemonFile { public PokemonStats[] pokemon; }
-    [Serializable] class TypeColorEntry { public int type; public string color; }
+    [Serializable] class TypeColorEntry { public int type; public string name; public string color; }
+    [Serializable] class DevFile { public PokemonStats[] characters; }
     [Serializable] class Loadout { public int pokemonId; public string role; public int[] moves; }
     [Serializable] class UpgradeFile { public UpgradeDef[] upgrades; }
     [Serializable] class BasicEntry { public int type; public int pokemonId; public int move; }
@@ -150,6 +153,9 @@ public static class GameData
     static Dictionary<int, int[]> loadouts;
     static Dictionary<int, string> roles;
     static Dictionary<int, Color> typeColors;
+    static Dictionary<int, string> typeNames;
+    static List<int> devCharacters;
+    static List<MoveDef> allMoves;
     static Dictionary<int, int> basicByType, meleeBasicByType;
     static Dictionary<int, List<int>> basicByPokemon;
     static UpgradeDef[] upgrades;
@@ -164,6 +170,18 @@ public static class GameData
         pokemon = new Dictionary<int, PokemonStats>();
         foreach (var p in JsonUtility.FromJson<PokemonFile>(Resources.Load<TextAsset>("Data/pokemon_rt").text).pokemon)
             pokemon[p.id] = p;
+        devCharacters = new List<int>();
+        var devFile = Resources.Load<TextAsset>("Data/dev_characters");
+        if (SaveData.Settings.devMode && devFile != null)
+            foreach (var p in JsonUtility.FromJson<DevFile>(devFile.text).characters)
+            {
+                p.types = new int[0];
+                p.levelUpMoves = null;
+                p.evolution = null;
+                p.baseForm = p.id;
+                pokemon[p.id] = p;
+                devCharacters.Add(p.id);
+            }
 
         var file = JsonUtility.FromJson<MoveFile>(Resources.Load<TextAsset>("Data/realtime_moves").text);
         moves = new Dictionary<int, MoveDef>();
@@ -192,8 +210,42 @@ public static class GameData
             basicByPokemon[b.pokemonId].Add(b.move); // several entries for one Pokémon: several basic attacks
         }
         typeColors = new Dictionary<int, Color>();
+        typeNames = new Dictionary<int, string>();
         foreach (var t in file.typeColors)
+        {
             if (ColorUtility.TryParseHtmlString(t.color, out var c)) typeColors[t.type] = c;
+            if (!string.IsNullOrEmpty(t.name)) typeNames[t.type] = t.name;
+        }
+        // Every move, for the dev characters: by type, the basic attacks of each type first, then by name.
+        allMoves = new List<MoveDef>(moves.Values);
+        allMoves.Sort((a, b) => a.type != b.type ? a.type.CompareTo(b.type)
+            : a.basic != b.basic ? b.basic.CompareTo(a.basic) : string.CompareOrdinal(a.name, b.name));
+    }
+
+    /// Dev characters loaded from dev_characters.json (only with devMode in meta.json).
+    public static IReadOnlyList<int> DevCharacters
+    {
+        get { Load(); return devCharacters; }
+    }
+
+    public static bool IsDev(int pokemonId)
+    {
+        Load();
+        return devCharacters.Contains(pokemonId);
+    }
+
+    /// Pokémon whose sprites and portrait are shown for this one (dev characters borrow them).
+    public static int ModelOf(int pokemonId)
+    {
+        var stats = Pokemon(pokemonId);
+        return stats != null && stats.model > 0 ? stats.model : pokemonId;
+    }
+
+    /// Pokémon whose level-up gains this one gets (dev characters borrow them).
+    public static int GrowthOf(int pokemonId)
+    {
+        var stats = Pokemon(pokemonId);
+        return stats != null && stats.growthOf > 0 ? stats.growthOf : pokemonId;
     }
 
     public static PokemonStats Pokemon(int id)
@@ -203,10 +255,11 @@ public static class GameData
     }
 
     /// Moves this Pokémon can pick from: its basic attacks, then those it learns by level that the game can play,
-    /// in level order.
+    /// in level order. Dev characters: every move.
     public static List<MoveDef> MovePool(int pokemonId)
     {
         Load();
+        if (devCharacters.Contains(pokemonId)) return new List<MoveDef>(allMoves);
         var pool = BasicMoves(pokemonId);
         var stats = Pokemon(pokemonId);
         if (stats?.levelUpMoves != null)
@@ -400,6 +453,12 @@ public static class GameData
     {
         Load();
         return typeColors.TryGetValue(type, out var c) ? c : Color.white;
+    }
+
+    public static string TypeName(int type)
+    {
+        Load();
+        return typeNames.TryGetValue(type, out var name) ? name : "?";
     }
 
     public static float MoveSpeed(int baseSpeed)
