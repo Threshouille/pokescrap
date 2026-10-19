@@ -2232,6 +2232,322 @@
         "#e4ecf8",
         "#ffffff"
       ]
+    },
+    {
+      "file": "terrain_ice.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        250,
+        250,
+        250,
+        250
+      ],
+      "loop": true,
+      "palette": [
+        "#4f8fd8",
+        "#7fb8ec",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "terrain_ice_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        250,
+        250,
+        250,
+        250
+      ],
+      "loop": true,
+      "palette": [
+        "#4f8fd8",
+        "#7fb8ec",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "terrain_embers.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#2a1a14",
+        "#5a1a10",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a"
+      ]
+    },
+    {
+      "file": "terrain_embers_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#2a1a14",
+        "#5a1a10",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a"
+      ]
+    },
+    {
+      "file": "terrain_water.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "loop": true,
+      "palette": [
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#e6f8ff"
+      ]
+    },
+    {
+      "file": "terrain_water_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "loop": true,
+      "palette": [
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#e6f8ff"
+      ]
+    },
+    {
+      "file": "terrain_electric.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "terrain_electric_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "terrain_electrified.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#fff6a8",
+        "#ffd21f"
+      ]
+    },
+    {
+      "file": "terrain_electrified_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#fff6a8",
+        "#ffd21f"
+      ]
+    },
+    {
+      "file": "terrain_brambles.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        250,
+        250,
+        250,
+        250
+      ],
+      "loop": true,
+      "palette": [
+        "#173b17",
+        "#2b6e2a",
+        "#4fae38",
+        "#9fe05a",
+        "#e4f7b8"
+      ]
+    },
+    {
+      "file": "terrain_brambles_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        250,
+        250,
+        250,
+        250
+      ],
+      "loop": true,
+      "palette": [
+        "#173b17",
+        "#2b6e2a",
+        "#4fae38",
+        "#9fe05a",
+        "#e4f7b8"
+      ]
+    },
+    {
+      "file": "terrain_mud.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "loop": true,
+      "palette": [
+        "#321a0a",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#d49a5a"
+      ]
+    },
+    {
+      "file": "terrain_mud_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "loop": true,
+      "palette": [
+        "#321a0a",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#d49a5a"
+      ]
+    },
+    {
+      "file": "terrain_toxic.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        180,
+        180,
+        180,
+        180
+      ],
+      "loop": true,
+      "palette": [
+        "#3d1660",
+        "#5b2585",
+        "#9447c2",
+        "#6fc22a",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "terrain_toxic_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        180,
+        180,
+        180,
+        180
+      ],
+      "loop": true,
+      "palette": [
+        "#3d1660",
+        "#5b2585",
+        "#9447c2",
+        "#6fc22a",
+        "#a8ff3e"
+      ]
     }
   ]
 }

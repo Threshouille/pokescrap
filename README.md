@@ -88,15 +88,19 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
 
 Certaines attaques laissent une trace au sol, case par case, qui agit sur **tous** les Pokémon qui marchent dessus
 (les deux camps), sauf ceux du type correspondant, ceux qui lévitent et **le lanceur lui-même** (sa propre trace ne
-le gêne jamais, même s'il n'est pas du type de l'attaque ; celui qui déclenche une affinité en devient le lanceur). Les IA les contournent et en sortent.
+le gêne pas, même s'il n'est pas du type de l'attaque ; celui qui déclenche une affinité en devient le lanceur). Exceptions :
+le verglas et la flaque agissent aussi sur leur lanceur (il glisse sur sa glace, il est ralenti dans son eau).
+Les **alliés du lanceur** subissent le sol (glissade, ralentissements) mais pas l'attaque : ni brûlure, ni paralysie,
+ni poison, ni dégâts. Une affinité appartient à l'équipe qui la déclenche (électrifier la flaque d'un ennemi frappe
+ses alliés à lui). Les IA les contournent et en sortent.
 
 | Terrain | Effet | Attaques |
 |---|---|---|
-| Verglas | glissade, poussées plus longues | Poudreuse, Vent Glace, Laser Glace, Blizzard |
-| Braises | brûlure, petits dégâts | Flammèche, Lance-Flamme, Déflagration, Éruption |
+| Verglas | forte glissade, poussées bien plus longues | Poudreuse, Vent Glace, Laser Glace, Blizzard |
+| Braises | brûlure quasi immédiate qui dure 4 s après en être sorti, dégâts | Flammèche, Lance-Flamme, Déflagration, Éruption |
 | Flaque | ralentit, soigne la brûlure ; Pokémon Eau plus rapides et soignés | Pistolet à O, Hydrocanon, Hydroblast |
-| Sol chargé | paralysie | Étincelle, Tonnerre, Fatal-Foudre |
-| Eau électrifiée | paralysie fréquente, petits dégâts (Électrik sur une flaque) | — |
+| Sol chargé | paralysie fréquente, petits étourdissements à chaque seconde | Étincelle, Tonnerre, Fatal-Foudre |
+| Eau électrifiée | paralysie, étourdissements plus longs, dégâts (Électrik sur une flaque) | — |
 | Ronces | ralentit, petits dégâts | Fouet Lianes, Canon Graine, Mégafouet, Végé-Attak |
 | Boue | ralentit fortement | Coud'Boue, Tir de Boue, Boue-Bombe |
 | Flaque toxique | poison | Acide, Détritus, Bomb-Beurk |
@@ -104,9 +108,10 @@ le gêne jamais, même s'il n'est pas du type de l'attaque ; celui qui déclench
 La taille et la durée d'une trace suivent la puissance de l'attaque (bloc `sizing`).
 
 **Affinités** : le feu brûle les ronces de proche en proche, fait fondre le verglas, sèche la boue, consume le
-poison et s'éteint dans l'eau ; l'eau éteint les braises et dilue le poison ; la glace fond sur les braises. Une
-flaque transmet : la glace la gèle, les plantes y poussent (plus longtemps), l'électricité l'électrifie, le poison
-la contamine, la boue la détrempe, chaque fois sur **toute la flaque reliée**, en vague.
+poison et s'éteint dans l'eau ; l'eau éteint les braises, dilue le poison et nettoie la boue ; la glace fond sur les
+braises. Une flaque transmet : la glace la gèle, les plantes y poussent (plus longtemps), l'électricité l'électrifie,
+le poison la contamine, chaque fois sur **toute la flaque reliée**, en vague ; la boue ne la détrempe que sur 2 cases
+autour du point touché.
 
 **IA** : les Pokémon contournent les terrains qui leur nuisent et en sortent ; ils préfèrent une attaque dont la
 trace réagit contre les ennemis (Électrik sur des ennemis dans l'eau) et renoncent à celle qui toucherait un allié.

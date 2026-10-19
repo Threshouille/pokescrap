@@ -248,7 +248,8 @@ public static class RoleTactics
             bool onSamePuddle = spreads && Terrain.At(p) == under && Vector2.Distance(p, at) <= SpreadReach;
             if (!inArea && !onSamePuddle) continue;
             var there = Terrain.Def(Terrain.Predict(Terrain.At(p)?.key, t.terrain));
-            if (Terrain.Harmful(there, ally)) return -1;
+            // The trace would be ours: a team-mate only minds being slowed or made to slide.
+            if (there != null && !Terrain.Immune(ally, there) && Terrain.Hinders(there)) return -1;
         }
         return reacts && Terrain.Harmful(Terrain.Def(result), foe) ? 1 : 0;
     }

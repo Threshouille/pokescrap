@@ -13,8 +13,13 @@ public class TerrainDef
     public float alpha = 0.5f;
     public string flickerColor; // the tile pulses between color and this one (electrified water), flickerRate times a second
     public float flickerRate = 4f;
+    public float spriteAlpha = 0.9f; // opacity of the tile sheets (terrain_<key>, terrain_<key>_b in Resources/Effects)
+    public string edge = "round"; // border of a patch (TerrainEdges): round, blob, spiky, jagged, thorny
+    public float edgeDepth = 4f; // pixels the border bites into the tile at most
+    public string fillColor; // the transparent pixels of the tiles take this colour: the floor no longer shows through
     public int[] immuneTypes = new int[0];
     public bool grounded = true; // Pokémon that float or go through walls (movementType 2, 3) are not affected
+    public bool sparesOwner = true; // the Pokémon whose move left it is not affected (false: ice, water)
     public float speedMul = 1f;
     public int[] boostTypes = new int[0]; // these types get boostMul instead of speedMul
     public float boostMul = 1f;
@@ -22,6 +27,8 @@ public class TerrainDef
     public float knockbackMul = 1f;
     public string status; // given to whoever stands there, statusChance per second
     public float statusChance;
+    public float statusDuration; // seconds the status lasts (its own duration from statuses.json when 0)
+    public float stun; // seconds stunned at every tick (one a second) spent there
     public float damageShare; // share of max HP lost per second
     public int[] regenTypes = new int[0]; // these types heal regenShare of their max HP per second
     public float regenShare;
@@ -29,6 +36,9 @@ public class TerrainDef
     public float navCost; // extra path cost for the AIs, in tiles of detour
     [NonSerialized] public Color tint, flicker;
     [NonSerialized] public bool flickers;
+    [NonSerialized] public EffectLibrary.Sheet sheet, variant; // animated tiles; none: a tinted square instead
+    [NonSerialized] public bool fills;
+    [NonSerialized] public Color32 fill;
 }
 
 /// Ground effect a move leaves, from terrains.json. Radius and duration come from the move's power when 0.
@@ -55,6 +65,7 @@ public class TerrainReaction
     public float durationMul = 1f;
     public bool spread;
     public float spreadDelay;
+    public int spreadMax; // tiles the spread reaches at most away from the hit (0: the whole connected area)
 }
 
 /// How a move's power sets the size and duration of its trace.
@@ -69,7 +80,9 @@ public class TerrainSizing
 }
 
 /// Ground effects left by moves, one state per tile of the arena: everyone standing on a tile gets its effect
-/// (both teams), except the Pokémon immune to it and the one whose move left it (its owner). Drawn as a texture with one pixel per tile over the floor.
+/// (both teams), except the Pokémon immune to it and, for most terrains, the one whose move left it (its owner).
+/// The owner's team-mates feel how the ground moves them (slowed, sliding, pushed further) but not the attack in it
+/// (status, damage, stun): those only hit the other team. Drawn as a texture with one pixel per tile over the floor.
 /// Moves paint it through OnTrail / OnImpact / OnAround / OnDash / OnStrike, each painting only when the move's
 /// terrain has that shape. A terrain painted over another may react (reactions of terrains.json), possibly
 /// spreading over the whole connected area as a wave.
@@ -95,10 +108,15 @@ public class Terrain : MonoBehaviour
     TerrainDef[] kind;
     float[] until, length;
     Combatant[] owner; // who left the terrain on each tile (spared by it); null for nobody
+    Team[] ownerTeam; // its team, kept even once the owner is gone; owned[i] false: the tile has no owner
+    bool[] owned;
     int active;
     bool dirty;
     Texture2D texture;
     Color32[] pixels;
+    SpriteRenderer[] tiles; // animated tile of each cell, created when first needed
+    Transform tileRoot;
+    int sortingLayer, sortingOrder;
     readonly List<Pending> pending = new(); // tiles a spreading reaction reaches later
     readonly HashSet<int> queued = new();
     readonly Dictionary<Combatant, float> nextTick = new();
@@ -128,6 +146,10 @@ public class Terrain : MonoBehaviour
             d.flickers = ColorUtility.TryParseHtmlString(d.flickerColor, out var f);
             d.flicker = f;
             d.flicker.a = d.alpha;
+            d.fills = ColorUtility.TryParseHtmlString(d.fillColor, out var fill);
+            d.fill = fill;
+            d.sheet = EffectLibrary.Get("terrain_" + d.key);
+            d.variant = EffectLibrary.Get("terrain_" + d.key + "_b") ?? d.sheet;
             defs[d.key] = d;
         }
         foreach (var m in file.moves ?? new MoveTerrain[0]) byMove[m.move] = m;
@@ -206,6 +228,17 @@ public class Terrain : MonoBehaviour
         until = new float[size * size];
         length = new float[size * size];
         owner = new Combatant[size * size];
+        ownerTeam = new Team[size * size];
+        owned = new bool[size * size];
+        if (tiles != null)
+            foreach (var tile in tiles)
+                if (tile != null) tile.enabled = false;
+        if (tiles == null || tiles.Length != size * size)
+        {
+            if (tileRoot != null) Destroy(tileRoot.gameObject); // laid out for another arena size
+            tileRoot = null;
+            tiles = new SpriteRenderer[size * size];
+        }
         active = 0;
         pending.Clear();
         queued.Clear();
@@ -224,6 +257,8 @@ public class Terrain : MonoBehaviour
                 renderer.sortingLayerID = floor.sortingLayerID;
                 renderer.sortingOrder = floor.sortingOrder + 1; // over the floor, under zones and Pokémon
             }
+            sortingLayer = renderer.sortingLayerID;
+            sortingOrder = renderer.sortingOrder;
         }
         // One texture pixel per tile, laid over the floor map.
         Vector2 origin = arena.CentreOf(0, 0), step = arena.CentreOf(1, 1) - origin;
@@ -341,6 +376,7 @@ public class Terrain : MonoBehaviour
         while (frontier.Count > 0)
         {
             var (cx, cy, steps) = frontier.Dequeue();
+            if (r.spreadMax > 0 && steps >= r.spreadMax) continue;
             foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
             {
                 int nx = cx + dx, ny = cy + dy;
@@ -362,11 +398,14 @@ public class Terrain : MonoBehaviour
             kind[i] = null;
             until[i] = 0f;
             owner[i] = null;
+            owned[i] = false;
         }
         else
         {
             kind[i] = def;
             owner[i] = by;
+            owned[i] = by != null;
+            if (by != null) ownerTeam[i] = by.team;
             until[i] = Time.time + duration;
             length[i] = duration;
             active++;
@@ -392,11 +431,17 @@ public class Terrain : MonoBehaviour
     {
         var def = KindAt(x, y);
         if (def == null || c == null) return def;
-        return owner[y * size + x] == c || Immune(c, def) ? null : def;
+        return (def.sparesOwner && owner[y * size + x] == c) || Immune(c, def) ? null : def;
     }
 
-    /// The terrain of the tile is there but spares this Pokémon (immune, or its own).
-    bool SparedAt(int x, int y, Combatant c) => KindAt(x, y) != null && ActingAt(x, y, c) == null;
+    /// The tile's terrain acts on this Pokémon and its attack (status, damage, stun) hits it: it is not on the
+    /// owner's team.
+    bool HurtsAt(int x, int y, Combatant c)
+    {
+        if (ActingAt(x, y, c) == null) return false;
+        int i = y * size + x;
+        return c == null || !owned[i] || ownerTeam[i] != c.team;
+    }
 
     /// Terrain on the tile under a point, whoever stands there.
     public static TerrainDef At(Vector2 world)
@@ -446,12 +491,18 @@ public class Terrain : MonoBehaviour
     /// Extra path cost of a tile for an AI (0 when the agent is immune).
     public static float NavCost(int x, int y, Combatant agent)
     {
-        var def = Current != null ? Current.ActingAt(x, y, agent) : null;
-        return def != null ? def.navCost : 0f;
+        if (Current == null) return 0f;
+        var def = Current.ActingAt(x, y, agent);
+        if (def == null) return 0f;
+        // On its own team's terrain only the hindrance counts (a slow or slippery tile).
+        return Current.HurtsAt(x, y, agent) ? def.navCost : Hinders(def) ? Mathf.Min(def.navCost, 3f) : 0f;
     }
 
     /// True when that terrain would hurt or hinder this Pokémon enough to be avoided.
     public static bool Harmful(TerrainDef def, Combatant c) => def != null && def.navCost >= HazardCost && !Immune(c, def);
+
+    /// That terrain slows its walkers or makes them slide (what still acts on the owner's team-mates).
+    public static bool Hinders(TerrainDef def) => def != null && (def.speedMul < 0.8f || def.slideAccel > 0f);
 
     /// True when the tile under a point is worth avoiding for this agent.
     public static bool Hazard(Vector2 world, Combatant agent)
@@ -492,7 +543,7 @@ public class Terrain : MonoBehaviour
         if (def == null) return false;
         if (def.regenShare > 0f && HasType(c.Stats, def.regenTypes)) return true;
         if (!string.IsNullOrEmpty(def.cures) && c.HasStatus(def.cures)) return true;
-        return def.navCost >= HazardCost && SparedAt(x, y, c);
+        return def.navCost >= HazardCost && !HurtsAt(x, y, c) && !Hinders(ActingAt(x, y, c));
     }
 
     /// Centre of the nearest refuge tile within maxDistance tiles, or null.
@@ -534,19 +585,23 @@ public class Terrain : MonoBehaviour
             if (c == null || !c.IsAlive) continue;
             var def = Affecting(c);
             if (def == null) { nextTick.Remove(c); continue; }
+            var cell = grid.CellOf(c.transform.position);
+            bool hurts = HurtsAt(cell.x, cell.y, c); // the owner's team-mates only feel the ground, not the attack
             if (!string.IsNullOrEmpty(def.cures) && c.HasStatus(def.cures)) c.RemoveStatus(def.cures);
-            if (!string.IsNullOrEmpty(def.status) && def.statusChance > 0f && !c.HasStatus(def.status)
+            if (hurts && !string.IsNullOrEmpty(def.status) && def.statusChance > 0f && !c.HasStatus(def.status)
                 && UnityEngine.Random.value < 1f - Mathf.Pow(1f - def.statusChance, Time.fixedDeltaTime))
             {
                 var status = StatusLibrary.Get(def.status);
-                if (status != null) c.AddStatus(def.status, status.duration);
+                if (status != null) c.AddStatus(def.status, def.statusDuration > 0f ? def.statusDuration : status.duration);
             }
             bool regen = def.regenShare > 0f && HasType(c.Stats, def.regenTypes) && c.hp < c.maxHp;
-            if (def.damageShare <= 0f && !regen) { nextTick.Remove(c); continue; }
+            bool attack = hurts && (def.damageShare > 0f || def.stun > 0f);
+            if (!attack && !regen) { nextTick.Remove(c); continue; }
             if (!nextTick.TryGetValue(c, out float at)) nextTick[c] = at = Time.time + Tick;
             if (Time.time < at) continue;
             nextTick[c] = Time.time + Tick;
-            if (def.damageShare > 0f) c.TakeFixedDamage(c.maxHp * def.damageShare * Tick);
+            if (hurts && def.damageShare > 0f) c.TakeFixedDamage(c.maxHp * def.damageShare * Tick);
+            if (hurts && def.stun > 0f) c.Stun(def.stun);
             if (regen) c.Heal(c.maxHp * def.regenShare * Tick);
         }
     }
@@ -558,22 +613,86 @@ public class Terrain : MonoBehaviour
         for (int i = 0; i < kind.Length; i++)
         {
             var def = kind[i];
-            if (def == null) { pixels[i] = default; continue; }
+            if (def == null) { pixels[i] = default; HideTile(i); continue; }
             float left = until[i] - Time.time;
             if (left <= 0f)
             {
                 kind[i] = null;
                 pixels[i] = default;
+                HideTile(i);
                 continue;
             }
             live++;
+            float fade = Mathf.Clamp01(left / Mathf.Min(FadeTime, length[i]));
+            if (def.sheet != null)
+            {
+                pixels[i] = default;
+                DrawTile(i, def, fade);
+                continue;
+            }
+            HideTile(i);
             var c = def.flickers ? Color.Lerp(def.tint, def.flicker, Mathf.PingPong(Time.time * def.flickerRate * 2f, 1f)) : def.tint;
-            c.a *= Mathf.Clamp01(left / Mathf.Min(FadeTime, length[i]));
+            c.a *= fade;
             pixels[i] = c;
         }
         dirty = live > 0 || active > 0; // one more frame to clear the last tiles
         active = live;
         texture.SetPixels32(pixels);
         texture.Apply();
+    }
+
+    // A cell drawn with its terrain's sheet (the variant on every other cell, mixed by position so the pattern
+    // does not repeat): every cell of a terrain plays the same frame.
+    void DrawTile(int i, TerrainDef def, float fade)
+    {
+        var tile = tiles[i];
+        if (tile == null)
+        {
+            if (tileRoot == null)
+            {
+                tileRoot = new GameObject("Tiles").transform;
+                tileRoot.SetParent(transform.parent, false);
+            }
+            int x = i % size, y = i / size;
+            var go = new GameObject("Tile");
+            go.transform.SetParent(tileRoot, false);
+            go.transform.position = grid.CentreOf(x, y);
+            Vector2 step = grid.CentreOf(1, 1) - grid.CentreOf(0, 0);
+            go.transform.localScale = new Vector3(step.x, step.y, 1f);
+            tiles[i] = tile = go.AddComponent<SpriteRenderer>();
+            tile.sortingLayerID = sortingLayer;
+            tile.sortingOrder = sortingOrder;
+        }
+        int x0 = i % size, y0 = i / size;
+        var sheet = ((x0 * 7 + y0 * 13) % 3 == 0) ? def.variant : def.sheet;
+        // Sides opening onto the floor or another terrain get the element's border.
+        int sides = (KindAt(x0, y0 + 1) != def ? TerrainEdges.North : 0) | (KindAt(x0 + 1, y0) != def ? TerrainEdges.East : 0)
+            | (KindAt(x0, y0 - 1) != def ? TerrainEdges.South : 0) | (KindAt(x0 - 1, y0) != def ? TerrainEdges.West : 0);
+        tile.sprite = TerrainEdges.Frame(sheet, FrameAt(sheet), sides, def, (x0 * 5 + y0 * 11) % TerrainEdges.Variations);
+        var c = def.flickers ? Color.Lerp(Color.white, def.flicker, 0.5f * Mathf.PingPong(Time.time * def.flickerRate * 2f, 1f)) : Color.white;
+        c.a = def.spriteAlpha * fade;
+        tile.color = c;
+        tile.enabled = true;
+    }
+
+    static int FrameAt(EffectLibrary.Sheet sheet)
+    {
+        var durations = sheet.frame_duration_ms;
+        if (durations == null || durations.Length == 0) return 0;
+        int total = 0;
+        for (int f = 0; f < sheet.frame_count; f++) total += durations[Mathf.Min(f, durations.Length - 1)];
+        if (total <= 0) return 0;
+        int t = (int)(Time.time * 1000f) % total;
+        for (int f = 0; f < sheet.frame_count; f++)
+        {
+            t -= durations[Mathf.Min(f, durations.Length - 1)];
+            if (t < 0) return f;
+        }
+        return sheet.frame_count - 1;
+    }
+
+    void HideTile(int i)
+    {
+        if (tiles[i] != null) tiles[i].enabled = false;
     }
 }
