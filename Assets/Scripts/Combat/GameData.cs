@@ -83,6 +83,13 @@ public class MoveDef
     public float delayedHit; // melee dash: the opponents passed through are hit this many seconds after the dash ends (0: at once)
     public bool lungeThrough; // melee dash that goes through opponents instead of being stopped by them
     public float areaRadius; // zone "each": only the opponents within this many tiles of the user (all when omitted)
+    public float boltInterval, boltRadius; // zone: a bolt strikes a random spot inside every boltInterval seconds, hitting within boltRadius
+    public int lineCount; // zone: that many zones laid in a line from the user toward the aim, one after the other
+    public float lineStart, lineSpacing, lineDelay; // tiles to the first one, tiles between two, seconds between two
+    public string useModStat; // bonus or penalty the user gets as soon as the move goes off
+    public float useModValue, useModDuration;
+    public int orbitCount; // projectile: stones circling the user (they stop enemy shots), then launched one by one at the aim
+    public float orbitRadius, orbitTime, orbitInterval; // tiles, seconds circling, seconds between two launches
     public bool rootUntilHit; // zone: opponents caught in it when it appears cannot move until the first hit
     public float firstTick; // zone: seconds before the first hit (0.6 when omitted)
     public float castTime; // projectile: seconds the user stands still, aim locked, before the shots leave

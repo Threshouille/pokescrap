@@ -16,11 +16,13 @@ public class Zone : MonoBehaviour
     float dieAt;
     float damage; // raw, per tick; 0 for zones that only carry a status
     float nextTick;
+    float nextBolt;
 
     void OnEnable() => active.Add(this);
     void OnDisable() => active.Remove(this);
 
-    public static void Spawn(Combatant owner, MoveDef move, Vector2 centre)
+    /// delay: seconds added before the first hit and to the zone's life (zones laid one after the other).
+    public static void Spawn(Combatant owner, MoveDef move, Vector2 centre, float delay = 0f)
     {
         var go = new GameObject(move.name);
         go.transform.position = centre;
@@ -45,9 +47,10 @@ public class Zone : MonoBehaviour
         zone.team = owner.team;
         zone.owner = owner;
         zone.move = move;
-        zone.dieAt = Time.time + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
+        zone.dieAt = Time.time + delay + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
+        zone.nextBolt = Time.time + delay;
         zone.damage = owner.DamageOf(move);
-        float firstTick = move.firstTick > 0f ? move.firstTick : FirstTick;
+        float firstTick = delay + (move.firstTick > 0f ? move.firstTick : FirstTick);
         zone.nextTick = Time.time + firstTick;
         // Opponents caught in it are frozen (Hurt animation) until the first hit.
         if (move.rootUntilHit)
@@ -94,6 +97,27 @@ public class Zone : MonoBehaviour
         if (Time.time >= dieAt)
         {
             Destroy(gameObject);
+            return;
+        }
+        // Bolts striking random spots inside (they replace the regular hits).
+        if (move.boltInterval > 0f)
+        {
+            while (Time.time >= nextBolt)
+            {
+                nextBolt += move.boltInterval;
+                Vector2 spot = (Vector2)transform.position + Random.insideUnitCircle * move.radius;
+                EffectPlayer.Spawn(move.impactEffect, spot, Vector2.right, null, 0f, move.boltRadius * 2f);
+                foreach (var other in Physics2D.OverlapCircleAll(spot, move.boltRadius))
+                {
+                    var target = other.GetComponentInParent<Combatant>();
+                    if (target == null || target.team == team || !target.IsAlive) continue;
+                    if (target.TakeHit(damage, move, out float dealt))
+                    {
+                        target.ApplyEffects(move, false, owner);
+                        if (owner != null) owner.HitLanded(move, dealt);
+                    }
+                }
+            }
             return;
         }
         bool tick = damage > 0f && Time.time >= nextTick;

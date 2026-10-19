@@ -559,7 +559,7 @@ public class Combatant : MonoBehaviour
         if (direction == Vector2.zero) return false;
         readyAt[slot] = Time.time + CooldownOf(move);
         direction = Steer(direction.normalized);
-        if ((move.family == "projectile" || move.family == "melee") && move.castTime > 0f)
+        if ((move.family == "projectile" || move.family == "melee" || move.family == "zone") && move.castTime > 0f)
         {
             // The move goes off once the cast is over, toward where the player aims then.
             castMove = move;
@@ -568,15 +568,36 @@ public class Combatant : MonoBehaviour
             castUntil = Time.time + move.castTime;
         }
         else if (move.family == "projectile") Shoot(move, direction, distance);
-        else if (move.family == "zone")
-        {
-            if (distance <= 0f && AimTarget != null && AimTarget.IsAlive)
-                distance = Vector2.Distance(transform.position, AimTarget.transform.position);
-            float reach = distance > 0f ? Mathf.Min(distance, move.range) : move.range;
-            Zone.Spawn(this, move, (Vector2)transform.position + direction * reach);
-        }
+        else if (move.family == "zone") PlaceZone(move, direction, distance);
         else if (move.family == "melee") Melee(move, direction);
+        if (move.castTime <= 0f) UseModifier(move);
         return true;
+    }
+
+    // A zone: on the user (target "self"), in a line of zones laid one after the other, or where it is aimed.
+    void PlaceZone(MoveDef move, Vector2 direction, float distance)
+    {
+        if (move.target == "self")
+        {
+            Zone.Spawn(this, move, transform.position);
+            return;
+        }
+        if (move.lineCount > 0)
+        {
+            for (int i = 0; i < move.lineCount; i++)
+                Zone.Spawn(this, move, (Vector2)transform.position + direction * (move.lineStart + i * move.lineSpacing), i * move.lineDelay);
+            return;
+        }
+        if (distance <= 0f && AimTarget != null && AimTarget.IsAlive)
+            distance = Vector2.Distance(transform.position, AimTarget.transform.position);
+        float reach = distance > 0f ? Mathf.Min(distance, move.range) : move.range;
+        Zone.Spawn(this, move, (Vector2)transform.position + direction * reach);
+    }
+
+    // useModStat: bonus or penalty for the user as soon as the move goes off (Draco Météor lowers its attack).
+    void UseModifier(MoveDef move)
+    {
+        if (!string.IsNullOrEmpty(move.useModStat)) AddModifier(move.useModStat, move.useModValue, move.useModDuration);
     }
 
     // A melee move: blink forward first if it teleports, then a dash (hits along the way) or one or more strikes.
@@ -813,8 +834,34 @@ public class Combatant : MonoBehaviour
 
     // A projectile move fires at once, or first dashes (where the user is moving, else toward the aim) and fires
     // from its flanks at the end, toward the opponent targeted now.
+    Vector2 orbitAim; // direction an AI gave when it called its stones (Pouv. Antique)
+
+    /// One stone of OrbitStones leaving from where it circles: toward the player's target (led), else the player's
+    /// aim, else the direction the move was used in.
+    public void FireStone(MoveDef move, Vector2 from)
+    {
+        Vector2 direction = LiveAim != Vector2.zero ? LiveAim : orbitAim;
+        if (AimTarget != null && AimTarget.IsAlive)
+        {
+            Vector2 at = AimTarget.transform.position;
+            Vector2 velocity = AimTarget.body != null ? AimTarget.body.linearVelocity : Vector2.zero;
+            float speed = Mathf.Max(0.1f, move.speed * projectileSpeedMul);
+            Vector2 aimed = at;
+            for (int i = 0; i < 3; i++) aimed = at + velocity * (Vector2.Distance(from, aimed) / speed);
+            if ((aimed - from).sqrMagnitude > 0.0001f) direction = (aimed - from).normalized;
+        }
+        if (direction == Vector2.zero) direction = Vector2.right;
+        Projectile.Spawn(this, move, direction.normalized, 0, 0f, -1f, 0f, from);
+    }
+
     void Shoot(MoveDef move, Vector2 direction, float distance)
     {
+        if (move.orbitCount > 0)
+        {
+            orbitAim = direction;
+            OrbitStones.Start(this, move);
+            return;
+        }
         if (move.lunge <= 0f || body == null)
         {
             FireProjectiles(move, direction, distance);
@@ -916,7 +963,9 @@ public class Combatant : MonoBehaviour
         {
             var aim = LiveAim != Vector2.zero ? Steer(LiveAim.normalized) : castDirection;
             if (CanAttack && castMove.family == "melee") Melee(castMove, aim);
+            else if (CanAttack && castMove.family == "zone") PlaceZone(castMove, aim, castDistance);
             else if (CanAttack) Shoot(castMove, aim, castDistance);
+            if (CanAttack) UseModifier(castMove);
             castMove = null;
         }
 
