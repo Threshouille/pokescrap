@@ -32,8 +32,9 @@ SPRITES = ROOT / "Assets/Sprites/Pokemon"
 PORTRAITS = ROOT / "Assets/Resources/Portraits"
 ANIMSETS = ROOT / "Assets/Resources/AnimSets"
 TILESETS = ROOT / "Assets/Tilesets"
+OBSTACLE_TILES = ROOT / "Assets/Resources/ObstacleTiles"
 # Folders whose content comes from the ROM (only their .meta files are versioned).
-GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
+GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
 # ScriptableObjects rebuilt by Unity: a placeholder keeps their GUID until the Build menus fill them.
 PLACEHOLDERS = {ANIMSETS: "Assets/Scripts/Pmd/PmdAnimSet.cs", TILESETS: "Assets/Scripts/Dungeon/DungeonTileset.cs"}
 
@@ -106,6 +107,15 @@ def restore_tilesets():
     step("Dungeon tilesets")
     ids = [int(d.name) for d in sorted(TILESETS.iterdir()) if d.is_dir() and d.name.isdigit()]
     run(python(), "-I", PMD / "extract_tileset.py", ROM, TILESETS, *ids)
+
+
+def restore_obstacle_tiles():
+    """Water, lava and void of the obstacles: the secondary layer of the ROM tilesets named in obstacles.json."""
+    step("Obstacle tilesets (water, lava, void)")
+    data = json.loads((ROOT / "Assets/Resources/Data/obstacles.json").read_text(encoding="utf-8"))
+    ids = sorted({o["tileset"] for o in data["obstacles"] if o.get("tileset", -1) >= 0})
+    if ids:
+        run(python(), "-I", PMD / "extract_tileset.py", ROM, OBSTACLE_TILES, *ids)
 
 
 def script_guid(script):
@@ -227,6 +237,7 @@ def main():
     extract(args.force)
     restore_pokemon()
     restore_tilesets()
+    restore_obstacle_tiles()
     placeholders()
     missing = missing_assets()
     if missing:

@@ -1,16 +1,16 @@
 {
-  "comment": "Obstacles of the arena (Obstacles.cs): lasting features of the ground, unlike terrain. solid: blocks everyone and every shot (a wall); fall: a Pokémon whose centre gets in (pushed, sliding, dashing) falls, unless its movementType is in passTypes (ROM: 2 float, 3 through walls, 4 lava, 5 swim), and comes back to the last safe tile, losing fallDamage of its max HP (+ fallStatus). Walking never takes anyone in: the controllers stop at the edge. speedMul / slideAccel: like terrains, for walkable obstacles. holdsTerrain: terrain may lie on it (electrified water). shotsPass: projectiles fly over it (true unless solid). color: provisional look. interactions: a move of type 'byType' (ROM type id) hitting the obstacle 'on' turns it into 'becomes' ('' removes it), for 'duration' seconds then back to 'on' (0: for good); path: also along the flight of a projectile (an ice beam freezing a river); radius: tiles around the hit; paintTerrain: instead, paints that terrain on the whole connected obstacle for 'duration' seconds; leaves: terrain painted where the obstacle was removed.",
+  "comment": "Obstacles of the arena (Obstacles.cs): lasting features of the ground, unlike terrain. solid: blocks everyone and every shot (a wall); fall: a Pokémon whose centre gets in (pushed, sliding, dashing) falls, unless its movementType is in passTypes (ROM: 2 float, 3 through walls, 4 lava, 5 swim), and comes back to the last safe tile, losing fallDamage of its max HP (+ fallStatus). Walking never takes anyone in: the controllers stop at the edge. speedMul / slideAccel: like terrains, for walkable obstacles. holdsTerrain: terrain may lie on it (electrified water). shotsPass: projectiles fly over it (true unless solid). tileset: ROM dungeon tileset whose secondary layer (water, lava or void, with PMD's own banks) draws it, extracted by Tools/setup.py into Assets/Resources/ObstacleTiles; otherwise the hand-made sheet obstacle_<key> of Resources/Effects (overlay: drawn over what it covers, like a bridge over the void); color: fallback look when neither exists. interactions: a move of type 'byType' (ROM type id) hitting the obstacle 'on' turns it into 'becomes' ('' removes it), for 'duration' seconds then back to 'on' (0: for good); path: also along the flight of a projectile (an ice beam freezing a river); radius: tiles around the hit; paintTerrain: instead, paints that terrain on the whole connected obstacle for 'duration' seconds; leaves: terrain painted where the obstacle was removed.",
   "obstacles": [
-    {"key": "water", "name": "Eau profonde", "fall": true, "passTypes": [2, 3, 5], "fallDamage": 0.1, "holdsTerrain": true, "color": "#1f5fbf"},
-    {"key": "lava", "name": "Lave", "fall": true, "passTypes": [2, 3, 4], "fallDamage": 0.25, "fallStatus": "burn", "color": "#e0481c"},
-    {"key": "void", "name": "Vide", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "color": "#0b0b14"},
-    {"key": "frozen", "name": "Surface gelée", "slideAccel": 2, "color": "#bfe6ff"},
-    {"key": "ice_floor", "name": "Glace épaisse", "slideAccel": 2, "color": "#d8f2ff"},
-    {"key": "lily", "name": "Végétation flottante", "speedMul": 0.7, "color": "#4f9a3a"},
+    {"key": "water", "tileset": 5, "name": "Eau profonde", "fall": true, "passTypes": [2, 3, 5], "fallDamage": 0.1, "holdsTerrain": true, "color": "#1f5fbf"},
+    {"key": "lava", "tileset": 57, "name": "Lave", "fall": true, "passTypes": [2, 3, 4], "fallDamage": 0.25, "fallStatus": "burn", "color": "#e0481c"},
+    {"key": "void", "tileset": 54, "name": "Vide", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "color": "#0b0b14"},
+    {"key": "frozen", "tileset": 71, "name": "Surface gelée", "slideAccel": 2, "color": "#bfe6ff"},
+    {"key": "ice_floor", "tileset": 71, "name": "Glace épaisse", "slideAccel": 2, "color": "#d8f2ff"},
+    {"key": "lily", "overlay": true, "name": "Végétation flottante", "speedMul": 0.7, "color": "#4f9a3a"},
     {"key": "rock", "name": "Roche refroidie", "color": "#4a3a36"},
-    {"key": "bridge", "name": "Pont", "color": "#9a6a3a"},
-    {"key": "burnt_bridge", "name": "Pont brûlé", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "color": "#2c2420"},
-    {"key": "vine_bridge", "name": "Pont de lianes", "speedMul": 0.8, "color": "#3f8f2f"},
+    {"key": "bridge", "overlay": true, "name": "Pont", "color": "#9a6a3a"},
+    {"key": "burnt_bridge", "overlay": true, "name": "Pont brûlé", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "color": "#2c2420"},
+    {"key": "vine_bridge", "overlay": true, "name": "Pont de lianes", "speedMul": 0.8, "color": "#3f8f2f"},
     {"key": "ice_wall", "name": "Mur de glace", "solid": true, "color": "#e6f8ff"}
   ],
   "interactions": [

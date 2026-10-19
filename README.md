@@ -88,7 +88,11 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
 
 Depuis le terrain de test, l'**escalier en haut à droite** mène à la **salle des obstacles** (l'escalier en bas à
 gauche ramène). Chaque visite tire 2 ou 3 obstacles au hasard (**R** ou **Select** : nouveau tirage) : vide avec
-ponts, rivière, rivière glacée, lac, lac de lave, lac de glace, murs de glace. Visuels provisoires (cases de couleur).
+ponts, rivière, rivière glacée, lac, lac de lave, lac de glace, murs de glace. L'eau, la lave, le vide et la glace
+reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
+ponts, végétation, roche refroidie et murs de glace attendent leurs planches Claude Design (`Design/prompt_obstacles.md`),
+cases de couleur en attendant (pont : marron, pont brûlé : gris très foncé, lianes et végétation : vert, roche : brun
+sombre, mur de glace : blanc).
 
 - On ne marche jamais dedans par erreur : le déplacement s'arrête au bord. Mais une poussée, une glissade ou une ruée
   peuvent y faire **tomber** : retour sur la terre ferme la plus proche et dégâts (eau 10 %, vide 20 %, lave 25 % +
@@ -147,6 +151,7 @@ assets par ce GUID. Le dépôt sépare donc les deux :
 | Versionné (Git) | Ignoré (`.gitignore`), régénéré par `Tools/setup.py` |
 |---|---|
 | tous les `.meta` | `Assets/Sprites/Pokemon/*/*.png`, `AnimData.xml` |
+| | `Assets/Resources/ObstacleTiles/*/chunks.png`, `tileset.json` (eau, lave, vide des obstacles) |
 | `Assets/Sprites/Pokemon/<Nom>/id.txt` (liste des Pokémon du projet) | `Assets/Resources/Portraits/*.png` |
 | code, scènes, réglages, `Tools/` | `Assets/Resources/AnimSets/*.asset` |
 | données écrites à la main (`realtime_moves.json`, `meta.json`, `statuses.json`, `upgrades.json`, `type_chart.json`) | `Assets/Tilesets/*/chunks.png`, `tileset.json`, `Tileset.asset` |

@@ -17,8 +17,60 @@ public class ObstacleDef
     public float speedMul = 1f;
     public float slideAccel; // tiles/s² to change speed (slippery ground), 0 = instant
     public bool holdsTerrain; // terrain may lie on it (electrified water)
-    public string color = "#ffffff"; // provisional look
+    public int tileset = -1; // ROM tileset whose secondary layer draws it (Resources/ObstacleTiles/<id>)
+    public bool overlay; // lies over what was there (bridge over the void, plants on water), drawn on top of it
+    public string color = "#ffffff"; // fallback look, when neither the ROM tiles nor a hand-made sheet exist
     [NonSerialized] public Color32 tint;
+    [NonSerialized] public EffectLibrary.Sheet sheet; // hand-made look: obstacle_<key> in Resources/Effects
+    public bool Bridge => key != null && key.Contains("bridge");
+}
+
+/// The secondary layer (water, lava or void) of a ROM dungeon tileset, with PMD's banks: the chunk of a tile
+/// depends on which of its 8 neighbours are of the same kind, like the arena's walls and floor.
+public class RomObstacleTiles
+{
+    [Serializable] class Layout { public int chunkSize = 24, columns = 16, padding; public int[] water; }
+
+    readonly Texture2D texture;
+    readonly Layout layout;
+    readonly Dictionary<int, Sprite> sprites = new();
+
+    RomObstacleTiles(Texture2D texture, Layout layout)
+    {
+        this.texture = texture;
+        this.layout = layout;
+    }
+
+    static readonly Dictionary<int, RomObstacleTiles> loaded = new();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Reset() => loaded.Clear();
+
+    /// Null when the tileset was not extracted (Tools/setup.py).
+    public static RomObstacleTiles Get(int id)
+    {
+        if (id < 0) return null;
+        if (loaded.TryGetValue(id, out var found)) return found;
+        var texture = Resources.Load<Texture2D>($"ObstacleTiles/{id:000}/chunks");
+        var json = Resources.Load<TextAsset>($"ObstacleTiles/{id:000}/tileset");
+        found = texture != null && json != null ? new RomObstacleTiles(texture, JsonUtility.FromJson<Layout>(json.text)) : null;
+        if (found != null && (found.layout.water == null || found.layout.water.Length < 256 * 3)) found = null;
+        loaded[id] = found;
+        return found;
+    }
+
+    /// Mask bits (neighbour of the same kind): S=1 SE=2 E=4 NE=8 N=16 NW=32 W=64 SW=128; variation 0 to 2.
+    public Sprite Tile(int mask, int variation)
+    {
+        int chunk = layout.water[mask * 3 + variation];
+        if (sprites.TryGetValue(chunk, out var sprite) && sprite != null) return sprite;
+        int size = layout.chunkSize, cell = size + 2 * layout.padding;
+        var rect = new Rect(chunk % layout.columns * cell + layout.padding,
+            texture.height - (chunk / layout.columns + 1) * cell + layout.padding, size, size);
+        sprite = Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f), size, 0, SpriteMeshType.FullRect);
+        sprites[chunk] = sprite;
+        return sprite;
+    }
 }
 
 /// A move of type "byType" hitting obstacle "on": it turns into "becomes" ("" removes it) for "duration" seconds
@@ -61,6 +113,11 @@ public class Obstacles : MonoBehaviour
     int size;
     ObstacleDef[] kind;
     ObstacleDef[] revertTo; // what a temporary change turns back into
+    ObstacleDef[] under; // what a bridge (or another hand-drawn obstacle) spans: drawn beneath it
+    SpriteRenderer[] baseTiles, topTiles; // ROM layer, then hand-made sheet, per tile (made when first needed)
+    readonly List<int> animated = new(); // tiles whose hand-made sheet has several frames
+    Transform tileRoot;
+    int sortingLayer, sortingOrder;
     float[] revertAt;
     readonly Dictionary<int, GameObject> solids = new(); // colliders of the solid tiles
     readonly Dictionary<Combatant, Vector2> lastSafe = new();
@@ -88,6 +145,7 @@ public class Obstacles : MonoBehaviour
         foreach (var d in file.obstacles ?? new ObstacleDef[0])
         {
             d.tint = ColorUtility.TryParseHtmlString(d.color, out var c) ? c : Color.white;
+            d.sheet = EffectLibrary.Get("obstacle_" + d.key);
             defs[d.key] = d;
         }
         interactions.AddRange(file.interactions ?? new ObstacleInteraction[0]);
@@ -114,6 +172,12 @@ public class Obstacles : MonoBehaviour
         kind = new ObstacleDef[size * size];
         revertTo = new ObstacleDef[size * size];
         revertAt = new float[size * size];
+        under = new ObstacleDef[size * size];
+        if (tileRoot != null) Destroy(tileRoot.gameObject);
+        tileRoot = null;
+        baseTiles = new SpriteRenderer[size * size];
+        topTiles = new SpriteRenderer[size * size];
+        animated.Clear();
         foreach (var solid in solids.Values)
             if (solid != null) Destroy(solid);
         solids.Clear();
@@ -134,6 +198,8 @@ public class Obstacles : MonoBehaviour
                 renderer.sortingLayerID = floor.sortingLayerID;
                 renderer.sortingOrder = floor.sortingOrder + 1; // over the floor, under the terrain
             }
+            sortingLayer = renderer.sortingLayerID;
+            sortingOrder = renderer.sortingOrder;
         }
         Vector2 origin = arena.CentreOf(0, 0), step = arena.CentreOf(1, 1) - origin;
         transform.position = origin - step / 2f;
@@ -172,6 +238,9 @@ public class Obstacles : MonoBehaviour
             revertAt[i] = 0f;
             revertTo[i] = null;
         }
+        // A hand-drawn obstacle laid over a ROM-drawn one (a bridge over the void) keeps it drawn underneath.
+        if (def == null || !def.overlay) under[i] = null;
+        else if (old != null && old.tileset >= 0) under[i] = old;
         kind[i] = def;
         if (old == null && def != null) count++;
         else if (old != null && def == null) count--;
@@ -400,11 +469,100 @@ public class Obstacles : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!dirty || texture == null) return;
-        dirty = false;
-        for (int i = 0; i < kind.Length; i++) pixels[i] = kind[i] != null ? kind[i].tint : default;
-        texture.SetPixels32(pixels);
-        texture.Apply();
+        if (texture == null) return;
+        if (dirty)
+        {
+            dirty = false;
+            animated.Clear();
+            for (int i = 0; i < kind.Length; i++) pixels[i] = Draw(i) ? default : kind[i] != null ? kind[i].tint : default;
+            texture.SetPixels32(pixels);
+            texture.Apply();
+        }
+        foreach (int i in animated)
+            if (topTiles[i] != null && kind[i]?.sheet != null) topTiles[i].sprite = kind[i].sheet.Frame(FrameAt(kind[i].sheet));
+    }
+
+    // Draws tile i with sprites (ROM layer underneath, hand-made sheet on top); false when it has neither and the
+    // flat colour of the texture stands in.
+    bool Draw(int i)
+    {
+        var def = kind[i];
+        var floorKind = def == null ? null : def.tileset >= 0 ? def : under[i];
+        var rom = floorKind != null ? RomObstacleTiles.Get(floorKind.tileset) : null;
+        var sheet = def?.sheet;
+        int x = i % size, y = i / size;
+        Show(baseTiles, i, rom != null ? rom.Tile(Mask(x, y, floorKind), (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0) : null, 0, 0f);
+        float angle = def != null && def.Bridge && !SpansNorthSouth(x, y) ? 90f : 0f;
+        Show(topTiles, i, sheet?.Frame(FrameAt(sheet)), 1, angle);
+        if (sheet != null && sheet.frame_count > 1) animated.Add(i);
+        return def != null && (rom != null || sheet != null);
+    }
+
+    void Show(SpriteRenderer[] layer, int i, Sprite sprite, int above, float angle)
+    {
+        var tile = layer[i];
+        if (sprite == null)
+        {
+            if (tile != null) tile.enabled = false;
+            return;
+        }
+        if (tile == null)
+        {
+            if (tileRoot == null) tileRoot = new GameObject("Tuiles d'obstacles").transform;
+            var go = new GameObject("Tuile");
+            go.transform.SetParent(tileRoot, false);
+            go.transform.position = grid.CentreOf(i % size, i / size);
+            Vector2 step = grid.CentreOf(1, 1) - grid.CentreOf(0, 0);
+            go.transform.localScale = new Vector3(step.x, step.y, 1f);
+            layer[i] = tile = go.AddComponent<SpriteRenderer>();
+            tile.sortingLayerID = sortingLayer;
+            tile.sortingOrder = sortingOrder + above;
+        }
+        tile.sprite = sprite;
+        tile.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        tile.enabled = true;
+    }
+
+    static readonly Vector2Int[] Neighbours =
+    {
+        new(0, -1), new(1, -1), new(1, 0), new(1, 1), new(0, 1), new(-1, 1), new(-1, 0), new(-1, -1),
+    };
+
+    // PMD bank mask: neighbours drawn with the same ROM layer (a bridge counts as what it spans), and the walls
+    // around the arena, so a band reaching them has no bank there.
+    int Mask(int x, int y, ObstacleDef floorKind)
+    {
+        int mask = 0;
+        for (int n = 0; n < Neighbours.Length; n++)
+        {
+            int nx = x + Neighbours[n].x, ny = y + Neighbours[n].y;
+            bool same = !grid.Walkable(nx, ny) || (Inside(nx, ny) && (kind[ny * size + nx] == floorKind || under[ny * size + nx] == floorKind));
+            if (same) mask |= 1 << n;
+        }
+        return mask;
+    }
+
+    // A bridge spans north-south when what it crosses lies east and west of it.
+    bool SpansNorthSouth(int x, int y)
+    {
+        bool Gap(int cx, int cy) => Inside(cx, cy) && (kind[cy * size + cx] is { fall: true } || under[cy * size + cx] != null && kind[cy * size + cx] is { } k && !k.Bridge);
+        return Gap(x + 1, y) || Gap(x - 1, y);
+    }
+
+    static int FrameAt(EffectLibrary.Sheet sheet)
+    {
+        var durations = sheet.frame_duration_ms;
+        if (sheet.frame_count <= 1 || durations == null || durations.Length == 0) return 0;
+        int total = 0;
+        for (int f = 0; f < sheet.frame_count; f++) total += durations[Mathf.Min(f, durations.Length - 1)];
+        if (total <= 0) return 0;
+        int t = (int)(Time.time * 1000f) % total;
+        for (int f = 0; f < sheet.frame_count; f++)
+        {
+            t -= durations[Mathf.Min(f, durations.Length - 1)];
+            if (t < 0) return f;
+        }
+        return sheet.frame_count - 1;
     }
 
     // ---- Generation (dev sandbox's obstacle room) ------------------------------------------------------------

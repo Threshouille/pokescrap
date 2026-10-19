@@ -35,7 +35,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Passage selon le type de déplacement de la ROM (nage, lave, lévitation, traverse-murs). On s'arrête au bord en marchant ; poussé, glissant ou en ruée, on tombe : retour sur la terre ferme la plus proche (le dernier point sûr s'il l'est encore : une glace a pu fondre entre-temps) et dégâts (eau 10 %, vide 20 %, lave 25 % + brûlure), puis 1 s d'invincibilité ; K.O. sur la rive si la chute prend ses derniers PV (19/10/2026, Robin).
 - Interactions selon le type de l'attaque : Glace gèle l'eau (8 s) et refroidit la lave ; Plante végétalise l'eau (10 s) et reconstruit un pont brûlé ; Électrik électrifie toute l'eau ; Feu fait fondre glace et murs de glace, brûle ponts et végétation ; Eau refroidit la lave (pour de bon).
 - Salle : 2 ou 3 obstacles tirés au hasard à chaque visite (vide avec ponts, rivière, rivière glacée, lacs d'eau, de lave ou de glace, murs de glace), jamais de quoi couper la salle en deux.
-- Visuels : couches secondaires des décors de la ROM pour l'eau, la lave et le vide ; Claude Design pour ponts, murs de glace, surfaces gelées. Provisoirement : cases de couleur.
+- Visuels : couches secondaires des décors de la ROM avec leurs berges (eau : décor 5, vide : 54, lave : 57, glace : 71) ; Claude Design pour ponts (intact, brûlé, de lianes), végétation, roche refroidie, murs de glace (`Design/prompt_obstacles.md`), cases de couleur en attendant.
 
 ### Outils de test
 - Terrain de test (19/10/2026) : depuis le menu en `devMode` (Select / T), arène ouverte où des émetteurs entretiennent chaque terrain et deux démonstrations d'affinités, sans ennemis (vagues en boucle en option), rien de recruté ni compté.

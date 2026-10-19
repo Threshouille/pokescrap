@@ -255,7 +255,7 @@ public class Terrain : MonoBehaviour
             if (floor != null)
             {
                 renderer.sortingLayerID = floor.sortingLayerID;
-                renderer.sortingOrder = floor.sortingOrder + 2; // over the floor and the obstacles, under zones and Pokémon
+                renderer.sortingOrder = floor.sortingOrder + 3; // over the floor and the obstacles (2 layers), under zones and Pokémon
             }
             sortingLayer = renderer.sortingLayerID;
             sortingOrder = renderer.sortingOrder;
