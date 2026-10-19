@@ -835,7 +835,7 @@ public class Combatant : MonoBehaviour
                 Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, delay, distance,
                     (volley * shots + i) * move.rangeStep);
             }
-        if (move.burstRoot) recoverUntil = Mathf.Max(recoverUntil, Time.time + (Mathf.Max(1, move.burst) - 1) * move.burstInterval);
+        if (move.burstRoot) recoverUntil = Mathf.Max(recoverUntil, Time.time + (Mathf.Max(1, move.burst) - 1) * move.burstInterval + move.recovery);
     }
 
     // The player's shots go toward the aimed target, leading it (where it will be when the shot arrives); arc shots

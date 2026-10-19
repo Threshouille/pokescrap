@@ -60,7 +60,7 @@ public class MoveDef
     public float pathPeriod; // tiles travelled per cycle (wave, zigzag, orbit)
     public int burst; // projectile: volleys fired one after the other (1 when omitted)
     public float burstInterval; // seconds between two volleys
-    public bool burstRoot; // projectile: the user can neither move nor attack until the last volley has left
+    public bool burstRoot; // projectile: the user can neither move nor attack until the last volley has left (recovery adds to it)
     public float hold; // projectile after a dash: seconds the shots wait in place before leaving toward the opponent targeted at the start
     public float jitter; // degrees: random deviation of each shot, either side
     public float growth; // size multiplier reached at the end of the flight (unchanged when omitted)
