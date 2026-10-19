@@ -124,7 +124,7 @@ def placeholders():
                 "  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n"
                 "  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 0}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n"
                 f"  m_Script: {{fileID: 11500000, guid: {guid}, type: 3}}\n  m_Name: {asset.stem}\n"
-                "  m_EditorClassIdentifier: \n")
+                f"  m_EditorClassIdentifier: Assembly-CSharp::{Path(script).stem}\n")
             count += 1
     print(f"{count} created")
 

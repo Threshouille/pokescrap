@@ -7,7 +7,7 @@ Dernière mise à jour : 17/10/2026 (types, chiffres de dégâts, évolution man
 - Owen écrit en français ; réponses courtes, économie de tokens (voir `CLAUDE.md`).
 - **Avant toute nouvelle tâche, présenter un plan détaillé et attendre son accord** (Pokémon, attaques, valeurs, comportements, ce qui est provisoire, questions ouvertes). Ne pas coder dans le même tour. Signaler explicitement tout écart au plan validé.
 - Il aime être contredit quand c'est justifié : donner un avis argumenté, pas seulement exécuter.
-- Après chaque tâche : tester dans Unity (unityMCP), mettre à jour GDD / ROADMAP / CLAUDE.md, committer (Git local, **jamais de dépôt distant public** : des assets tirés de la ROM sont versionnés).
+- Après chaque tâche : tester dans Unity (unityMCP), mettre à jour GDD / ROADMAP / CLAUDE.md, committer ; dépôt public GitHub sans contenu de la ROM (voir `README.md` et `.gitignore`).
 - Effets visuels : je rédige un prompt pour Claude Design (contraintes : pixel art strict, 24 px = 1 case, une ligne d'images orientée vers la droite, `effects.json`), Owen dépose l'archive `.zip` à la racine, je l'extrais dans `Design/effects_vN/`, je contrôle (tailles, alpha 0/255, ≤ 6 couleurs), je fusionne dans `Assets/Resources/Effects/`.
 
 ## Où en est le projet
