@@ -1,14 +1,23 @@
 {
-  "comment": "Obstacle room of the dev sandbox (stairs at the north edge of the terrain sandbox, R to draw again). Each visit draws 'features' different kinds among 'pool' (weight: how often). chasm / river: a band 'width' tiles wide across the arena, wandering a little, with 'bridges' crossings (river: 'fordKind' tiles instead of bridges when set); lake: a blob of 'kind' of size S, M or L (radius in tiles); ice_walls: 'count' short walls. Nothing is placed within 'spawnClear' tiles of the centre or the stairs, and a layout that cuts the room in two is drawn again.",
+  "comment": "Obstacle room of the dev sandbox (stairs at the north edge of the terrain sandbox, R to draw again). Each visit draws 'features' different kinds among 'pool' (weight: how often). chasm / river: a band 'width' tiles wide across the arena, wandering a little, over 'coverage' of the width (1 = wall to wall, the default), with 'bridges' crossings (river: 'fordKind' tiles instead of bridges when set); lake: a blob of 'kind' of size S, M or L (radius in tiles); ice_walls: 'count' short walls. island: land of radius 'sizes' ringed by 'width' tiles of 'kind', reached by 'bridges' straight bridges. Bands are placed first; bridges sit where a band runs straight. Nothing is placed within 'spawnClear' tiles of the centre or 'stairsClear' of the stairs; 'separate': obstacles that never touch (at least 'gap' tiles of floor between them); a layout that cuts the room in two is drawn again.",
   "features": [2, 3],
   "spawnClear": 4,
+  "stairsClear": 2,
+  "separate": [
+    {"a": "water", "b": "lava", "gap": 1},
+    {"a": "ice_floor", "b": "lava", "gap": 1}
+  ],
   "pool": [
-    {"type": "chasm", "weight": 2, "kind": "void", "width": 2, "bridges": [2, 3], "bridgeKind": "bridge"},
+    {"type": "chasm", "weight": 1, "kind": "void", "width": 2, "bridges": [2, 3], "bridgeKind": "bridge", "comment": "vide d'un mur à l'autre"},
+    {"type": "chasm", "weight": 2, "kind": "void", "width": 2, "coverage": [0.4, 0.8], "bridges": [0, 1], "bridgeKind": "bridge", "comment": "ravin sur une partie de la salle, à contourner"},
+    {"type": "lake", "weight": 2, "kind": "void", "sizes": [1, 2, 3], "comment": "gouffre"},
     {"type": "river", "weight": 2, "kind": "water", "width": 2, "bridges": [1, 2], "bridgeKind": "bridge"},
     {"type": "river", "weight": 1, "kind": "ice_floor", "width": 2, "bridges": [0, 0], "comment": "rivière glacée"},
     {"type": "lake", "weight": 2, "kind": "water", "sizes": [2, 3, 4]},
     {"type": "lake", "weight": 2, "kind": "lava", "sizes": [2, 3, 4]},
     {"type": "lake", "weight": 1, "kind": "ice_floor", "sizes": [2, 3, 4], "comment": "lac de glace"},
+    {"type": "island", "weight": 1, "kind": "void", "sizes": [2, 3], "width": 2, "bridges": [2, 3], "bridgeKind": "bridge", "comment": "île au-dessus du vide"},
+    {"type": "island", "weight": 1, "kind": "water", "sizes": [2, 3], "width": 2, "bridges": [2, 2], "bridgeKind": "bridge", "comment": "île au milieu de l'eau"},
     {"type": "ice_walls", "weight": 1, "count": [2, 4]}
   ]
 }

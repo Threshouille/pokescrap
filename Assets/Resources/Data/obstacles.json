@@ -1,16 +1,17 @@
 {
-  "comment": "Obstacles of the arena (Obstacles.cs): lasting features of the ground, unlike terrain. solid: blocks everyone and every shot (a wall); fall: a Pokémon whose centre gets in (pushed, sliding, dashing) falls, unless its movementType is in passTypes (ROM: 2 float, 3 through walls, 4 lava, 5 swim), and comes back to the last safe tile, losing fallDamage of its max HP (+ fallStatus). Walking never takes anyone in: the controllers stop at the edge. speedMul / slideAccel: like terrains, for walkable obstacles. holdsTerrain: terrain may lie on it (electrified water). shotsPass: projectiles fly over it (true unless solid). tileset: ROM dungeon tileset whose secondary layer (water, lava or void, with PMD's own banks) draws it, extracted by Tools/setup.py into Assets/Resources/ObstacleTiles; otherwise the hand-made sheet obstacle_<key> of Resources/Effects (overlay: drawn over what it covers, like a bridge over the void); color: fallback look when neither exists. interactions: a move of type 'byType' (ROM type id) hitting the obstacle 'on' turns it into 'becomes' ('' removes it), for 'duration' seconds then back to 'on' (0: for good); path: also along the flight of a projectile (an ice beam freezing a river); radius: tiles around the hit; paintTerrain: instead, paints that terrain on the whole connected obstacle for 'duration' seconds; leaves: terrain painted where the obstacle was removed.",
+  "comment": "Obstacles of the arena (Obstacles.cs): lasting features of the ground, unlike terrain. solid: blocks everyone and every shot (a wall); fall: a Pokémon whose centre gets in (pushed, sliding, dashing) falls, unless its movementType is in passTypes (ROM: 2 float, 3 through walls, 4 lava, 5 swim), and comes back to the last safe tile, losing fallDamage of its max HP (+ fallStatus). Walking never takes anyone in: the controllers stop at the edge. speedMul / slideAccel: like terrains, for walkable obstacles. holdsTerrain: terrain may lie on it (electrified water). shotsPass: projectiles fly over it (true unless solid). tileset: ROM dungeon tileset whose secondary layer (water, lava or void, with PMD's own banks) draws it, extracted by Tools/setup.py into Assets/Resources/ObstacleTiles; otherwise the hand-made sheet obstacle_<key> of Resources/Effects (overlay: drawn over what it covers, like a bridge over the void); color: fallback look when neither exists. interactions: a move of type 'byType' (ROM type id) hitting the obstacle 'on', or terrain 'byTerrain' laid on it or on a tile next to it, turns it into 'becomes' ('' removes it), for 'duration' seconds then back to 'on' (0: for good); path: also along the flight of a projectile (an ice beam freezing a river); spread: the change then runs along the connected tiles of 'on' and of 'spreadOver', spreadDelay seconds a tile; radius: tiles around the hit; paintTerrain: instead, paints that terrain on the whole connected obstacle for 'duration' seconds; leaves: terrain painted where the obstacle was removed. decaysTo / decayTime: what an obstacle becomes by itself after that many seconds (a burning bridge burns out); planks, flatAlpha: provisional look.",
   "obstacles": [
     {"key": "water", "tileset": 5, "name": "Eau profonde", "fall": true, "passTypes": [2, 3, 5], "fallDamage": 0.1, "holdsTerrain": true, "color": "#1f5fbf"},
     {"key": "lava", "tileset": 57, "name": "Lave", "fall": true, "passTypes": [2, 3, 4], "fallDamage": 0.25, "fallStatus": "burn", "color": "#e0481c"},
     {"key": "void", "tileset": 54, "name": "Vide", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "color": "#0b0b14"},
-    {"key": "frozen", "tileset": 71, "name": "Surface gelée", "slideAccel": 2, "color": "#bfe6ff"},
-    {"key": "ice_floor", "tileset": 71, "name": "Glace épaisse", "slideAccel": 2, "color": "#d8f2ff"},
+    {"key": "frozen", "tileset": 111, "name": "Surface gelée", "slideAccel": 2, "color": "#bfe6ff"},
+    {"key": "ice_floor", "tileset": 111, "name": "Glace épaisse", "slideAccel": 2, "color": "#d8f2ff"},
     {"key": "lily", "overlay": true, "name": "Végétation flottante", "speedMul": 0.7, "color": "#4f9a3a"},
     {"key": "rock", "name": "Roche refroidie", "color": "#4a3a36"},
-    {"key": "bridge", "overlay": true, "name": "Pont", "color": "#9a6a3a"},
-    {"key": "burnt_bridge", "overlay": true, "name": "Pont brûlé", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "color": "#2c2420"},
-    {"key": "vine_bridge", "overlay": true, "name": "Pont de lianes", "speedMul": 0.8, "color": "#3f8f2f"},
+    {"key": "bridge", "overlay": true, "name": "Pont", "color": "#f08a24", "planks": true},
+    {"key": "burning_bridge", "overlay": true, "name": "Pont en feu", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "fallStatus": "burn", "decaysTo": "burnt_bridge", "decayTime": 2.5, "color": "#ff3a1a", "flatAlpha": 0.5},
+    {"key": "burnt_bridge", "overlay": true, "name": "Pont brûlé", "fall": true, "passTypes": [2, 3], "fallDamage": 0.2, "color": "#9a9a9a", "flatAlpha": 0.45},
+    {"key": "vine_bridge", "overlay": true, "name": "Pont de lianes", "speedMul": 0.8, "color": "#6ad84a", "flatAlpha": 0.45},
     {"key": "ice_wall", "name": "Mur de glace", "solid": true, "color": "#e6f8ff"}
   ],
   "interactions": [
@@ -22,9 +23,22 @@
     {"on": "lily", "byType": 2, "becomes": "water", "radius": 1, "comment": "la végétation brûle"},
     {"on": "lava", "byType": 3, "becomes": "rock", "radius": 0.9, "comment": "l'eau refroidit la lave en roche, pour de bon"},
     {"on": "lava", "byType": 6, "becomes": "rock", "radius": 0.9, "path": true},
-    {"on": "bridge", "byType": 2, "becomes": "burnt_bridge", "radius": 0.8, "comment": "le pont brûle, il reste les poutres"},
-    {"on": "vine_bridge", "byType": 2, "becomes": "burnt_bridge", "radius": 0.8},
-    {"on": "burnt_bridge", "byType": 4, "becomes": "vine_bridge", "radius": 1.2, "comment": "une attaque Plante reconstruit le pont en lianes"},
-    {"on": "ice_wall", "byType": 2, "becomes": "", "leaves": "water", "radius": 0.8, "comment": "le mur de glace fond en flaque"}
+    {"on": "bridge", "byType": 2, "becomes": "burning_bridge", "radius": 0.8, "comment": "le pont prend feu de proche en proche, puis brûle (pont brûlé)", "spread": true, "spreadDelay": 0.25, "spreadOver": ["bridge", "vine_bridge"]},
+    {"on": "vine_bridge", "byType": 2, "becomes": "burning_bridge", "radius": 0.8, "spread": true, "spreadDelay": 0.25, "spreadOver": ["bridge", "vine_bridge"], "comment": "le pont prend feu de proche en proche, puis brûle (pont brûlé)"},
+    {"on": "burnt_bridge", "byType": 4, "becomes": "vine_bridge", "radius": 1.2, "comment": "une attaque Plante reconstruit tout le pont brûlé en lianes", "spread": true, "spreadDelay": 0.12},
+    {"on": "ice_wall", "byType": 2, "becomes": "", "leaves": "water", "radius": 0.8, "comment": "le mur de glace fond en flaque"},
+    {"on": "water", "byTerrain": "electric", "paintTerrain": "electrified", "duration": 3, "comment": "sol chargé au contact de l'eau : toute l'eau s'électrifie"},
+    {"on": "water", "byTerrain": "brambles", "becomes": "lily", "duration": 10, "comment": "ronces au contact de l'eau : la végétation l'envahit"},
+    {"on": "water", "byTerrain": "ice", "becomes": "frozen", "duration": 8, "spread": true, "spreadDelay": 0.08, "comment": "verglas au contact de l'eau : elle gèle de proche en proche"},
+    {"on": "water", "byTerrain": "toxic", "paintTerrain": "toxic", "duration": 5, "comment": "poison au contact de l'eau : toute l'eau est contaminée"},
+    {"on": "bridge", "byTerrain": "embers", "becomes": "burning_bridge", "spread": true, "spreadDelay": 0.25, "spreadOver": ["bridge", "vine_bridge"], "comment": "des braises sur un pont y mettent le feu"},
+    {"on": "vine_bridge", "byTerrain": "embers", "becomes": "burning_bridge", "spread": true, "spreadDelay": 0.25, "spreadOver": ["bridge", "vine_bridge"]},
+    {"on": "burnt_bridge", "byTerrain": "brambles", "becomes": "vine_bridge", "spread": true, "spreadDelay": 0.12, "comment": "des ronces sur un pont brûlé le reconstruisent"},
+    {"on": "lily", "byTerrain": "embers", "becomes": "water"},
+    {"on": "frozen", "byTerrain": "embers", "becomes": "water"},
+    {"on": "ice_floor", "byTerrain": "embers", "becomes": "water"},
+    {"on": "ice_wall", "byTerrain": "embers", "becomes": "", "leaves": "water"},
+    {"on": "lava", "byTerrain": "water", "becomes": "rock", "comment": "une flaque au contact de la lave la refroidit"},
+    {"on": "lava", "byTerrain": "ice", "becomes": "rock"}
   ]
 }

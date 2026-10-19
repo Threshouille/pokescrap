@@ -442,6 +442,8 @@ public class Terrain : MonoBehaviour
             active++;
         }
         dirty = true;
+        // Terrain touching an obstacle may change it (after the tile is set: the change may repaint it).
+        if (def != null && duration > 0f) Obstacles.OnTerrain(i % size, i / size, def.key, by);
     }
 
     static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)

@@ -88,21 +88,24 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
 
 Depuis le terrain de test, l'**escalier en haut à droite** mène à la **salle des obstacles** (l'escalier en bas à
 gauche ramène). Chaque visite tire 2 ou 3 obstacles au hasard (**R** ou **Select** : nouveau tirage) : vide avec
-ponts, rivière, rivière glacée, lac, lac de lave, lac de glace, murs de glace. L'eau, la lave, le vide et la glace
+ponts (d'un mur à l'autre), ravin (sur une partie de la salle), gouffre, rivière, rivière glacée, lac, lac de lave,
+lac de glace, île entourée de vide ou d'eau, murs de glace. Les rivières vont d'un mur à l'autre, les ponts sont
+droits ; l'eau et la lave ne se touchent jamais. L'eau, la lave, le vide et la glace
 reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
 ponts, végétation, roche refroidie et murs de glace attendent leurs planches Claude Design (`Design/prompt_obstacles.md`),
-cases de couleur en attendant (pont : marron, pont brûlé : gris très foncé, lianes et végétation : vert, roche : brun
-sombre, mur de glace : blanc).
+tuiles provisoires en attendant (pont : planches orange vif, pont brûlé : une planche sur deux, lianes : vert vif,
+végétation : vert, roche : brun sombre, mur de glace : blanc).
 
 - On ne marche jamais dedans par erreur : le déplacement s'arrête au bord. Mais une poussée, une glissade ou une ruée
   peuvent y faire **tomber** : retour sur la terre ferme la plus proche et dégâts (eau 10 %, vide 20 %, lave 25 % +
   brûlure), puis 1 s d'invincibilité ; si la chute prend ses derniers PV, le Pokémon est K.O. sur la rive.
 - Les types de déplacement de la ROM comptent : les nageurs traversent l'eau, les marcheurs de lave la lave, ceux qui
   lévitent ou traversent les murs passent au-dessus de tout. Les tirs passent au-dessus, sauf les murs de glace.
-- Interactions (type de l'attaque) : Glace gèle l'eau 8 s (un rayon de glace trace un pont) et refroidit la lave ;
-  Plante couvre l'eau de végétation 10 s et reconstruit un pont brûlé en lianes ; Électrik électrifie toute l'eau ;
-  Feu fait fondre la glace (ceux qui sont dessus tombent), brûle les ponts et la végétation, fait fondre les murs de
-  glace ; Eau refroidit la lave en roche, pour de bon.
+- Interactions, par le type de l'attaque **ou par une trace de terrain posée sur l'obstacle ou juste à côté** :
+  Glace gèle l'eau 8 s (un rayon de glace trace un pont) et refroidit la lave ; Plante couvre l'eau de végétation 10 s
+  et reconstruit un pont brûlé en lianes ; Électrik électrifie toute l'eau ; Poison la contamine ; Feu fait fondre la
+  glace (ceux qui sont dessus tombent), brûle la végétation, fait fondre les murs de glace et **met le feu aux ponts** :
+  le feu gagne tout le pont (rouge, bloqué), qui finit brûlé (gris, bloqué) ; Eau refroidit la lave en roche.
 
 Réglages : `Assets/Resources/Data/obstacles.json` (obstacles, chutes, interactions) et `obstacle_room.json` (tirage).
 
