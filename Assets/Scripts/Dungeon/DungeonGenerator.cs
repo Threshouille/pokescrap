@@ -32,6 +32,9 @@ public class DungeonGenerator : MonoBehaviour
 
     public int Size => size;
 
+    /// Tiles of the arena inside its outer walls.
+    public RectInt Interior => new(margin, margin, arenaSize, arenaSize);
+
     bool[,] open;
     int size;
     readonly Dictionary<(int, bool), Tile> tiles = new();
@@ -68,6 +71,7 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         Draw(rng);
+        Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
 
         if (player != null)

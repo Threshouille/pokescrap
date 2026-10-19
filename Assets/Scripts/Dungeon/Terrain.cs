@@ -255,7 +255,7 @@ public class Terrain : MonoBehaviour
             if (floor != null)
             {
                 renderer.sortingLayerID = floor.sortingLayerID;
-                renderer.sortingOrder = floor.sortingOrder + 1; // over the floor, under zones and Pokémon
+                renderer.sortingOrder = floor.sortingOrder + 2; // over the floor and the obstacles, under zones and Pokémon
             }
             sortingLayer = renderer.sortingLayerID;
             sortingOrder = renderer.sortingOrder;
@@ -272,14 +272,35 @@ public class Terrain : MonoBehaviour
     // ---- Painting -------------------------------------------------------------------------------------------
 
     // "caster": the Pokémon using the move, spared by the terrain it leaves.
-    public static void OnTrail(MoveDef move, Vector2 from, Vector2 to, Combatant caster) => PaintLine(move, "trail", from, to, caster);
-    public static void OnDash(MoveDef move, Vector2 at, Combatant caster) => PaintDisc(move, "dash", at, -1f, caster);
-    public static void OnImpact(MoveDef move, Vector2 at, Combatant caster) => PaintDisc(move, "impact", at, -1f, caster);
-    public static void OnAround(MoveDef move, Vector2 at, Combatant caster) => PaintDisc(move, "around", at, -1f, caster);
+    // Each also lets the move act on the obstacles it reaches (Obstacles: ice freezing water, fire burning a bridge).
+    public static void OnTrail(MoveDef move, Vector2 from, Vector2 to, Combatant caster)
+    {
+        Obstacles.OnPath(move, from, to, caster);
+        PaintLine(move, "trail", from, to, caster);
+    }
+
+    public static void OnDash(MoveDef move, Vector2 at, Combatant caster)
+    {
+        Obstacles.OnHit(move, at, 0.4f, caster);
+        PaintDisc(move, "dash", at, -1f, caster);
+    }
+
+    public static void OnImpact(MoveDef move, Vector2 at, Combatant caster)
+    {
+        Obstacles.OnHit(move, at, -1f, caster);
+        PaintDisc(move, "impact", at, -1f, caster);
+    }
+
+    public static void OnAround(MoveDef move, Vector2 at, Combatant caster)
+    {
+        Obstacles.OnHit(move, at, move.radius, caster);
+        PaintDisc(move, "around", at, -1f, caster);
+    }
 
     /// A melee hit area: a line for a thrust, the area itself for the others.
     public static void OnStrike(MoveDef move, string shape, Vector2 at, Vector2 direction, float reach, Combatant caster)
     {
+        Obstacles.OnHit(move, shape == "around" ? at : at + direction * reach / 2f, Mathf.Max(0.5f, reach / 2f), caster);
         var t = Of(move);
         if (t == null || t.shape != "strike") return;
         switch (shape)
@@ -297,6 +318,15 @@ public class Terrain : MonoBehaviour
         var def = Def(key);
         if (Current == null || def == null) return;
         Current.Paint(def, duration, centre, centre, radius, caster);
+    }
+
+    /// Paints a terrain on the given tiles (a whole obstacle: electrified water), whatever lies there.
+    public static void PaintCells(List<(int x, int y)> cells, string key, float duration, Combatant caster)
+    {
+        var def = Def(key);
+        if (Current == null || def == null) return;
+        foreach (var (x, y) in cells)
+            if (x >= 0 && y >= 0 && x < Current.size && y < Current.size) Current.Set(y * Current.size + x, def, duration, caster);
     }
 
     /// Makes the tiles of a disc that still hold that terrain last "duration" more seconds from now; tiles where
@@ -352,6 +382,7 @@ public class Terrain : MonoBehaviour
     // A tile reached by a move: reacts with what is already there, possibly spreading over the connected area.
     void Hit(int x, int y, TerrainDef def, float duration, Combatant caster)
     {
+        if (Obstacles.RejectsTerrain(x, y)) return; // no puddle on lava or in the void
         int i = y * size + x;
         var old = Live(i);
         if (old == null || !reactions.TryGetValue((old.key, def.key), out var r))

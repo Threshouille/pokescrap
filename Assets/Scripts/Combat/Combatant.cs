@@ -390,12 +390,14 @@ public class Combatant : MonoBehaviour
     public void RemoveStatus(string status) => statuses.RemoveAll(st => st.def.key == status);
 
     /// Walking velocity wanted by a controller: the terrain under the Pokémon slows or speeds it up, and on a
-    /// slippery one (ice) the body only gets there gradually, so it slides.
+    /// slippery one (ice) the body only gets there gradually, so it slides. Walking stops at the edge of the
+    /// obstacles it cannot enter (Obstacles.Clamp); a slide, a push or a dash may still carry it in.
     public void Drive(Vector2 velocity)
     {
         if (body == null) return;
-        velocity *= Terrain.SpeedMul(this);
-        float accel = Terrain.SlideAccel(this);
+        velocity = Obstacles.Clamp(this, body.position, velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this));
+        float accel = Terrain.SlideAccel(this), ground = Obstacles.SlideAccel(this);
+        if (ground > 0f) accel = accel > 0f ? Mathf.Min(accel, ground) : ground;
         body.linearVelocity = accel > 0f ? Vector2.MoveTowards(body.linearVelocity, velocity, accel * Time.fixedDeltaTime) : velocity;
     }
 
@@ -1046,7 +1048,7 @@ public class Combatant : MonoBehaviour
     {
         dealt = 0f;
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
-        if (team == Team.Player && Time.time < invulnerableUntil) return false;
+        if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = move.category == "physical" ? def : spDef;
@@ -1121,6 +1123,9 @@ public class Combatant : MonoBehaviour
         foreach (var collider in GetComponents<Collider2D>()) collider.enabled = false;
         if (body != null) body.simulated = false;
     }
+
+    /// Ignores hits for a few seconds, whatever the team (back on its feet after a fall); half transparent meanwhile.
+    public void Protect(float seconds) => invulnerableUntil = Mathf.Max(invulnerableUntil, Time.time + seconds);
 
     /// Brings a knocked-out team member back with a share of its max HP, briefly protected.
     public void Revive(float healthShare)

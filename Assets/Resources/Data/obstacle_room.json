@@ -1,0 +1,14 @@
+{
+  "comment": "Obstacle room of the dev sandbox (stairs at the north edge of the terrain sandbox, R to draw again). Each visit draws 'features' different kinds among 'pool' (weight: how often). chasm / river: a band 'width' tiles wide across the arena, wandering a little, with 'bridges' crossings (river: 'fordKind' tiles instead of bridges when set); lake: a blob of 'kind' of size S, M or L (radius in tiles); ice_walls: 'count' short walls. Nothing is placed within 'spawnClear' tiles of the centre or the stairs, and a layout that cuts the room in two is drawn again.",
+  "features": [2, 3],
+  "spawnClear": 4,
+  "pool": [
+    {"type": "chasm", "weight": 2, "kind": "void", "width": 2, "bridges": [2, 3], "bridgeKind": "bridge"},
+    {"type": "river", "weight": 2, "kind": "water", "width": 2, "bridges": [1, 2], "bridgeKind": "bridge"},
+    {"type": "river", "weight": 1, "kind": "ice_floor", "width": 2, "bridges": [0, 0], "comment": "rivière glacée"},
+    {"type": "lake", "weight": 2, "kind": "water", "sizes": [2, 3, 4]},
+    {"type": "lake", "weight": 2, "kind": "lava", "sizes": [2, 3, 4]},
+    {"type": "lake", "weight": 1, "kind": "ice_floor", "sizes": [2, 3, 4], "comment": "lac de glace"},
+    {"type": "ice_walls", "weight": 1, "count": [2, 4]}
+  ]
+}

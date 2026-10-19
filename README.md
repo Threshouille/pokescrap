@@ -84,6 +84,24 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   de ronces incendié toutes les 7 s. Pas d'ennemis par défaut (`"enemyWaves": true` pour faire tourner en boucle les
   vagues de la première étape et voir l'IA réagir). Rien n'est recruté ni compté. Disposition et réglages : `Assets/Resources/Data/terrain_sandbox.json`.
 
+## Obstacles (salle de test)
+
+Depuis le terrain de test, l'**escalier en haut à droite** mène à la **salle des obstacles** (l'escalier en bas à
+gauche ramène). Chaque visite tire 2 ou 3 obstacles au hasard (**R** ou **Select** : nouveau tirage) : vide avec
+ponts, rivière, rivière glacée, lac, lac de lave, lac de glace, murs de glace. Visuels provisoires (cases de couleur).
+
+- On ne marche jamais dedans par erreur : le déplacement s'arrête au bord. Mais une poussée, une glissade ou une ruée
+  peuvent y faire **tomber** : retour sur la terre ferme la plus proche et dégâts (eau 10 %, vide 20 %, lave 25 % +
+  brûlure), puis 1 s d'invincibilité ; si la chute prend ses derniers PV, le Pokémon est K.O. sur la rive.
+- Les types de déplacement de la ROM comptent : les nageurs traversent l'eau, les marcheurs de lave la lave, ceux qui
+  lévitent ou traversent les murs passent au-dessus de tout. Les tirs passent au-dessus, sauf les murs de glace.
+- Interactions (type de l'attaque) : Glace gèle l'eau 8 s (un rayon de glace trace un pont) et refroidit la lave ;
+  Plante couvre l'eau de végétation 10 s et reconstruit un pont brûlé en lianes ; Électrik électrifie toute l'eau ;
+  Feu fait fondre la glace (ceux qui sont dessus tombent), brûle les ponts et la végétation, fait fondre les murs de
+  glace ; Eau refroidit la lave en roche, pour de bon.
+
+Réglages : `Assets/Resources/Data/obstacles.json` (obstacles, chutes, interactions) et `obstacle_room.json` (tirage).
+
 ## Effets de terrain
 
 Certaines attaques laissent une trace au sol, case par case, qui agit sur **tous** les Pokémon qui marchent dessus

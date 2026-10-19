@@ -70,6 +70,7 @@ public class Navigator
         {
             var point = Vector2.Lerp(from, to, length > 0f ? d / length : 0f);
             if (Zone.Inside(point, team, AgentRadius) || Terrain.Hazard(point, agent)) return false;
+            if (Obstacles.BlocksAt(point, agent)) return false;
         }
         return !Zone.Inside(to, team, AgentRadius);
     }
@@ -107,9 +108,10 @@ public class Navigator
             foreach (var step in Steps)
             {
                 int nx = x + step.x, ny = y + step.y;
-                if (!grid.Walkable(nx, ny)) continue;
+                if (!grid.Walkable(nx, ny) || Obstacles.Blocks(nx, ny, agent)) continue;
                 // No cutting through the corner of a wall.
-                if (step.x != 0 && step.y != 0 && (!grid.Walkable(nx, y) || !grid.Walkable(x, ny))) continue;
+                if (step.x != 0 && step.y != 0 && (!grid.Walkable(nx, y) || !grid.Walkable(x, ny)
+                    || Obstacles.Blocks(nx, y, agent) || Obstacles.Blocks(x, ny, agent))) continue;
                 int next = ny * size + nx;
                 if (stamp[next] == search && closed[next]) continue;
 
