@@ -678,7 +678,7 @@ public class Combatant : MonoBehaviour
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move) * factor, move, out float dealt))
             {
-                target.Stun(StunOf(move));
+                if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
                 if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
@@ -741,6 +741,13 @@ public class Combatant : MonoBehaviour
         dodgeDirection = direction.normalized;
         dodgeUntil = Time.time + settings.dodgeTime;
         dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown);
+        PassThroughOpponents();
+        return true;
+    }
+
+    // Collisions with the opponents are ignored until EndDodge (dodges, dashes going through).
+    void PassThroughOpponents()
+    {
         Team opponents = team == Team.Player ? Team.Enemy : Team.Player;
         var mine = GetComponents<Collider2D>();
         foreach (var other in all)
@@ -752,7 +759,6 @@ public class Combatant : MonoBehaviour
                 dodgeIgnored.Add(theirs);
             }
         }
-        return true;
     }
 
     void EndDodge()
@@ -775,6 +781,7 @@ public class Combatant : MonoBehaviour
         lungeBouncing = false;
         lungeFinishPending = move.finishRadius > 0f;
         lungeStrikePending = move.strikeAfterLunge;
+        if (move.lungeThrough) PassThroughOpponents();
         // Trail just behind the attacker, following it for the length of the dash.
         EffectPlayer.Spawn(move.family == "melee" ? move.effect : move.trailEffect, transform.position - (Vector3)(direction * 0.5f), direction, transform, LungeTime(move));
     }
@@ -913,7 +920,7 @@ public class Combatant : MonoBehaviour
             body.linearVelocity = dodgeDirection * settings.dodgeDistance / settings.dodgeTime;
             return;
         }
-        if (dodgeIgnored.Count > 0) EndDodge();
+        if (dodgeIgnored.Count > 0 && !(IsLunging && lungeMove.lungeThrough)) EndDodge();
 
         // During a dash the attacker is pushed forward and hits each opponent it reaches once; it may end with a
         // strike around it, or bounce back off the first one it hits.
@@ -999,7 +1006,7 @@ public class Combatant : MonoBehaviour
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move), move, out float dealt))
             {
-                target.Stun(StunOf(move));
+                if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 // A dash pushes what it hits (a bouncing dash pushes its target when it bounces).
                 if (move.knockback > 0f && move.bounceBack <= 0f)
                     target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));

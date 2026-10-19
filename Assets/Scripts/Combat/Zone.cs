@@ -43,7 +43,7 @@ public class Zone : MonoBehaviour
         zone.move = move;
         zone.dieAt = Time.time + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
         zone.damage = owner.DamageOf(move);
-        zone.nextTick = Time.time + FirstTick;
+        zone.nextTick = Time.time + (move.firstTick > 0f ? move.firstTick : FirstTick);
     }
 
     /// True when the point lies in a zone that is harmful to the given team (margin widens the zones).
@@ -83,7 +83,11 @@ public class Zone : MonoBehaviour
             return;
         }
         bool tick = damage > 0f && Time.time >= nextTick;
-        if (tick) nextTick += TickInterval;
+        if (tick)
+        {
+            nextTick += TickInterval;
+            EffectPlayer.Spawn(move.impactEffect, transform.position, Vector2.right, null, 0f, move.radius * 2f);
+        }
         foreach (var other in Physics2D.OverlapCircleAll(transform.position, move.radius))
         {
             var target = other.GetComponentInParent<Combatant>();

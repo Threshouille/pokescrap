@@ -21,6 +21,7 @@ public class Projectile : MonoBehaviour
     float range; // tiles the path covers (arc: up to the landing point)
     float side; // +1 / -1: which way a curve bends, where an orbit starts
     float delay; // seconds before the shot leaves (bursts)
+    float age; // seconds in flight (pulse)
     Vector2 aimAtSpawn; // the shooter's live aim when the shot was created (zero for an AI)
     float hold; // seconds left waiting in place, harmless (move.hold)
     Combatant lockedTarget; // a waiting shot leaves toward it
@@ -173,9 +174,11 @@ public class Projectile : MonoBehaviour
             done = travelled >= range;
         }
 
-        if (move.growth > 0f)
+        if (move.growth > 0f || move.pulse > 0f)
         {
-            float grown = Mathf.Lerp(1f, move.growth, Mathf.Clamp01(travelled / range));
+            float grown = move.growth > 0f ? Mathf.Lerp(1f, move.growth, Mathf.Clamp01(travelled / range)) : 1f;
+            age += dt;
+            if (move.pulse > 0f) grown *= 1f + move.pulse * Mathf.Sin(2f * Mathf.PI * age / (move.pulsePeriod > 0f ? move.pulsePeriod : 1f));
             radius = baseRadius * grown;
             transform.localScale = baseScale * grown;
         }
@@ -235,6 +238,8 @@ public class Projectile : MonoBehaviour
     // Homing: turns toward the nearest opponent in front of it.
     void Steer(float dt)
     {
+        // A player's shot homes in on the aimed target.
+        if (owner != null && owner.AimTarget != null && owner.AimTarget.IsAlive) homingTarget = owner.AimTarget;
         if (homingTarget == null || !homingTarget.IsAlive)
         {
             homingTarget = null;
@@ -325,6 +330,7 @@ public class Projectile : MonoBehaviour
     void Strike(Combatant target)
     {
         if (!target.TakeHit(damage, move, out float dealt)) return;
+        if (move.stun > 0f && (move.stunChance <= 0f || Random.value < move.stunChance)) target.Stun(move.stun);
         target.ApplyEffects(move, false, owner);
         if (owner != null) owner.HitLanded(move, dealt);
     }
