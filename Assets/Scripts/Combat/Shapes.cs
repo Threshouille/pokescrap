@@ -129,6 +129,41 @@ public static class Shapes
         Object.Destroy(go, 0.35f);
     }
 
+    /// Ring on the ground showing the reach of an area move, fading out over "duration" seconds.
+    public static void AreaRing(Vector3 position, float radius, Color color, float duration)
+    {
+        var go = new GameObject("AreaRing");
+        go.transform.position = position;
+        go.transform.localScale = Vector3.one * radius * 2f;
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = ThinRing;
+        color.a = 0.7f;
+        renderer.color = color;
+        renderer.sortingOrder = 0; // on the ground, under the Pokémon
+        go.AddComponent<FadeOut>().duration = duration;
+    }
+
+    // Large ring with a fine line, for areas several tiles wide.
+    static Sprite ThinRing
+    {
+        get
+        {
+            if (thinRing != null) return thinRing;
+            const int size = 96;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+            float r = size / 2f;
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++)
+                {
+                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(r, r));
+                    tex.SetPixel(x, y, d <= r && d >= r - 2f ? Color.white : Color.clear);
+                }
+            tex.Apply();
+            return thinRing = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        }
+    }
+    static Sprite thinRing;
+
     /// Thin ring (target marker), white to be tinted.
     public static Sprite Ring
     {

@@ -26,7 +26,11 @@ public class Zone : MonoBehaviour
         go.transform.position = centre;
 
         // Without a sprite sheet the zone falls back to a translucent disc in the colour of its type.
-        if (!EffectPlayer.Attach(go, move.effect, Vector2.right))
+        if (EffectPlayer.Attach(go, move.effect, Vector2.right))
+        {
+            if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
+        }
+        else
         {
             go.transform.localScale = Vector3.one * move.radius * 2f;
             var renderer = go.AddComponent<SpriteRenderer>();
@@ -43,7 +47,15 @@ public class Zone : MonoBehaviour
         zone.move = move;
         zone.dieAt = Time.time + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
         zone.damage = owner.DamageOf(move);
-        zone.nextTick = Time.time + FirstTick;
+        float firstTick = move.firstTick > 0f ? move.firstTick : FirstTick;
+        zone.nextTick = Time.time + firstTick;
+        // Opponents caught in it are frozen (Hurt animation) until the first hit.
+        if (move.rootUntilHit)
+            foreach (var other in Physics2D.OverlapCircleAll(centre, move.radius))
+            {
+                var target = other.GetComponentInParent<Combatant>();
+                if (target != null && target.team != owner.team && target.IsAlive) target.Stun(firstTick);
+            }
         Terrain.OnImpact(move, centre, owner);
         Terrain.OnAround(move, centre, owner);
     }
@@ -85,7 +97,11 @@ public class Zone : MonoBehaviour
             return;
         }
         bool tick = damage > 0f && Time.time >= nextTick;
-        if (tick) nextTick += TickInterval;
+        if (tick)
+        {
+            nextTick += TickInterval;
+            EffectPlayer.Spawn(move.impactEffect, transform.position, Vector2.right, null, 0f, move.radius * 2f);
+        }
         foreach (var other in Physics2D.OverlapCircleAll(transform.position, move.radius))
         {
             var target = other.GetComponentInParent<Combatant>();
