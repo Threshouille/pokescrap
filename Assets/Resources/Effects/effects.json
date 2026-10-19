@@ -1510,10 +1510,10 @@
       "frame_height": 16,
       "frame_count": 4,
       "frame_duration_ms": [
-        30,
-        35,
         40,
-        45
+        50,
+        60,
+        60
       ],
       "loop": false,
       "palette": [
