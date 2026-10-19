@@ -34,7 +34,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Attaques de type (décidées le 19/10/2026) : une attaque par type un cran au-dessus des attaques de base (recharge de 4 à 8 s, mécanique propre), faites par lots :
   - Normal **Plaquage** : bond de 3 cases sur la cible, intouchable en l'air, dégâts en zone à l'atterrissage, 30 % de paralysie.
   - Feu **Lance-Flamme** : jet de flammes en cône tant que le bouton est enfoncé (3 s maximum), lanceur ralenti, visée qui suit la cible.
-  - Eau **Vibraqua** : anneau d'eau lent à tête chercheuse, qui grossit et rétrécit, traverse les ennemis ; confusion 20 %.
+  - Eau **Vibraqua** : anneau d'eau lent (sans tête chercheuse depuis le 19/10/2026), qui grossit et rétrécit, traverse les ennemis ; confusion 20 %.
   - Plante **Méga-Sangsue** : lien accroché à la cible 1,5 s qui la draine et soigne le lanceur ; casse si elle s'éloigne.
   - Électrik **Fatal-Foudre** : après 1 s de charge, zone autour du lanceur où tombent des éclairs au hasard, avec de petites ondes de choc (dégâts, faible chance de paralysie).
   - Glace **Blizzard** : même charge et même zone que Fatal-Foudre, mais ralentit et blesse chaque seconde.
@@ -43,7 +43,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Sol **Telluriforce** : marque sous la cible, colonne de terre 0,5 s plus tard (esquivable).
   - Vol **Lame d'Air** : grande lame rapide qui traverse ; 20 % de chance d'étourdir 1 s.
   - Psy **Psyko** : soulève la cible 0,8 s puis la projette (dégâts si elle heurte un mur).
-  - Insecte **Plaie-Croix** : ruée qui traverse les ennemis en laissant une entaille en X.
+  - Insecte **Plaie-Croix** : ruée de 4,5 cases qui traverse les ennemis ; ils sont tranchés d'un coup 0,25 s après la fin de la ruée (entaille en X), comme un coup de sabre à retardement.
   - Roche **Pouv. Antique** : 5 pierres en orbite (bloquent les tirs) puis lancées une à une sur la cible.
   - Spectre **Onde Folie** : cône qui rend confus 4 s (sans dégâts) ; et **Ball'Ombre** : charge tant que le bouton est enfoncé (immobile, maximum après 2 s, peut être tenue indéfiniment), la charge augmente taille et dégâts ; rapide, courte portée, s'arrête et flotte en bout de course.
   - Dragon **Draco Météor** : gros météores qui tombent en ligne en partant du lanceur, puis Attaque Spé du lanceur en baisse.

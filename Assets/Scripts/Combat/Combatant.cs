@@ -128,6 +128,10 @@ public class Combatant : MonoBehaviour
     float chainUntil;
     float lungeSpeed;
     bool lungeBouncing, lungeFinishPending, lungeStrikePending, lungeShotPending;
+    readonly List<Combatant> delayedTargets = new(); // cut by a dash with delayedHit, struck at delayedAt
+    MoveDef delayedMove;
+    Vector2 delayedDirection;
+    float delayedAt;
     Combatant lungeShotTarget; // opponent targeted when a dash followed by shots started
     Vector2 lungeShotAim;
     bool sweepBack; // the next sweeping strike turns the other way
@@ -895,6 +899,21 @@ public class Combatant : MonoBehaviour
             castMove = null;
         }
 
+        if (delayedMove != null && Time.time >= delayedAt)
+        {
+            foreach (var target in delayedTargets)
+            {
+                if (target == null || !target.IsAlive) continue;
+                EffectPlayer.Spawn(delayedMove.impactEffect, target.transform.position, delayedDirection);
+                if (!target.TakeHit(DamageOf(delayedMove), delayedMove, out float dealt)) continue;
+                target.Stun(StunOf(delayedMove));
+                target.ApplyEffects(delayedMove, false, this);
+                HitLanded(delayedMove, dealt);
+            }
+            delayedTargets.Clear();
+            delayedMove = null;
+        }
+
         for (int i = 0; i < strikes.Count; i++)
         {
             var strike = strikes[i];
@@ -935,6 +954,16 @@ public class Combatant : MonoBehaviour
             {
                 lungeShotPending = false;
                 if (CanAttack) FireFlankShots(lungeMove);
+            }
+            if (lungeMove != null && lungeMove.delayedHit > 0f && lungeHit.Count > 0)
+            {
+                // Like a sword stroke that lands late: everyone passed through is cut at once.
+                delayedTargets.Clear();
+                delayedTargets.AddRange(lungeHit);
+                lungeHit.Clear();
+                delayedMove = lungeMove;
+                delayedDirection = lungeDirection;
+                delayedAt = Time.time + lungeMove.delayedHit;
             }
             if (lungeStrikePending)
             {
@@ -1003,6 +1032,7 @@ public class Combatant : MonoBehaviour
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team || !hit.Add(target)) continue;
             count++;
+            if (move.delayedHit > 0f) continue; // struck when the dash is over
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move), move, out float dealt))
             {
