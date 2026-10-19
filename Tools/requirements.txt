@@ -1,0 +1,11 @@
+appdirs==1.4.4
+dungeon-eos==0.0.5
+explorerscript==0.2.4
+igraph==0.11.8
+ndspy==4.2.0
+pillow==12.3.0
+pmdsky-debug-py==10.0.48
+range-typed-integers==1.0.1
+skytemple-files==1.8.5
+skytemple-rust==1.8.5
+texttable==1.7.1

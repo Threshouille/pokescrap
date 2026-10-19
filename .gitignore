@@ -21,3 +21,17 @@
 # Python tooling
 /Tools/.venv/
 __pycache__/
+
+# Assets made from the ROM: rebuilt by `python3 Tools/setup.py` (see README).
+# Their .meta files ARE versioned (they keep the GUIDs the scenes refer to): never ignore *.meta here.
+/Assets/Sprites/Pokemon/*/*.png
+/Assets/Sprites/Pokemon/*/*.xml
+/Assets/Resources/Portraits/*.png
+/Assets/Resources/AnimSets/*.asset
+/Assets/Tilesets/*/chunks.png
+/Assets/Tilesets/*/tileset.json
+/Assets/Tilesets/*/Tileset.asset
+/Assets/Data/*.json
+/Assets/Resources/Data/pokemon_rt.json
+/Assets/Resources/Data/levels_rt.bytes
+/Assets/Resources/Data/generated_moves.json

@@ -34,6 +34,14 @@ public class PmdSpriteImport : AssetPostprocessor
         return changed;
     }
 
+    // Entry point of Tools/setup.py (Unity in batch mode): rebuilds every asset made from the ROM.
+    public static void BuildEverything()
+    {
+        AssetDatabase.Refresh();
+        BuildTilesets();
+        BuildAll();
+    }
+
     [MenuItem("Pokescrap/Build Tilesets")]
     public static void BuildTilesets()
     {
