@@ -67,6 +67,7 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         Draw(rng);
+        Terrain.Rebuild(this);
 
         if (player != null)
             player.position = floorMap.transform.TransformPoint(new Vector3(centre + 0.5f, centre + 0.5f, 0f));

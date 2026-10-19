@@ -64,14 +64,14 @@ public class BossAI : MonoBehaviour
             case State.Approach:
                 if (target == null)
                 {
-                    body.linearVelocity = Vector2.zero;
+                    combatant.Drive(Vector2.zero);
                     animator.Play("Idle");
                     break;
                 }
                 Vector2 toTarget = target.transform.position - transform.position;
                 bool close = toTarget.magnitude <= approachDistance;
-                Vector2 step = close ? Vector2.zero : navigator.Direction(transform.position, target.transform.position, combatant.team);
-                body.linearVelocity = combatant.Steer(step) * combatant.CurrentSpeed * speedFactor;
+                Vector2 step = close ? Vector2.zero : navigator.Direction(transform.position, target.transform.position, combatant);
+                combatant.Drive(combatant.Steer(step) * combatant.CurrentSpeed * speedFactor);
                 animator.direction = PmdAnimator.DirectionIndex(step != Vector2.zero ? step : toTarget);
                 animator.Play(step != Vector2.zero ? "Walk" : "Idle");
 
@@ -80,7 +80,7 @@ public class BossAI : MonoBehaviour
                 break;
 
             case State.Announce:
-                body.linearVelocity = Vector2.zero;
+                combatant.Drive(Vector2.zero);
                 if (Time.time < stateUntil) break;
                 bubble.gameObject.SetActive(false);
                 var move = combatant.Moves[slot];
@@ -91,7 +91,7 @@ public class BossAI : MonoBehaviour
 
             case State.Recover:
                 if (combatant.IsDashing) break; // the dash drives the body
-                body.linearVelocity = Vector2.zero;
+                combatant.Drive(Vector2.zero);
                 if (Time.time >= stateUntil) Enter(State.Approach, 0f);
                 break;
         }
@@ -118,7 +118,7 @@ public class BossAI : MonoBehaviour
         var move = combatant.Moves[slot];
         float windup = (move.windup > 0f ? move.windup : DefaultWindup) * (Enraged ? enragedAnnounce : 1f);
 
-        body.linearVelocity = Vector2.zero;
+        combatant.Drive(Vector2.zero);
         animator.direction = PmdAnimator.DirectionIndex(aim);
         animator.Play("Idle");
         bubble.sprite = Shapes.NumberBubble(slot + 1);

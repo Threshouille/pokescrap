@@ -57,7 +57,7 @@ public class EnemyAI : MonoBehaviour
                 break;
 
             case State.Windup:
-                if (!combatant.IsDashing) body.linearVelocity = Vector2.zero; // a push still carries it away
+                if (!combatant.IsDashing) combatant.Drive(Vector2.zero); // a push still carries it away
                 if (Time.time < stateUntil) break;
                 if (telegraph != null) Destroy(telegraph);
                 var move = combatant.Moves[attackSlot];
@@ -79,6 +79,7 @@ public class EnemyAI : MonoBehaviour
 
         // Getting out of a harmful zone comes before anything else.
         Vector2 escape = Zone.EscapeDirection(position, combatant.team, RoleTactics.ZoneMargin);
+        if (escape == Vector2.zero) escape = Terrain.EscapeDirection(position, combatant);
         if (escape != Vector2.zero)
         {
             Move(RoleTactics.EscapeStep(grid, position, escape), escape);
@@ -127,7 +128,7 @@ public class EnemyAI : MonoBehaviour
 
     void Move(Vector2 direction, Vector2 lookAt)
     {
-        body.linearVelocity = combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor;
+        combatant.Drive(combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor);
         if (Time.time < attackAnimUntil)
         {
             animator.Play(attackAnim);
@@ -146,7 +147,7 @@ public class EnemyAI : MonoBehaviour
         attackDistance = distance;
         state = State.Windup;
         stateUntil = Time.time + (move.windup > 0f ? move.windup : DefaultWindup);
-        body.linearVelocity = Vector2.zero;
+        combatant.Drive(Vector2.zero);
         animator.direction = PmdAnimator.DirectionIndex(direction);
         animator.Play("Idle");
 

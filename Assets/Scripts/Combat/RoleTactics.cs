@@ -118,9 +118,9 @@ public static class RoleTactics
             if (wanted < float.MaxValue)
             {
                 // Behind a wall, being in range is not enough: keep walking until the target is in sight.
-                if (foeDistance > wanted || !lineOfFire) decision.move = navigator.Direction(position, foe.transform.position, self.team);
+                if (foeDistance > wanted || !lineOfFire) decision.move = navigator.Direction(position, foe.transform.position, self);
             }
-            else if (foeDistance > MeleeStandOff) decision.move = navigator.Direction(position, foe.transform.position, self.team);
+            else if (foeDistance > MeleeStandOff) decision.move = navigator.Direction(position, foe.transform.position, self);
         }
         else if (retreat != Vector2.zero)
         {
@@ -130,7 +130,7 @@ public static class RoleTactics
         else if (support && patient != null)
         {
             decision.engaged = true;
-            decision.move = navigator.Direction(position, patient.transform.position, self.team);
+            decision.move = navigator.Direction(position, patient.transform.position, self);
             decision.look = decision.move;
         }
         else
@@ -139,7 +139,7 @@ public static class RoleTactics
             if (friend != null && Vector2.Distance(friend.transform.position, position) > RegroupDistance)
             {
                 decision.engaged = true;
-                decision.move = navigator.Direction(position, friend.transform.position, self.team);
+                decision.move = navigator.Direction(position, friend.transform.position, self);
             }
             else if (foe != null)
             {
@@ -150,7 +150,7 @@ public static class RoleTactics
                     float far = Mathf.Min(support ? SupportMax : RangedMax, wanted);
                     bool hasShot = wanted < float.MaxValue;
                     if (foeDistance > far && (hasShot || ranged) || (hasShot && !lineOfFire))
-                        decision.move = navigator.Direction(position, foe.transform.position, self.team);
+                        decision.move = navigator.Direction(position, foe.transform.position, self);
                 }
             }
         }

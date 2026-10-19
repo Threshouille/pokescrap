@@ -61,6 +61,7 @@ public class AllyAI : MonoBehaviour
 
         // Then getting out of a harmful zone.
         Vector2 escape = Zone.EscapeDirection(position, combatant.team, RoleTactics.ZoneMargin);
+        if (escape == Vector2.zero) escape = Terrain.EscapeDirection(position, combatant);
         if (escape != Vector2.zero)
         {
             Steer(RoleTactics.EscapeStep(grid, position, escape), escape);
@@ -84,7 +85,7 @@ public class AllyAI : MonoBehaviour
         }
         if (returning || !decision.engaged)
         {
-            Vector2 follow = toLeader.magnitude > followDistance ? navigator.Direction(position, leader.position, combatant.team) : Vector2.zero;
+            Vector2 follow = toLeader.magnitude > followDistance ? navigator.Direction(position, leader.position, combatant) : Vector2.zero;
             Steer(RoleTactics.Separate(combatant, grid, position, follow), toLeader); // spread out around the leader
             return;
         }
@@ -110,7 +111,7 @@ public class AllyAI : MonoBehaviour
 
     void Steer(Vector2 direction, Vector2 lookAt)
     {
-        body.linearVelocity = combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor;
+        combatant.Drive(combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor);
         if (Time.time < attackUntil)
         {
             animator.direction = PmdAnimator.DirectionIndex(attackDirection);

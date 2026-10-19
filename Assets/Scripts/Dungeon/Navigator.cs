@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// Per-agent steering on the arena grid: walks straight when the way is free, otherwise follows an A* path
-/// around walls. Hostile zones (gas clouds...) are expensive to cross, so the path goes around them when it can.
+/// around walls. Hostile zones (gas clouds...) and harmful terrain (embers...) are expensive to cross, so the path
+/// goes around them when it can.
 public class Navigator
 {
     const float RepathInterval = 0.3f; // seconds between two path searches
@@ -28,12 +29,13 @@ public class Navigator
     Vector2Int goalCell;
 
     /// Direction to take from "from" to reach "to", or zero when already there or unreachable.
-    public Vector2 Direction(Vector2 from, Vector2 to, Team team)
+    public Vector2 Direction(Vector2 from, Vector2 to, Combatant agent)
     {
+        var team = agent.team;
         var grid = DungeonGenerator.Current;
         if (grid == null) return (to - from).normalized;
 
-        if (Clear(grid, from, to, team))
+        if (Clear(grid, from, to, agent))
         {
             path.Clear();
             return (to - from).normalized;
@@ -42,7 +44,7 @@ public class Navigator
         var cell = grid.CellOf(to);
         if (path.Count == 0 || cell != goalCell || Time.time >= nextSearch)
         {
-            FindPath(grid, from, to, team);
+            FindPath(grid, from, to, agent);
             goalCell = cell;
             nextSearch = Time.time + RepathInterval;
             index = 0;
@@ -50,26 +52,31 @@ public class Navigator
 
         // Skip waypoints already reached, and cut corners whenever the next one is directly reachable.
         while (index < path.Count - 1
-            && (Vector2.Distance(from, path[index]) < WaypointReached || Clear(grid, from, path[index + 1], team)))
+            && (Vector2.Distance(from, path[index]) < WaypointReached || Clear(grid, from, path[index + 1], agent)))
             index++;
         if (index >= path.Count) return Vector2.zero;
         Vector2 step = path[index] - from;
         return step.sqrMagnitude < 0.0001f ? Vector2.zero : step.normalized;
     }
 
-    /// Straight line free of walls, and of hostile zones unless the agent already stands in one.
-    static bool Clear(DungeonGenerator grid, Vector2 from, Vector2 to, Team team)
+    /// Straight line free of walls, and of hostile zones and harmful terrain unless the agent already stands on them.
+    static bool Clear(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent)
     {
+        var team = agent.team;
         if (!grid.LineClear(from, to, AgentRadius)) return false;
-        if (Zone.Inside(from, team, 0f)) return true; // already in it: any way out is fine
+        if (Zone.Inside(from, team, 0f) || Terrain.Hazard(from, agent)) return true; // already in it: any way out is fine
         float length = Vector2.Distance(from, to);
         for (float d = 0f; d <= length; d += 0.4f)
-            if (Zone.Inside(Vector2.Lerp(from, to, length > 0f ? d / length : 0f), team, AgentRadius)) return false;
+        {
+            var point = Vector2.Lerp(from, to, length > 0f ? d / length : 0f);
+            if (Zone.Inside(point, team, AgentRadius) || Terrain.Hazard(point, agent)) return false;
+        }
         return !Zone.Inside(to, team, AgentRadius);
     }
 
-    void FindPath(DungeonGenerator grid, Vector2 from, Vector2 to, Team team)
+    void FindPath(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent)
     {
+        var team = agent.team;
         path.Clear();
         int size = grid.Size;
         var start = grid.CellOf(from);
@@ -108,6 +115,7 @@ public class Navigator
 
                 float stepCost = step.x != 0 && step.y != 0 ? Diagonal : 1f;
                 if (Zone.Inside(grid.CentreOf(nx, ny), team, 0.5f)) stepCost += HazardCost;
+                stepCost += Terrain.NavCost(nx, ny, agent);
                 float total = cost[node] + stepCost;
                 if (stamp[next] == search && total >= cost[next]) continue;
                 Visit(next, total, node, Heuristic(new Vector2Int(nx, ny), goal));

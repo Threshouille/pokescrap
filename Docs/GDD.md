@@ -17,6 +17,13 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Interface : en bas à gauche, portrait du Pokémon contrôlé (tiré de la ROM), nom, barre de vie, et 4 cadres pour ses attaques (bouton, nom abrégé, couleur du type) qui se grisent pendant la recharge avec le temps restant. Au-dessus, les petits portraits des deux alliés avec leur barre de vie, dans l'ordre de la croix (gauche / droite) ; un allié K.O. est assombri, un allié empoisonné a un coin violet.
 - Des Pokémon « support » sont envisagés, pour donner un rôle aux attaques de statut.
 
+### Effets de terrain (décidé le 19/10/2026)
+- Certaines attaques laissent une trace au sol qui change le combat. Grille de cases calée sur l'arène : une case porte un seul terrain, avec une durée, et s'efface pendant sa dernière seconde.
+- Le terrain agit sur tout le monde, les deux camps, sauf les Pokémon du type correspondant et ceux qui lévitent ou traversent les murs (types de déplacement de la ROM).
+- Première série (une attaque de base qui laisse une petite trace courte, puis une plus forte, uniquement des attaques existantes) : Verglas (Glace : glissade, poussées plus longues ; Poudreuse, Vent Glace), Braises (Feu : brûlure, petits dégâts ; Flammèche, Lance-Flamme), Flaque (Eau : ralentit, soigne la brûlure, Pokémon Eau plus rapides ; Pistolet à O, Hydrocanon), Sol chargé (Électrik : paralysie, immunisés Électrik et Sol ; Étincelle, Tonnerre), Ronces (Plante : ralentit, petits dégâts ; Fouet Lianes, Végé-Attak), Boue (Sol : ralentit fortement ; Coud'Boue, Séisme), Flaque toxique (Poison : poison, immunisés Poison et Acier ; Acide, Détritus).
+- Les IA contournent les cases nocives et en sortent.
+- Suite prévue : affinités entre terrains (l'eau éteint les braises, le feu fait fondre le verglas, etc.), dans la table `reactions` de `terrains.json`. Pour l'instant, une nouvelle trace remplace l'ancienne.
+
 ### Outils de test
 - Persos de dev (décidé le 19/10/2026) : 3 personnages réservés au développement (Dev Mew, Dev Métamorph, Dev Porygon), visibles en tête du menu quand `devMode` est actif. Ils peuvent apprendre toutes les attaques du jeu (4 au départ, filtre par type au menu), n'ont pas de type (pas de STAB), se déplacent normalement (le terrain s'applique à eux) et ont des statistiques de starter (un physique, un spécial, un équilibré). Ils ne sont ni recrutables, ni sauvegardés, ni ennemis. But : tester les attaques et les effets de terrain.
 

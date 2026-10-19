@@ -5,9 +5,9 @@ using UnityEngine.InputSystem;
 /// Menu scene: pick 3 Pokémon among the unlocked ones and their starting moves, then start a run.
 /// Locked Pokémon show as silhouettes.
 /// Gamepad: d-pad or left stick moves the cursor, Cross adds or removes, Triangle opens the starting moves of the
-/// Pokémon under the cursor (Cross picks, L1 / R1 filter by type, Circle or Triangle closes), Options starts once
-/// the team is full.
-/// Keyboard: arrows, Space, E (moves), Page Up / Page Down (type filter), Escape, Enter.
+/// Pokémon under the cursor (Cross picks, L1 / R1 or left / right filter by type, Circle or Triangle closes), Options
+/// starts once the team is full.
+/// Keyboard: arrows (left / right: type filter on the moves screen), Space, E (moves), Escape, Enter.
 public class TeamMenu : MonoBehaviour
 {
     const float ReferenceHeight = 360f;
@@ -65,8 +65,8 @@ public class TeamMenu : MonoBehaviour
         if (editingMoves)
         {
             if (repeat && direction.y != 0) moveCursor = Mathf.Clamp(moveCursor + direction.y, 0, pool.Count - 1);
-            bool previous = (pad != null && pad.leftShoulder.wasPressedThisFrame) || (kb != null && kb.pageUpKey.wasPressedThisFrame);
-            bool next = (pad != null && pad.rightShoulder.wasPressedThisFrame) || (kb != null && kb.pageDownKey.wasPressedThisFrame);
+            bool previous = (pad != null && pad.leftShoulder.wasPressedThisFrame) || (repeat && direction.x < 0);
+            bool next = (pad != null && pad.rightShoulder.wasPressedThisFrame) || (repeat && direction.x > 0);
             if ((previous || next) && filterTypes.Count > 1) SetFilter(filter + (next ? 1 : -1));
             if (cross) ToggleMove(pool[moveCursor].id);
             if (triangle || circle) CloseMoves();
@@ -288,7 +288,7 @@ public class TeamMenu : MonoBehaviour
         {
             if (filter >= 0) Fill(new Rect(panel.x + pad, y + 3f * s, 6f * s, 6f * s), GameData.TypeColor(filterTypes[filter]));
             string shown = filter < 0 ? "Tous les types" : GameData.TypeName(filterTypes[filter]);
-            Label(new Rect(panel.x + pad + 10f * s, y, width - 10f * s, line), $"L1 ‹ {shown} ({pool.Count}) › R1", TextAnchor.MiddleLeft);
+            Label(new Rect(panel.x + pad + 10f * s, y, width - 10f * s, line), $"‹ {shown} ({pool.Count}) ›", TextAnchor.MiddleLeft);
             y += line;
         }
 

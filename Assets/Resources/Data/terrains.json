@@ -1,0 +1,29 @@
+{
+  "comment": "Ground effects left by moves on the arena grid (Terrain.cs). Everyone is affected (both teams), except the immuneTypes and, when grounded, the Pokémon that float or go through walls (movementType 2 and 3). speedMul: walking speed; boostTypes get boostMul instead; slideAccel: tiles/s² to change speed (ice: sliding), 0 = instant; knockbackMul: pushes last longer; status + statusChance (per second); damageShare: share of max HP lost per second; cures: status removed when standing there; navCost: extra path cost for the AIs (tiles of detour). moves: which move leaves which terrain (shape: trail along a shot, impact where it ends, around the user, dash along a melee dash, strike on a melee hit area); radius in tiles, duration in seconds, chance 0..1 (1 when omitted). reactions: a terrain painted (by) over another (on) gives 'becomes' instead (empty = clears the cell); none yet, the next step.",
+  "terrains": [
+    {"key": "ice", "name": "Verglas", "color": "#bfe8ff", "alpha": 0.5, "immuneTypes": [6], "grounded": true, "speedMul": 1, "slideAccel": 5, "knockbackMul": 1.6, "navCost": 3},
+    {"key": "embers", "name": "Braises", "color": "#ff6a20", "alpha": 0.5, "immuneTypes": [2], "grounded": true, "speedMul": 1, "status": "burn", "statusChance": 0.25, "damageShare": 0.01, "navCost": 12},
+    {"key": "water", "name": "Flaque", "color": "#3a7bd5", "alpha": 0.45, "immuneTypes": [], "grounded": true, "speedMul": 0.85, "boostTypes": [3], "boostMul": 1.2, "cures": "burn", "navCost": 0},
+    {"key": "electric", "name": "Sol chargé", "color": "#ffe14a", "alpha": 0.45, "immuneTypes": [5, 9], "grounded": true, "speedMul": 1, "status": "paralysis", "statusChance": 0.2, "navCost": 12},
+    {"key": "brambles", "name": "Ronces", "color": "#3f8f2f", "alpha": 0.55, "immuneTypes": [4], "grounded": true, "speedMul": 0.6, "damageShare": 0.01, "navCost": 6},
+    {"key": "mud", "name": "Boue", "color": "#7a5230", "alpha": 0.55, "immuneTypes": [9], "grounded": true, "speedMul": 0.5, "navCost": 4},
+    {"key": "toxic", "name": "Flaque toxique", "color": "#9b4fc4", "alpha": 0.5, "immuneTypes": [8, 17], "grounded": true, "speedMul": 1, "status": "poison", "statusChance": 0.2, "navCost": 12}
+  ],
+  "moves": [
+    {"move": 101, "comment": "Poudreuse", "terrain": "ice", "shape": "trail", "radius": 0.4, "duration": 2},
+    {"move": 97, "comment": "Vent Glace", "terrain": "ice", "shape": "trail", "radius": 0.6, "duration": 5},
+    {"move": 262, "comment": "Flammèche", "terrain": "embers", "shape": "impact", "radius": 0.5, "duration": 2},
+    {"move": 53, "comment": "Lance-Flamme", "terrain": "embers", "shape": "trail", "radius": 0.5, "duration": 4},
+    {"move": 308, "comment": "Pistolet à O", "terrain": "water", "shape": "impact", "radius": 0.8, "duration": 3},
+    {"move": 240, "comment": "Hydrocanon", "terrain": "water", "shape": "trail", "radius": 0.6, "duration": 5},
+    {"move": 144, "comment": "Étincelle", "terrain": "electric", "shape": "dash", "radius": 0.4, "duration": 2.5},
+    {"move": 129, "comment": "Tonnerre", "terrain": "electric", "shape": "around", "radius": 1.8, "duration": 3},
+    {"move": 182, "comment": "Fouet Lianes", "terrain": "brambles", "shape": "strike", "radius": 0.4, "duration": 2.5},
+    {"move": 238, "comment": "Végé-Attak", "terrain": "brambles", "shape": "impact", "radius": 1.5, "duration": 5},
+    {"move": 213, "comment": "Coud'Boue", "terrain": "mud", "shape": "impact", "radius": 1, "duration": 3},
+    {"move": 118, "comment": "Séisme", "terrain": "mud", "shape": "around", "radius": 3, "duration": 4},
+    {"move": 332, "comment": "Acide", "terrain": "toxic", "shape": "impact", "radius": 0.6, "duration": 2},
+    {"move": 279, "comment": "Détritus", "terrain": "toxic", "shape": "impact", "radius": 1, "duration": 4}
+  ],
+  "reactions": []
+}

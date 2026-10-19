@@ -109,6 +109,9 @@ public class Combatant : MonoBehaviour
 
     static readonly List<Combatant> all = new();
 
+    /// Every Pokémon in play, both teams.
+    public static IReadOnlyList<Combatant> All => all;
+
     readonly float[] readyAt = new float[MoveSlots];
     readonly HashSet<Combatant> lungeHit = new();
     readonly List<TimedModifier> modifiers = new();
@@ -381,6 +384,18 @@ public class Combatant : MonoBehaviour
         modifiers.Add(new TimedModifier { stat = stat, value = value, until = Time.time + duration });
     }
 
+    public void RemoveStatus(string status) => statuses.RemoveAll(st => st.def.key == status);
+
+    /// Walking velocity wanted by a controller: the terrain under the Pokémon slows or speeds it up, and on a
+    /// slippery one (ice) the body only gets there gradually, so it slides.
+    public void Drive(Vector2 velocity)
+    {
+        if (body == null) return;
+        velocity *= Terrain.SpeedMul(this);
+        float accel = Terrain.SlideAccel(this);
+        body.linearVelocity = accel > 0f ? Vector2.MoveTowards(body.linearVelocity, velocity, accel * Time.fixedDeltaTime) : velocity;
+    }
+
     public bool HasStatus(string status)
     {
         if (!IsAlive) return false;
@@ -518,6 +533,7 @@ public class Combatant : MonoBehaviour
                 }
             if (EffectLibrary.Get(move.effect) != null) EffectPlayer.Spawn(move.effect, transform.position, Vector2.right);
             else Shapes.Pulse(transform.position, move.radius, GameData.TypeColor(move.type));
+            Terrain.OnAround(move, transform.position);
             return true;
         }
 
@@ -588,6 +604,7 @@ public class Combatant : MonoBehaviour
     public void Knockback(Vector2 velocity, float time)
     {
         if (isBoss || !IsAlive || body == null) return;
+        time *= Terrain.KnockbackMul(this); // slippery ground: the push carries further
         knockVelocity = velocity;
         knockTime = time;
         knockUntil = Time.time + time;
@@ -661,6 +678,7 @@ public class Combatant : MonoBehaviour
         // Strikes that land in quick succession hit harder (chainBonus).
         if (move.chainBonus > 0f && Time.time > chainUntil) chainCount = 0;
         ShowStrike(move, shape, at, direction, reach * mul, radius > 0f);
+        Terrain.OnStrike(move, shape, at, direction, reach * mul);
         float factor = move.chainBonus > 0f ? Mathf.Min(1f + move.chainBonus * chainCount, move.chainMax > 0f ? move.chainMax : 2f) : 1f;
 
         var hit = new HashSet<Combatant>();
@@ -885,6 +903,7 @@ public class Combatant : MonoBehaviour
             return;
         }
         body.linearVelocity = lungeDirection * lungeSpeed;
+        if (!lungeBouncing) Terrain.OnDash(lungeMove, body.position);
         if (lungeBouncing || lungeMove.lungeHarmless) return;
         if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
         {

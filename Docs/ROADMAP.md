@@ -81,6 +81,7 @@ Objectif décidé par Owen : à terme, les 558 Pokémon de la ROM sont jouables 
 - Fait (15/10/2026) : évolution en partie au niveau de la ROM (évolutions par niveau, si les sprites existent).
 - Fait (15-17/10/2026) : 34 attaques de base (une à distance et une au corps à corps par type), réglées une par une, avec planches d'effets ; icônes des 9 statuts ; menu limité aux premières formes.
 - **Suivant (décidé par Owen) : reprise des autres attaques au cas par cas** pour leur donner un aspect unique (dont les 108 écartées) et leurs effets visuels.
+- Fait (19/10/2026) : persos de dev (toutes les attaques) ; effets de terrain, première série de 7 terrains et 14 attaques (`terrains.json`). Suite : affinités entre terrains, puis d'autres attaques.
 - Reste : évolutions sans niveau (non décidé), nouvelles familles (mur…), talents.
 - Terrains spéciaux (eau, lave, trous) et types de déplacement.
 - Plus de décors, les 3 cycles et le boss final.

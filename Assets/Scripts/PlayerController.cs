@@ -5,8 +5,8 @@ using UnityEngine.InputSystem;
 
 /// The player's team: every character is in the arena at once. One is driven by the player, the others by AllyAI.
 /// Gamepad: left stick moves, right stick aims, R1 / R2 / L1 / L2 use moves 1-4, d-pad left/right changes the
-/// controlled Pokémon. Keyboard and mouse: WASD (ZQSD on AZERTY) or arrows, mouse aims, left click / right click /
-/// Space / Shift, Tab changes Pokémon. Dodge: ✕ (gamepad south button) or left Ctrl. This object follows the controlled Pokémon (camera and allies track it).
+/// controlled Pokémon. Keyboard: WASD (ZQSD on AZERTY) or arrows, U / I / O / P use moves 1-4 (same keys on AZERTY
+/// and QWERTY), holding a mouse button aims at the cursor, Tab changes Pokémon. Dodge: ✕ (gamepad south button) or left Ctrl. This object follows the controlled Pokémon (camera and allies track it).
 /// Standing on a knocked-out ally for a few seconds brings it back.
 [DefaultExecutionOrder(50)] // after DungeonGenerator.Start, which places this object in the arena
 public class PlayerController : MonoBehaviour
@@ -92,32 +92,34 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        foreach (var set in ChooseTeam()) members.Add(SpawnMember(set, members.Count));
+        foreach (int id in ChooseTeam()) members.Add(SpawnMember(id, members.Count));
         SetControlled(0);
     }
 
     /// The team picked in the menu, or a random one among the unlocked Pokémon when the arena is started directly.
-    List<PmdAnimSet> ChooseTeam()
+    /// Ids, not anim sets: a dev character shows the sprites of another Pokémon, whose id the set carries.
+    List<int> ChooseTeam()
     {
-        var team = new List<PmdAnimSet>();
+        var team = new List<int>();
         if (Run.Team != null)
             foreach (int id in Run.Team)
-                if (PokemonRoster.Get(id) is { } set) team.Add(set);
+                if (PokemonRoster.Has(id)) team.Add(id);
         if (team.Count > 0) return team;
 
         var pool = SaveData.Unlocked.Where(PokemonRoster.Playable).ToList();
         for (int i = 0; i < teamSize && pool.Count > 0; i++)
         {
             int pick = Random.Range(0, pool.Count);
-            team.Add(PokemonRoster.Get(pool[pick]));
+            team.Add(pool[pick]);
             pool.RemoveAt(pick);
         }
         return team;
     }
 
-    Member SpawnMember(PmdAnimSet set, int index)
+    Member SpawnMember(int pokemonId, int index)
     {
-        var go = new GameObject(GameData.Pokemon(set.pokemonId)?.name ?? "Ally");
+        var set = PokemonRoster.Get(pokemonId);
+        var go = new GameObject(GameData.Pokemon(pokemonId)?.name ?? "Ally");
         go.transform.position = transform.position + StartOffsets[index % StartOffsets.Length];
 
         go.AddComponent<SpriteRenderer>().sortingOrder = 1;
@@ -131,7 +133,7 @@ public class PlayerController : MonoBehaviour
         member.animator = go.AddComponent<PmdAnimator>();
         member.animator.SetAnimSet(set);
         member.combatant = go.AddComponent<Combatant>();
-        member.combatant.Init(set.pokemonId, Team.Player, SaveData.StartingMoves(set.pokemonId));
+        member.combatant.Init(pokemonId, Team.Player, SaveData.StartingMoves(pokemonId));
         member.combatant.Died += _ => OnKnockedOut(member);
         member.ai = go.AddComponent<AllyAI>();
         member.ai.leader = transform;
@@ -142,8 +144,8 @@ public class PlayerController : MonoBehaviour
     /// A Pokémon joining the team during the run (Munja), placed at that point; null when the team is full.
     public Combatant AddMember(int pokemonId, Vector3 position)
     {
-        if (members.Count >= teamSize || PokemonRoster.Get(pokemonId) is not { } set) return null;
-        var member = SpawnMember(set, members.Count);
+        if (members.Count >= teamSize || !PokemonRoster.Has(pokemonId)) return null;
+        var member = SpawnMember(pokemonId, members.Count);
         member.go.transform.position = position;
         member.body.position = position;
         members.Add(member);
@@ -281,7 +283,7 @@ public class PlayerController : MonoBehaviour
         if (gameOver || members.Count == 0) return;
         UpdateRevives();
         if (Current.combatant.IsDashing) return; // a melee dash drives the body
-        Current.body.linearVelocity = Current.combatant.Steer(move) * Current.combatant.CurrentSpeed;
+        Current.combatant.Drive(Current.combatant.Steer(move) * Current.combatant.CurrentSpeed);
     }
 
     /// Between two arenas: knocked-out members get back up, the others are healed a little, effects are removed
@@ -419,14 +421,13 @@ public class PlayerController : MonoBehaviour
             };
             if (held) return true;
         }
-        var mouse = Mouse.current;
         var kb = Keyboard.current;
-        return slot switch
+        return kb != null && slot switch
         {
-            0 => mouse != null && mouse.leftButton.isPressed,
-            1 => mouse != null && mouse.rightButton.isPressed,
-            2 => kb != null && kb.spaceKey.isPressed,
-            _ => kb != null && kb.leftShiftKey.isPressed,
+            0 => kb.uKey.isPressed,
+            1 => kb.iKey.isPressed,
+            2 => kb.oKey.isPressed,
+            _ => kb.pKey.isPressed,
         };
     }
 

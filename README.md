@@ -52,6 +52,51 @@ on peut donc relancer le script sans risque (par exemple après un `git pull` qu
 
 Ensuite : ouvrir le projet dans Unity Hub, puis Play (le jeu démarre toujours sur la scène `Menu`).
 
+## Commandes
+
+| Action | Manette (PS4) | Clavier |
+|---|---|---|
+| Se déplacer | stick gauche | ZQSD (WASD en QWERTY) ou flèches |
+| Viser | stick droit | bouton de souris maintenu (sinon cible automatique) |
+| Attaques 1 à 4 | R1 / R2 / L1 / L2 | U / I / O / P |
+| Esquive | ✕ | Ctrl gauche |
+| Changer de Pokémon | croix gauche / droite | Tab |
+| Pause | Options | Échap |
+| Menu : ajouter / retirer un Pokémon | ✕ / ○ | Espace / Échap |
+| Menu : attaques de départ | △ | E |
+| Menu des attaques : filtre par type | L1 / R1 ou croix gauche / droite | ← / → |
+| Lancer la partie | Options | Entrée |
+
+Le HUD affiche les touches du clavier quand aucune manette n'est branchée.
+
+## Outils de test
+
+Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false` pour une version de jeu) :
+
+- `unlockAll` : tous les Pokémon jouables sont débloqués.
+- `devMode` : trois **persos de dev** (Dev Mew, Dev Métamorph, Dev Porygon) apparaissent en tête du menu. Ils
+  peuvent prendre n'importe quelle attaque du jeu (`devStartingMoveCount` au départ, 4 par défaut), n'ont pas de
+  type et ne sont jamais recrutés, sauvegardés ni ennemis. Définis dans `Assets/Resources/Data/dev_characters.json`.
+
+## Effets de terrain
+
+Certaines attaques laissent une trace au sol, case par case, qui agit sur **tous** les Pokémon qui marchent dessus
+(les deux camps), sauf ceux du type correspondant et ceux qui lévitent. Les IA les contournent et en sortent.
+
+| Terrain | Effet | Attaques |
+|---|---|---|
+| Verglas | glissade, poussées plus longues | Poudreuse, Vent Glace |
+| Braises | brûlure, petits dégâts | Flammèche, Lance-Flamme |
+| Flaque | ralentit, soigne la brûlure, Pokémon Eau plus rapides | Pistolet à O, Hydrocanon |
+| Sol chargé | paralysie | Étincelle, Tonnerre |
+| Ronces | ralentit, petits dégâts | Fouet Lianes, Végé-Attak |
+| Boue | ralentit fortement | Coud'Boue, Séisme |
+| Flaque toxique | poison | Acide, Détritus |
+
+Tout se règle dans `Assets/Resources/Data/terrains.json` : terrains (effets, immunités, coût pour l'IA), attaques
+qui en laissent (forme de la trace, rayon, durée) et `reactions` (un terrain posé sur un autre, ex. l'eau sur les
+braises), vide pour l'instant.
+
 ## Comment le dépôt gère les assets de la ROM
 
 Unity identifie chaque asset par un **GUID** stocké dans son fichier `.meta`, et les scènes référencent les
