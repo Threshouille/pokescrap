@@ -54,7 +54,8 @@ public class DungeonGenerator : MonoBehaviour
 
         // Obstacles are only placed where a free ring remains around them, so nothing gets sealed off.
         int centre = size / 2, placed = 0;
-        for (int attempt = 0; attempt < obstacles * 20 && placed < obstacles; attempt++)
+        int wanted = Run.Sandbox ? 0 : obstacles; // the dev sandbox is an open field
+        for (int attempt = 0; attempt < wanted * 20 && placed < wanted; attempt++)
         {
             int w = rng.Next(obstacleMinSize, obstacleMaxSize + 1), h = rng.Next(obstacleMinSize, obstacleMaxSize + 1);
             if (w + 2 > arenaSize || h + 2 > arenaSize) continue;

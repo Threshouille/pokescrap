@@ -1,0 +1,18 @@
+{
+  "comment": "Dev sandbox (devMode, T or Select in the team menu): an arena without obstacles where emitters keep terrain alive, to test terrains and their affinities. Emitters are scenery (no collider, cannot be hit). pokemon: whose sprites they show; offset: their place from the arena centre, in tiles; terrain: key in terrains.json; target: where they paint, from themselves (0,0 = under them); radius in tiles; every: seconds between two refreshes (only the tiles still holding the terrain last longer: a neutralised tile stays so); recast: seconds between two full casts of the zone (15 when omitted); strikes on another patch (a target) are full casts every 'every' seconds; duration: seconds the terrain lasts (longer than every: it never fades); delay: seconds before the first paint. enemyWaves: true sends the first stage's waves on a loop, to see the AIs deal with the terrain (off by default).",
+  "enemyWaves": false,
+  "emitters": [
+    {"comment": "Ring of steady patches, one per terrain", "pokemon": 7, "offset": [0, 11], "terrain": "water", "radius": 2.2, "every": 2, "duration": 3},
+    {"pokemon": 4, "offset": [8.6, 6.9], "terrain": "embers", "radius": 2.2, "every": 2, "duration": 3},
+    {"pokemon": 1, "offset": [10.7, -2.5], "terrain": "brambles", "radius": 2.2, "every": 2, "duration": 3},
+    {"pokemon": 172, "offset": [4.8, -9.9], "terrain": "electric", "radius": 2.2, "every": 2, "duration": 3},
+    {"pokemon": 393, "offset": [-4.8, -9.9], "terrain": "ice", "radius": 2.2, "every": 2, "duration": 3},
+    {"pokemon": 109, "offset": [-10.7, -2.5], "terrain": "toxic", "radius": 2.2, "every": 2, "duration": 3},
+    {"pokemon": 27, "offset": [-8.6, 6.9], "terrain": "mud", "radius": 2.2, "every": 2, "duration": 3},
+
+    {"comment": "Demo west: a pool that lightning strikes every 6 s (the whole pool turns electrified)", "pokemon": 9, "offset": [-4.5, 0], "terrain": "water", "radius": 2.5, "every": 2, "duration": 3},
+    {"pokemon": 25, "offset": [-4.5, 3.5], "terrain": "electric", "target": [0, -2.5], "radius": 0.8, "every": 6, "duration": 2, "delay": 3},
+    {"comment": "Demo east: a bramble field that fire sets ablaze every 7 s", "pokemon": 152, "offset": [4.5, 0], "terrain": "brambles", "radius": 2.5, "every": 2, "duration": 3},
+    {"pokemon": 37, "offset": [4.5, 3.5], "terrain": "embers", "target": [0, -2.5], "radius": 0.8, "every": 7, "duration": 2, "delay": 4}
+  ]
+}

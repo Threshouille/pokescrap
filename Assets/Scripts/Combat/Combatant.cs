@@ -533,7 +533,7 @@ public class Combatant : MonoBehaviour
                 }
             if (EffectLibrary.Get(move.effect) != null) EffectPlayer.Spawn(move.effect, transform.position, Vector2.right);
             else Shapes.Pulse(transform.position, move.radius, GameData.TypeColor(move.type));
-            Terrain.OnAround(move, transform.position);
+            Terrain.OnAround(move, transform.position, this);
             return true;
         }
 
@@ -678,7 +678,7 @@ public class Combatant : MonoBehaviour
         // Strikes that land in quick succession hit harder (chainBonus).
         if (move.chainBonus > 0f && Time.time > chainUntil) chainCount = 0;
         ShowStrike(move, shape, at, direction, reach * mul, radius > 0f);
-        Terrain.OnStrike(move, shape, at, direction, reach * mul);
+        Terrain.OnStrike(move, shape, at, direction, reach * mul, this);
         float factor = move.chainBonus > 0f ? Mathf.Min(1f + move.chainBonus * chainCount, move.chainMax > 0f ? move.chainMax : 2f) : 1f;
 
         var hit = new HashSet<Combatant>();
@@ -903,7 +903,7 @@ public class Combatant : MonoBehaviour
             return;
         }
         body.linearVelocity = lungeDirection * lungeSpeed;
-        if (!lungeBouncing) Terrain.OnDash(lungeMove, body.position);
+        if (!lungeBouncing) Terrain.OnDash(lungeMove, body.position, this);
         if (lungeBouncing || lungeMove.lungeHarmless) return;
         if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
         {

@@ -44,8 +44,8 @@ public class Zone : MonoBehaviour
         zone.dieAt = Time.time + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
         zone.damage = owner.DamageOf(move);
         zone.nextTick = Time.time + FirstTick;
-        Terrain.OnImpact(move, centre);
-        Terrain.OnAround(move, centre);
+        Terrain.OnImpact(move, centre, owner);
+        Terrain.OnAround(move, centre, owner);
     }
 
     /// True when the point lies in a zone that is harmful to the given team (margin widens the zones).

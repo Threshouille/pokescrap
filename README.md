@@ -77,25 +77,44 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
 - `devMode` : trois **persos de dev** (Dev Mew, Dev Métamorph, Dev Porygon) apparaissent en tête du menu. Ils
   peuvent prendre n'importe quelle attaque du jeu (`devStartingMoveCount` au départ, 4 par défaut), n'ont pas de
   type et ne sont jamais recrutés, sauvegardés ni ennemis. Définis dans `Assets/Resources/Data/dev_characters.json`.
+- `devMode` donne aussi accès au **terrain de test** : au menu, une fois l'équipe choisie, **Select** (manette) ou
+  **T** (clavier). Arène sans obstacles où des Pokémon émetteurs (décor, intouchables) entretiennent une zone de chaque
+  terrain en anneau (une case neutralisée, par exemple du poison brûlé, le reste jusqu'à la relance de la zone, toutes
+  les 15 s), plus deux démonstrations au centre : une flaque frappée par la foudre toutes les 6 s et un champ
+  de ronces incendié toutes les 7 s. Pas d'ennemis par défaut (`"enemyWaves": true` pour faire tourner en boucle les
+  vagues de la première étape et voir l'IA réagir). Rien n'est recruté ni compté. Disposition et réglages : `Assets/Resources/Data/terrain_sandbox.json`.
 
 ## Effets de terrain
 
 Certaines attaques laissent une trace au sol, case par case, qui agit sur **tous** les Pokémon qui marchent dessus
-(les deux camps), sauf ceux du type correspondant et ceux qui lévitent. Les IA les contournent et en sortent.
+(les deux camps), sauf ceux du type correspondant, ceux qui lévitent et **le lanceur lui-même** (sa propre trace ne
+le gêne jamais, même s'il n'est pas du type de l'attaque ; celui qui déclenche une affinité en devient le lanceur). Les IA les contournent et en sortent.
 
 | Terrain | Effet | Attaques |
 |---|---|---|
-| Verglas | glissade, poussées plus longues | Poudreuse, Vent Glace |
-| Braises | brûlure, petits dégâts | Flammèche, Lance-Flamme |
-| Flaque | ralentit, soigne la brûlure, Pokémon Eau plus rapides | Pistolet à O, Hydrocanon |
-| Sol chargé | paralysie | Étincelle, Tonnerre |
-| Ronces | ralentit, petits dégâts | Fouet Lianes, Végé-Attak |
-| Boue | ralentit fortement | Coud'Boue, Séisme |
-| Flaque toxique | poison | Acide, Détritus |
+| Verglas | glissade, poussées plus longues | Poudreuse, Vent Glace, Laser Glace, Blizzard |
+| Braises | brûlure, petits dégâts | Flammèche, Lance-Flamme, Déflagration, Éruption |
+| Flaque | ralentit, soigne la brûlure ; Pokémon Eau plus rapides et soignés | Pistolet à O, Hydrocanon, Hydroblast |
+| Sol chargé | paralysie | Étincelle, Tonnerre, Fatal-Foudre |
+| Eau électrifiée | paralysie fréquente, petits dégâts (Électrik sur une flaque) | — |
+| Ronces | ralentit, petits dégâts | Fouet Lianes, Canon Graine, Mégafouet, Végé-Attak |
+| Boue | ralentit fortement | Coud'Boue, Tir de Boue, Boue-Bombe |
+| Flaque toxique | poison | Acide, Détritus, Bomb-Beurk |
 
-Tout se règle dans `Assets/Resources/Data/terrains.json` : terrains (effets, immunités, coût pour l'IA), attaques
-qui en laissent (forme de la trace, rayon, durée) et `reactions` (un terrain posé sur un autre, ex. l'eau sur les
-braises), vide pour l'instant.
+La taille et la durée d'une trace suivent la puissance de l'attaque (bloc `sizing`).
+
+**Affinités** : le feu brûle les ronces de proche en proche, fait fondre le verglas, sèche la boue, consume le
+poison et s'éteint dans l'eau ; l'eau éteint les braises et dilue le poison ; la glace fond sur les braises. Une
+flaque transmet : la glace la gèle, les plantes y poussent (plus longtemps), l'électricité l'électrifie, le poison
+la contamine, la boue la détrempe, chaque fois sur **toute la flaque reliée**, en vague.
+
+**IA** : les Pokémon contournent les terrains qui leur nuisent et en sortent ; ils préfèrent une attaque dont la
+trace réagit contre les ennemis (Électrik sur des ennemis dans l'eau) et renoncent à celle qui toucherait un allié.
+Blessé (sous 35 % des PV), un Pokémon peut se replier vers un terrain qui l'aide : une flaque s'il est Eau ou brûlé,
+un terrain nocif auquel il est immunisé (les ennemis l'évitent).
+
+Tout se règle dans `Assets/Resources/Data/terrains.json` : `terrains` (effets, immunités, soin, coût pour l'IA),
+`moves` (attaques qui laissent une trace et sa forme), `sizing` et `reactions`.
 
 ## Comment le dépôt gère les assets de la ROM
 

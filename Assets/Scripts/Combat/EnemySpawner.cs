@@ -91,8 +91,17 @@ public class EnemySpawner : MonoBehaviour
     void Start()
     {
         team = FindAnyObjectByType<PlayerController>();
+        if (Run.Sandbox)
+        {
+            // Dev sandbox: terrain emitters, nothing recruited or recorded, the first stage's waves on a loop.
+            gameObject.AddComponent<TerrainSandbox>();
+            recruitment.enabled = false;
+            sandboxWaves = TerrainSandbox.EnemyWaves();
+        }
         BeginStage();
     }
+
+    bool sandboxWaves;
 
     void BeginStage()
     {
@@ -100,7 +109,8 @@ public class EnemySpawner : MonoBehaviour
         nextWaveAt = 0f;
         boss = null;
         ShowNight();
-        if (Current.boss != null) boss = Spawn(Current.boss, SpawnPoint(), true);
+        if (Run.Sandbox && !sandboxWaves) return;
+        if (Current.boss != null && !Run.Sandbox) boss = Spawn(Current.boss, SpawnPoint(), true);
         SpawnNextWave();
     }
 
@@ -161,6 +171,14 @@ public class EnemySpawner : MonoBehaviour
     void Fight()
     {
         if (team != null && team.GameOver) return;
+        if (Run.Sandbox)
+        {
+            if (!sandboxWaves || Combatant.CountAlive(Team.Enemy) > 0) return;
+            if (CurrentWave >= Current.waves.Length) CurrentWave = 0; // waves on a loop
+            if (nextWaveAt <= 0f) nextWaveAt = Time.time + delayBetweenWaves;
+            else if (Time.time >= nextWaveAt) SpawnNextWave();
+            return;
+        }
         bool bossStage = Current.boss != null;
         if (bossStage && (boss == null || !boss.IsAlive))
         {
@@ -308,7 +326,7 @@ public class EnemySpawner : MonoBehaviour
         {
             recorded = true;
             overAt = Time.unscaledTime;
-            SaveData.RecordRun(Victory);
+            if (!Run.Sandbox) SaveData.RecordRun(Victory);
         }
         if (Time.unscaledTime < overAt + EndInputDelay) return;
         // Cross (or Enter / Options) plays again with the same team, Circle (or Escape) goes back to the menu.
@@ -337,9 +355,9 @@ public class EnemySpawner : MonoBehaviour
         bool defeat = team != null && team.GameOver;
         if (!Victory && !defeat)
         {
-            bool bossStage = Current.boss != null;
-            string where = Night ? "Nuit — " : "Jour — ";
-            where += bossStage ? Current.name
+            bool bossStage = Current.boss != null && !Run.Sandbox;
+            string where = Run.Sandbox ? "Terrain de test (dev) — Options : menu pause" : Night ? "Nuit — " : "Jour — ";
+            if (!Run.Sandbox) where += bossStage ? Current.name
                 : nextWaveAt > 0f ? $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length} terminée"
                 : $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length}";
             Fill(new Rect(cx - 110f * s, 4f * s, 220f * s, 12f * s), new Color(0f, 0f, 0f, 0.6f));

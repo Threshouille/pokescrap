@@ -9,17 +9,29 @@ public static class Run
     /// Pokémon ids picked in the menu; null when the arena scene is started directly (random team).
     public static int[] Team;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() => Team = null;
+    /// Dev sandbox (TerrainSandbox): an open arena where terrain keeps being painted, enemy waves looping.
+    public static bool Sandbox;
 
-    public static void Start(int[] team)
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void Reset()
+    {
+        Team = null;
+        Sandbox = false;
+    }
+
+    public static void Start(int[] team, bool sandbox = false)
     {
         Team = team;
+        Sandbox = sandbox;
         SaveData.SetLastTeam(team);
         SceneManager.LoadScene(ArenaScene);
     }
 
     public static void Restart() => SceneManager.LoadScene(ArenaScene);
 
-    public static void ToMenu() => SceneManager.LoadScene(MenuScene);
+    public static void ToMenu()
+    {
+        Sandbox = false;
+        SceneManager.LoadScene(MenuScene);
+    }
 }

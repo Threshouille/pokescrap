@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// What an AI-driven Pokémon should do right now, according to its role (melee, ranged or support).
@@ -14,6 +15,18 @@ public static class RoleTactics
     const float RegroupDistance = 5f; // support: comes back when its nearest ally is farther than this
     const float HealThreshold = 0.7f; // heals allies under this share of their health
     const float BuffRange = 6f; // bonuses are used when an opponent is within this distance
+    // A hurt Pokémon may fall back to a terrain that helps it (Terrain.Refuge): under RefugeEnter of its health,
+    // with no opponent within RefugeSafe tiles, a refuge within RefugeSearch tiles. It stays at most RefugeTime
+    // seconds or until RefugeLeave of its health, then not again for RefugeCooldown seconds.
+    const float RefugeEnter = 0.35f, RefugeLeave = 0.6f, RefugeTime = 8f, RefugeCooldown = 12f;
+    const float RefugeSearch = 6f, RefugeSafe = 2f, RefugeReached = 0.4f;
+    const float SpreadReach = 8f; // a reaction spreading over a puddle may reach a team-mate this far from the target
+
+    class RefugeState { public float until, cooldownUntil; }
+    static readonly Dictionary<Combatant, RefugeState> refuges = new();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => refuges.Clear();
 
     public struct Decision
     {
@@ -50,6 +63,12 @@ public static class RoleTactics
 
         Combatant patient = null; // wounded ally that is out of reach
         float wanted = float.MaxValue; // shortest reach among the ready moves worth walking for
+        var refuge = RefugeTarget(self, foeDistance, foe != null);
+        // An attack whose ground effect does nothing special is kept aside while the others are looked at: one
+        // whose trace turns against the opponents goes first, one that would hurt a team-mate is not used.
+        int fallback = -1;
+        Vector2 fallbackAim = Vector2.zero;
+        float fallbackDistance = 0f;
 
         // A support looks at its heals and bonuses before anything else (pass 0), then at its attacks (pass 1).
         // The other roles take their moves in slot order (basic attack last), so a tank can still raise its defence between two blows.
@@ -62,6 +81,7 @@ public static class RoleTactics
                 if (move == null || move.basic != (k >= Combatant.MoveSlots)) continue;
                 bool care = move.family == "heal" || move.family == "modifier";
                 if (support && care != (pass == 0)) continue;
+                if (care && fallback >= 0) continue; // an attack is already chosen
                 if (!support && pass == 1) continue;
                 if (self.CooldownLeft(slot) > 0f) continue;
 
@@ -98,16 +118,39 @@ public static class RoleTactics
                     // For a ranged or support Pokémon a melee move is self-defence only.
                     float reach = melee ? move.Reach : Mathf.Min(move.Reach, SelfDefence);
                     bool intoCloud = move.lunge > 0f && Zone.Inside(foe.transform.position, self.team, ZoneMargin);
-                    if (foeDistance <= reach && lineOfFire && !intoCloud) return Use(decision, slot, toFoe, foeDistance);
+                    if (foeDistance <= reach && lineOfFire && !intoCloud)
+                    {
+                        int value = TerrainValue(self, move, foe);
+                        if (value > 0) return Use(decision, slot, toFoe, foeDistance);
+                        if (value == 0 && fallback < 0) (fallback, fallbackAim, fallbackDistance) = (slot, toFoe, foeDistance);
+                        continue;
+                    }
                     if (melee) wanted = Mathf.Min(wanted, move.Reach * 0.9f);
                     continue;
                 }
 
                 // Too close with room to step back: back off first, shoot afterwards.
                 bool usable = foeDistance <= move.Reach && (lineOfFire || move.family == "zone") && retreat == Vector2.zero;
-                if (usable) return Use(decision, slot, toFoe, foeDistance);
+                if (usable)
+                {
+                    int value = TerrainValue(self, move, foe);
+                    if (value > 0) return Use(decision, slot, toFoe, foeDistance);
+                    if (value == 0 && fallback < 0) (fallback, fallbackAim, fallbackDistance) = (slot, toFoe, foeDistance);
+                    continue;
+                }
                 wanted = Mathf.Min(wanted, move.Reach * 0.9f);
             }
+        }
+        if (fallback >= 0) return Use(decision, fallback, fallbackAim, fallbackDistance);
+
+        // Hurt: heads for a terrain that helps it, and stays there.
+        if (refuge != null)
+        {
+            decision.engaged = true;
+            Vector2 toRefuge = refuge.Value - position;
+            decision.move = toRefuge.magnitude > RefugeReached ? navigator.Direction(position, refuge.Value, self) : Vector2.zero;
+            decision.move = Separate(self, grid, position, decision.move);
+            return decision;
         }
 
         // Nothing to use right now: where to stand.
@@ -157,6 +200,64 @@ public static class RoleTactics
 
         if (decision.engaged) decision.move = Separate(self, grid, position, decision.move);
         return decision;
+    }
+
+    /// Where a hurt Pokémon goes to recover (see the Refuge constants), or null.
+    static Vector2? RefugeTarget(Combatant self, float foeDistance, bool hasFoe)
+    {
+        refuges.TryGetValue(self, out var state);
+        float health = self.maxHp > 0f ? self.hp / self.maxHp : 1f;
+        bool going = state != null && Time.time < state.until;
+        if (going && health >= RefugeLeave)
+        {
+            state.until = 0f;
+            state.cooldownUntil = Time.time + RefugeCooldown;
+            return null;
+        }
+        if (going) return Terrain.FindRefuge(self, RefugeSearch); // looked for again: the terrain may be gone
+        if (health >= RefugeEnter || (state != null && Time.time < state.cooldownUntil)) return null;
+        if (hasFoe && foeDistance < RefugeSafe) return null; // in the thick of the fight
+        var spot = Terrain.FindRefuge(self, RefugeSearch);
+        if (spot == null) return null;
+        if (state == null) refuges[self] = state = new RefugeState();
+        state.until = Time.time + RefugeTime;
+        state.cooldownUntil = state.until + RefugeCooldown;
+        return spot;
+    }
+
+    /// What the ground effect of an attack is worth against "foe": +1 when it reacts with the terrain under the
+    /// opponent into something that hurts it (lightning on the puddle it stands in), -1 when it would hurt a
+    /// team-mate (in the area, or on the same puddle when the reaction spreads), 0 otherwise.
+    static int TerrainValue(Combatant self, MoveDef move, Combatant foe)
+    {
+        var t = Terrain.Of(move);
+        if (t == null) return 0;
+        Vector2 from = self.transform.position, at = foe.transform.position;
+        bool line = t.shape == "trail" || t.shape == "dash" || t.shape == "strike";
+        Vector2 centre = t.shape == "around" ? from : at;
+        float radius = Terrain.RadiusOf(t, move) + 0.5f;
+        var under = Terrain.At(at);
+        string result = Terrain.Predict(under?.key, t.terrain);
+        bool reacts = Terrain.Reacts(under?.key, t.terrain, out bool spreads);
+
+        foreach (var ally in Combatant.All)
+        {
+            if (ally == null || ally == self || ally.team != self.team || !ally.IsAlive) continue;
+            Vector2 p = ally.transform.position;
+            bool inArea = line ? DistanceToSegment(p, from, at) <= radius : Vector2.Distance(p, centre) <= radius;
+            bool onSamePuddle = spreads && Terrain.At(p) == under && Vector2.Distance(p, at) <= SpreadReach;
+            if (!inArea && !onSamePuddle) continue;
+            var there = Terrain.Def(Terrain.Predict(Terrain.At(p)?.key, t.terrain));
+            if (Terrain.Harmful(there, ally)) return -1;
+        }
+        return reacts && Terrain.Harmful(Terrain.Def(result), foe) ? 1 : 0;
+    }
+
+    static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        float t = ab.sqrMagnitude > 0.0001f ? Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude) : 0f;
+        return Vector2.Distance(p, a + ab * t);
     }
 
     static Decision Use(Decision decision, int slot, Vector2 aim, float distance)

@@ -170,7 +170,7 @@ public class Projectile : MonoBehaviour
             return;
         }
 
-        Terrain.OnTrail(move, from, to);
+        Terrain.OnTrail(move, from, to, owner);
         if (Sweep(from, to)) return;
         Vector2 moved = to - from;
         if (moved.sqrMagnitude > 0.000001f)
@@ -178,7 +178,7 @@ public class Projectile : MonoBehaviour
         transform.position = to;
 
         if (!done) return;
-        if (!returning && move.path != "boomerang") Terrain.OnImpact(move, to); // spent: lands where it stops
+        if (!returning && move.path != "boomerang") Terrain.OnImpact(move, to, owner); // spent: lands where it stops
         if (move.path == "boomerang" && !returning)
         {
             returning = true;
@@ -253,7 +253,7 @@ public class Projectile : MonoBehaviour
                 Strike(target);
                 EffectPlayer.Spawn(move.impactEffect, at, delta);
                 if (move.pierce || move.path == "boomerang") continue;
-                Terrain.OnImpact(move, at);
+                Terrain.OnImpact(move, at, owner);
                 Destroy(gameObject);
                 return true;
             }
@@ -278,7 +278,7 @@ public class Projectile : MonoBehaviour
                 return true;
             }
             EffectPlayer.Spawn(move.impactEffect, at, delta);
-            Terrain.OnImpact(move, at);
+            Terrain.OnImpact(move, at, owner);
             Destroy(gameObject);
             return true;
         }
@@ -292,7 +292,7 @@ public class Projectile : MonoBehaviour
         if (move.puddle > 0f)
             Shapes.Puddle(at, area, ColorUtility.TryParseHtmlString(move.puddleColor, out var tint) ? tint : GameData.TypeColor(move.type), move.puddle, EffectLibrary.Get(move.mark)?.Frame(move.markFrame), move.markFill);
         EffectPlayer.Spawn(move.impactEffect, at, forward);
-        Terrain.OnImpact(move, at);
+        Terrain.OnImpact(move, at, owner);
         foreach (var c in Physics2D.OverlapCircleAll(at, area))
         {
             if (c.isTrigger) continue;
