@@ -82,6 +82,7 @@ public class MoveDef
     public float stunChance; // projectile with stun: chance to stun (always when omitted)
     public float delayedHit; // melee dash: the opponents passed through are hit this many seconds after the dash ends (0: at once)
     public bool lungeThrough; // melee dash that goes through opponents instead of being stopped by them
+    public float areaRadius; // zone "each": only the opponents within this many tiles of the user (all when omitted)
     public float firstTick; // zone: seconds before the first hit (0.6 when omitted)
     public float castTime; // projectile: seconds the user stands still, aim locked, before the shots leave
     public bool sequential; // projectile: the shots of a fan leave one by one (burstInterval apart), middle first, then left, right

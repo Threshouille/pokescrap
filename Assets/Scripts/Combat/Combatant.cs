@@ -530,10 +530,13 @@ public class Combatant : MonoBehaviour
 
         if (move.family == "zone" && move.target == "each")
         {
-            // One zone under every opponent still standing.
+            // One zone under every opponent still standing (within areaRadius of the user when set, shown by a ring).
             readyAt[slot] = Time.time + CooldownOf(move);
             foreach (var c in all.ToArray())
-                if (c.team != team && c.IsAlive) Zone.Spawn(this, move, c.transform.position);
+                if (c.team != team && c.IsAlive
+                    && (move.areaRadius <= 0f || Vector2.Distance(c.transform.position, transform.position) <= move.areaRadius))
+                    Zone.Spawn(this, move, c.transform.position);
+            if (move.areaRadius > 0f) Shapes.AreaRing(transform.position, move.areaRadius, GameData.TypeColor(move.type), 0.8f);
             return true;
         }
 
