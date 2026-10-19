@@ -22,6 +22,8 @@ public class Projectile : MonoBehaviour
     float side; // +1 / -1: which way a curve bends, where an orbit starts
     float delay; // seconds before the shot leaves (bursts)
     Vector2 aimAtSpawn; // the shooter's live aim when the shot was created (zero for an AI)
+    float hold; // seconds left waiting in place, harmless (move.hold)
+    Combatant lockedTarget; // a waiting shot leaves toward it
 
     // The path is an offset around a point moving straight ahead from "origin" along "forward".
     Vector2 origin, forward;
@@ -35,14 +37,15 @@ public class Projectile : MonoBehaviour
     /// shotIndex: position in the volley (picks the side of curves and orbits); delay: seconds before leaving;
     /// distance: where the user aimed (arc lands there when closer than the range, ≤ 0 = full range).
     /// extraRange: tiles added to the range (shots of a volley landing further and further).
+    /// at: where the shot appears (in front of the user by default); lockedTarget: where a waiting shot (move.hold) goes.
     public static void Spawn(Combatant owner, MoveDef move, Vector2 direction, int shotIndex = 0, float delay = 0f, float distance = -1f,
-        float extraRange = 0f)
+        float extraRange = 0f, Vector2? at = null, Combatant lockedTarget = null)
     {
         var go = new GameObject(move.name);
-        go.transform.position = owner.transform.position + (Vector3)(direction * SpawnOffset);
+        go.transform.position = at ?? (Vector2)(owner.transform.position + (Vector3)(direction * SpawnOffset));
 
         // Without a sprite sheet the shot falls back to a plain disc in the colour of its type.
-        if (EffectPlayer.Attach(go, move.effect, direction))
+        if (EffectPlayer.Attach(go, move.effect, move.upright ? Vector2.right : direction))
         {
             if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
         }
@@ -71,6 +74,8 @@ public class Projectile : MonoBehaviour
         projectile.origin = go.transform.position;
         projectile.bouncesLeft = move.bounces;
         projectile.delay = delay;
+        projectile.hold = move.hold;
+        projectile.lockedTarget = lockedTarget;
         projectile.aimAtSpawn = owner.LiveAim;
         projectile.renderers = go.GetComponentsInChildren<Renderer>();
         if (delay > 0f) projectile.Show(false);
@@ -90,7 +95,7 @@ public class Projectile : MonoBehaviour
     {
         foreach (var shot in active)
         {
-            if (shot.team == victim || shot.delay > 0f || shot.returning || shot.move == null) continue;
+            if (shot.team == victim || shot.delay > 0f || shot.hold > 0f || shot.returning || shot.move == null) continue;
             if (shot.move.path == "arc")
             {
                 Vector2 landing = shot.origin + shot.forward * shot.range;
@@ -125,11 +130,25 @@ public class Projectile : MonoBehaviour
             {
                 float offset = Vector2.SignedAngle(aimAtSpawn, forward);
                 forward = (Quaternion.Euler(0f, 0f, offset) * owner.LiveAim.normalized);
-                transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
+                if (!move.upright) transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
             }
             origin = owner.transform.position + (Vector3)(forward * SpawnOffset);
             transform.position = origin;
             Show(true);
+        }
+
+        if (hold > 0f)
+        {
+            // Waits in place, then leaves toward the opponent targeted when the move started.
+            hold -= dt;
+            if (hold > 0f) return;
+            if (lockedTarget != null && lockedTarget.IsAlive)
+            {
+                Vector2 toTarget = lockedTarget.transform.position - transform.position;
+                if (toTarget.sqrMagnitude > 0.0001f) forward = toTarget.normalized;
+                if (!move.upright) transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
+            }
+            origin = transform.position;
         }
 
         speed = Mathf.Max(MinSpeed, speed + move.accel * dt);
@@ -173,7 +192,7 @@ public class Projectile : MonoBehaviour
         Terrain.OnTrail(move, from, to, owner);
         if (Sweep(from, to)) return;
         Vector2 moved = to - from;
-        if (moved.sqrMagnitude > 0.000001f)
+        if (moved.sqrMagnitude > 0.000001f && !move.upright)
             transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(moved.y, moved.x) * Mathf.Rad2Deg);
         transform.position = to;
 
@@ -184,7 +203,13 @@ public class Projectile : MonoBehaviour
             returning = true;
             hit.Clear(); // can hit the same opponents again on the way back
         }
-        else Destroy(gameObject);
+        else
+        {
+            var end = EffectLibrary.Get(move.endEffect);
+            if (end != null) EffectPlayer.Spawn(move.endEffect, transform.position, Vector2.right, null, 0f,
+                end.frame_width / (float)EffectLibrary.PixelsPerUnit * transform.localScale.x);
+            Destroy(gameObject);
+        }
     }
 
     /// Point of the path after "distance" tiles along "forward".

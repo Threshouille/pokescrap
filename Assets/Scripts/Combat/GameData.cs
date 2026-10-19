@@ -43,7 +43,7 @@ public class MoveDef
     public float range; // tiles: flight distance (projectile) or distance of the hit zone (melee)
     public float radius; // tiles
     public float windup; // seconds an enemy announces the move before using it
-    public float lunge; // melee only: tiles the attacker dashes forward while striking (0 = strikes in place)
+    public float lunge; // melee: tiles the attacker dashes forward while striking (0 = strikes in place); projectile: harmless dash, the shots leave from its flanks at the end
     public float lungeTime; // seconds the dash lasts
     public string effect; // sprite sheet in Resources/Effects: flight (projectile), strike (melee) or dash trail (lunge)
     public string impactEffect; // sprite sheet played where the move hits
@@ -60,10 +60,14 @@ public class MoveDef
     public float pathPeriod; // tiles travelled per cycle (wave, zigzag, orbit)
     public int burst; // projectile: volleys fired one after the other (1 when omitted)
     public float burstInterval; // seconds between two volleys
+    public bool burstRoot; // projectile: the user can neither move nor attack until the last volley has left (recovery adds to it)
+    public float hold; // projectile after a dash: seconds the shots wait in place before leaving toward the opponent targeted at the start
     public float jitter; // degrees: random deviation of each shot, either side
     public float growth; // size multiplier reached at the end of the flight (unchanged when omitted)
     public float accel; // tiles per second², negative to slow down
     public bool pierce; // goes through opponents, hitting each once
+    public bool upright; // projectile: the sheet keeps its orientation instead of turning with the flight (clouds)
+    public string endEffect; // projectile: sheet played where the shot ends its flight, at the shot's size (a cloud fading away)
     public int bounces; // times the shot bounces off walls
     public float splash; // arc: radius of the hit where it lands
     public float rangeStep; // projectile: each shot after the first flies this much further (tiles)
@@ -79,6 +83,7 @@ public class MoveDef
     public string shape; // melee: circle (default: in front, range away), arc (sector around the user: range, arc), thrust (line from the user: range long, radius wide), around (circle around the user)
     public float arc; // melee arc: total angle in degrees
     public int hits; // melee: strikes in a row (1 when omitted)
+    public bool strikeRoot; // melee: the user can neither move nor attack until its last strike (recovery adds to it)
     public float hitInterval; // seconds between two strikes
     public float[] hitAngles; // degrees: offset of each strike from the aim, in turn (alternating swings, crossed claws)
     public float step; // melee: tiles the user steps forward with each strike
@@ -99,7 +104,8 @@ public class MoveDef
     public bool strikeAfterLunge; // melee dash followed by the move's strikes, strikeDelay seconds after it ends
     public float strikeDelay;
     public string strikeEffect; // melee: sheet of the strikes when "effect" is a dash trail (Pisto-Poing)
-    public float sideOffset; // melee: strikes start this far to the side, on the side opposite to their hitAngle, so they cross
+    public float sideOffset; // melee: strikes start this far to the side, on the side opposite to their hitAngle, so they cross; projectile after a dash: tiles between the user and each shot
+    public bool sweep; // melee arc: the strike sheet turns across the arc around the user, one way then the other
     public string anim; // animation played when the move is used (Shoot / Attack when omitted); PMD Attack sheets step forward
     public string dashAnim; // melee dash: animation during the dash (Walk when omitted)
     public string castAnim; // animation during the cast (e.g. Hop)
@@ -444,6 +450,7 @@ public static class GameData
     {
         string wanted = !string.IsNullOrEmpty(move.anim) ? move.anim
             : move.family == "melee" && move.lunge > 0f && !move.teleport ? (string.IsNullOrEmpty(move.dashAnim) ? "Walk" : move.dashAnim)
+            : move.family == "modifier" && move.target != "enemies" ? "Double" // bonuses, as in the original game
             : move.family != "melee" && move.family != "burst" ? "Shoot" : "Attack";
         if (animator.Has(wanted)) return wanted;
         return animator.Has("Attack") ? "Attack" : "Idle";

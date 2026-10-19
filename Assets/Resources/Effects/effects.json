@@ -2234,6 +2234,311 @@
       ]
     },
     {
+      "file": "spore_spore.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#2e3a1e",
+        "#a8906a",
+        "#9cc068",
+        "#d4ec9c",
+        "#fff2d0"
+      ]
+    },
+    {
+      "file": "spore_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#2e3a1e",
+        "#a8906a",
+        "#9cc068",
+        "#d4ec9c",
+        "#fff2d0"
+      ]
+    },
+    {
+      "file": "spore_fin.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#2e3a1e",
+        "#a8906a",
+        "#9cc068",
+        "#d4ec9c",
+        "#fff2d0"
+      ]
+    },
+    {
+      "file": "poudre_dodo_spore.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#1c3448",
+        "#5aa0b4",
+        "#8cd4d0",
+        "#c8eef6",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poudre_dodo_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#1c3448",
+        "#5aa0b4",
+        "#8cd4d0",
+        "#c8eef6",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poudre_dodo_fin.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#1c3448",
+        "#5aa0b4",
+        "#8cd4d0",
+        "#c8eef6",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "para_spore_spore.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#3a2400",
+        "#e07a10",
+        "#ffc21a",
+        "#fff070",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "para_spore_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2400",
+        "#e07a10",
+        "#ffc21a",
+        "#fff070",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "para_spore_fin.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2400",
+        "#e07a10",
+        "#ffc21a",
+        "#fff070",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poudre_toxik_spore.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#1f0a2e",
+        "#4e1460",
+        "#a03cb4",
+        "#e070d0",
+        "#ffb8ee"
+      ]
+    },
+    {
+      "file": "poudre_toxik_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#4e1460",
+        "#a03cb4",
+        "#e070d0",
+        "#ffb8ee"
+      ]
+    },
+    {
+      "file": "poudre_toxik_fin.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#4e1460",
+        "#a03cb4",
+        "#e070d0",
+        "#ffb8ee"
+      ]
+    },
+    {
+      "file": "spore_coton_spore.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#9a8e7a",
+        "#cfc8ba",
+        "#e8e4dc",
+        "#f8f6f0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "spore_coton_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#9a8e7a",
+        "#cfc8ba",
+        "#e8e4dc",
+        "#f8f6f0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "spore_coton_fin.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#9a8e7a",
+        "#cfc8ba",
+        "#e8e4dc",
+        "#f8f6f0",
+        "#ffffff"
+      ]
+    },
+    {
       "file": "terrain_ice.png",
       "frame_width": 24,
       "frame_height": 24,
