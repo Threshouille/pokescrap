@@ -50,7 +50,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Feu **Lance-Flamme** : jet de flammes en cône tant que le bouton est enfoncé (3 s maximum), lanceur ralenti, visée qui suit la cible.
   - Eau **Vibraqua** : anneau d'eau lent (sans tête chercheuse depuis le 19/10/2026), qui grossit et rétrécit, traverse les ennemis ; confusion 20 %.
   - Plante **Méga-Sangsue** : lien accroché à la cible 1,5 s qui la draine et soigne le lanceur ; casse si elle s'éloigne.
-  - Électrik **Fatal-Foudre** : après 1 s de charge, zone autour du lanceur où tombent des éclairs au hasard, avec de petites ondes de choc (dégâts, faible chance de paralysie).
+  - Électrik **Fatal-Foudre** : après 1 s de charge, des éclairs tombent du ciel au hasard pendant 3 s dans 4 cases autour du lanceur (sans zone dessinée au sol), chacun avec une onde de choc de 1,1 case de rayon (dégâts, faible chance de paralysie).
   - Glace **Blizzard** : même charge et même zone que Fatal-Foudre, mais ralentit et blesse chaque seconde.
   - Combat **Frappe Atlas** : courte ruée, saisie, saut et écrasement au sol, onde de choc autour de l'impact.
   - Poison **Acidarmure** : le Pokémon se liquéfie 2 s (intouchable, plus rapide, traverse et empoisonne les ennemis).

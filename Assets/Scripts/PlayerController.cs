@@ -221,7 +221,7 @@ public class PlayerController : MonoBehaviour
     {
         if (gameOver) { ShowTargetRing(null); return; } // EnemySpawner draws the end screen and handles what comes next
 
-        if (Time.timeScale == 0f) return; // paused by the upgrade screen
+        if (Time.timeScale == 0f || members.Count == 0) return; // paused by the upgrade screen, or no team yet
 
         var member = Current;
         move = member.combatant.CanMove ? ReadMove() : Vector2.zero; // asleep, frozen or trapped

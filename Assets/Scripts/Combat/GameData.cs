@@ -90,6 +90,8 @@ public class MoveDef
     public float useModValue, useModDuration;
     public int orbitCount; // projectile: stones circling the user (they stop enemy shots), then launched one by one at the aim
     public float orbitRadius, orbitTime, orbitInterval; // tiles, seconds circling, seconds between two launches
+    public bool hideZone; // zone drawn with nothing on the ground (its bolts and impacts show it)
+    public string boltFallEffect; // zone bolts: sheet of the bolt falling from the sky, its bottom on the struck spot
     public bool impactOnTargets; // zone: the impact sheet plays on each opponent hit instead of over the whole zone
     public bool rootUntilHit; // zone: opponents caught in it when it appears cannot move until the first hit
     public float firstTick; // zone: seconds before the first hit (0.6 when omitted)

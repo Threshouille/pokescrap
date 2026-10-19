@@ -28,7 +28,8 @@ public class Zone : MonoBehaviour
         go.transform.position = centre;
 
         // Without a sprite sheet the zone falls back to a translucent disc in the colour of its type.
-        if (EffectPlayer.Attach(go, move.effect, Vector2.right))
+        if (move.hideZone) { }
+        else if (EffectPlayer.Attach(go, move.effect, Vector2.right))
         {
             if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
         }
@@ -92,6 +93,27 @@ public class Zone : MonoBehaviour
         return push.sqrMagnitude > 0.0001f ? push.normalized : Vector2.right;
     }
 
+    // A bolt falling from the sky onto the spot: its sheet stands on the spot (a thin yellow streak without one).
+    void BoltFall(Vector2 spot)
+    {
+        var sheet = EffectLibrary.Get(move.boltFallEffect);
+        if (sheet != null)
+        {
+            float height = sheet.frame_height / (float)EffectLibrary.PixelsPerUnit;
+            EffectPlayer.Spawn(move.boltFallEffect, spot + Vector2.up * height / 2f, Vector2.right);
+            return;
+        }
+        const float Height = 3f, Width = 0.12f;
+        var go = new GameObject("Éclair");
+        go.transform.position = spot + Vector2.up * Height / 2f;
+        go.transform.localScale = new Vector3(Width, Height, 1f);
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = Shapes.Square;
+        renderer.color = new Color(1f, 0.95f, 0.5f, 0.9f);
+        renderer.sortingOrder = 4;
+        go.AddComponent<FadeOut>().duration = 0.15f;
+    }
+
     void FixedUpdate()
     {
         if (Time.time >= dieAt)
@@ -106,6 +128,7 @@ public class Zone : MonoBehaviour
             {
                 nextBolt += move.boltInterval;
                 Vector2 spot = (Vector2)transform.position + Random.insideUnitCircle * move.radius;
+                BoltFall(spot);
                 EffectPlayer.Spawn(move.impactEffect, spot, Vector2.right, null, 0f, move.boltRadius * 2f);
                 foreach (var other in Physics2D.OverlapCircleAll(spot, move.boltRadius))
                 {
