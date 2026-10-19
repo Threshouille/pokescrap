@@ -124,14 +124,17 @@ public class Zone : MonoBehaviour
         if (tick)
         {
             nextTick += TickInterval;
-            EffectPlayer.Spawn(move.impactEffect, transform.position, Vector2.right, null, 0f, move.radius * 2f);
+            // The impact sheet covers the whole zone, or plays on each opponent hit (impactOnTargets).
+            if (!move.impactOnTargets) EffectPlayer.Spawn(move.impactEffect, transform.position, Vector2.right, null, 0f, move.radius * 2f);
         }
         foreach (var other in Physics2D.OverlapCircleAll(transform.position, move.radius))
         {
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team) continue;
             target.ApplyEffects(move, true, owner);
-            if (tick) target.TakeHit(damage, move, out _);
+            if (!tick) continue;
+            if (move.impactOnTargets) EffectPlayer.Spawn(move.impactEffect, target.transform.position, Vector2.right);
+            target.TakeHit(damage, move, out _);
         }
     }
 }

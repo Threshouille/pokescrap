@@ -90,6 +90,7 @@ public class MoveDef
     public float useModValue, useModDuration;
     public int orbitCount; // projectile: stones circling the user (they stop enemy shots), then launched one by one at the aim
     public float orbitRadius, orbitTime, orbitInterval; // tiles, seconds circling, seconds between two launches
+    public bool impactOnTargets; // zone: the impact sheet plays on each opponent hit instead of over the whole zone
     public bool rootUntilHit; // zone: opponents caught in it when it appears cannot move until the first hit
     public float firstTick; // zone: seconds before the first hit (0.6 when omitted)
     public float castTime; // projectile: seconds the user stands still, aim locked, before the shots leave

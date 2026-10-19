@@ -1,0 +1,165 @@
+{
+  "sheets": [
+    {
+      "file": "fatal_foudre_zone.png",
+      "frame_width": 144,
+      "frame_height": 144,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#3a2600",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "fatal_foudre_eclair.png",
+      "frame_width": 40,
+      "frame_height": 40,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        40,
+        50,
+        50,
+        50,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2600",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "blizzard_zone.png",
+      "frame_width": 144,
+      "frame_height": 144,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        125,
+        125,
+        125,
+        125
+      ],
+      "loop": true,
+      "palette": [
+        "#1a2f5a",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "blizzard_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        60,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1a2f5a",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "draco_meteor_ombre.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        75,
+        75,
+        75,
+        75
+      ],
+      "loop": true,
+      "palette": [
+        "#1a0c3c",
+        "#4a2ea8",
+        "#7038f8",
+        "#b49aff",
+        "#ffd8a0"
+      ]
+    },
+    {
+      "file": "draco_meteor_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        50,
+        60,
+        70,
+        70,
+        70,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#1a0c3c",
+        "#4a2ea8",
+        "#7038f8",
+        "#b49aff",
+        "#ffd8a0"
+      ]
+    },
+    {
+      "file": "pouv_antique_pierre.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        75,
+        75,
+        75,
+        75
+      ],
+      "loop": true,
+      "palette": [
+        "#3a2e1c",
+        "#7c6a48",
+        "#b8a070",
+        "#e8d8a8",
+        "#ffd860"
+      ]
+    },
+    {
+      "file": "pouv_antique_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        60,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2e1c",
+        "#7c6a48",
+        "#b8a070",
+        "#e8d8a8",
+        "#ffd860"
+      ]
+    }
+  ]
+}
