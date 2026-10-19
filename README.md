@@ -11,9 +11,13 @@ Conception : [`Docs/GDD.md`](Docs/GDD.md). État du projet et méthode de travai
 
 ## Prérequis
 
-- **Unity 6000.6.5f1** (via Unity Hub ; la version exacte compte).
+- **Unity 6000.6.x** via Unity Hub (version de référence : `ProjectSettings/ProjectVersion.txt`). Un autre correctif
+  de la même branche 6000.6 convient ; ne pas committer `ProjectVersion.txt` s'il change seulement parce que ton
+  éditeur est plus récent (changer de version se décide à l'équipe).
 - **Python 3.10+** (avec `venv` ; sous Ubuntu/Debian : `sudo apt install python3-venv`).
 - Git.
+- Pour travailler avec Claude Code et unityMCP (facultatif) : [`uv`](https://docs.astral.sh/uv/) (`uvx` doit être dans
+  le `PATH` ; macOS : `brew install uv`).
 - La ROM européenne de *Pokémon Donjon Mystère : Explorateurs du Ciel* (code `C2SP`), **dumpée depuis ta
   propre cartouche**. Ne jamais la partager ni la committer.
 
@@ -37,10 +41,13 @@ Le script :
    ceux du projet ;
 5. extrait les décors de donjon ;
 6. lance Unity en mode batch (`PmdSpriteImport.BuildEverything` : **Build Tilesets** + **Build Anim Sets**).
-   La première importation du projet prend plusieurs minutes. Si Unity n'est pas trouvé dans les dossiers
-   par défaut du Hub, passe `--unity <chemin de l'exécutable Unity>`.
+   La première importation du projet prend plusieurs minutes. Le script cherche Unity dans les dossiers du Hub
+   (Linux, macOS, Windows, et le dossier d'installation choisi dans le Hub) : la version exacte du projet, sinon
+   la plus récente de la même branche (6000.6.x). Sinon, passe `--unity <chemin de l'exécutable Unity>` ou
+   définis la variable d'environnement `UNITY_PATH`.
 
-Options : `--no-unity` (s'arrêter avant Unity), `--force` (tout refaire). Chaque étape déjà faite est sautée,
+Options : `--no-unity` (s'arrêter avant Unity), `--force` (tout refaire), `--unity-only [Classe.Méthode]` (relancer
+seulement l'étape Unity, par défaut `PmdSpriteImport.BuildEverything`). Chaque étape déjà faite est sautée,
 on peut donc relancer le script sans risque (par exemple après un `git pull` qui ajoute des Pokémon).
 
 Ensuite : ouvrir le projet dans Unity Hub, puis Play (le jeu démarre toujours sur la scène `Menu`).

@@ -35,3 +35,8 @@ __pycache__/
 /Assets/Resources/Data/pokemon_rt.json
 /Assets/Resources/Data/levels_rt.bytes
 /Assets/Resources/Data/generated_moves.json
+
+# OS and personal editor files
+.DS_Store
+Thumbs.db
+.vscode/

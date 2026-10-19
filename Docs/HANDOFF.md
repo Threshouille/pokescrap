@@ -62,14 +62,14 @@ Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps 
 - Jamais observés en jeu : clignotement des icônes en fin d'effet, navigation manette dans l'écran d'amélioration, effets animés de Groudon (seulement les fichiers), alliés au repos qui se répartissent.
 - La traînée de Vive-Attaque et l'onde de Séisme sont fines : à vérifier pour la lisibilité.
 - Unity s'est bloqué une fois pendant un rechargement de scripts (« The file 'MemoryStream' is corrupted ») ; Owen a dû le relancer. Après une recompilation, la liaison unityMCP peut être absente une dizaine de secondes : vérifier `Logs/Editor.log` (ciblé) avant de conclure à un blocage.
-- La manette est une Battletron compatible PS4 en Bluetooth (le câble USB coupait). Si Linux la refuse (« Rejected connection from !bonded device » dans `journalctl -u bluetooth`), refaire l'appairage avec `bluetoothctl` jusqu'à « Bonded: yes ». Ne pas toucher à `ClassicBondedOnly` sans accord explicite.
+- Machine d'Owen (Linux) : la manette est une Battletron compatible PS4 en Bluetooth (le câble USB coupait). Si Linux la refuse (« Rejected connection from !bonded device » dans `journalctl -u bluetooth`), refaire l'appairage avec `bluetoothctl` jusqu'à « Bonded: yes ». Ne pas toucher à `ClassicBondedOnly` sans accord explicite.
 
 ## Comment je teste (rappels utiles)
 
 - Play lance la scène `Menu` ; en test, `Run.Start(new[]{4,1,25})` lance une partie avec cette équipe, `Run.ToMenu()` revient au menu. Pour tester l'écran d'amélioration : `Progression.AddXp(5000)` ; les champs privés `options`, `pending`, `replacing` se lisent par réflexion, `Choose(i)` et `Replace(slot)` sont publics.
 - Statuts : `combatant.AddStatus("sleep", 3f)` ; la confusion se vérifie par `Steer(Vector2.right)`.
 - Captures : `manage_camera` avec `output_folder` = `Temp/Captures` (pas de dossier `Assets/Screenshots`).
-- Sauvegarde : `~/.config/unity3d/DefaultCompany/Pokescrap/save.json` ; menu **Pokescrap > Effacer la sauvegarde** (la remettre à zéro après les tests). Pour tester le recrutement : `SaveData.Settings.recruitMultiplier = 100` en mode Play. Lancer `SampleScene` directement donne une équipe au hasard parmi les débloqués ; `Run.ToMenu()` / `Run.Start(ids)` changent de scène.
+- Sauvegarde : `save.json` dans `Application.persistentDataPath` (Linux `~/.config/unity3d/DefaultCompany/Pokescrap/`, macOS `~/Library/Application Support/DefaultCompany/Pokescrap/`, Windows `%USERPROFILE%\AppData\LocalLow\DefaultCompany\Pokescrap\`) ; menu **Pokescrap > Effacer la sauvegarde** (la remettre à zéro après les tests). Pour tester le recrutement : `SaveData.Settings.recruitMultiplier = 100` en mode Play. Lancer `SampleScene` directement donne une équipe au hasard parmi les débloqués ; `Run.ToMenu()` / `Run.Start(ids)` changent de scène.
 - Tester une attaque par code : désactiver `EnemyAI` et `AllyAI`, et ne pas utiliser le Pokémon contrôlé (sa `LiveAim` vient de la manette et remplace la direction donnée) ; la fenêtre en arrière-plan est lente, prévoir plusieurs lectures espacées.
 - `execute_code` en mode Play ; neutraliser l'écran d'amélioration avec `Progression.choiceInterval = 0` et les vagues avec `EnemySpawner.delayBetweenWaves = 600`.
 - Aller directement au boss : invoquer deux fois la méthode privée `EnemySpawner.NextStage` par réflexion après avoir détruit les ennemis.

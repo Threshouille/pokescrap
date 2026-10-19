@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "unityMCP": {
-      "command": "/home/owen/.local/bin/uvx",
+      "command": "uvx",
       "args": ["--from", "mcpforunityserver==10.3.0", "mcp-for-unity", "--transport", "stdio"]
     }
   }

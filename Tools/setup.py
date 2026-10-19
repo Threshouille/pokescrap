@@ -2,6 +2,8 @@
 """Rebuild every asset taken from the ROM, which the Git repository does not contain.
 
 Usage (from the project root, Unity closed):  python3 Tools/setup.py [--unity <path to the Unity executable>]
+Unity is looked for with --unity, then $UNITY_PATH, then in the Unity Hub folders (Linux, macOS, Windows).
+Only rerun the Unity build (e.g. after importing Pokémon):  python3 Tools/setup.py --unity-only [Class.Method]
 
 Needs Rom/eos_eu.nds (Pokémon Mystery Dungeon: Explorers of Sky, EU, dumped from your own cartridge).
 The repository keeps the .meta file of every generated asset: this script puts each asset back at the path of
@@ -13,6 +15,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -134,29 +137,70 @@ def missing_assets():
     return [m for folder in GENERATED for m in folder.rglob("*.meta") if not m.with_suffix("").exists()]
 
 
+def project_version():
+    return next(line.split()[1] for line in (ROOT / "ProjectSettings/ProjectVersion.txt").read_text().splitlines()
+                if line.startswith("m_EditorVersion:"))
+
+
+def hub_editor_folders():
+    """Folders where Unity Hub installs editors (default one per OS, plus the Hub's custom install folder)."""
+    home = Path.home()
+    folders = [home / "Unity/Hub/Editor", Path("/Applications/Unity/Hub/Editor"),
+               Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Unity/Hub/Editor"]
+    hub_config = (home / "Library/Application Support/UnityHub" if sys.platform == "darwin"
+                  else Path(os.environ.get("APPDATA", home)) / "UnityHub" if os.name == "nt"
+                  else home / ".config/UnityHub")
+    custom = hub_config / "secondaryInstallPath.json"
+    if custom.exists():
+        try:
+            folder = json.loads(custom.read_text())
+            if folder:
+                folders.insert(0, Path(folder))
+        except ValueError:
+            pass
+    return [f for f in folders if f.is_dir()]
+
+
+def editor_executable(folder):
+    if sys.platform == "darwin":
+        return folder / "Unity.app/Contents/MacOS/Unity"
+    return folder / ("Editor/Unity.exe" if os.name == "nt" else "Editor/Unity")
+
+
 def find_unity(path):
+    """The Unity executable: --unity, then $UNITY_PATH, then the Hub folders (exact project version first,
+    otherwise the most recent editor of the same major.minor, e.g. 6000.6.x)."""
+    path = path or os.environ.get("UNITY_PATH")
     if path:
         return Path(path)
-    version = next(line.split()[1] for line in (ROOT / "ProjectSettings/ProjectVersion.txt").read_text().splitlines()
-                   if line.startswith("m_EditorVersion:"))
-    for candidate in (Path.home() / f"Unity/Hub/Editor/{version}/Editor/Unity",
-                      Path(f"C:/Program Files/Unity/Hub/Editor/{version}/Editor/Unity.exe"),
-                      Path(f"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity")):
-        if candidate.exists():
-            return candidate
+    version = project_version()
+    installed = {d.name: editor_executable(d) for folder in hub_editor_folders() for d in folder.iterdir()
+                 if editor_executable(d).exists()}
+    if version in installed:
+        return installed[version]
+    branch = ".".join(version.split(".")[:2]) + "."
+    same_branch = sorted((v for v in installed if v.startswith(branch)), key=version_key)
+    if same_branch:
+        print(f"Unity {version} not installed, using {same_branch[-1]} (same {branch}x branch).")
+        return installed[same_branch[-1]]
     return None
 
 
-def build_in_unity(unity):
-    step("Unity: Build Tilesets + Build Anim Sets (batch mode, first import takes a while)")
+def version_key(version):
+    """6000.6.12f1 -> (6000, 6, 12, 'f', 1), so versions sort numerically."""
+    return tuple(int(p) if p.isdigit() else p for p in re.findall(r"\d+|[a-z]+", version))
+
+
+def build_in_unity(unity, method="PmdSpriteImport.BuildEverything"):
+    step(f"Unity: {method} (batch mode, first import takes a while)")
     if unity is None:
-        print("Unity not found: pass --unity <path>, or open the project and run the menus\n"
+        print("Unity not found: pass --unity <path> (or set UNITY_PATH), or open the project and run the menus\n"
               "Pokescrap > Build Tilesets, then Pokescrap > Build Anim Sets.")
         return
     log = ROOT / "Logs/setup_unity.log"
     log.parent.mkdir(exist_ok=True)
     result = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT),
-                             "-executeMethod", "PmdSpriteImport.BuildEverything", "-quit", "-logFile", str(log)])
+                             "-executeMethod", method, "-quit", "-logFile", str(log)])
     if result.returncode != 0:
         sys.exit(f"Unity failed (code {result.returncode}), see {log.relative_to(ROOT)}. Is the editor closed?")
     print("ok")
@@ -167,7 +211,16 @@ def main():
     parser.add_argument("--unity", help="path to the Unity executable (found in the Hub folders otherwise)")
     parser.add_argument("--no-unity", action="store_true", help="stop before the Unity build step")
     parser.add_argument("--force", action="store_true", help="redo every step")
+    parser.add_argument("--unity-only", nargs="?", const="PmdSpriteImport.BuildEverything", metavar="METHOD",
+                        help="only run a Unity batch method (default PmdSpriteImport.BuildEverything)")
     args = parser.parse_args()
+
+    if args.unity_only:
+        unity = find_unity(args.unity)
+        if unity is None:
+            sys.exit("Unity not found: pass --unity <path> or set UNITY_PATH.")
+        build_in_unity(unity, args.unity_only)
+        return
 
     check_rom()
     setup_venv(args.force)
