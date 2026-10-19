@@ -1032,7 +1032,12 @@ public class Combatant : MonoBehaviour
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team || !hit.Add(target)) continue;
             count++;
-            if (move.delayedHit > 0f) continue; // struck when the dash is over
+            if (move.delayedHit > 0f)
+            {
+                // Struck when the dash is over; frozen (Hurt animation) until then.
+                target.Stun(lungeUntil - Time.time + move.delayedHit);
+                continue;
+            }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move), move, out float dealt))
             {

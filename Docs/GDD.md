@@ -43,7 +43,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Sol **Telluriforce** : marque sous la cible, colonne de terre 0,5 s plus tard (esquivable).
   - Vol **Lame d'Air** : grande lame rapide qui traverse ; 20 % de chance d'étourdir 1 s.
   - Psy **Psyko** : soulève la cible 0,8 s puis la projette (dégâts si elle heurte un mur).
-  - Insecte **Plaie-Croix** : ruée de 4,5 cases qui traverse les ennemis ; ils sont tranchés d'un coup 0,25 s après la fin de la ruée (entaille en X), comme un coup de sabre à retardement.
+  - Insecte **Plaie-Croix** : ruée de 4,5 cases qui traverse les ennemis ; figés (animation de dégâts) dès qu'elle les touche, ils sont tranchés d'un coup 0,25 s après la fin de la ruée (entaille en X), comme un coup de sabre à retardement.
   - Roche **Pouv. Antique** : 5 pierres en orbite (bloquent les tirs) puis lancées une à une sur la cible.
   - Spectre **Onde Folie** : cône qui rend confus 4 s (sans dégâts) ; et **Ball'Ombre** : charge tant que le bouton est enfoncé (immobile, maximum après 2 s, peut être tenue indéfiniment), la charge augmente taille et dégâts ; rapide, courte portée, s'arrête et flotte en bout de course.
   - Dragon **Draco Météor** : gros météores qui tombent en ligne en partant du lanceur, puis Attaque Spé du lanceur en baisse.
