@@ -41,7 +41,7 @@ public class MoveDef
     public float range; // tiles: flight distance (projectile) or distance of the hit zone (melee)
     public float radius; // tiles
     public float windup; // seconds an enemy announces the move before using it
-    public float lunge; // melee only: tiles the attacker dashes forward while striking (0 = strikes in place)
+    public float lunge; // melee: tiles the attacker dashes forward while striking (0 = strikes in place); projectile: harmless dash, the shots leave from its flanks at the end
     public float lungeTime; // seconds the dash lasts
     public string effect; // sprite sheet in Resources/Effects: flight (projectile), strike (melee) or dash trail (lunge)
     public string impactEffect; // sprite sheet played where the move hits
@@ -58,6 +58,8 @@ public class MoveDef
     public float pathPeriod; // tiles travelled per cycle (wave, zigzag, orbit)
     public int burst; // projectile: volleys fired one after the other (1 when omitted)
     public float burstInterval; // seconds between two volleys
+    public bool burstRoot; // projectile: the user can neither move nor attack until the last volley has left
+    public float hold; // projectile after a dash: seconds the shots wait in place before leaving toward the opponent targeted at the start
     public float jitter; // degrees: random deviation of each shot, either side
     public float growth; // size multiplier reached at the end of the flight (unchanged when omitted)
     public float accel; // tiles per second², negative to slow down
@@ -97,7 +99,8 @@ public class MoveDef
     public bool strikeAfterLunge; // melee dash followed by the move's strikes, strikeDelay seconds after it ends
     public float strikeDelay;
     public string strikeEffect; // melee: sheet of the strikes when "effect" is a dash trail (Pisto-Poing)
-    public float sideOffset; // melee: strikes start this far to the side, on the side opposite to their hitAngle, so they cross
+    public float sideOffset; // melee: strikes start this far to the side, on the side opposite to their hitAngle, so they cross; projectile after a dash: tiles between the user and each shot
+    public bool sweep; // melee arc: the strike sheet turns across the arc around the user, one way then the other
     public string anim; // animation played when the move is used (Shoot / Attack when omitted); PMD Attack sheets step forward
     public string dashAnim; // melee dash: animation during the dash (Walk when omitted)
     public string castAnim; // animation during the cast (e.g. Hop)

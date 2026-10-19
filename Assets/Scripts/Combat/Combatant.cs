@@ -127,7 +127,10 @@ public class Combatant : MonoBehaviour
     int chainCount; // strikes landed in a row (chainBonus)
     float chainUntil;
     float lungeSpeed;
-    bool lungeBouncing, lungeFinishPending, lungeStrikePending;
+    bool lungeBouncing, lungeFinishPending, lungeStrikePending, lungeShotPending;
+    Combatant lungeShotTarget; // opponent targeted when a dash followed by shots started
+    Vector2 lungeShotAim;
+    bool sweepBack; // the next sweeping strike turns the other way
     PmdAnimator animator;
     float stunUntil, recoverUntil; // stunned by a melee hit; rooted after one's own move (recovery)
     float knockUntil; // pushed away by a hit: controllers leave the body alone
@@ -541,7 +544,7 @@ public class Combatant : MonoBehaviour
             castDistance = distance;
             castUntil = Time.time + move.castTime;
         }
-        else if (move.family == "projectile") FireProjectiles(move, direction, distance);
+        else if (move.family == "projectile") Shoot(move, direction, distance);
         else if (move.family == "zone")
         {
             if (distance <= 0f && AimTarget != null && AimTarget.IsAlive)
@@ -557,6 +560,7 @@ public class Combatant : MonoBehaviour
     void Melee(MoveDef move, Vector2 direction)
     {
         direction = MeleeAutoAim(direction);
+        sweepBack = false;
         if (move.teleport)
         {
             EffectPlayer.Spawn(move.trailEffect, transform.position, direction, null, 0.25f);
@@ -704,6 +708,15 @@ public class Combatant : MonoBehaviour
             "around" => at,
             _ => at + direction * move.range,
         };
+        if (move.sweep && shape == "arc" && EffectLibrary.Get(sheet) != null)
+        {
+            // The sheet turns across the arc around the user, the other way at the next strike.
+            float half = move.arc / 2f * (sweepBack ? -1f : 1f);
+            sweepBack = !sweepBack;
+            float scale = move.effectScale > 0f ? EffectLibrary.Get(sheet).frame_width / (float)EffectLibrary.PixelsPerUnit * move.effectScale : 0f;
+            EffectPlayer.SpawnSweep(sheet, at, direction, reach * 0.55f, -half, half, scale);
+            return;
+        }
         if (EffectLibrary.Get(sheet) != null)
         {
             // An area around the user is stretched to its size; the other strikes keep the sheet's own size.
@@ -762,7 +775,41 @@ public class Combatant : MonoBehaviour
         lungeFinishPending = move.finishRadius > 0f;
         lungeStrikePending = move.strikeAfterLunge;
         // Trail just behind the attacker, following it for the length of the dash.
-        EffectPlayer.Spawn(move.effect, transform.position - (Vector3)(direction * 0.5f), direction, transform, LungeTime(move));
+        EffectPlayer.Spawn(move.family == "melee" ? move.effect : move.trailEffect, transform.position - (Vector3)(direction * 0.5f), direction, transform, LungeTime(move));
+    }
+
+    // A projectile move fires at once, or first dashes (where the user is moving, else toward the aim) and fires
+    // from its flanks at the end, toward the opponent targeted now.
+    void Shoot(MoveDef move, Vector2 direction, float distance)
+    {
+        if (move.lunge <= 0f || body == null)
+        {
+            FireProjectiles(move, direction, distance);
+            return;
+        }
+        var settings = SaveData.Settings;
+        lungeShotTarget = AimTarget != null && AimTarget.IsAlive ? AimTarget
+            : FindAimTarget(this, direction, settings.aimCone, move.range + move.lunge, settings.aimDistanceWeight);
+        lungeShotAim = direction;
+        Vector2 moving = body.linearVelocity;
+        StartLunge(move, moving.sqrMagnitude > 0.01f ? Steer(moving.normalized) : direction);
+        lungeShotPending = true;
+    }
+
+    // The shots of a dash appear on both sides of the user, wait there (Projectile: hold), then leave.
+    void FireFlankShots(MoveDef move)
+    {
+        var target = lungeShotTarget != null && lungeShotTarget.IsAlive ? lungeShotTarget : null;
+        Vector2 aim = target != null && target.transform.position != transform.position
+            ? ((Vector2)(target.transform.position - transform.position)).normalized : lungeShotAim;
+        Vector2 side = new Vector2(-aim.y, aim.x);
+        int shots = Mathf.Max(1, move.count);
+        for (int i = 0; i < shots; i++)
+        {
+            float t = shots == 1 ? 0f : Mathf.Lerp(-1f, 1f, i / (shots - 1f));
+            Vector2 at = (Vector2)transform.position + side * (t * move.sideOffset);
+            Projectile.Spawn(this, move, aim, i, 0f, -1f, 0f, at, target);
+        }
     }
 
     // Several shots are fanned out evenly around the aimed direction; a burst fires that volley again and again, in
@@ -787,6 +834,7 @@ public class Combatant : MonoBehaviour
                 Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, delay, distance,
                     (volley * shots + i) * move.rangeStep);
             }
+        if (move.burstRoot) recoverUntil = Mathf.Max(recoverUntil, Time.time + (Mathf.Max(1, move.burst) - 1) * move.burstInterval);
     }
 
     // The player's shots go toward the aimed target, leading it (where it will be when the shot arrives); arc shots
@@ -835,7 +883,7 @@ public class Combatant : MonoBehaviour
         {
             var aim = LiveAim != Vector2.zero ? Steer(LiveAim.normalized) : castDirection;
             if (CanAttack && castMove.family == "melee") Melee(castMove, aim);
-            else if (CanAttack) FireProjectiles(castMove, aim, castDistance);
+            else if (CanAttack) Shoot(castMove, aim, castDistance);
             castMove = null;
         }
 
@@ -875,6 +923,11 @@ public class Combatant : MonoBehaviour
                 lungeFinishPending = false;
                 Strike(lungeMove, lungeDirection, lungeMove.finishRadius);
             }
+            if (lungeShotPending)
+            {
+                lungeShotPending = false;
+                if (CanAttack) FireFlankShots(lungeMove);
+            }
             if (lungeStrikePending)
             {
                 // A blow a moment after the dash, the user standing still meanwhile.
@@ -885,7 +938,7 @@ public class Combatant : MonoBehaviour
             return;
         }
         body.linearVelocity = lungeDirection * lungeSpeed;
-        if (lungeBouncing || lungeMove.lungeHarmless) return;
+        if (lungeBouncing || lungeMove.lungeHarmless || lungeMove.family != "melee") return;
         if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
         {
             // Both are thrown apart, slowly enough to be seen.
@@ -1036,7 +1089,7 @@ public class Combatant : MonoBehaviour
     public void KnockOut()
     {
         lungeUntil = dodgeUntil = 0f;
-        lungeFinishPending = lungeStrikePending = false;
+        lungeFinishPending = lungeStrikePending = lungeShotPending = false;
         stunUntil = knockUntil = 0f;
         if (animator != null) animator.Forced = null;
         strikes.Clear();

@@ -99,6 +99,22 @@ public class EffectPlayer : MonoBehaviour
         return go;
     }
 
+    /// An effect turning around "pivot" from fromAngle to toAngle (degrees, relative to direction) while it plays,
+    /// "distance" tiles away from it (a whip sweeping an arc). size as in Spawn.
+    public static void SpawnSweep(string name, Vector2 pivot, Vector2 direction, float distance, float fromAngle, float toAngle, float size = 0f)
+    {
+        var sheet = EffectLibrary.Get(name);
+        if (sheet == null) return;
+        var holder = new GameObject(name + " sweep");
+        holder.transform.position = pivot;
+        var go = Spawn(name, pivot, Vector2.right, holder.transform, 0f, size);
+        go.transform.localPosition = new Vector3(distance, 0f, 0f);
+        float duration = 0f;
+        for (int i = 0; i < sheet.frame_count; i++) duration += go.GetComponent<EffectPlayer>().Duration(i) / 1000f;
+        float facing = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        holder.AddComponent<EffectSweep>().Begin(facing + fromAngle, facing + toAngle, duration);
+    }
+
     void Update()
     {
         if (dieAt > 0f && Time.time >= dieAt)
@@ -127,5 +143,26 @@ public class EffectPlayer : MonoBehaviour
     {
         var durations = sheet.frame_duration_ms;
         return durations != null && index < durations.Length && durations[index] > 0 ? durations[index] : 80f;
+    }
+}
+
+/// Turns its object (holding an effect) from one angle to another, then goes away with the effect.
+public class EffectSweep : MonoBehaviour
+{
+    float from, to, duration, elapsed;
+
+    public void Begin(float fromAngle, float toAngle, float seconds)
+    {
+        from = fromAngle;
+        to = toAngle;
+        duration = Mathf.Max(0.01f, seconds);
+        transform.rotation = Quaternion.Euler(0f, 0f, from);
+    }
+
+    void Update()
+    {
+        if (transform.childCount == 0) { Destroy(gameObject); return; }
+        elapsed += Time.deltaTime;
+        transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(from, to, elapsed / duration));
     }
 }
