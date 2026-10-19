@@ -47,7 +47,15 @@ public class Zone : MonoBehaviour
         zone.move = move;
         zone.dieAt = Time.time + (move.zoneDuration > 0f ? move.zoneDuration : DefaultDuration);
         zone.damage = owner.DamageOf(move);
-        zone.nextTick = Time.time + (move.firstTick > 0f ? move.firstTick : FirstTick);
+        float firstTick = move.firstTick > 0f ? move.firstTick : FirstTick;
+        zone.nextTick = Time.time + firstTick;
+        // Opponents caught in it are frozen (Hurt animation) until the first hit.
+        if (move.rootUntilHit)
+            foreach (var other in Physics2D.OverlapCircleAll(centre, move.radius))
+            {
+                var target = other.GetComponentInParent<Combatant>();
+                if (target != null && target.team != owner.team && target.IsAlive) target.Stun(firstTick);
+            }
     }
 
     /// True when the point lies in a zone that is harmful to the given team (margin widens the zones).

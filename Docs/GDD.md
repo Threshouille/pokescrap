@@ -40,7 +40,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Glace **Blizzard** : même charge et même zone que Fatal-Foudre, mais ralentit et blesse chaque seconde.
   - Combat **Frappe Atlas** : courte ruée, saisie, saut et écrasement au sol, onde de choc autour de l'impact.
   - Poison **Acidarmure** : le Pokémon se liquéfie 2 s (intouchable, plus rapide, traverse et empoisonne les ennemis).
-  - Sol **Telluriforce** : une colonne de terre quasi instantanée (0,1 s) sous chaque ennemi à 5 cases ou moins du lanceur, sur 0,6 case de rayon ; un cercle montre la zone d'action à chaque utilisation.
+  - Sol **Telluriforce** : une marque sous chaque ennemi à 5 cases ou moins du lanceur (0,6 case de rayon) ; les ennemis pris dedans sont figés (animation de dégâts) jusqu'à la colonne de terre, 0,5 s plus tard ; un cercle montre la zone d'action à chaque utilisation.
   - Vol **Lame d'Air** : grande lame rapide qui traverse ; 20 % de chance d'étourdir 1 s.
   - Psy **Psyko** : soulève la cible 0,8 s puis la projette (dégâts si elle heurte un mur).
   - Insecte **Plaie-Croix** : ruée de 4,5 cases qui traverse les ennemis ; figés (animation de dégâts) dès qu'elle les touche, ils sont tranchés d'un coup 0,25 s après la fin de la ruée (entaille en X), comme un coup de sabre à retardement.
