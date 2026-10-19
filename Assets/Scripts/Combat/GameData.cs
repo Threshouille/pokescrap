@@ -395,6 +395,7 @@ public static class GameData
     {
         string wanted = !string.IsNullOrEmpty(move.anim) ? move.anim
             : move.family == "melee" && move.lunge > 0f && !move.teleport ? (string.IsNullOrEmpty(move.dashAnim) ? "Walk" : move.dashAnim)
+            : move.family == "modifier" && move.target != "enemies" ? "Double" // bonuses, as in the original game
             : move.family != "melee" && move.family != "burst" ? "Shoot" : "Attack";
         if (animator.Has(wanted)) return wanted;
         return animator.Has("Attack") ? "Attack" : "Idle";
