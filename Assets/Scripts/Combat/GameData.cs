@@ -79,6 +79,7 @@ public class MoveDef
     public string shape; // melee: circle (default: in front, range away), arc (sector around the user: range, arc), thrust (line from the user: range long, radius wide), around (circle around the user)
     public float arc; // melee arc: total angle in degrees
     public int hits; // melee: strikes in a row (1 when omitted)
+    public bool strikeRoot; // melee: the user can neither move nor attack until its last strike (recovery adds to it)
     public float hitInterval; // seconds between two strikes
     public float[] hitAngles; // degrees: offset of each strike from the aim, in turn (alternating swings, crossed claws)
     public float step; // melee: tiles the user steps forward with each strike

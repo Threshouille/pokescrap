@@ -580,6 +580,7 @@ public class Combatant : MonoBehaviour
             StartLunge(move, direction);
             return;
         }
+        if (move.strikeRoot) recoverUntil = Mathf.Max(recoverUntil, Time.time + (Mathf.Max(1, move.hits) - 1) * move.hitInterval);
         QueueStrikes(move, direction);
     }
 
