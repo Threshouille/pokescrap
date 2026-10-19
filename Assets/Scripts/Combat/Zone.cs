@@ -17,6 +17,7 @@ public class Zone : MonoBehaviour
     float damage; // raw, per tick; 0 for zones that only carry a status
     float nextTick;
     float nextBolt;
+    bool fallen; // fallEffect already launched
 
     void OnEnable() => active.Add(this);
     void OnDisable() => active.Remove(this);
@@ -143,6 +144,13 @@ public class Zone : MonoBehaviour
             }
             return;
         }
+        // Something falls from the sky so as to land right on the first hit.
+        if (!fallen && !string.IsNullOrEmpty(move.fallEffect) && Time.time >= nextTick - move.fallTime)
+        {
+            fallen = true;
+            SkyFall.Launch(move, transform.position, Mathf.Max(0.05f, nextTick - Time.time));
+        }
+
         bool tick = damage > 0f && Time.time >= nextTick;
         if (tick)
         {
@@ -159,5 +167,46 @@ public class Zone : MonoBehaviour
             if (move.impactOnTargets) EffectPlayer.Spawn(move.impactEffect, target.transform.position, Vector2.right);
             target.TakeHit(damage, move, out _);
         }
+    }
+}
+
+/// Something falling from the sky onto a spot (Draco Météor): it comes down at a slant and vanishes on landing,
+/// where the zone's impact takes over. Without its sheet, a disc in the colour of the move's type.
+public class SkyFall : MonoBehaviour
+{
+    static readonly Vector2 Drop = new(-1.5f, 5f); // where it starts, relative to the spot (tiles)
+
+    Vector2 from, to;
+    float start, duration;
+
+    public static void Launch(MoveDef move, Vector2 spot, float duration)
+    {
+        var go = new GameObject(move.name + " (chute)");
+        Vector2 direction = -Drop.normalized;
+        if (!EffectPlayer.Attach(go, move.fallEffect, direction))
+        {
+            go.transform.localScale = Vector3.one * move.radius;
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = Shapes.Circle;
+            renderer.color = GameData.TypeColor(move.type);
+            renderer.sortingOrder = 4;
+        }
+        var fall = go.AddComponent<SkyFall>();
+        fall.from = spot + Drop;
+        fall.to = spot;
+        fall.start = Time.time;
+        fall.duration = duration;
+        go.transform.position = fall.from;
+    }
+
+    void Update()
+    {
+        float t = (Time.time - start) / duration;
+        if (t >= 1f)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        transform.position = Vector2.Lerp(from, to, t * t); // speeds up as it falls
     }
 }
