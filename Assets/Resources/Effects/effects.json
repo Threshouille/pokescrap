@@ -3192,6 +3192,46 @@
         "#e8d8a8",
         "#ffd860"
       ]
+    },
+    {
+      "file": "fatal_foudre_chute.png",
+      "frame_width": 32,
+      "frame_height": 96,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        50,
+        50
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2600",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "draco_meteor_chute.png",
+      "frame_width": 48,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#1a0c3c",
+        "#4a2ea8",
+        "#7038f8",
+        "#b49aff",
+        "#ffd8a0"
+      ]
     }
   ]
 }
