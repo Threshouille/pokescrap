@@ -45,7 +45,7 @@ public class Projectile : MonoBehaviour
         go.transform.position = at ?? (Vector2)(owner.transform.position + (Vector3)(direction * SpawnOffset));
 
         // Without a sprite sheet the shot falls back to a plain disc in the colour of its type.
-        if (EffectPlayer.Attach(go, move.effect, direction))
+        if (EffectPlayer.Attach(go, move.effect, move.upright ? Vector2.right : direction))
         {
             if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
         }
@@ -130,7 +130,7 @@ public class Projectile : MonoBehaviour
             {
                 float offset = Vector2.SignedAngle(aimAtSpawn, forward);
                 forward = (Quaternion.Euler(0f, 0f, offset) * owner.LiveAim.normalized);
-                transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
+                if (!move.upright) transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
             }
             origin = owner.transform.position + (Vector3)(forward * SpawnOffset);
             transform.position = origin;
@@ -146,7 +146,7 @@ public class Projectile : MonoBehaviour
             {
                 Vector2 toTarget = lockedTarget.transform.position - transform.position;
                 if (toTarget.sqrMagnitude > 0.0001f) forward = toTarget.normalized;
-                transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
+                if (!move.upright) transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
             }
             origin = transform.position;
         }
@@ -191,7 +191,7 @@ public class Projectile : MonoBehaviour
 
         if (Sweep(from, to)) return;
         Vector2 moved = to - from;
-        if (moved.sqrMagnitude > 0.000001f)
+        if (moved.sqrMagnitude > 0.000001f && !move.upright)
             transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(moved.y, moved.x) * Mathf.Rad2Deg);
         transform.position = to;
 
@@ -201,7 +201,13 @@ public class Projectile : MonoBehaviour
             returning = true;
             hit.Clear(); // can hit the same opponents again on the way back
         }
-        else Destroy(gameObject);
+        else
+        {
+            var end = EffectLibrary.Get(move.endEffect);
+            if (end != null) EffectPlayer.Spawn(move.endEffect, transform.position, Vector2.right, null, 0f,
+                end.frame_width / (float)EffectLibrary.PixelsPerUnit * transform.localScale.x);
+            Destroy(gameObject);
+        }
     }
 
     /// Point of the path after "distance" tiles along "forward".

@@ -66,6 +66,8 @@ public class MoveDef
     public float growth; // size multiplier reached at the end of the flight (unchanged when omitted)
     public float accel; // tiles per second², negative to slow down
     public bool pierce; // goes through opponents, hitting each once
+    public bool upright; // projectile: the sheet keeps its orientation instead of turning with the flight (clouds)
+    public string endEffect; // projectile: sheet played where the shot ends its flight, at the shot's size (a cloud fading away)
     public int bounces; // times the shot bounces off walls
     public float splash; // arc: radius of the hit where it lands
     public float rangeStep; // projectile: each shot after the first flies this much further (tiles)
