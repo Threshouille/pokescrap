@@ -2853,6 +2853,137 @@
         "#6fc22a",
         "#a8ff3e"
       ]
+    },
+    {
+      "file": "obstacle_bridge.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1
+      ],
+      "loop": false,
+      "palette": [
+        "#2e1c0e",
+        "#5a3a1e",
+        "#9a6a3a",
+        "#c89a5a"
+      ]
+    },
+    {
+      "file": "obstacle_burning_bridge.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#1a1412",
+        "#2c2420",
+        "#5a3a1e",
+        "#9a6a3a",
+        "#f0741a",
+        "#ffd23a"
+      ]
+    },
+    {
+      "file": "obstacle_burnt_bridge.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#1a1412",
+        "#2c2420",
+        "#5a3a1e",
+        "#c42418",
+        "#f0741a"
+      ]
+    },
+    {
+      "file": "obstacle_vine_bridge.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1
+      ],
+      "loop": false,
+      "palette": [
+        "#173b17",
+        "#2b6e2a",
+        "#4fae38",
+        "#9fe05a"
+      ]
+    },
+    {
+      "file": "obstacle_lily.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        300,
+        300,
+        300,
+        300
+      ],
+      "loop": true,
+      "palette": [
+        "#173b17",
+        "#2b6e2a",
+        "#4fae38",
+        "#9fe05a",
+        "#f4f1dc",
+        "#ffd23a"
+      ]
+    },
+    {
+      "file": "obstacle_rock.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        400,
+        400,
+        400,
+        400
+      ],
+      "loop": true,
+      "palette": [
+        "#2a2226",
+        "#4a3a36",
+        "#6a564e",
+        "#7a2e1c",
+        "#c4481c"
+      ]
+    },
+    {
+      "file": "obstacle_ice_wall.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1
+      ],
+      "loop": false,
+      "palette": [
+        "#2a4a86",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
     }
   ]
 }

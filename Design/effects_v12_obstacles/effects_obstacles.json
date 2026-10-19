@@ -1,0 +1,107 @@
+{
+  "obstacle_bridge": {
+    "file": "obstacle_bridge.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 1,
+    "frame_duration_ms": 0,
+    "loop": false,
+    "palette": [
+      "#2e1c0e",
+      "#5a3a1e",
+      "#9a6a3a",
+      "#c89a5a"
+    ]
+  },
+  "obstacle_burning_bridge": {
+    "file": "obstacle_burning_bridge.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 4,
+    "frame_duration_ms": 100,
+    "loop": true,
+    "palette": [
+      "#1a1412",
+      "#2c2420",
+      "#5a3a1e",
+      "#9a6a3a",
+      "#f0741a",
+      "#ffd23a"
+    ]
+  },
+  "obstacle_burnt_bridge": {
+    "file": "obstacle_burnt_bridge.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 4,
+    "frame_duration_ms": 150,
+    "loop": true,
+    "palette": [
+      "#1a1412",
+      "#2c2420",
+      "#5a3a1e",
+      "#c42418",
+      "#f0741a"
+    ]
+  },
+  "obstacle_vine_bridge": {
+    "file": "obstacle_vine_bridge.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 1,
+    "frame_duration_ms": 0,
+    "loop": false,
+    "palette": [
+      "#173b17",
+      "#2b6e2a",
+      "#4fae38",
+      "#9fe05a"
+    ]
+  },
+  "obstacle_lily": {
+    "file": "obstacle_lily.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 4,
+    "frame_duration_ms": 300,
+    "loop": true,
+    "palette": [
+      "#173b17",
+      "#2b6e2a",
+      "#4fae38",
+      "#9fe05a",
+      "#f4f1dc",
+      "#ffd23a"
+    ]
+  },
+  "obstacle_rock": {
+    "file": "obstacle_rock.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 4,
+    "frame_duration_ms": 400,
+    "loop": true,
+    "palette": [
+      "#2a2226",
+      "#4a3a36",
+      "#6a564e",
+      "#7a2e1c",
+      "#c4481c"
+    ]
+  },
+  "obstacle_ice_wall": {
+    "file": "obstacle_ice_wall.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 1,
+    "frame_duration_ms": 0,
+    "loop": false,
+    "palette": [
+      "#2a4a86",
+      "#4f8fd8",
+      "#a6dcff",
+      "#e6f8ff",
+      "#ffffff"
+    ]
+  }
+}

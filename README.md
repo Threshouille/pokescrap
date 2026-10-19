@@ -92,9 +92,8 @@ ponts (d'un mur à l'autre), ravin (sur une partie de la salle), gouffre, riviè
 lac de glace, île entourée de vide ou d'eau, murs de glace. Les rivières vont d'un mur à l'autre, les ponts sont
 droits ; l'eau et la lave ne se touchent jamais. L'eau, la lave, le vide et la glace
 reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
-ponts, végétation, roche refroidie et murs de glace attendent leurs planches Claude Design (`Design/prompt_obstacles.md`),
-tuiles provisoires en attendant (pont : planches orange vif, pont brûlé : une planche sur deux, lianes : vert vif,
-végétation : vert, roche : brun sombre, mur de glace : blanc).
+ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et murs de glace ont leurs planches Claude Design
+(`Design/effects_v12_obstacles/`, prompt `Design/prompt_obstacles.md`).
 
 - On ne marche jamais dedans par erreur : le déplacement s'arrête au bord. Mais une poussée, une glissade ou une ruée
   peuvent y faire **tomber** : retour sur la terre ferme la plus proche et dégâts (eau 10 %, vide 20 %, lave 25 % +
