@@ -395,7 +395,8 @@ public class Combatant : MonoBehaviour
     public void Drive(Vector2 velocity)
     {
         if (body == null) return;
-        velocity = Obstacles.Clamp(this, body.position, velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this));
+        velocity = velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this) + Obstacles.Pull(this); // magnets drag Acier
+        velocity = Obstacles.Clamp(this, body.position, velocity);
         float accel = Terrain.SlideAccel(this), ground = Obstacles.SlideAccel(this);
         if (ground > 0f) accel = accel > 0f ? Mathf.Min(accel, ground) : ground;
         body.linearVelocity = accel > 0f ? Vector2.MoveTowards(body.linearVelocity, velocity, accel * Time.fixedDeltaTime) : velocity;
@@ -610,7 +611,7 @@ public class Combatant : MonoBehaviour
     /// Pushes this Pokémon away for "time" seconds (bosses do not budge).
     public void Knockback(Vector2 velocity, float time)
     {
-        if (isBoss || !IsAlive || body == null) return;
+        if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this)) return; // an Acier on metal holds firm
         time *= Terrain.KnockbackMul(this); // slippery ground: the push carries further
         knockVelocity = velocity;
         knockTime = time;
@@ -1053,7 +1054,7 @@ public class Combatant : MonoBehaviour
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = move.category == "physical" ? def : spDef;
         float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
-        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense"));
+        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this));
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);

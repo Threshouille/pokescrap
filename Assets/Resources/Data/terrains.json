@@ -15,6 +15,8 @@
     {"key": "electrified", "edge": "round", "edgeDepth": 2, "name": "Eau électrifiée", "color": "#3a7bd5", "flickerColor": "#ffe14a", "flickerRate": 4, "alpha": 0.6, "immuneTypes": [5, 9], "speedMul": 0.85, "status": "paralysis", "statusChance": 0.8, "statusDuration": 3, "stun": 0.45, "damageShare": 0.02, "navCost": 15},
     {"key": "brambles", "edge": "thorny", "edgeDepth": 5, "name": "Ronces", "color": "#3f8f2f", "alpha": 0.55, "immuneTypes": [4], "speedMul": 0.6, "damageShare": 0.01, "navCost": 6},
     {"key": "mud", "edge": "blob", "edgeDepth": 5, "name": "Boue", "color": "#7a5230", "alpha": 0.55, "immuneTypes": [9], "speedMul": 0.5, "navCost": 4},
+    {"key": "charged_metal", "name": "Métal chargé", "edge": "round", "edgeDepth": 1, "color": "#c0c4cc", "flickerColor": "#ffe14a", "flickerRate": 5, "alpha": 0.6, "immuneTypes": [5, 9, 17], "status": "paralysis", "statusChance": 0.6, "statusDuration": 3, "stun": 0.3, "damageShare": 0.01, "navCost": 12},
+    {"key": "hot_metal", "name": "Métal brûlant", "edge": "round", "edgeDepth": 1, "color": "#ff7a3a", "flickerColor": "#ffb03a", "flickerRate": 2, "alpha": 0.5, "immuneTypes": [2], "status": "burn", "statusChance": 0.6, "statusDuration": 3, "damageShare": 0.02, "navCost": 10},
     {"key": "toxic", "edge": "blob", "edgeDepth": 5, "name": "Flaque toxique", "color": "#9b4fc4", "alpha": 0.5, "immuneTypes": [8, 17], "status": "poison", "statusChance": 0.2, "navCost": 12}
   ],
   "moves": [

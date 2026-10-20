@@ -190,6 +190,14 @@ public class Projectile : MonoBehaviour
         }
 
         Terrain.OnTrail(move, from, to, owner);
+        if (Obstacles.Capture(move, to, out var magnet))
+        {
+            // Caught by a magnet: the shot ends on it (and may charge it).
+            EffectPlayer.Spawn(move.impactEffect, magnet, forward);
+            Terrain.OnImpact(move, magnet, owner);
+            Destroy(gameObject);
+            return;
+        }
         if (Sweep(from, to)) return;
         Vector2 moved = to - from;
         if (moved.sqrMagnitude > 0.000001f && !move.upright)

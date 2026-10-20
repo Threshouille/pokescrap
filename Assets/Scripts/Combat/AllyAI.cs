@@ -62,6 +62,7 @@ public class AllyAI : MonoBehaviour
         // Then getting out of a harmful zone.
         Vector2 escape = Zone.EscapeDirection(position, combatant.team, RoleTactics.ZoneMargin);
         if (escape == Vector2.zero) escape = Terrain.EscapeDirection(position, combatant);
+        if (escape == Vector2.zero) escape = Pylons.EscapeDirection(position, combatant);
         if (escape != Vector2.zero)
         {
             Steer(RoleTactics.EscapeStep(grid, position, escape), escape);

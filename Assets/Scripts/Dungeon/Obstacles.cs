@@ -21,11 +21,22 @@ public class ObstacleDef
     public bool overlay; // lies over what was there (bridge over the void, plants on water), drawn on top of it
     public string decaysTo; // what it becomes by itself after decayTime seconds (a burning bridge burns out)
     public float decayTime;
+    public RockSource[] romRocks = new RockSource[0]; // ROM rocks drawing it, one picked per tile (variants)
+    public string spriteTint; // colour laid over its sprite (a cracked boulder is darker)
+    public float bumpStun; // solid: seconds a Pokémon thrown against it (push, slide) is stunned
+    public float bumpDamage; // ... and the share of its max HP it loses
+    public int[] anchorTypes = new int[0]; // these types cannot be pushed while on it and take less damage (metal: Acier)
+    public float anchorDefense = 1f;
+    public float magnetRadius; // magnet: reach of its pull, in tiles
+    public float magnetPull; // tiles/s it drags the Pokémon of attractTypes toward it
+    public float captureRadius; // shots of attractTypes passing this close are caught by it
+    public int[] attractTypes = new int[0];
     public bool planks; // provisional look: planks (a bridge) rather than a plain square
     public float flatAlpha = 1f; // opacity of the provisional look
     public string color = "#ffffff"; // fallback look, when neither the ROM tiles nor a hand-made sheet exist
     [NonSerialized] public Color32 tint;
     [NonSerialized] public EffectLibrary.Sheet sheet; // hand-made look: obstacle_<key> in Resources/Effects
+    [NonSerialized] public Color spriteColor = Color.white;
     public bool Bridge => key != null && key.Contains("bridge");
 }
 
@@ -77,6 +88,15 @@ public class RomObstacleTiles
     }
 }
 
+/// A rock taken from a ROM tileset: its lone wall chunk, cut out of its floor by Tools/pmd/extract_rock.py
+/// (Resources/ObstacleTiles/rock_<tileset>); "cut": floor (default) or core (also removes a shadow on grass).
+[Serializable]
+public class RockSource
+{
+    public int tileset;
+    public string cut = "floor";
+}
+
 /// A move of type "byType" hitting obstacle "on", or terrain "byTerrain" laid on it or next to it: it turns into
 /// "becomes" ("" removes it) for "duration" seconds (0: for good), or paints terrain "paintTerrain" over the whole
 /// connected obstacle; "leaves": terrain painted where it was removed; "path": also along a projectile's flight;
@@ -95,6 +115,8 @@ public class ObstacleInteraction
     public bool path;
     public float radius = 0.8f;
     public string paintTerrain;
+    public string floodKind; // paintTerrain over the obstacle of this kind next to the hit (a charged magnet: the metal around)
+    public string action; // a behaviour of its own instead (pylons: "overcharge", "ground")
     public string leaves;
 }
 
@@ -108,6 +130,8 @@ public class Obstacles : MonoBehaviour
     const float FallCooldown = 0.6f; // seconds after a fall before another one counts
     const float FallProtection = 1f; // seconds without taking hits after coming back from a fall
     const int SafeSearch = 15; // tiles around a fall searched for solid ground
+    const float BumpSpeed = 2.5f; // tiles/s a thrown or sliding Pokémon must have to be hurt by hitting a solid obstacle
+    const float BumpReach = 0.45f, BumpCooldown = 0.6f;
     const float EdgeLook = 0.4f; // tiles ahead a walking Pokémon looks for an edge
     const int FloodLimit = 400; // tiles a terrain painted over a whole obstacle reaches at most
 
@@ -131,6 +155,7 @@ public class Obstacles : MonoBehaviour
     readonly Dictionary<int, GameObject> solids = new(); // colliders of the solid tiles
     readonly Dictionary<Combatant, Vector2> lastSafe = new();
     readonly Dictionary<Combatant, float> fellAt = new();
+    readonly Dictionary<Combatant, float> bumpedAt = new();
     Texture2D texture;
     Color32[] pixels;
     bool dirty;
@@ -147,6 +172,7 @@ public class Obstacles : MonoBehaviour
     {
         if (defs != null) return;
         flats.Clear();
+        rocks.Clear();
         defs = new Dictionary<string, ObstacleDef>();
         interactions = new List<ObstacleInteraction>();
         var asset = Resources.Load<TextAsset>("Data/obstacles");
@@ -156,6 +182,7 @@ public class Obstacles : MonoBehaviour
         {
             d.tint = ColorUtility.TryParseHtmlString(d.color, out var c) ? c : Color.white;
             d.sheet = EffectLibrary.Get("obstacle_" + d.key);
+            if (ColorUtility.TryParseHtmlString(d.spriteTint, out var tint)) d.spriteColor = tint;
             defs[d.key] = d;
         }
         interactions.AddRange(file.interactions ?? new ObstacleInteraction[0]);
@@ -193,7 +220,9 @@ public class Obstacles : MonoBehaviour
         solids.Clear();
         lastSafe.Clear();
         fellAt.Clear();
+        bumpedAt.Clear();
         pending.Clear();
+        Pylons.Clear(this);
         count = 0;
         if (texture == null || texture.width != size)
         {
@@ -384,9 +413,15 @@ public class Obstacles : MonoBehaviour
 
     void Apply(ObstacleInteraction it, ObstacleDef on, List<(int, int)> hit, Combatant caster)
     {
+        if (!string.IsNullOrEmpty(it.action))
+        {
+            foreach (var (x, y) in hit) Pylons.Act(x, y, it.action);
+            return;
+        }
         if (!string.IsNullOrEmpty(it.paintTerrain))
         {
-            Terrain.PaintCells(Flood(hit, on), it.paintTerrain, it.duration, caster);
+            var target = string.IsNullOrEmpty(it.floodKind) ? Flood(hit, on) : FloodNext(hit, Def(it.floodKind));
+            Terrain.PaintCells(target, it.paintTerrain, it.duration, caster);
             return;
         }
         var becomes = Def(it.becomes);
@@ -461,6 +496,24 @@ public class Obstacles : MonoBehaviour
         return result;
     }
 
+    // Every tile of "kind" connected to the ones next to the given tiles.
+    List<(int, int)> FloodNext(List<(int, int)> from, ObstacleDef kind)
+    {
+        var start = new List<(int, int)>();
+        if (kind == null) return start;
+        foreach (var (x, y) in from)
+            foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                if (KindAt(x + dx, y + dy) == kind) start.Add((x + dx, y + dy));
+        return start.Count > 0 ? Flood(start, kind) : start;
+    }
+
+    /// Every tile of the obstacle of tile (x, y) connected to it (an arc touching water or metal electrifies it all).
+    public static List<(int, int)> FloodFrom(int x, int y)
+    {
+        var def = At(x, y);
+        return def != null ? Current.Flood(new List<(int, int)> { (x, y) }, def) : new List<(int, int)>();
+    }
+
     static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
     {
         Vector2 ab = b - a;
@@ -493,6 +546,7 @@ public class Obstacles : MonoBehaviour
         {
             if (c == null || !c.IsAlive) continue;
             Vector2 position = c.transform.position;
+            Bump(c, position);
             if (!BlocksAt(position, c))
             {
                 lastSafe[c] = position; // where it comes back after a fall
@@ -501,6 +555,68 @@ public class Obstacles : MonoBehaviour
             if (fellAt.TryGetValue(c, out float at) && Time.time < at + FallCooldown) continue;
             Fall(c, At(position));
         }
+    }
+
+    // Thrown (pushed, sliding) against a solid obstacle: stunned and hurt. Walking never does it: Drive stops at it.
+    void Bump(Combatant c, Vector2 position)
+    {
+        if (c.IsDashing) return;
+        var body = c.GetComponent<Rigidbody2D>();
+        if (body == null || body.linearVelocity.magnitude < BumpSpeed) return;
+        var hit = At(position + body.linearVelocity.normalized * BumpReach);
+        if (hit == null || !hit.solid || (hit.bumpStun <= 0f && hit.bumpDamage <= 0f)) return;
+        if (bumpedAt.TryGetValue(c, out float at) && Time.time < at + BumpCooldown) return;
+        bumpedAt[c] = Time.time;
+        c.Stun(hit.bumpStun);
+        if (hit.bumpDamage > 0f) c.TakeFixedDamage(c.maxHp * hit.bumpDamage);
+        body.linearVelocity = Vector2.zero;
+    }
+
+    static bool HasType(PokemonStats stats, int[] types)
+    {
+        if (stats?.types == null || types == null) return false;
+        foreach (int type in stats.types)
+            if (Array.IndexOf(types, type) >= 0) return true;
+        return false;
+    }
+
+    /// Standing where this Pokémon is anchored (an Acier on metal): it cannot be pushed.
+    public static bool Anchored(Combatant c) => At(c.transform.position) is { } def && HasType(c.Stats, def.anchorTypes);
+
+    /// Divides the damage this Pokémon takes (an Acier anchored on metal resists better).
+    public static float DefenseMul(Combatant c) => At(c.transform.position) is { } def && HasType(c.Stats, def.anchorTypes) ? def.anchorDefense : 1f;
+
+    /// Pull of the magnets on this Pokémon (tiles/s), when they attract its type.
+    public static Vector2 Pull(Combatant c)
+    {
+        if (Current == null || Current.count <= 0 || c.Stats == null) return Vector2.zero;
+        Vector2 position = c.transform.position, pull = Vector2.zero;
+        foreach (var (centre, def) in Current.Magnets(position, 5))
+            if (HasType(c.Stats, def.attractTypes) && Vector2.Distance(centre, position) <= def.magnetRadius)
+                pull += (centre - position).normalized * def.magnetPull;
+        return pull;
+    }
+
+    /// A magnet catching a shot of a type it attracts that passes within its capture radius: where it is.
+    public static bool Capture(MoveDef move, Vector2 at, out Vector2 magnet)
+    {
+        magnet = default;
+        if (Current == null || Current.count <= 0 || move == null) return false;
+        foreach (var (centre, def) in Current.Magnets(at, 2))
+            if (Array.IndexOf(def.attractTypes, move.type) >= 0 && Vector2.Distance(centre, at) <= def.captureRadius)
+            {
+                magnet = centre;
+                return true;
+            }
+        return false;
+    }
+
+    IEnumerable<(Vector2, ObstacleDef)> Magnets(Vector2 around, int reach)
+    {
+        var cell = grid.CellOf(around);
+        for (int x = cell.x - reach; x <= cell.x + reach; x++)
+            for (int y = cell.y - reach; y <= cell.y + reach; y++)
+                if (KindAt(x, y) is { magnetRadius: > 0f } def) yield return (grid.CentreOf(x, y), def);
     }
 
     // Back on solid ground with the obstacle's toll: knocked out there if the fall takes its last HP, otherwise
@@ -576,15 +692,29 @@ public class Obstacles : MonoBehaviour
         var sheet = def?.sheet;
         int x = i % size, y = i / size;
         // Without its own look yet, a flat stand-in drawn on top (planks for a bridge, so it shows over the void).
-        Sprite flat = def != null && sheet == null && def.tileset < 0 ? FlatSprite(def) : null;
+        Sprite rock = def != null && sheet == null && def.romRocks.Length > 0
+            ? RockSprite(def.romRocks[(x * 7 + y * 13) % def.romRocks.Length].tileset) : null;
+        Sprite flat = def != null && sheet == null && rock == null && def.tileset < 0 ? FlatSprite(def) : null;
         Show(baseTiles, i, rom != null ? rom.Tile(Mask(x, y, floorKind), (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0) : null, 0, 0f);
         float angle = def != null && def.Bridge && !SpansNorthSouth(x, y) ? 90f : 0f;
-        Show(topTiles, i, sheet != null ? sheet.Frame(FrameAt(sheet)) : flat, 1, angle);
+        Show(topTiles, i, sheet != null ? sheet.Frame(FrameAt(sheet)) : rock != null ? rock : flat, 1, angle, def?.spriteColor ?? Color.white);
         if (sheet != null && sheet.frame_count > 1) animated.Add(i);
-        return def != null && (rom != null || sheet != null || flat != null);
+        return def != null && (rom != null || sheet != null || rock != null || flat != null);
     }
 
-    void Show(SpriteRenderer[] layer, int i, Sprite sprite, int above, float angle)
+    static readonly Dictionary<int, Sprite> rocks = new();
+
+    // The ROM rock (lone wall chunk) extracted by Tools/setup.py; null when missing.
+    static Sprite RockSprite(int tileset)
+    {
+        if (rocks.TryGetValue(tileset, out var sprite) && sprite != null) return sprite;
+        var texture = Resources.Load<Texture2D>($"ObstacleTiles/rock_{tileset}");
+        sprite = texture != null ? Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f), texture.width, 0, SpriteMeshType.FullRect) : null;
+        rocks[tileset] = sprite;
+        return sprite;
+    }
+
+    void Show(SpriteRenderer[] layer, int i, Sprite sprite, int above, float angle, Color? color = null)
     {
         var tile = layer[i];
         if (sprite == null)
@@ -605,6 +735,7 @@ public class Obstacles : MonoBehaviour
             tile.sortingOrder = sortingOrder + above;
         }
         tile.sprite = sprite;
+        tile.color = color ?? Color.white;
         tile.transform.rotation = Quaternion.Euler(0f, 0f, angle);
         tile.enabled = true;
     }
@@ -692,6 +823,9 @@ public class Obstacles : MonoBehaviour
         public int[] sizes = { 2, 3, 4 };
         public int[] count = { 2, 4 };
         public float[] coverage = { 1f, 1f }; // band: share of the arena's width it spans (1: wall to wall)
+        public float bigChance = 0.35f; // boulders: share of big ones (2 x 2, two blows)
+        public int[] distance = { 4, 7 }; // pylons: tiles between the two of a pair
+        public int[] magnets = { 1, 1 }; // metal: magnets on the edge of the plates
     }
 
     /// Two obstacles that never touch: at least "gap" tiles of plain floor between them (water and lava).
@@ -734,6 +868,7 @@ public class Obstacles : MonoBehaviour
         for (int attempt = 0; attempt < 30; attempt++)
         {
             Clear();
+            Pylons.Clear(this); // pairs of a discarded attempt would leave arcs between empty tiles
             reserved.Clear();
             names.Clear();
             int wanted = rng.Next(room.features[0], room.features[Mathf.Min(1, room.features.Length - 1)] + 1);
@@ -751,6 +886,7 @@ public class Obstacles : MonoBehaviour
             if (Connected(keep)) return names;
         }
         Clear();
+        Pylons.Clear(this);
         names.Clear();
         return names;
     }
@@ -783,6 +919,9 @@ public class Obstacles : MonoBehaviour
         "river" => f.kind == "ice_floor" ? "Rivière glacée" : "Rivière",
         "island" => f.kind == "void" ? "Île au-dessus du vide" : "Île au milieu de l'eau",
         "lake" => f.kind == "lava" ? "Lac de lave" : f.kind == "ice_floor" ? "Lac de glace" : f.kind == "void" ? "Gouffre" : "Lac",
+        "boulders" => "Rochers",
+        "pylons" => "Pylônes électriques",
+        "metal" => "Plaques de métal et borne aimantée",
         _ => "Murs de glace",
     };
 
@@ -826,6 +965,9 @@ public class Obstacles : MonoBehaviour
             "chasm" or "river" => PlaceBand(f, rng),
             "lake" => PlaceLake(f, rng),
             "island" => PlaceIsland(f, rng),
+            "boulders" => PlaceBoulders(f, rng),
+            "pylons" => PlacePylons(f, rng),
+            "metal" => PlaceMetal(f, rng),
             _ => PlaceIceWalls(f, rng),
         };
     }
@@ -993,6 +1135,101 @@ public class Obstacles : MonoBehaviour
                 // The shore where the bridge lands stays floor too.
                 Reserve(cx + axis.x * (outer + 2), cy + axis.y * (outer + 2), 1);
             }
+            return true;
+        }
+        return false;
+    }
+
+    // Lone boulders (1 tile) and big ones (2 x 2), apart from each other.
+    bool PlaceBoulders(Feature f, System.Random rng)
+    {
+        var small = Def("boulder");
+        var big = Def("boulder_big");
+        var interior = grid.Interior;
+        int wanted = Pick(f.count, rng, 4), built = 0;
+        for (int attempt = 0; attempt < 80 && built < wanted; attempt++)
+        {
+            bool large = big != null && rng.NextDouble() < f.bigChance;
+            int s = large ? 2 : 1;
+            int x0 = rng.Next(interior.xMin + 2, interior.xMax - 2 - s), y0 = rng.Next(interior.yMin + 2, interior.yMax - 2 - s);
+            bool ok = true;
+            for (int x = x0 - 1; x <= x0 + s && ok; x++) // a free ring around, so boulders never form walls
+                for (int y = y0 - 1; y <= y0 + s && ok; y++)
+                    ok = Free(x, y, small);
+            if (!ok) continue;
+            for (int x = x0; x < x0 + s; x++)
+                for (int y = y0; y < y0 + s; y++)
+                    Set(x, y, large ? big : small);
+            built++;
+        }
+        return built > 0;
+    }
+
+    // Pairs of pylons, aligned, "distance" tiles apart; their arc must not cross the spawn point or the stairs.
+    bool PlacePylons(Feature f, System.Random rng)
+    {
+        var pylon = Def("pylon");
+        if (pylon == null) return false;
+        var interior = grid.Interior;
+        int wanted = Pick(f.count, rng, 1), built = 0;
+        for (int attempt = 0; attempt < 80 && built < wanted; attempt++)
+        {
+            bool horizontal = rng.Next(2) == 0;
+            int gap = Pick(f.distance, rng, 5);
+            int x0 = rng.Next(interior.xMin + 2, interior.xMax - 2 - (horizontal ? gap : 0));
+            int y0 = rng.Next(interior.yMin + 2, interior.yMax - 2 - (horizontal ? 0 : gap));
+            var a = new Vector2Int(x0, y0);
+            var b = horizontal ? new Vector2Int(x0 + gap, y0) : new Vector2Int(x0, y0 + gap);
+            if (!Free(a.x, a.y, pylon) || !Free(b.x, b.y, pylon)) continue;
+            bool clear = true;
+            for (int t = 0; t <= gap && clear; t++)
+            {
+                var p = horizontal ? new Vector2Int(x0 + t, y0) : new Vector2Int(x0, y0 + t);
+                for (int k = 0; k < keepCells.Count && clear; k++)
+                    clear = Mathf.Abs(keepCells[k].x - p.x) > 2 || Mathf.Abs(keepCells[k].y - p.y) > 2;
+            }
+            if (!clear) continue;
+            Set(a.x, a.y, pylon);
+            Set(b.x, b.y, pylon);
+            Pylons.AddPair(a, b);
+            built++;
+        }
+        return built > 0;
+    }
+
+    // A patch of metal plates (an organic blob) with magnets on its edge.
+    bool PlaceMetal(Feature f, System.Random rng)
+    {
+        var metal = Def("metal");
+        var magnet = Def("magnet");
+        if (metal == null) return false;
+        var interior = grid.Interior;
+        int r = f.sizes != null && f.sizes.Length > 0 ? f.sizes[rng.Next(f.sizes.Length)] : 2;
+        for (int attempt = 0; attempt < 60; attempt++)
+        {
+            int cx = rng.Next(interior.xMin + r + 3, interior.xMax - r - 3), cy = rng.Next(interior.yMin + r + 3, interior.yMax - r - 3);
+            if (!FarFromKept(cx, cy, r)) continue;
+            var plates = new List<Vector2Int>();
+            for (int x = cx - r - 1; x <= cx + r + 1; x++)
+                for (int y = cy - r - 1; y <= cy + r + 1; y++)
+                {
+                    float d = Mathf.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) + (float)rng.NextDouble() * 0.8f;
+                    if (d <= r + 0.5f && Free(x, y, metal)) plates.Add(new Vector2Int(x, y));
+                }
+            if (plates.Count < 4) continue;
+            foreach (var p in plates) Set(p.x, p.y, metal);
+            // Magnets: free tiles touching the plates.
+            int magnets = Pick(f.magnets, rng, 1);
+            for (int m = 0; m < magnets && magnet != null; m++)
+                for (int tries = 0; tries < 30; tries++)
+                {
+                    var p = plates[rng.Next(plates.Count)];
+                    var side = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right }[rng.Next(4)];
+                    var q = p + side;
+                    if (!Free(q.x, q.y, magnet)) continue;
+                    Set(q.x, q.y, magnet);
+                    break;
+                }
             return true;
         }
         return false;

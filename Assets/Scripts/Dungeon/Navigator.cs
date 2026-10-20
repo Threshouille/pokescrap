@@ -70,7 +70,7 @@ public class Navigator
         {
             var point = Vector2.Lerp(from, to, length > 0f ? d / length : 0f);
             if (Zone.Inside(point, team, AgentRadius) || Terrain.Hazard(point, agent)) return false;
-            if (Obstacles.BlocksAt(point, agent)) return false;
+            if (Obstacles.BlocksAt(point, agent) || Pylons.Hazard(point, agent)) return false;
         }
         return !Zone.Inside(to, team, AgentRadius);
     }
@@ -117,7 +117,7 @@ public class Navigator
 
                 float stepCost = step.x != 0 && step.y != 0 ? Diagonal : 1f;
                 if (Zone.Inside(grid.CentreOf(nx, ny), team, 0.5f)) stepCost += HazardCost;
-                stepCost += Terrain.NavCost(nx, ny, agent);
+                stepCost += Terrain.NavCost(nx, ny, agent) + Pylons.NavCost(grid.CentreOf(nx, ny), agent);
                 float total = cost[node] + stepCost;
                 if (stamp[next] == search && total >= cost[next]) continue;
                 Visit(next, total, node, Heuristic(new Vector2Int(nx, ny), goal));

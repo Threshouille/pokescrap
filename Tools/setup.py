@@ -110,12 +110,15 @@ def restore_tilesets():
 
 
 def restore_obstacle_tiles():
-    """Water, lava and void of the obstacles: the secondary layer of the ROM tilesets named in obstacles.json."""
+    """Water, lava and void of the obstacles (secondary layer of ROM tilesets), and rocks (lone wall chunks)."""
     step("Obstacle tilesets (water, lava, void)")
     data = json.loads((ROOT / "Assets/Resources/Data/obstacles.json").read_text(encoding="utf-8"))
     ids = sorted({o["tileset"] for o in data["obstacles"] if o.get("tileset", -1) >= 0})
     if ids:
         run(python(), "-I", PMD / "extract_tileset.py", ROM, OBSTACLE_TILES, *ids)
+    rocks = sorted({f"{r['tileset']}:{r.get('cut', 'floor')}" for o in data["obstacles"] for r in o.get("romRocks", [])})
+    if rocks:
+        run(python(), "-I", PMD / "extract_rock.py", ROM, OBSTACLE_TILES, *rocks)
 
 
 def script_guid(script):

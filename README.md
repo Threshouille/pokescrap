@@ -89,7 +89,8 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
 Depuis le terrain de test, l'**escalier en haut à droite** mène à la **salle des obstacles** (l'escalier en bas à
 gauche ramène). Chaque visite tire 2 ou 3 obstacles au hasard (**R** ou **Select** : nouveau tirage) : vide avec
 ponts (d'un mur à l'autre), ravin (sur une partie de la salle), gouffre, rivière, rivière glacée, lac, lac de lave,
-lac de glace, île entourée de vide ou d'eau, murs de glace. Les rivières vont d'un mur à l'autre, les ponts sont
+lac de glace, île entourée de vide ou d'eau, murs de glace, rochers, pylônes électriques, plaques de métal avec bornes
+aimantées. Les rivières vont d'un mur à l'autre, les ponts sont
 droits ; l'eau et la lave ne se touchent jamais. L'eau, la lave, le vide et la glace
 reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
 ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et murs de glace ont leurs planches Claude Design
@@ -106,7 +107,20 @@ ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et mur
   glace (ceux qui sont dessus tombent), brûle la végétation, fait fondre les murs de glace et **met le feu aux ponts** :
   le feu gagne tout le pont (rouge, bloqué), qui finit brûlé (gris, bloqué) ; Eau refroidit la lave en roche.
 
-Réglages : `Assets/Resources/Data/obstacles.json` (obstacles, chutes, interactions) et `obstacle_room.json` (tirage).
+- **Rochers** (décors 9 et 18 de la ROM) : solides, brisés par une attaque **Combat** (les gros en 2 coups), qui laisse
+  des gravats ; le Combat brise aussi les murs de glace en éclats glissants. Un Pokémon projeté ou qui glisse contre un
+  rocher, un mur de glace, un pylône ou une borne est étourdi et perd 5 % de ses PV.
+- **Pylônes électriques** : par paires, un arc les relie toutes les 4,8 s (avertissement qui crépite, puis arc
+  d'1 s) : dégâts, paralysie, étourdissement ; Électrik et Sol immunisés, Vol ×1,5, Spectre touchés. Électrik
+  surcharge un pylône (arc continu 4 s), Sol le met à la terre (coupé 6 s). Un arc au-dessus de l'eau ou du métal
+  l'électrifie en entier.
+- **Métal** : les plaques conduisent l'électricité (toutes les plaques reliées), chauffent au Feu, gèlent à la Glace ;
+  un Acier dessus ne peut pas être poussé, résiste mieux (+20 %) et n'est pas électrocuté. Les **bornes aimantées**
+  attirent les Acier et happent les tirs Acier et Électrik ; chargées, elles électrifient les plaques qu'elles
+  touchent.
+
+Réglages : `Assets/Resources/Data/obstacles.json` (obstacles, chutes, interactions, arc des pylônes) et
+`obstacle_room.json` (tirage). Visuels provisoires (cases de couleur) pour les pylônes, plaques et bornes.
 
 ## Effets de terrain
 
