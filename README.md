@@ -202,6 +202,43 @@ un terrain nocif auquel il est immunisé (les ennemis l'évitent).
 Tout se règle dans `Assets/Resources/Data/terrains.json` : `terrains` (effets, immunités, soin, coût pour l'IA),
 `moves` (attaques qui laissent une trace et sa forme), `sizing` et `reactions`.
 
+## Journal des changements
+
+### Après la mise à jour (à faire une fois)
+Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tirés de la ROM (eau, lave, vide et glace
+des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
+donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
+obstacles retombent sur des cases de couleur.
+
+### 20/10/2026 — Obstacles, météos (Robin, branche `feature/obstacles`)
+- **Obstacles** : couche durable sous le terrain (eau profonde, lave, vide, ponts, glace, végétation, roche,
+  rochers, murs de glace, pylônes électriques, plaques de métal et bornes aimantées, sable mouvant), avec chutes,
+  chocs, interactions par type d'attaque et par contact du terrain, franchissement selon le type de Pokémon ou de
+  déplacement de la ROM. Visuels : décors de la ROM + planches Claude Design (`Design/effects_v12_obstacles`,
+  `effects_v13_electrique_metal`, `effects_v14_meteo`).
+- **En partie** : 1 ou 2 obstacles par arène selon le décor (`arena_obstacles.json`), blocs de mur réduits, ennemis
+  qui apparaissent seulement sur des cases sûres et atteignables. **Salle de test** des obstacles depuis le terrain de
+  test (escalier, tirage, R pour retirer).
+- **Météos et sports** : Zénith, Danse Pluie, Grêle, Tempêtesable, Tourniquet, Lance-Boue deviennent jouables
+  (`climates.json`) : traces de terrain modifiées, dégâts par type, portée des tirs, vent des tempêtes qui porte les
+  tirs et déporte les Pokémon Vol.
+- Effets de terrain combinés (eau sur métal chargé : eau électrifiée…), apparition en fondu des traces.
+
+### 19-20/10/2026 — Attaques de type, lot 1 (Owen, `feature/attaques-type-lot1`, fusionné dans `dev`)
+- Vibraqua, Lame d'Air, Plaie-Croix, Onde Folie, Telluriforce, avec leurs planches ; spores et poudres (nuages qui se
+  déploient) ; Pistolet à O en rafale très courte. Le lot 2 (Fatal-Foudre, Blizzard, Draco Météor, Pouv. Antique)
+  est en cours sur `feature/attaques-type-lot2`.
+
+### 19/10/2026 — Effets de terrain (Robin, `feature/effets-terrain`, fusionné dans `dev`)
+- Traces au sol laissées par 24 attaques (verglas, braises, flaque, sol chargé, eau électrifiée, ronces, boue, flaque
+  toxique), affinités entre terrains, tuiles animées aux bords découpés par élément, IA qui évite, se replie et
+  profite du terrain ; terrain de test (Select / T au menu en `devMode`).
+
+### 19/10/2026 — Persos de dev, portabilité (Robin)
+- Persos de dev qui apprennent toutes les attaques (`devMode`), filtre par type au menu, commandes clavier U I O P.
+- Portabilité multi-OS : `setup.py` trouve Unity sur Linux, macOS et Windows (`--unity`, `UNITY_PATH`, version la plus
+  proche de la même branche), `uvx` pris dans le `PATH` pour unityMCP.
+
 ## Comment le dépôt gère les assets de la ROM
 
 Unity identifie chaque asset par un **GUID** stocké dans son fichier `.meta`, et les scènes référencent les
