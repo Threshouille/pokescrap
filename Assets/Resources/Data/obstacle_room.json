@@ -11,6 +11,7 @@
     {"type": "chasm", "weight": 1, "kind": "void", "width": 2, "bridges": [2, 3], "bridgeKind": "bridge", "comment": "vide d'un mur à l'autre"},
     {"type": "chasm", "weight": 2, "kind": "void", "width": 2, "coverage": [0.4, 0.8], "bridges": [0, 1], "bridgeKind": "bridge", "comment": "ravin sur une partie de la salle, à contourner"},
     {"type": "lake", "weight": 2, "kind": "void", "sizes": [1, 2, 3], "comment": "gouffre"},
+    {"type": "lake", "weight": 2, "kind": "quicksand", "sizes": [2, 3], "comment": "sable mouvant"},
     {"type": "river", "weight": 2, "kind": "water", "width": 2, "bridges": [1, 2], "bridgeKind": "bridge"},
     {"type": "river", "weight": 1, "kind": "ice_floor", "width": 2, "bridges": [0, 0], "comment": "rivière glacée"},
     {"type": "lake", "weight": 2, "kind": "water", "sizes": [2, 3, 4]},

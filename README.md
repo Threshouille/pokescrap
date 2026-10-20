@@ -87,7 +87,7 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
 ## Obstacles
 
 **En partie**, chaque arène reçoit 1 ou 2 obstacles selon son décor (`Assets/Resources/Data/arena_obstacles.json`) :
-cristaux (arène 1) : eau, rochers ; sable (arène 2) : ravins, gouffres, rochers ; volcan (boss) : lave, rochers, arène
+cristaux (arène 1) : eau, vide, rochers ; sable (arène 2) : ravins, gouffres, sable mouvant, rochers ; volcan (boss) : lave, rochers, arène
 dégagée. Une partie des blocs de mur est remplacée par des rochers cassables ; pylônes et métal y restent rares (ils
 sont faits pour des salles à thème). Le point d'arrivée reste dégagé et les ennemis n'apparaissent que sur des cases
 sûres reliées à l'équipe. `obstaclesInRuns` dans `meta.json` les coupe. Après une mise à jour du dépôt, relancer
@@ -125,6 +125,8 @@ ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et mur
   **glisse** sur une surface glissante contre un rocher, un mur de glace, un pylône ou une borne est étourdi et perd
   5 % de ses PV ; marcher dedans, esquiver ou foncer volontairement ne fait rien. Des plaques de glace sont souvent
   posées contre le vide, l'eau ou les rochers pour profiter des glissades.
+- **Sable mouvant** : ralentit fortement (×0,4) ; rester plus de 2 s dedans enlise (pris au piège 1,5 s, petits dégâts).
+  Vol, Sol, Spectre et les Pokémon qui lévitent ne sont pas concernés ; l'IA l'évite.
 - **Pylônes électriques** : par paires, un arc les relie toutes les 4,8 s (avertissement qui crépite, puis arc
   d'1 s) : dégâts, paralysie, étourdissement ; Électrik et Sol immunisés, Vol ×1,5, Spectre touchés. Électrik
   surcharge un pylône (arc continu 4 s), Sol le met à la terre (coupé 6 s). Un arc au-dessus de l'eau ou du métal

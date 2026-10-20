@@ -15,6 +15,11 @@ public class ObstacleDef
     public int[] passPokemonTypes = new int[0]; // Pokémon types that cross it too (Eau through water, Spectre through rocks)
     public Toll[] toll = new Toll[0]; // what crossing costs a type (a Vol over lava)
     public int[] easyTypes = new int[0]; // types it does not slow down nor make slide (Glace on ice)
+    public int[] easyMovementTypes = new int[0]; // ROM movement types it leaves alone too (floating over quicksand)
+    public float sinkTime; // seconds standing in it before sinking (quicksand): sinkStatus for sinkDuration seconds
+    public string sinkStatus;
+    public float sinkDuration;
+    public float navCost; // extra path cost for the AIs it would hinder (tiles of detour)
     public float fallDamage; // share of max HP lost by a fall
     public string fallStatus; // status given by a fall (burn for lava)
     public float speedMul = 1f;
@@ -259,6 +264,7 @@ public class Obstacles : MonoBehaviour
         passers.Clear();
         seen.Clear();
         tollAt.Clear();
+        sunk.Clear();
         pending.Clear();
         Pylons.Clear(this);
         count = 0;
@@ -426,9 +432,45 @@ public class Obstacles : MonoBehaviour
         return velocity;
     }
 
-    public static float SpeedMul(Combatant c) => At(c.transform.position) is { } d && !HasType(c.Stats, d.easyTypes) ? d.speedMul : 1f;
+    /// That obstacle leaves this Pokémon alone (its type, or how it moves): no slowing, sliding or sinking.
+    static bool Easy(ObstacleDef def, PokemonStats stats) =>
+        stats != null && (HasType(stats, def.easyTypes) || Array.IndexOf(def.easyMovementTypes, stats.movementType) >= 0);
 
-    public static float SlideAccel(Combatant c) => At(c.transform.position) is { } d && !HasType(c.Stats, d.easyTypes) ? d.slideAccel : 0f;
+    public static float SpeedMul(Combatant c) => At(c.transform.position) is { } d && !Easy(d, c.Stats) ? d.speedMul : 1f;
+
+    public static float SlideAccel(Combatant c) => At(c.transform.position) is { } d && !Easy(d, c.Stats) ? d.slideAccel : 0f;
+
+    /// Extra path cost of a tile for an AI: what it would pay there, or how much it would hinder it.
+    public static float PathCost(int x, int y, Combatant agent)
+    {
+        var def = At(x, y);
+        if (def == null || agent == null) return 0f;
+        float cost = TollFor(def, agent.Stats) is { } t ? 8f + 100f * t.damageShare : 0f;
+        if (def.navCost > 0f && !Easy(def, agent.Stats)) cost += def.navCost;
+        return cost;
+    }
+
+    readonly Dictionary<Combatant, float> sunk = new(); // seconds spent in quicksand
+
+    // Standing too long in quicksand: stuck for a while (the trap status), then it starts over.
+    void Sink(Combatant c, Vector2 position)
+    {
+        var def = At(position);
+        if (def == null || def.sinkTime <= 0f || Easy(def, c.Stats) || string.IsNullOrEmpty(def.sinkStatus))
+        {
+            sunk.Remove(c);
+            return;
+        }
+        if (c.HasStatus(def.sinkStatus)) return;
+        sunk.TryGetValue(c, out float t);
+        t += Time.fixedDeltaTime;
+        if (t >= def.sinkTime)
+        {
+            if (StatusLibrary.Get(def.sinkStatus) != null) c.AddStatus(def.sinkStatus, def.sinkDuration);
+            t = 0f;
+        }
+        sunk[c] = t;
+    }
 
     // ---- Moves changing obstacles ---------------------------------------------------------------------------
 
@@ -645,6 +687,7 @@ public class Obstacles : MonoBehaviour
             Vector2 position = c.transform.position;
             Bump(c, position);
             PayToll(c, position);
+            Sink(c, position);
             if (!BlocksAt(position, c))
             {
                 lastSafe[c] = position; // where it comes back after a fall
@@ -674,10 +717,6 @@ public class Obstacles : MonoBehaviour
         tollAt[c] = Time.time + 1f;
         if (toll.damageShare > 0f) c.TakeFixedDamage(c.maxHp * toll.damageShare);
     }
-
-    /// Extra path cost of a tile for an AI that would pay a toll there.
-    public static float TollCost(int x, int y, Combatant agent) =>
-        At(x, y) is { } def && agent != null && TollFor(def, agent.Stats) is { } t ? 8f + 100f * t.damageShare : 0f;
 
     // Thrown against a solid obstacle — pushed by a hit, or sliding on a slippery ground — : stunned and hurt.
     // Walking into it, dodging or dashing on purpose never does.
@@ -1111,7 +1150,7 @@ public class Obstacles : MonoBehaviour
         "chasm" => f.coverage != null && f.coverage.Length > 0 && f.coverage[0] < 1f ? "Ravin" : "Vide avec ponts",
         "river" => f.kind == "ice_floor" ? "Rivière glacée" : "Rivière",
         "island" => f.kind == "void" ? "Île au-dessus du vide" : "Île au milieu de l'eau",
-        "lake" => f.kind == "lava" ? "Lac de lave" : f.kind == "ice_floor" ? "Lac de glace" : f.kind == "void" ? "Gouffre" : "Lac",
+        "lake" => f.kind switch { "lava" => "Lac de lave", "ice_floor" => "Lac de glace", "void" => "Gouffre", "quicksand" => "Sable mouvant", _ => "Lac" },
         "boulders" => "Rochers",
         "pylons" => "Pylônes électriques",
         "metal" => "Plaques de métal et borne aimantée",
