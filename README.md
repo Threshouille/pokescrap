@@ -120,7 +120,8 @@ ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et mur
   touchent.
 
 Réglages : `Assets/Resources/Data/obstacles.json` (obstacles, chutes, interactions, arc des pylônes) et
-`obstacle_room.json` (tirage). Visuels provisoires (cases de couleur) pour les pylônes, plaques et bornes.
+`obstacle_room.json` (tirage). Planches des pylônes, de l'arc, du métal et des bornes : `Design/effects_v13_electrique_metal/`
+(prompt `Design/prompt_electrique_metal.md`).
 
 ## Effets de terrain
 

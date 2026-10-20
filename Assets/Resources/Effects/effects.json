@@ -2984,6 +2984,179 @@
         "#e6f8ff",
         "#ffffff"
       ]
+    },
+    {
+      "file": "obstacle_pylon.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#1e2128",
+        "#6a727e",
+        "#8a4a20",
+        "#9aa4b0",
+        "#c8783a",
+        "#d0d8e0",
+        "#ffd21f"
+      ]
+    },
+    {
+      "file": "obstacle_pylon_charged.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#1e2128",
+        "#6a727e",
+        "#9aa4b0",
+        "#d0d8e0",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "obstacle_pylon_grounded.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1000
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2128",
+        "#4a2610",
+        "#6a727e",
+        "#7c4620",
+        "#9aa4b0"
+      ]
+    },
+    {
+      "file": "obstacle_arc.png",
+      "frame_width": 24,
+      "frame_height": 12,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true,
+      "palette": [
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "obstacle_arc_warn.png",
+      "frame_width": 24,
+      "frame_height": 6,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8"
+      ]
+    },
+    {
+      "file": "obstacle_metal.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1000
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3f4a",
+        "#6a727e",
+        "#9aa4b0",
+        "#d0d8e0"
+      ]
+    },
+    {
+      "file": "obstacle_magnet.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "loop": true,
+      "palette": [
+        "#1e2128",
+        "#4f8fd8",
+        "#6a727e",
+        "#a01818",
+        "#a6dcff",
+        "#d0d8e0",
+        "#e04040"
+      ]
+    },
+    {
+      "file": "terrain_charged_metal.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "terrain_hot_metal.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "loop": true,
+      "palette": [
+        "#c42418",
+        "#f0741a",
+        "#ffd23a"
+      ]
     }
   ]
 }
