@@ -77,12 +77,12 @@
   {"id": 208, "name": "Dracogriffe", "type": 15, "category": "physical", "power": 2, "family": "melee", "basic": true, "cooldown": 1.8, "castTime": 0.15, "windup": 0.35, "damageScale": 0.65, "radius": 0.4, "shape": "arc", "range": 1.3, "arc": 110, "hits": 2, "hitInterval": 0.12, "hitAngles": [-25, 25], "strikeOffset": 0.6, "effectScale": 1.3, "effect": "dracogriffe_coup", "impactEffect": "dracogriffe_impact"},
   {"id": 63, "name": "Morsure", "type": 16, "category": "physical", "power": 2, "family": "melee", "basic": true, "cooldown": 2.0, "castTime": 0.3, "windup": 0.35, "damageScale": 1.8, "radius": 0.4, "shape": "arc", "range": 1.3, "arc": 85, "strikeOffset": 0.65, "effectScale": 1.4, "effect": "morsure_coup", "impactEffect": "morsure_impact"},
   {"id": 510, "name": "Pisto-Poing", "type": 17, "category": "physical", "power": 2, "family": "melee", "basic": true, "cooldown": 1.1, "castTime": 0.15, "windup": 0.35, "damageScale": 0.7, "radius": 0.7, "lunge": 1.5, "lungeTime": 0.1, "range": 0.8, "lungeHarmless": true, "strikeAfterLunge": true, "strikeDelay": 0.25, "knockback": 1.5, "knockbackTime": 0.5, "strikeEffect": "pisto_poing_coup", "effectScale": 1.4, "effect": "pisto_poing_trainee", "impactEffect": "pisto_poing_impact"},
-  {"id": 223, "name": "Zénith", "type": 2, "category": "status", "power": 0, "family": "climate", "cooldown": 25},
-  {"id": 12, "name": "Danse Pluie", "type": 3, "category": "status", "power": 0, "family": "climate", "cooldown": 25},
-  {"id": 14, "name": "Grêle", "type": 6, "category": "status", "power": 0, "family": "climate", "cooldown": 25},
-  {"id": 141, "name": "Tempêtesable", "type": 13, "category": "status", "power": 0, "family": "climate", "cooldown": 25},
-  {"id": 307, "name": "Tourniquet", "type": 3, "category": "status", "power": 0, "family": "climate", "cooldown": 18, "radius": 4},
-  {"id": 212, "name": "Lance-Boue", "type": 9, "category": "status", "power": 0, "family": "climate", "cooldown": 18, "radius": 4}
+  {"id": 223, "name": "Zénith", "type": 2, "category": "status", "power": 0, "family": "climate", "cooldown": 40},
+  {"id": 12, "name": "Danse Pluie", "type": 3, "category": "status", "power": 0, "family": "climate", "cooldown": 40},
+  {"id": 14, "name": "Grêle", "type": 6, "category": "status", "power": 0, "family": "climate", "cooldown": 40},
+  {"id": 141, "name": "Tempêtesable", "type": 13, "category": "status", "power": 0, "family": "climate", "cooldown": 40},
+  {"id": 307, "name": "Tourniquet", "type": 3, "category": "status", "power": 0, "family": "climate", "cooldown": 25, "radius": 4},
+  {"id": 212, "name": "Lance-Boue", "type": 9, "category": "status", "power": 0, "family": "climate", "cooldown": 25, "radius": 4}
  ],
  "loadouts": [
   {"pokemonId": 1, "role": "support", "moves": [329, 217, 199, 251]},

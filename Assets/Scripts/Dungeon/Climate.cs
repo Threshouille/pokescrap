@@ -246,7 +246,8 @@ public class Climate : MonoBehaviour
                     if (Array.IndexOf(c.Stats.types, t.type) >= 0) score += side * (t.mul - 1f);
                 if (w.chip != null && w.chip.share > 0f && !HasType(c, w.chip.immuneTypes)) score -= side * 0.3f;
             }
-            return score > 0.25f;
+            // A weather that hurts (hail, sandstorm) only when the opponents clearly lose more than its team.
+            return score > (w.chip != null && w.chip.share > 0f ? 0.6f : 0.25f);
         }
         var s = SportOf(move);
         if (s == null) return false;

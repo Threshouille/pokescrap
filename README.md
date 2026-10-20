@@ -150,8 +150,8 @@ Six attaques de la ROM jusque-là écartées deviennent jouables (`Assets/Resour
 |---|---|
 | Zénith | braises plus grandes et plus longues, flaques et verglas raccourcis ; Feu ×1,3, Eau ×0,7 ; quelques braises éparses |
 | Danse Pluie | flaques plus grandes, eau électrifiée plus longue, braises vite éteintes ; Eau ×1,3, Feu ×0,7 ; flaques éparses |
-| Grêle | verglas plus grand et plus long ; 0,75 % des PV par seconde sauf Glace ; verglas épars |
-| Tempêtesable | boue plus grande et plus longue ; 0,75 % des PV par seconde sauf Roche, Sol, Acier ; boue éparse |
+| Grêle | verglas plus grand et plus long ; 0,4 % des PV par seconde sauf Glace ; verglas épars |
+| Tempêtesable | boue plus grande et plus longue ; 0,4 % des PV par seconde sauf Roche, Sol, Acier ; boue éparse |
 
 Une seule météo à la fois (la dernière lancée remplace l'autre), signalée par un voile coloré et son nom en haut à
 droite ; elle agit aussi sur les traces déjà au sol. Elle change aussi la vitesse et la portée des tirs : sous la pluie,
