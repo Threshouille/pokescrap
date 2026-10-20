@@ -83,6 +83,9 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   les 15 s), plus deux démonstrations au centre : une flaque frappée par la foudre toutes les 6 s et un champ
   de ronces incendié toutes les 7 s. Pas d'ennemis par défaut (`"enemyWaves": true` pour faire tourner en boucle les
   vagues de la première étape et voir l'IA réagir). Rien n'est recruté ni compté. Disposition et réglages : `Assets/Resources/Data/terrain_sandbox.json`.
+  L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
+  immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
+  animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
 
 ## Obstacles
 
@@ -213,7 +216,8 @@ obstacles retombent sur des cases de couleur.
 ### 20/10/2026 — Sprites des méga-évolutions (Robin)
 - 27 méga-évolutions aux sprites complets, absentes de la ROM, téléchargées depuis
   [PMDCollab SpriteCollab](https://github.com/PMDCollab/SpriteCollab) (CC BY-NC 4.0, auteurs dans
-  `CREDITS_MEGAS.md`) par `Tools/pmd/import_megas.py`, appelé par `setup.py` (connexion internet nécessaire).
+  `CREDITS_MEGAS.md`) par `Tools/pmd/import_megas.py`, appelé par `setup.py` (connexion internet nécessaire une
+  seule fois : il ne contacte plus SpriteCollab quand tout est là). Visibles dans la galerie du terrain de test.
   Liste et ids (20000 + n° de Pokédex × 10 + forme) : `Assets/Resources/Data/megas.json`. Pas encore jouables :
   le fonctionnement en partie reste à définir.
 - Après la mise à jour : Unity fermé, `python3 Tools/setup.py` (ou `python3 -I Tools/pmd/import_megas.py .` puis

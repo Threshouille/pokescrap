@@ -52,9 +52,13 @@ def author(credit, names):
 def main(project, force):
     project = Path(project)
     megas = json.loads((project / "Assets/Resources/Data/megas.json").read_text(encoding="utf-8"))["megas"]
+    portraits = project / "Assets/Resources/Portraits"
+    if not force and all((project / "Assets/Sprites/Pokemon" / m["folder"] / "AnimData.xml").exists()
+                         and (portraits / f"{m['id']}.png").exists() for m in megas):
+        print(f"{len(megas)} mega evolutions already there (--force downloads them again)")
+        return
     tracker = json.loads(fetch("tracker.json"))
     names = credit_names()
-    portraits = project / "Assets/Resources/Portraits"
     portraits.mkdir(parents=True, exist_ok=True)
     credits = ["# Crédits des méga-évolutions", "",
                "Sprites et portraits de [PMDCollab SpriteCollab](https://github.com/PMDCollab/SpriteCollab), "
