@@ -427,8 +427,11 @@ public class Obstacles : MonoBehaviour
         Current.Touch(move, from, to, -1f, true, caster);
     }
 
+    // Every interaction sees the tiles as they were before the hit: one blow cracks a big boulder, it does not
+    // crack it then break it at once.
     void Touch(MoveDef move, Vector2 from, Vector2 to, float radius, bool path, Combatant caster)
     {
+        var found = new List<(ObstacleInteraction, ObstacleDef, List<(int, int)>)>();
         foreach (var it in interactions)
         {
             if (it.byType < 0 || it.byType != move.type || (path && !it.path)) continue;
@@ -436,8 +439,9 @@ public class Obstacles : MonoBehaviour
             if (on == null) continue;
             float r = radius > 0f ? radius : it.radius;
             var hit = Cells(from, to, r, on);
-            if (hit.Count > 0) Apply(it, on, hit, caster);
+            if (hit.Count > 0) found.Add((it, on, hit));
         }
+        foreach (var (it, on, hit) in found) Apply(it, on, hit, caster);
     }
 
     /// Terrain was just laid on a tile (Terrain calls it): it acts on the obstacle of that tile and of the 4 next
@@ -449,6 +453,7 @@ public class Obstacles : MonoBehaviour
         applying = true;
         try
         {
+            var found = new List<(ObstacleInteraction, ObstacleDef, List<(int, int)>)>();
             foreach (var it in interactions)
             {
                 if (it.byTerrain != terrain) continue;
@@ -457,8 +462,9 @@ public class Obstacles : MonoBehaviour
                 var hit = new List<(int, int)>();
                 foreach (var (dx, dy) in new[] { (0, 0), (1, 0), (-1, 0), (0, 1), (0, -1) })
                     if (Current.KindAt(x + dx, y + dy) == on) hit.Add((x + dx, y + dy));
-                if (hit.Count > 0) Current.Apply(it, on, hit, caster);
+                if (hit.Count > 0) found.Add((it, on, hit));
             }
+            foreach (var (it, on, hit) in found) Current.Apply(it, on, hit, caster); // as the tiles were before
         }
         finally
         {
