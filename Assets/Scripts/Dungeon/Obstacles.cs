@@ -956,7 +956,7 @@ public class Obstacles : MonoBehaviour
         var interior = grid.Interior;
         int r = f.sizes != null && f.sizes.Length > 0 ? f.sizes[rng.Next(f.sizes.Length)] : 2;
         int outer = r + f.width;
-        for (int attempt = 0; attempt < 40; attempt++)
+        for (int attempt = 0; attempt < 150; attempt++) // it needs a wide free area
         {
             int cx = rng.Next(interior.xMin + outer + 2, interior.xMax - outer - 2), cy = rng.Next(interior.yMin + outer + 2, interior.yMax - outer - 2);
             if (!FarFromKept(cx, cy, outer)) continue;

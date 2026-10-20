@@ -382,7 +382,12 @@ public class Terrain : MonoBehaviour
     // A tile reached by a move: reacts with what is already there, possibly spreading over the connected area.
     void Hit(int x, int y, TerrainDef def, float duration, Combatant caster)
     {
-        if (Obstacles.RejectsTerrain(x, y)) return; // no puddle on lava or in the void
+        if (Obstacles.RejectsTerrain(x, y))
+        {
+            // No puddle on lava or in the void, but the contact still counts (water on lava cools it into rock).
+            Obstacles.OnTerrain(x, y, def.key, caster);
+            return;
+        }
         int i = y * size + x;
         var old = Live(i);
         if (old == null || !reactions.TryGetValue((old.key, def.key), out var r))
