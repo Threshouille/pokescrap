@@ -34,6 +34,7 @@ public class TerrainDef
     public float regenShare;
     public string cures; // status removed from whoever stands there
     public float navCost; // extra path cost for the AIs, in tiles of detour
+    public bool aiBlind; // the AIs neither foresee nor mind it (they walk on and stay on it); combos still count it
     [NonSerialized] public Color tint, flicker;
     [NonSerialized] public bool flickers;
     [NonSerialized] public EffectLibrary.Sheet sheet, variant; // animated tiles; none: a tinted square instead
@@ -256,7 +257,7 @@ public class Terrain : MonoBehaviour
             if (floor != null)
             {
                 renderer.sortingLayerID = floor.sortingLayerID;
-                renderer.sortingOrder = floor.sortingOrder + 3; // over the floor and the obstacles (2 layers), under zones and Pokémon
+                renderer.sortingOrder = floor.sortingOrder + 3; // over the floor and the obstacles (2 layers), under walls, zones and Pokémon (DungeonGenerator.FloorOrder)
             }
             sortingLayer = renderer.sortingLayerID;
             sortingOrder = renderer.sortingOrder;
@@ -564,7 +565,7 @@ public class Terrain : MonoBehaviour
     {
         if (Current == null) return 0f;
         var def = Current.ActingAt(x, y, agent);
-        if (def == null) return 0f;
+        if (def == null || def.aiBlind) return 0f;
         // On its own team's terrain only the hindrance counts (a slow or slippery tile).
         return Current.HurtsAt(x, y, agent) ? def.navCost : Hinders(def) ? Mathf.Min(def.navCost, 3f) : 0f;
     }

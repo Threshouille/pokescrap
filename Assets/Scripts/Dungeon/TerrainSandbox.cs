@@ -97,6 +97,9 @@ public class TerrainSandbox : MonoBehaviour
 
     static Vector2 Vec(float[] v) => v != null && v.Length >= 2 ? new Vector2(v[0], v[1]) : Vector2.zero;
 
+    /// Removes the emitters (the AI test bench needs a quiet arena).
+    public void Quiet() => ClearEmitters();
+
     void ClearEmitters()
     {
         emitters.Clear();

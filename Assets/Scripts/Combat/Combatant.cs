@@ -1099,6 +1099,17 @@ public class Combatant : MonoBehaviour
         return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab;
     }
 
+    /// The damage a hit of this move would roughly deal to "target" (types, defence; weather and terrain aside),
+    /// for the AIs' choices. 0 for a move without power.
+    public float EstimateHit(MoveDef move, Combatant target)
+    {
+        float raw = DamageOf(move);
+        if (raw <= 0f || target == null) return 0f;
+        float defence = move.category == "physical" ? target.def : target.spDef;
+        return raw * TypeChart.Multiplier(move.type, target.Stats?.types, out _) * DefenseScale / (DefenseScale + defence)
+            / target.Modifier("defense");
+    }
+
     /// A hit from a move: the target's types and defence (physical or special) change it. Returns false when the hit
     /// was ignored (already down, or protected just after a previous hit); "dealt" is the health actually lost.
     public bool TakeHit(float raw, MoveDef move, out float dealt)

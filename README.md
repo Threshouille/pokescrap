@@ -83,6 +83,13 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   les 15 s), plus deux démonstrations au centre : une flaque frappée par la foudre toutes les 6 s et un champ
   de ronces incendié toutes les 7 s. Pas d'ennemis par défaut (`"enemyWaves": true` pour faire tourner en boucle les
   vagues de la première étape et voir l'IA réagir). Rien n'est recruté ni compté. Disposition et réglages : `Assets/Resources/Data/terrain_sandbox.json`.
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 14 scénarios (ne pas suivre
+  le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
+  terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
+  lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
+  brûler un pont sous un ennemi, marcher sur du métal chargé) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
+  Sans ouvrir Unity : `python3 Tools/setup.py --ai-scenarios` (Unity fermé ; résultats dans `Logs/ai_scenarios.log`,
+  code de sortie = nombre d'échecs). Scénarios : `Assets/Scripts/Combat/AiScenarios.cs`.
 
 ## Obstacles
 
@@ -209,6 +216,21 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 20/10/2026 — IA, lot A (Robin, branche `feature/ia`)
+- **Choix de la cible** (alliés et groupes d'ennemis) : plus seulement le plus proche, mais un score (`TargetChoice`) :
+  K.O. rapide possible, efficacité des types, menace sur un coéquipier faible face à lui, coéquipiers déjà sur lui,
+  distance. Poids `aiTarget*` dans `meta.json`.
+- **Alliés** : ils suivent le Pokémon joué quand il recule, contournent les dangers pour le rejoindre (sinon attendent
+  au bord), engagent plus loin (9 cases) ; blessés (moins de 30 % de PV), ils restent près de lui. Réglages `ally*`.
+- **Obstacles (lot C)** : un allié coupé du Pokémon joué par de l'eau, de la lave, du vide ou un pont brûlé les change
+  avec ses attaques pour passer (gèle la rivière, nénuphars, pont de lianes, lave refroidie) ; il brûle le pont (ou
+  fait fondre la glace) sous un ennemi au corps à corps, jamais sous un coéquipier.
+- **Pylônes** : les IA ne voient venir un arc qu'avec 60 % de chances par cycle (`arc.aiAwareness` dans
+  `obstacles.json`) et se font donc surprendre de temps en temps. **Métal** chargé ou brûlant : les IA ne s'en
+  soucient pas (`aiBlind` dans `terrains.json`).
+- **Banc d'essai des IA** (touche B dans le terrain de test, ou `python3 Tools/setup.py --ai-scenarios`) : 14 scénarios.
+- Correctif : le terrain se dessinait au même niveau que les Pokémon (ils semblaient passer dessous et clignotaient).
 
 ### 20/10/2026 — Obstacles, météos (Robin, branche `feature/obstacles`)
 - **Obstacles** : couche durable sous le terrain (eau profonde, lave, vide, ponts, glace, végétation, roche,

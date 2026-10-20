@@ -48,6 +48,23 @@ Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps 
 
 Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, commandes clavier U I O P. Suite décidée : affiner la logique et le fonctionnement, puis les affinités entre terrains (table `reactions`). Tuiles animées des 8 terrains livrées (19/10/2026, `Design/effects_v11_terrains/`, prompt `Design/prompt_terrains.md`). Reste, reporté par Robin (19/10/2026) : planches des 14 attaques à trace qui n'ont qu'un disque coloré (Lance-Flamme, Déflagration, Hydrocanon, Hydroblast, Canon Graine, Mégafouet, Végé-Attak, Tonnerre, Fatal-Foudre, Laser Glace, Blizzard, Détritus, Bomb-Beurk, Boue-Bombe) ; prompt prêt : `Design/prompt_attaques_terrain.md`. Ces attaques sont générées : leur attribuer les planches via `move_rules.json` plutôt qu'en les recopiant dans `realtime_moves.json`.
 
+## Correction des IA (branche `feature/ia`, depuis le 20/10/2026, Robin)
+
+- Alliés qui suivaient le Pokémon joué jusque dans une zone nocive : ils visent la case sûre la plus proche de lui
+  (`AllyAI.SafeSpotNear`) par un chemin qui contourne les dangers (`Navigator.Direction(..., avoid: true)`), et
+  n'attendent au bord que s'il n'en existe aucun. Compilé, pas encore testé en jeu.
+- Lot A (GDD « IA ») écrit, compilé, pas testé en jeu : `TargetChoice` (cible par score, alliés et groupes ennemis),
+  alliés qui suivent le Pokémon joué quand il recule, plus offensifs, prudents quand ils sont blessés. Suite : lot B
+  (placement et combos selon les types), lot C (couper et réparer les chemins).
+- Banc d'essai des IA (`AiScenarios`, touche B dans le terrain de test, `python3 Tools/setup.py --ai-scenarios`) :
+  8/8 en batch le 20/10/2026. Il a révélé que l'allié restait coincé au coin d'une bande de danger (coin coupé en
+  diagonale, ligne droite autorisée depuis le danger) : corrigé dans `Navigator` (mode `avoid`).
+- Lot C commencé (20/10/2026) : réparer un chemin (geler, nénuphars, lianes, lave refroidie), brûler un pont sous un
+  ennemi au corps à corps ; pylônes vus avec 60 % de chances par cycle ; métal ignoré par les IA. `Navigator` ne
+  relance plus l'A* à chaque pas vers une cible inaccessible (problème connu, corrigé). Banc : 14 scénarios.
+- Méga-évolutions en pause sur `feature/mega-evolutions` (non fusionnée). Le correctif d'ordre d'affichage du terrain
+  (sol à -6, `DungeonGenerator.FloorOrder`) est repris à l'identique sur les deux branches.
+
 ## En attente
 
 - **Icônes de bonus/malus** (`status_attack_up`… six fichiers) : prompt donné plus tôt, archive pas encore reçue ; flèches colorées provisoires.
@@ -56,7 +73,7 @@ Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, com
 
 ## Problèmes connus et points à surveiller
 
-- Analyse du code (17/10/2026), corrigé : gardes du boss qui rapportaient expérience et recrues, ✕ / Espace qui esquivaient ou attaquaient en fermant un menu (entrées ignorées 0,25 s), ennemi seul forcé en soutien, écran de fin qui se fermait aussitôt (1 s avant d'accepter une touche), recul ignoré pendant l'annonce d'un ennemi, attaque possible en pleine ruée ou esquive. Restent, mineurs : les zones ne déclenchent ni drain ni recul ; `Navigator` relance l'A* à chaque pas quand la cible est inaccessible ; tuiles non détruites à chaque `Generate()` ; Attaque / Attaque Spé proposées même sans attaque de cette catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
+- Analyse du code (17/10/2026), corrigé : gardes du boss qui rapportaient expérience et recrues, ✕ / Espace qui esquivaient ou attaquaient en fermant un menu (entrées ignorées 0,25 s), ennemi seul forcé en soutien, écran de fin qui se fermait aussitôt (1 s avant d'accepter une touche), recul ignoré pendant l'annonce d'un ennemi, attaque possible en pleine ruée ou esquive. Restent, mineurs : les zones ne déclenchent ni drain ni recul ; tuiles non détruites à chaque `Generate()` ; Attaque / Attaque Spé proposées même sans attaque de cette catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
 
 - **Équilibrage entièrement provisoire**, encore plus depuis le système d'attaques : 2 attaques au départ, ennemis à attaques tirées au hasard, recharges génériques (`move_rules.json`). Le soutien devient rare : il faut un soin ou un bonus aux alliés (Bulbizarre n'est soutien qu'avec Synthèse). L'équipe progresse trop vite (niveau 23-25 à la fin de l'arène 2 dans mes tests, mais ces tests tuaient les vagues par code) et écrase Groudon niveau 10. Rythme d'expérience (20 + 4 × niveau) sans lien avec l'objectif « niveau 100 en 30 min ».
 - Un soutien ennemi peut être rattrapé pendant sa pause après attaque.

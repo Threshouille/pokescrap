@@ -53,6 +53,20 @@ public static class SaveData
         public float enemyDodgeCooldown = 5f;
         public int enemyGroupSize = 3; // enemies of a wave are split into groups that share a target, each with a support
         public float groupRetargetTime = 2f;
+        // Target choice of the AIs (TargetChoice.cs), allies and enemies alike: score of an opponent.
+        public float aiTargetDistance = 0.25f; // lost per tile of distance
+        public float aiTargetFinish = 3f; // gained when the AI's best move knocks it out in one hit (divided by the hits needed)
+        public float aiTargetEfficacy = 1f; // per doubling of the AI's best type multiplier against it
+        public float aiTargetThreat = 1f; // when it is close to a team-mate its moves hit hard (more when that one is hurt)
+        public float aiTargetFocus = 0.5f; // per team-mate already after it
+        public float aiTargetKeep = 1f; // for the current target, so that the AI does not switch back and forth
+        // Allies (AllyAI.cs).
+        public float allyAggroRange = 9f; // opponents farther than this are ignored
+        public float allyLeash = 9f; // beyond this distance from the leader, an ally drops the fight and comes back
+        public float allyFollowBreak = 4f; // the leader walking away beyond this distance: the allies follow
+        public float allyLeaderRetreatSpeed = 1.5f; // tiles per second away from the ally that count as walking away
+        public float allyRetreatHealth = 0.3f, allyRetreatRecover = 0.5f; // hurt: keeps close to the leader until healed
+        public float allyCautiousAggro = 4f; // opponents a hurt ally still fights
         // Type matchups: multipliers replacing the chart's ×2 / ×0.5 / ×0, clamped once the defender's types are combined.
         public float superEffective = 1.5f, notVeryEffective = 0.6f, noEffect = 0.25f;
         public float typeFactorMin = 0.2f, typeFactorMax = 2f;
