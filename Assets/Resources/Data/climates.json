@@ -21,7 +21,7 @@
       "key": "hail", "name": "Grêle", "move": 14, "duration": 20, "tint": "#c0e0ff", "alpha": 0.14,
       "terrains": [{"terrain": "ice", "radiusMul": 1.5, "durationMul": 1.5}, {"terrain": "embers", "radiusMul": 0.8, "durationMul": 0.5}],
       "typeDamage": [{"type": 6, "mul": 1.2}],
-      "chip": {"share": 0.02, "immuneTypes": [6]},
+      "chip": {"share": 0.0075, "immuneTypes": [6]},
       "scatter": {"terrain": "ice", "chance": 0.35, "radius": 0.5, "duration": 4},
       "shots": [{"type": 6, "mul": 1.2}],
       "wind": {"strength": 0.15, "sensitive": [{"type": 10, "mul": 2}], "heavyTypes": [9, 13]},
@@ -31,7 +31,7 @@
       "key": "sand", "name": "Tempêtesable", "move": 141, "duration": 20, "tint": "#c09050", "alpha": 0.16,
       "terrains": [{"terrain": "mud", "radiusMul": 1.5, "durationMul": 1.5}, {"terrain": "water", "radiusMul": 0.8, "durationMul": 0.7}],
       "typeDamage": [{"type": 13, "mul": 1.2}],
-      "chip": {"share": 0.02, "immuneTypes": [9, 13, 17]},
+      "chip": {"share": 0.0075, "immuneTypes": [9, 13, 17]},
       "scatter": {"terrain": "mud", "chance": 0.3, "radius": 0.5, "duration": 4},
       "wind": {"strength": 0.25, "sensitive": [{"type": 10, "mul": 2}], "heavyTypes": [9, 13]},
       "scroll": 5
