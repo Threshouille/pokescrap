@@ -219,17 +219,40 @@ public class Pylons : MonoBehaviour
         }
     }
 
-    // Provisional look: a thin flickering line while warning, a thick jittering one while on.
+    // The arc: sheet obstacle_arc (on) or obstacle_arc_warn (warning) tiled along the line; without them, a thin
+    // flickering line while warning and a thick jittering one while on. The pylons show obstacle_pylon_charged while
+    // overcharged and obstacle_pylon_grounded while grounded.
     void LateUpdate()
     {
+        var arcSheet = EffectLibrary.Get("obstacle_arc");
+        var warnSheet = EffectLibrary.Get("obstacle_arc_warn");
+        var charged = EffectLibrary.Get("obstacle_pylon_charged");
+        var grounded = EffectLibrary.Get("obstacle_pylon_grounded");
         foreach (var p in pairs)
         {
             if (p.line == null) continue;
             var phase = PhaseOf(p);
+            var look = phase == Phase.Grounded ? grounded : Time.time < p.overchargedUntil ? charged : null;
+            Obstacles.OverrideSheet(p.a.x, p.a.y, look);
+            Obstacles.OverrideSheet(p.b.x, p.b.y, look);
             bool warn = phase == Phase.Warn, on = phase == Phase.Active;
             p.line.enabled = warn || on;
             if (!p.line.enabled) continue;
             Vector2 ab = p.to - p.from;
+            var sheet = on ? arcSheet : warnSheet;
+            if (sheet != null)
+            {
+                p.line.drawMode = SpriteDrawMode.Tiled;
+                p.line.sprite = sheet.Frame(Obstacles.FrameOf(sheet));
+                p.line.color = Color.white;
+                p.line.transform.position = (p.from + p.to) / 2f;
+                p.line.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(ab.y, ab.x) * Mathf.Rad2Deg);
+                p.line.transform.localScale = Vector3.one;
+                p.line.size = new Vector2(ab.magnitude, sheet.frame_height / (float)EffectLibrary.PixelsPerUnit);
+                continue;
+            }
+            p.line.drawMode = SpriteDrawMode.Simple;
+            p.line.sprite = Shapes.Square;
             float width = on ? 0.22f + 0.1f * Mathf.PingPong(Time.time * 20f, 1f) : 0.06f;
             p.line.transform.position = (p.from + p.to) / 2f;
             p.line.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(ab.y, ab.x) * Mathf.Rad2Deg);

@@ -149,6 +149,7 @@ public class Obstacles : MonoBehaviour
     ObstacleDef[] under; // what a bridge (or another hand-drawn obstacle) spans: drawn beneath it
     SpriteRenderer[] baseTiles, topTiles; // ROM layer, then hand-made sheet, per tile (made when first needed)
     readonly List<int> animated = new(); // tiles whose hand-made sheet has several frames
+    readonly Dictionary<int, EffectLibrary.Sheet> sheetOverrides = new(); // another look for a tile (a charged pylon)
     Transform tileRoot;
     int sortingLayer, sortingOrder;
     float[] revertAt;
@@ -215,6 +216,7 @@ public class Obstacles : MonoBehaviour
         baseTiles = new SpriteRenderer[size * size];
         topTiles = new SpriteRenderer[size * size];
         animated.Clear();
+        sheetOverrides.Clear();
         foreach (var solid in solids.Values)
             if (solid != null) Destroy(solid);
         solids.Clear();
@@ -507,6 +509,20 @@ public class Obstacles : MonoBehaviour
         return start.Count > 0 ? Flood(start, kind) : start;
     }
 
+    /// Draws tile (x, y) with another sheet (null: back to its own), e.g. a pylon overcharged or grounded.
+    public static void OverrideSheet(int x, int y, EffectLibrary.Sheet sheet)
+    {
+        if (Current == null || Current.kind == null || !Current.Inside(x, y)) return;
+        int i = y * Current.size + x;
+        bool had = Current.sheetOverrides.TryGetValue(i, out var old);
+        if (sheet == null && !had || had && old == sheet) return;
+        if (sheet == null) Current.sheetOverrides.Remove(i);
+        else Current.sheetOverrides[i] = sheet;
+        Current.dirty = true;
+    }
+
+    public static int FrameOf(EffectLibrary.Sheet sheet) => FrameAt(sheet);
+
     /// Every tile of the obstacle of tile (x, y) connected to it (an arc touching water or metal electrifies it all).
     public static List<(int, int)> FloodFrom(int x, int y)
     {
@@ -679,7 +695,10 @@ public class Obstacles : MonoBehaviour
             texture.Apply();
         }
         foreach (int i in animated)
-            if (topTiles[i] != null && kind[i]?.sheet != null) topTiles[i].sprite = kind[i].sheet.Frame(FrameAt(kind[i].sheet));
+        {
+            var sheet = sheetOverrides.TryGetValue(i, out var other) ? other : kind[i]?.sheet;
+            if (topTiles[i] != null && sheet != null) topTiles[i].sprite = sheet.Frame(FrameAt(sheet));
+        }
     }
 
     // Draws tile i with sprites (ROM layer underneath, hand-made sheet on top); false when it has neither and the
@@ -689,7 +708,7 @@ public class Obstacles : MonoBehaviour
         var def = kind[i];
         var floorKind = def == null ? null : def.tileset >= 0 ? def : under[i];
         var rom = floorKind != null ? RomObstacleTiles.Get(floorKind.tileset) : null;
-        var sheet = def?.sheet;
+        var sheet = sheetOverrides.TryGetValue(i, out var other) && def != null ? other : def?.sheet;
         int x = i % size, y = i / size;
         // Without its own look yet, a flat stand-in drawn on top (planks for a bridge, so it shows over the void).
         Sprite rock = def != null && sheet == null && def.romRocks.Length > 0
