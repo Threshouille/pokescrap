@@ -62,6 +62,7 @@ public class PmdSpriteImport : AssetPostprocessor
             }
             JsonUtility.FromJsonOverwrite(File.ReadAllText(jsonPath), tileset);
             tileset.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            if (int.TryParse(Path.GetFileName(folder), out int romId)) tileset.romId = romId;
             EditorUtility.SetDirty(tileset);
             Debug.Log($"{assetPath}: {tileset.wall.Length / 3} wall masks");
         }

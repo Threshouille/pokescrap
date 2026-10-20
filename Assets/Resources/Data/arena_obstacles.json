@@ -1,0 +1,67 @@
+{
+  "comment": "Obstacles of a real run's arenas (Obstacles.GenerateArena), one profile per décor: 'tilesets' lists the ROM tileset numbers (DungeonTileset.romId) it is for, 'fallback' serves the others. Same format as obstacle_room.json, plus: walls: how many of the generator's rectangular wall blocks are kept (-1: all); decorWater: water drawn with the décor's own secondary layer. Light by design: 1 or 2 features, the team's spawn point kept clear (spawnClear). Pylons and metal stay rare here (weight 1): they are meant for themed rooms. Switched off by obstaclesInRuns in meta.json.",
+  "profiles": [
+    {
+      "comment": "Arène 1, cristaux roses : de l'eau, des rochers",
+      "tilesets": [1],
+      "walls": 4,
+      "decorWater": true,
+      "features": [1, 2],
+      "spawnClear": 5,
+      "separate": [{"a": "water", "b": "lava", "gap": 1}, {"a": "ice_floor", "b": "lava", "gap": 1}],
+      "pool": [
+        {"type": "lake", "weight": 4, "kind": "water", "sizes": [2, 3]},
+        {"type": "river", "weight": 3, "kind": "water", "width": 2, "bridges": [1, 2], "bridgeKind": "bridge"},
+        {"type": "boulders", "weight": 4, "count": [3, 5], "bigChance": 0.3},
+        {"type": "ice_patch", "weight": 2, "kind": "ice_floor", "near": ["water", "boulder", "boulder_big"], "count": [1, 1], "sizes": [1, 2]},
+        {"type": "ice_walls", "weight": 1, "count": [1, 2]},
+        {"type": "pylons", "weight": 1, "count": [1, 1], "distance": [4, 6]},
+        {"type": "metal", "weight": 1, "sizes": [2, 2], "magnets": [1, 1]}
+      ]
+    },
+    {
+      "comment": "Arène 2, sable : des ravins et des rochers",
+      "tilesets": [20],
+      "walls": 4,
+      "decorWater": true,
+      "features": [1, 2],
+      "spawnClear": 5,
+      "separate": [{"a": "water", "b": "lava", "gap": 1}],
+      "pool": [
+        {"type": "chasm", "weight": 4, "kind": "void", "width": 2, "coverage": [0.4, 0.7], "bridges": [0, 1], "bridgeKind": "bridge"},
+        {"type": "lake", "weight": 3, "kind": "void", "sizes": [1, 2]},
+        {"type": "boulders", "weight": 4, "count": [3, 6], "bigChance": 0.5},
+        {"type": "ice_patch", "weight": 1, "kind": "ice_floor", "near": ["void", "boulder", "boulder_big"], "count": [1, 1], "sizes": [1, 2]},
+        {"type": "pylons", "weight": 1, "count": [1, 1], "distance": [4, 6]},
+        {"type": "metal", "weight": 1, "sizes": [2, 2], "magnets": [1, 1]}
+      ]
+    },
+    {
+      "comment": "Boss, volcan : de la lave, une arène dégagée pour lire les attaques",
+      "tilesets": [12],
+      "walls": 2,
+      "decorWater": true,
+      "features": [1, 2],
+      "spawnClear": 6,
+      "separate": [{"a": "water", "b": "lava", "gap": 1}],
+      "pool": [
+        {"type": "lake", "weight": 4, "kind": "lava", "sizes": [2, 3]},
+        {"type": "boulders", "weight": 3, "count": [2, 4], "bigChance": 0.3},
+        {"type": "pylons", "weight": 1, "count": [1, 1], "distance": [5, 7]}
+      ]
+    }
+  ],
+  "fallback": {
+    "comment": "Autres décors",
+    "walls": -1,
+    "features": [1, 1],
+    "spawnClear": 5,
+    "separate": [{"a": "water", "b": "lava", "gap": 1}],
+    "pool": [
+      {"type": "boulders", "weight": 3, "count": [3, 5], "bigChance": 0.3},
+      {"type": "lake", "weight": 2, "kind": "water", "sizes": [2, 3]},
+      {"type": "pylons", "weight": 1, "count": [1, 1], "distance": [4, 6]},
+      {"type": "metal", "weight": 1, "sizes": [2, 2], "magnets": [1, 1]}
+    ]
+  }
+}

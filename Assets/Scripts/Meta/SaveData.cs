@@ -32,6 +32,7 @@ public static class SaveData
         public int[] startingUnlocked = new int[0];
         public bool unlockAll; // tests: every playable Pokémon can be picked, whatever the save says
         public bool devMode; // tests: the dev characters of dev_characters.json are offered in the menu
+        public bool obstaclesInRuns = true; // real arenas get the obstacles of their décor (arena_obstacles.json)
         public int devStartingMoveCount = 4; // starting moves of a dev character
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;

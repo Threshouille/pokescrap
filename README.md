@@ -84,7 +84,16 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   de ronces incendié toutes les 7 s. Pas d'ennemis par défaut (`"enemyWaves": true` pour faire tourner en boucle les
   vagues de la première étape et voir l'IA réagir). Rien n'est recruté ni compté. Disposition et réglages : `Assets/Resources/Data/terrain_sandbox.json`.
 
-## Obstacles (salle de test)
+## Obstacles
+
+**En partie**, chaque arène reçoit 1 ou 2 obstacles selon son décor (`Assets/Resources/Data/arena_obstacles.json`) :
+cristaux (arène 1) : eau, rochers ; sable (arène 2) : ravins, gouffres, rochers ; volcan (boss) : lave, rochers, arène
+dégagée. Une partie des blocs de mur est remplacée par des rochers cassables ; pylônes et métal y restent rares (ils
+sont faits pour des salles à thème). Le point d'arrivée reste dégagé et les ennemis n'apparaissent que sur des cases
+sûres reliées à l'équipe. `obstaclesInRuns` dans `meta.json` les coupe. Après une mise à jour du dépôt, relancer
+`python3 Tools/setup.py` (ou le menu **Pokescrap > Build Tilesets**) : les décors reçoivent leur numéro de la ROM.
+
+### Salle de test
 
 Depuis le terrain de test, l'**escalier en haut à droite** mène à la **salle des obstacles** (l'escalier en bas à
 gauche ramène). Chaque visite tire 2 ou 3 obstacles au hasard (**R** ou **Select** : nouveau tirage) : vide avec

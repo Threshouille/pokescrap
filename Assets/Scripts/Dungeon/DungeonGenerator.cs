@@ -57,7 +57,9 @@ public class DungeonGenerator : MonoBehaviour
 
         // Obstacles are only placed where a free ring remains around them, so nothing gets sealed off.
         int centre = size / 2, placed = 0;
-        int wanted = Run.Sandbox ? 0 : obstacles; // the dev sandbox is an open field
+        // The dev sandbox is an open field; a real arena keeps the wall blocks its décor's obstacle profile asks for.
+        var profile = Run.Sandbox || tileset == null ? null : Obstacles.ArenaProfile(tileset.romId);
+        int wanted = Run.Sandbox ? 0 : profile != null && profile.walls >= 0 ? profile.walls : obstacles;
         for (int attempt = 0; attempt < wanted * 20 && placed < wanted; attempt++)
         {
             int w = rng.Next(obstacleMinSize, obstacleMaxSize + 1), h = rng.Next(obstacleMinSize, obstacleMaxSize + 1);
@@ -73,6 +75,7 @@ public class DungeonGenerator : MonoBehaviour
         Draw(rng);
         Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
+        if (!Run.Sandbox) Obstacles.Current.GenerateArena(profile, rng, new Vector2Int(centre, centre));
 
         if (player != null)
             player.position = floorMap.transform.TransformPoint(new Vector3(centre + 0.5f, centre + 0.5f, 0f));
@@ -86,7 +89,7 @@ public class DungeonGenerator : MonoBehaviour
         for (int attempt = 0; attempt < 200; attempt++)
         {
             int x = rng.Next(margin, margin + arenaSize), y = rng.Next(margin, margin + arenaSize);
-            if (open[x, y] && Vector2.Distance(new Vector2(x, y), origin) >= minDistance)
+            if (open[x, y] && Obstacles.Standable(x, y) && Vector2.Distance(new Vector2(x, y), origin) >= minDistance)
                 return floorMap.transform.TransformPoint(new Vector3(x + 0.5f, y + 0.5f, 0f));
         }
         return floorMap.transform.TransformPoint(new Vector3(centre + 0.5f, centre + 0.5f, 0f));

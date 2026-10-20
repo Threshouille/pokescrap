@@ -263,7 +263,7 @@ public class EnemySpawner : MonoBehaviour
             string role = i == support ? "support" : rng.Next(2) == 0 ? "melee" : "ranged";
             if (!GameData.CanTakeRole(sets[i].pokemonId, role)) role = null;
             Vector3 spot = centre + (Vector3)(GroupOffsets[i % GroupOffsets.Length]);
-            if (!generator.WalkableAt(spot, 0.3f)) spot = centre;
+            if (!generator.WalkableAt(spot, 0.3f) || Obstacles.BlocksAt(spot, null)) spot = centre;
             var combatant = Spawn(sets[i], spot, false, role);
             combatant.GetComponent<EnemyAI>().group = group;
             group.members.Add(combatant);

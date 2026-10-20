@@ -62,7 +62,23 @@ public class RomObstacleTiles
     static readonly Dictionary<int, RomObstacleTiles> loaded = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() => loaded.Clear();
+    static void Reset()
+    {
+        loaded.Clear();
+        decors.Clear();
+    }
+
+    static readonly Dictionary<DungeonTileset, RomObstacleTiles> decors = new();
+
+    /// The secondary layer of the arena's own décor (its water), or null.
+    public static RomObstacleTiles FromDecor(DungeonTileset decor)
+    {
+        if (decor == null || decor.texture == null || decor.water == null || decor.water.Length < 256 * 3) return null;
+        if (decors.TryGetValue(decor, out var found) && found != null) return found;
+        found = new RomObstacleTiles(decor.texture, new Layout { chunkSize = decor.chunkSize, columns = decor.columns, padding = decor.padding, water = decor.water });
+        decors[decor] = found;
+        return found;
+    }
 
     /// Null when the tileset was not extracted (Tools/setup.py).
     public static RomObstacleTiles Get(int id)
@@ -186,6 +202,7 @@ public class Obstacles : MonoBehaviour
     static void Load()
     {
         if (defs != null) return;
+        arenaFile = null;
         flats.Clear();
         rocks.Clear();
         defs = new Dictionary<string, ObstacleDef>();
@@ -231,6 +248,8 @@ public class Obstacles : MonoBehaviour
         topTiles = new SpriteRenderer[size * size];
         animated.Clear();
         sheetOverrides.Clear();
+        decorTiles = null;
+        reach = null;
         foreach (var solid in solids.Values)
             if (solid != null) Destroy(solid);
         solids.Clear();
@@ -797,7 +816,8 @@ public class Obstacles : MonoBehaviour
     {
         var def = kind[i];
         var floorKind = def == null ? null : def.tileset >= 0 ? def : under[i];
-        var rom = floorKind != null ? RomObstacleTiles.Get(floorKind.tileset) : null;
+        var rom = floorKind == null ? null
+            : decorTiles != null && floorKind.key == "water" ? decorTiles : RomObstacleTiles.Get(floorKind.tileset);
         var sheet = sheetOverrides.TryGetValue(i, out var other) && def != null ? other : def?.sheet;
         int x = i % size, y = i / size;
         // Without its own look yet, a flat stand-in drawn on top (planks for a bridge, so it shows over the void).
@@ -954,7 +974,67 @@ public class Obstacles : MonoBehaviour
         public int stairsClear = 2; // ... and around the stairs
         public Separation[] separate;
         public Feature[] pool;
+        // Arena profiles (arena_obstacles.json): the ROM tilesets (décors) it is for, how many of the generator's
+        // rectangular wall blocks are kept (-1: all), and whether the water is drawn with the décor's own.
+        public int[] tilesets = new int[0];
+        public int walls = -1;
+        public bool decorWater;
     }
+
+    [Serializable] class ArenaFile { public Room[] profiles; public Room fallback; }
+
+    static ArenaFile arenaFile;
+
+    /// Obstacle profile of a real run's arena for that décor (null: none, or obstacles switched off).
+    public static Room ArenaProfile(int romTileset)
+    {
+        if (!SaveData.Settings.obstaclesInRuns) return null;
+        if (arenaFile == null)
+        {
+            var asset = Resources.Load<TextAsset>("Data/arena_obstacles");
+            arenaFile = asset != null ? JsonUtility.FromJson<ArenaFile>(asset.text) : new ArenaFile();
+        }
+        foreach (var p in arenaFile.profiles ?? new Room[0])
+            if (Array.IndexOf(p.tilesets, romTileset) >= 0) return p;
+        return arenaFile.fallback;
+    }
+
+    /// Lays the obstacles of a real run's arena (DungeonGenerator.Generate): drawn from the décor's profile,
+    /// the team's spawn point kept clear. Then works out which tiles a walker reaches from it (enemy spawns).
+    public void GenerateArena(Room profile, System.Random rng, Vector2Int spawn)
+    {
+        decorTiles = profile != null && profile.decorWater ? RomObstacleTiles.FromDecor(grid.tileset) : null;
+        if (profile?.pool != null && profile.pool.Length > 0) Generate(profile, rng, new List<Vector2Int> { spawn });
+        ComputeReach(spawn);
+    }
+
+    RomObstacleTiles decorTiles; // the arena's own water (its décor's secondary layer), drawn instead of the default
+    bool[] reach; // tiles a standard walker reaches from the spawn point (null: everywhere)
+
+    void ComputeReach(Vector2Int from)
+    {
+        reach = null;
+        if (count <= 0 || !Inside(from.x, from.y)) return;
+        reach = new bool[size * size];
+        var queue = new Queue<Vector2Int>();
+        queue.Enqueue(from);
+        reach[from.y * size + from.x] = true;
+        while (queue.Count > 0)
+        {
+            var p = queue.Dequeue();
+            foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+            {
+                int nx = p.x + dx, ny = p.y + dy;
+                if (!Inside(nx, ny) || reach[ny * size + nx] || !grid.Walkable(nx, ny) || Blocks(nx, ny, null)) continue;
+                reach[ny * size + nx] = true;
+                queue.Enqueue(new Vector2Int(nx, ny));
+            }
+        }
+    }
+
+    /// A tile where any Pokémon can stand and that a walker reaches from the spawn point (enemy spawns).
+    public static bool Standable(int x, int y) =>
+        Current == null || Current.kind == null || (At(x, y) == null && (Current.reach == null || Current.reach[y * Current.size + x]));
 
     Room room;
     List<Vector2Int> keepCells;
