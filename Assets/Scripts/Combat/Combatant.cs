@@ -314,6 +314,52 @@ public class Combatant : MonoBehaviour
         Stats = next;
     }
 
+    /// The mega evolution this Pokémon is in, or null.
+    public MegaDef Mega { get; private set; }
+    PokemonStats beforeMega;
+    float megaHp, megaAtk, megaSpAtk, megaDef, megaSpDef, megaSpeedMul = 1f;
+
+    /// Turns into a mega evolution of its current form: its stats grow by the ratio between the official stats of
+    /// the mega and of the base form, it takes the mega's name and types. RevertMega takes the bonus back (level-up
+    /// gains in between are kept); health keeps its share both ways.
+    public void MegaEvolve(MegaDef mega)
+    {
+        if (Mega != null || Stats == null || mega == null) return;
+        Mega = mega;
+        beforeMega = Stats;
+        var form = Stats.Clone();
+        form.name = mega.name;
+        if (mega.types != null && mega.types.Length > 0) form.types = mega.types;
+        Stats = form;
+        static float Gain(float value, int to, int from) => from > 0 ? value * (to / (float)from - 1f) : 0f;
+        float hpShare = maxHp > 0f ? hp / maxHp : 1f;
+        megaHp = Gain(maxHp, mega.stats.hp, mega.baseStats.hp);
+        maxHp += megaHp;
+        if (IsAlive) hp = Mathf.Max(1f, maxHp * hpShare);
+        atk += megaAtk = Gain(atk, mega.stats.atk, mega.baseStats.atk);
+        spAtk += megaSpAtk = Gain(spAtk, mega.stats.spAtk, mega.baseStats.spAtk);
+        def += megaDef = Gain(def, mega.stats.def, mega.baseStats.def);
+        spDef += megaSpDef = Gain(spDef, mega.stats.spDef, mega.baseStats.spDef);
+        megaSpeedMul = GameData.MoveSpeed(mega.stats.speed) / GameData.MoveSpeed(mega.baseStats.speed);
+        moveSpeed *= megaSpeedMul;
+    }
+
+    public void RevertMega()
+    {
+        if (Mega == null) return;
+        float hpShare = maxHp > 0f ? hp / maxHp : 1f;
+        maxHp -= megaHp;
+        if (IsAlive) hp = Mathf.Max(1f, maxHp * hpShare);
+        else hp = Mathf.Min(hp, maxHp);
+        atk -= megaAtk;
+        spAtk -= megaSpAtk;
+        def -= megaDef;
+        spDef -= megaSpDef;
+        moveSpeed /= megaSpeedMul;
+        Stats = beforeMega;
+        Mega = null;
+    }
+
     /// Moves this Pokémon could learn now: those of its first form, plus those of the forms it evolved into,
     /// with a weight (moves of an evolved current form are more likely). Known moves are left out.
     public List<(MoveDef move, float weight)> LearnableMoves(float evolvedWeight)

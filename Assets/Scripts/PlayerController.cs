@@ -81,6 +81,7 @@ public class PlayerController : MonoBehaviour
         aimArrow.gameObject.SetActive(false);
         gameObject.AddComponent<Progression>();
         gameObject.AddComponent<Evolution>();
+        gameObject.AddComponent<MegaEvolution>();
         gameObject.AddComponent<TeamHud>();
         gameObject.AddComponent<PauseMenu>();
     }

@@ -51,6 +51,22 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - L'IA lance une météo quand elle favorise les types de son équipe, un sport contre des adversaires proches du type visé. Réglages : `climates.json`.
 - Tirs et vent (20/10/2026, Robin) : la météo change la vitesse et la portée des tirs de certains types (pluie : Feu ×0,7, Eau ×1,15 ; soleil : Feu ×1,2, Eau ×0,8 ; grêle : Glace ×1,2) ; la grêle (15 %) et la tempête de sable (25 %) ont un vent de direction fixe, tirée au lancement, qui accélère et allonge les tirs dans son sens et les freine contre lui (Vol ×2, Roche et Sol insensibles) ; il déporte les Pokémon Vol (0,8 case/s sous la grêle, 1,5 dans la tempête de sable, même à l'arrêt), pas les autres (20/10/2026, Robin).
 
+### Méga-évolutions (décidé le 20/10/2026, Robin)
+- Une sorte d'ultime : une **jauge commune à l'équipe** se remplit au K.O. des ennemis (plus pour un boss) et se garde
+  d'une étape à l'autre ; pleine, le Pokémon contrôlé qui le peut méga-évolue (L3 + R3, F au clavier : L1 et R1 sont des attaques), la jauge
+  se vide.
+- La méga dure 45 à 60 s (réglage), puis le Pokémon revient à sa forme ; les PV gardent leur proportion.
+- Effets : bonus de stats = écart entre les stats officielles de la méga et celles de la forme de base, type de la
+  méga, et un passif inspiré de son talent officiel, adapté au temps réel (27 passifs, par lots).
+- Animation d'évolution existante en version courte, puis aura pendant la durée. Les alliés IA ne méga-évoluent pas.
+- **Méga-gemmes** : seules les 27 mégas qui ont des sprites ont leur pierre. Elles tombent en partie (boss surtout),
+  sans doublon (une pierre obtenue ne retombe plus), et se gardent d'une partie à l'autre. Elles s'équipent hors
+  partie, dans le menu d'équipe ; l'écran de choix du Pokémon montre un emplacement de pierre (vide si aucune). Une
+  pierre posée sur une forme de base (ex. Dracaufite X sur Salamèche) ne sert qu'une fois la bonne forme atteinte.
+- Ordre : 1) jauge, méga, retour, stats et type (sans pierres ; en `devMode`, tout Pokémon compatible y a accès ;
+  fait et testé le 20/10/2026 ; tâche en pause, reprise par l'étape 2) ;
+  2) pierres (sauvegarde, menu, obtention) ; 3) passifs. Plus tard : boss qui méga-évoluent. Capacités Z : sujet à part.
+
 ### Outils de test
 - Terrain de test (19/10/2026) : depuis le menu en `devMode` (Select / T), arène ouverte où des émetteurs entretiennent chaque terrain et deux démonstrations d'affinités, sans ennemis (vagues en boucle en option), rien de recruté ni compté.
 - Persos de dev (décidé le 19/10/2026) : 3 personnages réservés au développement (Dev Mew, Dev Métamorph, Dev Porygon), visibles en tête du menu quand `devMode` est actif. Ils peuvent apprendre toutes les attaques du jeu (4 au départ, filtre par type au menu), n'ont pas de type (pas de STAB), se déplacent normalement (le terrain s'applique à eux) et ont des statistiques de starter (un physique, un spécial, un équilibré). Ils ne sont ni recrutables, ni sauvegardés, ni ennemis. But : tester les attaques et les effets de terrain.
@@ -200,7 +216,6 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 
 ## 4. Points ouverts
 
-- **Méga-évolutions** : sprites de 27 mégas en place (`megas.json`), fonctionnement en partie à définir (Robin).
 
 ### Structurants
 1. Boutons : avec la visée au stick droit, les 4 attaques vont sur les gâchettes (L1, L2, R1, R2). Quel bouton pour changer de Pokémon ?

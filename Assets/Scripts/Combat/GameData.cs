@@ -17,6 +17,28 @@ public class PokemonStats
     public EvolutionDef evolution; // how the previous form turns into this one (method empty: not by itself)
     public int model; // dev characters: Pokémon whose sprites and portrait they use (0: their own)
     public int growthOf; // dev characters: Pokémon whose level-up gains they get (0: their own)
+
+    /// A copy (a mega evolution changes the name and types of the copy, the Pokémon's data stays untouched).
+    public PokemonStats Clone() => (PokemonStats)MemberwiseClone();
+}
+
+/// Official base stats (PokéAPI scale), for the ratio between a mega evolution and its base form.
+[Serializable]
+public class OfficialStats
+{
+    public int hp, atk, def, spAtk, spDef, speed;
+}
+
+/// A mega evolution (megas.json, filled by import_megas.py and mega_data.py): sprites under its own id, the base
+/// form it comes from, its types (ROM ids) and the official stats of both forms.
+[Serializable]
+public class MegaDef
+{
+    public int id;
+    public int @base; // id of the base form in pokemon_rt.json
+    public string name;
+    public int[] types;
+    public OfficialStats stats, baseStats;
 }
 
 /// Evolution condition from the ROM (extract_data.py). method: level, iq, item, party (a Pokémon in the team),
@@ -177,9 +199,13 @@ public static class GameData
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset() => pokemon = null;
 
+    [Serializable] class MegaFile { public MegaDef[] megas; }
+
     static void Load()
     {
         if (pokemon != null) return;
+        var megaFile = Resources.Load<TextAsset>("Data/megas");
+        megas = megaFile != null ? JsonUtility.FromJson<MegaFile>(megaFile.text).megas ?? new MegaDef[0] : new MegaDef[0];
         pokemon = new Dictionary<int, PokemonStats>();
         foreach (var p in JsonUtility.FromJson<PokemonFile>(Resources.Load<TextAsset>("Data/pokemon_rt").text).pokemon)
             pokemon[p.id] = p;
@@ -333,6 +359,18 @@ public static class GameData
 
     /// Forms this Pokémon can evolve into, whatever the condition. Only those with sprites in the project; forms
     /// without a condition of their own (Munja, which comes with Ninjask) are left out.
+    static MegaDef[] megas;
+
+    /// The mega evolutions of this form that have their sprites.
+    public static List<MegaDef> MegasOf(int pokemonId)
+    {
+        Load();
+        var result = new List<MegaDef>();
+        foreach (var m in megas)
+            if (m.@base == pokemonId && m.stats != null && m.baseStats != null && PokemonRoster.Has(m.id)) result.Add(m);
+        return result;
+    }
+
     public static List<PokemonStats> Evolutions(int pokemonId)
     {
         Load();

@@ -70,6 +70,11 @@ public static class SaveData
         public float beautyPerSecond = 1f, beautyPerHit = 10f, beautyThreshold = 100f;
         public float evolutionCardChance = 0.5f; // an item or trade card replaces an upgrade, when the Pokémon can use one
         public float statTieMargin = 0.1f; // Attack and Defence within this share count as equal (Debugant)
+        // Mega evolution (MegaEvolution.cs): a gauge shared by the team, filled by knocking enemies out.
+        public float megaKillsToFill = 25f; // enemies knocked out to fill the gauge
+        public float megaBossFill = 0.5f; // share of the gauge a boss gives
+        public float megaTime = 50f; // seconds before the Pokémon goes back to its form
+        public float megaCastTime = 1.5f; // silhouettes alternate, the Pokémon stands still and cannot be hurt
         public string nightColor = "#0a1440";
         public float nightAlpha = 0.3f;
     }

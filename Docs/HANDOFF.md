@@ -48,6 +48,13 @@ Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps 
 
 Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, commandes clavier U I O P. Suite décidée : affiner la logique et le fonctionnement, puis les affinités entre terrains (table `reactions`). Tuiles animées des 8 terrains livrées (19/10/2026, `Design/effects_v11_terrains/`, prompt `Design/prompt_terrains.md`). Reste, reporté par Robin (19/10/2026) : planches des 14 attaques à trace qui n'ont qu'un disque coloré (Lance-Flamme, Déflagration, Hydrocanon, Hydroblast, Canon Graine, Mégafouet, Végé-Attak, Tonnerre, Fatal-Foudre, Laser Glace, Blizzard, Détritus, Bomb-Beurk, Boue-Bombe) ; prompt prêt : `Design/prompt_attaques_terrain.md`. Ces attaques sont générées : leur attribuer les planches via `move_rules.json` plutôt qu'en les recopiant dans `realtime_moves.json`.
 
+## Méga-évolutions (20/10/2026, Robin) : en pause
+
+Étape 1 faite (branche `feature/mega-evolutions`) : sprites de 27 mégas (SpriteCollab), galerie du terrain de test,
+jauge commune, L3 + R3 / F, stats et types, onde de choc, retour au bout de 50 s ; testée en jeu par Robin, réservée
+au `devMode`. Mise en pause par Robin pour passer aux IA. Suite (GDD) : 2) méga-gemmes (sauvegarde, emplacement au menu
+d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : boss qui méga-évoluent.
+
 ## En attente
 
 - **Icônes de bonus/malus** (`status_attack_up`… six fichiers) : prompt donné plus tôt, archive pas encore reçue ; flèches colorées provisoires.
@@ -60,6 +67,10 @@ Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, com
 
 - **Équilibrage entièrement provisoire**, encore plus depuis le système d'attaques : 2 attaques au départ, ennemis à attaques tirées au hasard, recharges génériques (`move_rules.json`). Le soutien devient rare : il faut un soin ou un bonus aux alliés (Bulbizarre n'est soutien qu'avec Synthèse). L'équipe progresse trop vite (niveau 23-25 à la fin de l'arène 2 dans mes tests, mais ces tests tuaient les vagues par code) et écrase Groudon niveau 10. Rythme d'expérience (20 + 4 × niveau) sans lien avec l'objectif « niveau 100 en 30 min ».
 - Un soutien ennemi peut être rattrapé pendant sa pause après attaque.
+- **IA à corriger (prochaine branche, Robin, 20/10/2026)** : un allié qui suit le Pokémon joué ne recalcule pas de
+  chemin sûr pour le rejoindre ; il s'arrête au bord du danger (`AllyAI.SafeSpotNear`, en cours sur la branche des IA).
+- Corrigé le 20/10/2026 : le terrain se dessinait au même ordre que les Pokémon (ils passaient dessous et clignotaient) ;
+  sol descendu à -6 (`DungeonGenerator.FloorOrder`).
 - `meta.json` a `"devMode": true` (persos de dev en tête du menu, 19/10/2026) : le repasser à `false` pour une version de jeu.
 - `meta.json` a `"unlockAll": true` pour les tests d'Owen : le repasser à `false` pour retrouver les vrais déblocages.
 - L'annonce des attaques au corps à corps ennemies reste un disque rouge, qui ne correspond pas aux arcs ni aux estocs.

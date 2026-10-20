@@ -13,8 +13,8 @@ using UnityEngine.InputSystem;
 public class Evolution : MonoBehaviour
 {
     const int Shedinja = 320, Nincada = 318; // Munja joins when Ningale evolves, if there is room
-    const float AuraHeight = 0.65f; // lifts the aura sheet so its glowing oval sits under the Pokémon's feet
-    const int AuraSortingOrder = 0; // behind the Pokémon (aura and shock wave)
+    public const float AuraHeight = 0.65f; // lifts the aura sheet so its glowing oval sits under the Pokémon's feet
+    public const int AuraSortingOrder = 0; // behind the Pokémon (aura and shock wave)
 
     /// Run state of a team member that its evolution may depend on.
     class State
@@ -70,7 +70,7 @@ public class Evolution : MonoBehaviour
     /// The form this member can turn into right now, or null.
     public PokemonStats ReadyForm(Combatant member)
     {
-        if (member == null || member.Stats == null || !member.IsAlive || member == evolving) return null;
+        if (member == null || member.Stats == null || !member.IsAlive || member == evolving || member.Mega != null) return null;
         foreach (var form in GameData.Evolutions(member.Stats.id))
             if (Meets(member, form)) return form;
         return null;
@@ -180,13 +180,22 @@ public class Evolution : MonoBehaviour
         showingAfter = true; // the first swap shows the old form
         var renderer = member.GetComponent<SpriteRenderer>();
         originalMaterial = renderer.sharedMaterial;
-        // Unity null check: the material is destroyed when a new run loads its scene, the static survives.
-        if (silhouette == null) silhouette = new Material(Shader.Find("Pokescrap/Silhouette"));
-        renderer.sharedMaterial = silhouette;
+        renderer.sharedMaterial = Silhouette;
         member.BeginEvolution(SaveData.Settings.evolveTime);
         var aura = EffectPlayer.Spawn("evolution_aura", member.transform.position + Vector3.up * AuraHeight, Vector2.right,
             member.transform, SaveData.Settings.evolveTime);
         if (aura != null) aura.GetComponent<SpriteRenderer>().sortingOrder = AuraSortingOrder;
+    }
+
+    /// White silhouette material (evolutions and mega evolutions).
+    public static Material Silhouette
+    {
+        get
+        {
+            // Unity null check: the material is destroyed when a new run loads its scene, the static survives.
+            if (silhouette == null) silhouette = new Material(Shader.Find("Pokescrap/Silhouette"));
+            return silhouette;
+        }
     }
 
     // Old and new silhouettes alternate faster and faster, then the new form appears with a shock wave.
@@ -208,7 +217,6 @@ public class Evolution : MonoBehaviour
 
     void Finish(PmdAnimator animator)
     {
-        var settings = SaveData.Settings;
         var member = evolving;
         evolving = null;
         string name = member.Stats.name;
@@ -223,6 +231,20 @@ public class Evolution : MonoBehaviour
         state.announced = false;
         progression.Announce($"{name} évolue en {member.Stats.name} !");
 
+        Shockwave(member);
+
+        if (nincada && team.AddMember(Shedinja, member.transform.position + Vector3.right) is { } shedinja)
+        {
+            for (int level = 2; level <= progression.Level; level++)
+                shedinja.ApplyGrowth(LevelData.Growth(Shedinja, level), level);
+            progression.Announce($"{shedinja.Stats.name} rejoint l'équipe !");
+        }
+    }
+
+    /// Burst of light and a shock wave that pushes enemies back and hurts them (end of an evolution or a mega one).
+    public void Shockwave(Combatant member)
+    {
+        var settings = SaveData.Settings;
         Vector2 centre = member.transform.position;
         EffectPlayer.Spawn("evolution_eclat", centre, Vector2.right);
         var wave = EffectPlayer.Spawn("evolution_onde", centre, Vector2.right, size: 2f * settings.shockwaveRadius);
@@ -238,13 +260,6 @@ public class Evolution : MonoBehaviour
             enemy.Knockback(away.normalized * settings.shockwaveKnockback / Combatant.KnockbackTime, Combatant.KnockbackTime);
             EffectPlayer.Spawn("evolution_impact", enemy.transform.position, Vector2.right);
             enemy.TakeFixedDamage(damage);
-        }
-
-        if (nincada && team.AddMember(Shedinja, member.transform.position + Vector3.right) is { } shedinja)
-        {
-            for (int level = 2; level <= progression.Level; level++)
-                shedinja.ApplyGrowth(LevelData.Growth(Shedinja, level), level);
-            progression.Announce($"{shedinja.Stats.name} rejoint l'équipe !");
         }
     }
 }

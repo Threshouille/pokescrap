@@ -256,7 +256,7 @@ public class Terrain : MonoBehaviour
             if (floor != null)
             {
                 renderer.sortingLayerID = floor.sortingLayerID;
-                renderer.sortingOrder = floor.sortingOrder + 3; // over the floor and the obstacles (2 layers), under zones and Pokémon
+                renderer.sortingOrder = floor.sortingOrder + 3; // over the floor and the obstacles (2 layers), under walls, zones and Pokémon (DungeonGenerator.FloorOrder)
             }
             sortingLayer = renderer.sortingLayerID;
             sortingOrder = renderer.sortingOrder;

@@ -218,8 +218,14 @@ obstacles retombent sur des cases de couleur.
   [PMDCollab SpriteCollab](https://github.com/PMDCollab/SpriteCollab) (CC BY-NC 4.0, auteurs dans
   `CREDITS_MEGAS.md`) par `Tools/pmd/import_megas.py`, appelé par `setup.py` (connexion internet nécessaire une
   seule fois : il ne contacte plus SpriteCollab quand tout est là). Visibles dans la galerie du terrain de test.
-  Liste et ids (20000 + n° de Pokédex × 10 + forme) : `Assets/Resources/Data/megas.json`. Pas encore jouables :
-  le fonctionnement en partie reste à définir.
+  Liste et ids (20000 + n° de Pokédex × 10 + forme) : `Assets/Resources/Data/megas.json`, stats et types
+  officiels ajoutés par `Tools/pmd/mega_data.py` (CSV PokéAPI de `Tools/pmd/external`).
+- **Méga-évolution en partie** (étape 1, `devMode` seulement en attendant les méga-gemmes) : la jauge Méga (case
+  après l'esquive) se remplit en mettant des ennemis K.O. (un boss en donne la moitié) et se garde d'une étape à
+  l'autre ; pleine, **L3 + R3** (clic des deux sticks) ou **F** fait méga-évoluer le Pokémon contrôlé s'il a une méga :
+  stats officielles de la méga (en proportion), son type, onde de choc ; retour à la forme au bout de 50 s ou au
+  K.O. Dans le terrain de test, la jauge est toujours pleine. Réglages `mega*` dans `meta.json`.
+- Correctif : le terrain se dessinait au même niveau que les Pokémon (ils semblaient passer dessous et clignotaient).
 - Après la mise à jour : Unity fermé, `python3 Tools/setup.py` (ou `python3 -I Tools/pmd/import_megas.py .` puis
   `python3 Tools/setup.py --unity-only PmdSpriteImport.BuildAll`).
 

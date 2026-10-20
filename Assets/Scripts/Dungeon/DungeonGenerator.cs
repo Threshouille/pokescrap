@@ -44,9 +44,14 @@ public class DungeonGenerator : MonoBehaviour
         Generate();
     }
 
+    // Drawing order of the floor. Obstacles (+1, +2) and terrain (+3) are drawn over it, and must stay under the
+    // walls (-1), the marks on the ground (0) and the Pokémon (1): a tie with them makes the sprites flicker.
+    const int FloorOrder = -6;
+
     public void Generate()
     {
         Current = this;
+        if (floorMap.GetComponent<TilemapRenderer>() is { } floor) floor.sortingOrder = FloorOrder;
         tiles.Clear(); // the tileset may have changed since the previous arena
         var rng = new System.Random(seed != 0 ? seed : System.Environment.TickCount);
         size = arenaSize + 2 * margin;
