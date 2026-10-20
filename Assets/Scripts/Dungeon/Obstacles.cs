@@ -12,6 +12,9 @@ public class ObstacleDef
     public bool solid; // blocks everyone and every shot, like a wall
     public bool fall; // a Pokémon that gets in falls, unless its movement type is in passTypes
     public int[] passTypes = new int[0]; // ROM movement types: 2 float, 3 through walls, 4 lava, 5 swim
+    public int[] passPokemonTypes = new int[0]; // Pokémon types that cross it too (Eau through water, Spectre through rocks)
+    public Toll[] toll = new Toll[0]; // what crossing costs a type (a Vol over lava)
+    public int[] easyTypes = new int[0]; // types it does not slow down nor make slide (Glace on ice)
     public float fallDamage; // share of max HP lost by a fall
     public string fallStatus; // status given by a fall (burn for lava)
     public float speedMul = 1f;
@@ -86,6 +89,17 @@ public class RomObstacleTiles
         sprites[chunk] = sprite;
         return sprite;
     }
+}
+
+/// What a type pays while over an obstacle it crosses: damageShare of max HP per second, and a status with a
+/// chance per second. Only when that type is its only way across.
+[Serializable]
+public class Toll
+{
+    public int type;
+    public float damageShare;
+    public string status;
+    public float statusChance;
 }
 
 /// A rock taken from a ROM tileset: its lone wall chunk, cut out of its floor by Tools/pmd/extract_rock.py
@@ -223,6 +237,9 @@ public class Obstacles : MonoBehaviour
         lastSafe.Clear();
         fellAt.Clear();
         bumpedAt.Clear();
+        passers.Clear();
+        seen.Clear();
+        tollAt.Clear();
         pending.Clear();
         Pylons.Clear(this);
         count = 0;
@@ -315,17 +332,55 @@ public class Obstacles : MonoBehaviour
         var box = go.AddComponent<BoxCollider2D>();
         box.size = grid.CentreOf(1, 1) - grid.CentreOf(0, 0);
         solids[i] = go;
+        foreach (var c in passers) LetThrough(c, box, def);
+    }
+
+    // The Pokémon that walk through some solid obstacles (Spectre): their colliders ignore those obstacles' (shots
+    // still hit them). New Pokémon are handled as they appear (FixedUpdate).
+    readonly HashSet<Combatant> passers = new();
+    readonly HashSet<Combatant> seen = new();
+
+    void LetThrough(Combatant c, BoxCollider2D box, ObstacleDef def)
+    {
+        if (c == null || box == null || !CanPass(def, c.Stats)) return;
+        foreach (var own in c.GetComponents<Collider2D>()) Physics2D.IgnoreCollision(own, box);
+    }
+
+    void Meet(Combatant c)
+    {
+        if (!seen.Add(c)) return;
+        passers.Add(c); // checked against each solid's own rule
+        foreach (var kv in solids)
+            if (kv.Value != null) LetThrough(c, kv.Value.GetComponent<BoxCollider2D>(), kind[kv.Key]);
     }
 
     // ---- Who goes where -------------------------------------------------------------------------------------
 
-    static bool CanPass(ObstacleDef def, PokemonStats stats) => stats != null && Array.IndexOf(def.passTypes, stats.movementType) >= 0;
+    /// Crosses that obstacle: by its ROM movement type, or by one of its Pokémon types.
+    static bool CanPass(ObstacleDef def, PokemonStats stats) =>
+        stats != null && (Array.IndexOf(def.passTypes, stats.movementType) >= 0 || HasType(stats, def.passPokemonTypes));
+
+    /// The toll this Pokémon pays over that obstacle: only when a tolled type is its only way across (a Feu/Vol
+    /// crosses lava as a Feu, for free).
+    static Toll TollFor(ObstacleDef def, PokemonStats stats)
+    {
+        if (stats?.types == null || def.toll.Length == 0 || Array.IndexOf(def.passTypes, stats.movementType) >= 0) return null;
+        Toll found = null;
+        foreach (int type in stats.types)
+        {
+            if (Array.IndexOf(def.passPokemonTypes, type) < 0) continue;
+            var t = Array.Find(def.toll, x => x.type == type);
+            if (t == null) return null; // crosses freely by another type
+            found = t;
+        }
+        return found;
+    }
 
     /// This Pokémon cannot be on that tile: a solid one, or one it would fall into.
     public static bool Blocks(int x, int y, Combatant c)
     {
         var def = At(x, y);
-        return def != null && (def.solid || (def.fall && (c == null || !CanPass(def, c.Stats))));
+        return def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
     }
 
     public static bool BlocksAt(Vector2 world, Combatant c)
@@ -352,9 +407,9 @@ public class Obstacles : MonoBehaviour
         return velocity;
     }
 
-    public static float SpeedMul(Combatant c) => At(c.transform.position)?.speedMul ?? 1f;
+    public static float SpeedMul(Combatant c) => At(c.transform.position) is { } d && !HasType(c.Stats, d.easyTypes) ? d.speedMul : 1f;
 
-    public static float SlideAccel(Combatant c) => At(c.transform.position)?.slideAccel ?? 0f;
+    public static float SlideAccel(Combatant c) => At(c.transform.position) is { } d && !HasType(c.Stats, d.easyTypes) ? d.slideAccel : 0f;
 
     // ---- Moves changing obstacles ---------------------------------------------------------------------------
 
@@ -561,8 +616,10 @@ public class Obstacles : MonoBehaviour
         foreach (var c in Combatant.All)
         {
             if (c == null || !c.IsAlive) continue;
+            Meet(c);
             Vector2 position = c.transform.position;
             Bump(c, position);
+            PayToll(c, position);
             if (!BlocksAt(position, c))
             {
                 lastSafe[c] = position; // where it comes back after a fall
@@ -573,6 +630,30 @@ public class Obstacles : MonoBehaviour
         }
     }
 
+    readonly Dictionary<Combatant, float> tollAt = new();
+
+    // Crossing by a tolled type (a Vol over lava): damage every second, and a status now and then.
+    void PayToll(Combatant c, Vector2 position)
+    {
+        var def = At(position);
+        var toll = def != null ? TollFor(def, c.Stats) : null;
+        if (toll == null) { tollAt.Remove(c); return; }
+        if (!string.IsNullOrEmpty(toll.status) && toll.statusChance > 0f && !c.HasStatus(toll.status)
+            && UnityEngine.Random.value < 1f - Mathf.Pow(1f - toll.statusChance, Time.fixedDeltaTime))
+        {
+            var status = StatusLibrary.Get(toll.status);
+            if (status != null) c.AddStatus(toll.status, status.duration);
+        }
+        if (!tollAt.TryGetValue(c, out float at)) tollAt[c] = at = Time.time + 1f;
+        if (Time.time < at) return;
+        tollAt[c] = Time.time + 1f;
+        if (toll.damageShare > 0f) c.TakeFixedDamage(c.maxHp * toll.damageShare);
+    }
+
+    /// Extra path cost of a tile for an AI that would pay a toll there.
+    public static float TollCost(int x, int y, Combatant agent) =>
+        At(x, y) is { } def && agent != null && TollFor(def, agent.Stats) is { } t ? 8f + 100f * t.damageShare : 0f;
+
     // Thrown (pushed, sliding) against a solid obstacle: stunned and hurt. Walking never does it: Drive stops at it.
     void Bump(Combatant c, Vector2 position)
     {
@@ -580,7 +661,7 @@ public class Obstacles : MonoBehaviour
         var body = c.GetComponent<Rigidbody2D>();
         if (body == null || body.linearVelocity.magnitude < BumpSpeed) return;
         var hit = At(position + body.linearVelocity.normalized * BumpReach);
-        if (hit == null || !hit.solid || (hit.bumpStun <= 0f && hit.bumpDamage <= 0f)) return;
+        if (hit == null || !hit.solid || CanPass(hit, c.Stats) || (hit.bumpStun <= 0f && hit.bumpDamage <= 0f)) return;
         if (bumpedAt.TryGetValue(c, out float at) && Time.time < at + BumpCooldown) return;
         bumpedAt[c] = Time.time;
         c.Stun(hit.bumpStun);

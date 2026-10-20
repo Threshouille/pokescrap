@@ -99,8 +99,12 @@ ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et mur
 - On ne marche jamais dedans par erreur : le déplacement s'arrête au bord. Mais une poussée, une glissade ou une ruée
   peuvent y faire **tomber** : retour sur la terre ferme la plus proche et dégâts (eau 10 %, vide 20 %, lave 25 % +
   brûlure), puis 1 s d'invincibilité ; si la chute prend ses derniers PV, le Pokémon est K.O. sur la rive.
-- Les types de déplacement de la ROM comptent : les nageurs traversent l'eau, les marcheurs de lave la lave, ceux qui
-  lévitent ou traversent les murs passent au-dessus de tout. Les tirs passent au-dessus, sauf les murs de glace.
+- Franchissement : le type de déplacement de la ROM (nage, lave, lévitation, traverse-murs) **ou** le type du Pokémon
+  suffit. Eau : nage dans l'eau profonde ; Feu : marche sur la lave ; Vol : survole l'eau, le vide et la lave (3 % des
+  PV par seconde et risque de brûlure au-dessus de la lave) ; Spectre : traverse tout, rochers et murs de glace compris,
+  seul l'arc des pylônes le touche ; Glace ne glisse pas sur la glace, Plante n'est pas ralenti par la végétation, Sol et
+  Roche par les gravats. Ennemis comme alliés. Les tirs passent au-dessus de l'eau, de la lave et du vide, pas des
+  solides.
 - Interactions, par le type de l'attaque **ou par une trace de terrain posée sur l'obstacle ou juste à côté** :
   Glace gèle l'eau 8 s (un rayon de glace trace un pont) et refroidit la lave ; Plante couvre l'eau de végétation 10 s
   et reconstruit un pont brûlé en lianes ; Électrik électrifie toute l'eau ; Poison la contamine ; Feu fait fondre la

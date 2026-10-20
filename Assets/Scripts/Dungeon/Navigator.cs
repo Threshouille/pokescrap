@@ -117,7 +117,7 @@ public class Navigator
 
                 float stepCost = step.x != 0 && step.y != 0 ? Diagonal : 1f;
                 if (Zone.Inside(grid.CentreOf(nx, ny), team, 0.5f)) stepCost += HazardCost;
-                stepCost += Terrain.NavCost(nx, ny, agent) + Pylons.NavCost(grid.CentreOf(nx, ny), agent);
+                stepCost += Terrain.NavCost(nx, ny, agent) + Pylons.NavCost(grid.CentreOf(nx, ny), agent) + Obstacles.TollCost(nx, ny, agent);
                 float total = cost[node] + stepCost;
                 if (stamp[next] == search && total >= cost[next]) continue;
                 Visit(next, total, node, Heuristic(new Vector2Int(nx, ny), goal));
