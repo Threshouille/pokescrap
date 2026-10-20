@@ -79,7 +79,7 @@ public static class RoleTactics
                 int slot = k % Combatant.MoveSlots;
                 var move = self.Moves[slot];
                 if (move == null || move.basic != (k >= Combatant.MoveSlots)) continue;
-                bool care = move.family == "heal" || move.family == "modifier";
+                bool care = move.family == "heal" || move.family == "modifier" || move.family == "climate";
                 if (support && care != (pass == 0)) continue;
                 if (care && fallback >= 0) continue; // an attack is already chosen
                 if (!support && pass == 1) continue;
@@ -92,6 +92,12 @@ public static class RoleTactics
                     Vector2 toWounded = (Vector2)wounded.transform.position - position;
                     if (toWounded.magnitude <= move.range) return Use(decision, slot, toWounded == Vector2.zero ? Vector2.right : toWounded, toWounded.magnitude);
                     if (support) patient = wounded;
+                    continue;
+                }
+
+                if (move.family == "climate")
+                {
+                    if (Climate.Worth(self, move)) return Use(decision, slot, Vector2.right, 0f);
                     continue;
                 }
 

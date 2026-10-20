@@ -510,6 +510,15 @@ public class Combatant : MonoBehaviour
             return true;
         }
 
+        if (move.family == "climate")
+        {
+            // A weather over the whole arena, or a sport's zone around the user (Climate).
+            readyAt[slot] = Time.time + CooldownOf(move);
+            Climate.Cast(move, this);
+            Shapes.Pulse(transform.position, 1.2f, GameData.TypeColor(move.type));
+            return true;
+        }
+
         if (move.family == "modifier")
         {
             readyAt[slot] = Time.time + CooldownOf(move);
@@ -1055,7 +1064,8 @@ public class Combatant : MonoBehaviour
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = move.category == "physical" ? def : spDef;
         float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
-        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this));
+        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this)
+            * Climate.DamageMul(move.type, transform.position)); // weather, sports around it
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);

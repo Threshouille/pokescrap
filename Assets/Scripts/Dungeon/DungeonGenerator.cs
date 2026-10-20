@@ -75,6 +75,7 @@ public class DungeonGenerator : MonoBehaviour
         Draw(rng);
         Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
+        Climate.Clear(); // a new arena starts with clear skies
         if (!Run.Sandbox) Obstacles.Current.GenerateArena(profile, rng, new Vector2Int(centre, centre));
 
         if (player != null)

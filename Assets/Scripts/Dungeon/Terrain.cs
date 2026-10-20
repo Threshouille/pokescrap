@@ -331,6 +331,33 @@ public class Terrain : MonoBehaviour
             if (x >= 0 && y >= 0 && x < Current.size && y < Current.size) Current.Hit(x, y, def, duration, caster, true);
     }
 
+    /// The weather starting: what lies on the ground of that terrain lasts "mul" times its remaining time.
+    public static void ScaleRemaining(string key, float mul)
+    {
+        var def = Def(key);
+        if (Current == null || def == null || Current.kind == null || Mathf.Approximately(mul, 1f)) return;
+        for (int i = 0; i < Current.kind.Length; i++)
+        {
+            if (Current.Live(i) != def) continue;
+            float left = Current.until[i] - Time.time;
+            Current.until[i] = Time.time + left * mul;
+            Current.length[i] = Mathf.Max(0.01f, Current.length[i] + left * (mul - 1f));
+        }
+    }
+
+    /// Removes that terrain from a disc (a sport's zone).
+    public static void ClearArea(string key, Vector2 centre, float radius)
+    {
+        var def = Def(key);
+        if (Current == null || def == null || Current.grid == null || Current.kind == null) return;
+        var c = Current.grid.CellOf(centre);
+        int r = Mathf.CeilToInt(radius) + 1;
+        for (int x = c.x - r; x <= c.x + r; x++)
+            for (int y = c.y - r; y <= c.y + r; y++)
+                if (Current.KindAt(x, y) == def && Vector2.Distance(Current.grid.CentreOf(x, y), centre) <= radius)
+                    Current.Set(y * Current.size + x, null, 0f, null);
+    }
+
     /// Makes the tiles of a disc that still hold that terrain last "duration" more seconds from now; tiles where
     /// it was removed (burnt, washed away...) stay as they are.
     public static void RefreshArea(string key, Vector2 centre, float radius, float duration)
@@ -370,6 +397,8 @@ public class Terrain : MonoBehaviour
     void Paint(TerrainDef def, float duration, Vector2 from, Vector2 to, float radius, Combatant caster)
     {
         if (def == null || grid == null) return;
+        radius *= Climate.RadiusMul(def.key); // the weather makes some traces bigger and longer, others smaller
+        duration *= Climate.DurationMul(def.key);
         var a = grid.CellOf(from);
         var b = grid.CellOf(to);
         int r = Mathf.CeilToInt(radius) + 1;
@@ -385,6 +414,7 @@ public class Terrain : MonoBehaviour
     // A tile reached by a move: reacts with what is already there, possibly spreading over the connected area.
     void Hit(int x, int y, TerrainDef def, float duration, Combatant caster, bool anywhere = false)
     {
+        if (Climate.Blocks(def.key, grid.CentreOf(x, y))) return; // a sport (Tourniquet, Lance-Boue) forbids it here
         if (!anywhere && Obstacles.RejectsTerrain(x, y))
         {
             // No puddle on lava or in the void, but the contact still counts (water on lava cools it into rock).

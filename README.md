@@ -142,6 +142,23 @@ Réglages : `Assets/Resources/Data/obstacles.json` (obstacles, chutes, interacti
 `obstacle_room.json` (tirage). Planches des pylônes, de l'arc, du métal et des bornes : `Design/effects_v13_electrique_metal/`
 (prompt `Design/prompt_electrique_metal.md`).
 
+## Météos et sports
+
+Six attaques de la ROM jusque-là écartées deviennent jouables (`Assets/Resources/Data/climates.json`) :
+
+| Attaque | Effet (toute l'arène, 20 s, pour les deux camps) |
+|---|---|
+| Zénith | braises plus grandes et plus longues, flaques et verglas raccourcis ; Feu ×1,3, Eau ×0,7 ; quelques braises éparses |
+| Danse Pluie | flaques plus grandes, eau électrifiée plus longue, braises vite éteintes ; Eau ×1,3, Feu ×0,7 ; flaques éparses |
+| Grêle | verglas plus grand et plus long ; 2 % des PV par seconde sauf Glace ; verglas épars |
+| Tempêtesable | boue plus grande et plus longue ; 2 % des PV par seconde sauf Roche, Sol, Acier ; boue éparse |
+
+Une seule météo à la fois (la dernière lancée remplace l'autre), signalée par un voile coloré et son nom en haut à
+droite ; elle agit aussi sur les traces déjà au sol. **Tourniquet** et **Lance-Boue** ouvrent une zone de 4 cases
+autour du lanceur pendant 15 s : plus de braises (Tourniquet) ou d'électricité (Lance-Boue) dedans, et les attaques
+Feu (ou Électrik) y font moitié moins de dégâts. L'IA lance une météo quand elle favorise son équipe, un sport
+quand des adversaires du type visé sont proches.
+
 ## Effets de terrain
 
 Certaines attaques laissent une trace au sol, case par case, qui agit sur **tous** les Pokémon qui marchent dessus
