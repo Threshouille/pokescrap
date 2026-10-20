@@ -3157,6 +3157,201 @@
         "#f0741a",
         "#ffd23a"
       ]
+    },
+    {
+      "file": "weather_rain.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#2f82f2",
+        "#8ccaff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "weather_hail.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "weather_sand.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#7c5a2a",
+        "#b08040",
+        "#d8b070",
+        "#f0d8a0"
+      ]
+    },
+    {
+      "file": "weather_sun.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "loop": true,
+      "palette": [
+        "#ffd23a",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "weather_icon_rain.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1000
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2128",
+        "#2f82f2",
+        "#5a6478",
+        "#8ccaff",
+        "#9aa4b0"
+      ]
+    },
+    {
+      "file": "weather_icon_hail.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1000
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2128",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff"
+      ]
+    },
+    {
+      "file": "weather_icon_sand.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1000
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2128",
+        "#b08040",
+        "#d8b070",
+        "#f0d8a0"
+      ]
+    },
+    {
+      "file": "weather_icon_sun.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        1000
+      ],
+      "loop": false,
+      "palette": [
+        "#1e2128",
+        "#ffd23a",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "sport_water_sport.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "sport_mud_sport.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#4a2610",
+        "#7c4620",
+        "#b0763a"
+      ]
+    },
+    {
+      "file": "obstacle_quicksand.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        180,
+        180,
+        180,
+        180
+      ],
+      "loop": true,
+      "palette": [
+        "#7c5a2a",
+        "#b08040",
+        "#d8b070",
+        "#f0d8a0"
+      ]
     }
   ]
 }
