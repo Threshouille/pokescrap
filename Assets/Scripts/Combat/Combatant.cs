@@ -396,7 +396,8 @@ public class Combatant : MonoBehaviour
     public void Drive(Vector2 velocity)
     {
         if (body == null) return;
-        velocity = velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this) + Obstacles.Pull(this); // magnets drag Acier
+        velocity = velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this) + Obstacles.Pull(this) // magnets drag Acier
+            + Climate.WindPush(this); // a storm's wind carries the Vol
         velocity = Obstacles.Clamp(this, body.position, velocity);
         float accel = Terrain.SlideAccel(this), ground = Obstacles.SlideAccel(this);
         if (ground > 0f) accel = accel > 0f ? Mathf.Min(accel, ground) : ground;

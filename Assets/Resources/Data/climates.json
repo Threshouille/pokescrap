@@ -1,5 +1,5 @@
 {
-  "comment": "Weathers and 'sports' (Climate.cs), cast by moves of family 'climate' (realtime_moves.json). A weather covers the whole arena for 'duration' seconds, for both teams; one at a time, the last one cast replaces the other. terrains: traces of that terrain are bigger (radiusMul) and last longer (durationMul), the ones already on the ground included (their remaining time is scaled when the weather starts); typeDamage: damage of moves of that type; chip: share of max HP lost every second by every Pokémon but immuneTypes; scatter: now and then (chance per second) a small trace of that terrain appears on a random free tile; tint / alpha: colour laid over the screen; shots: speed and range multiplier of the shots of a type; wind (storms): a direction drawn at the start, a shot with it gains up to 'strength' of its speed and range and loses as much against it, 'sensitive' types feel it more, 'heavyTypes' not at all; scroll: tiles/s its pattern (weather_<key> in Resources/Effects) drifts, with the wind or straight down; weather_icon_<key>: its icon on screen. A sport is a zone around its caster (look: sport_<key>, stretched over it) (radius, duration): the terrains it lists are wiped out inside and cannot be laid there, and moves of the typeDamage types hurt less the Pokémon inside it.",
+  "comment": "Weathers and 'sports' (Climate.cs), cast by moves of family 'climate' (realtime_moves.json). A weather covers the whole arena for 'duration' seconds, for both teams; one at a time, the last one cast replaces the other. terrains: traces of that terrain are bigger (radiusMul) and last longer (durationMul), the ones already on the ground included (their remaining time is scaled when the weather starts); typeDamage: damage of moves of that type; chip: share of max HP lost every second by every Pokémon but immuneTypes; scatter: now and then (chance per second) a small trace of that terrain appears on a random free tile; tint / alpha: colour laid over the screen; shots: speed and range multiplier of the shots of a type; wind (storms): a direction drawn at the start, a shot with it gains up to 'strength' of its speed and range and loses as much against it, 'sensitive' types feel it more, 'heavyTypes' not at all, and it carries the Pokémon of 'pushTypes' along at 'push' tiles/s; scroll: tiles/s its pattern (weather_<key> in Resources/Effects) drifts, with the wind or straight down; weather_icon_<key>: its icon on screen. A sport is a zone around its caster (look: sport_<key>, stretched over it) (radius, duration): the terrains it lists are wiped out inside and cannot be laid there, and moves of the typeDamage types hurt less the Pokémon inside it.",
   "weathers": [
     {
       "key": "sun", "name": "Zénith", "move": 223, "duration": 20, "tint": "#ffb040", "alpha": 0.12,
@@ -24,7 +24,7 @@
       "chip": {"share": 0.0075, "immuneTypes": [6]},
       "scatter": {"terrain": "ice", "chance": 0.35, "radius": 0.5, "duration": 4},
       "shots": [{"type": 6, "mul": 1.2}],
-      "wind": {"strength": 0.15, "sensitive": [{"type": 10, "mul": 2}], "heavyTypes": [9, 13]},
+      "wind": {"strength": 0.15, "sensitive": [{"type": 10, "mul": 2}], "heavyTypes": [9, 13], "pushTypes": [10], "push": 0.8},
       "scroll": 4
     },
     {
@@ -33,7 +33,7 @@
       "typeDamage": [{"type": 13, "mul": 1.2}],
       "chip": {"share": 0.0075, "immuneTypes": [9, 13, 17]},
       "scatter": {"terrain": "mud", "chance": 0.3, "radius": 0.5, "duration": 4},
-      "wind": {"strength": 0.25, "sensitive": [{"type": 10, "mul": 2}], "heavyTypes": [9, 13]},
+      "wind": {"strength": 0.25, "sensitive": [{"type": 10, "mul": 2}], "heavyTypes": [9, 13], "pushTypes": [10], "push": 1.5},
       "scroll": 5
     }
   ],

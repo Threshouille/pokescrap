@@ -24,6 +24,8 @@ public class Climate : MonoBehaviour
         public float strength;
         public TypeShot[] sensitive = new TypeShot[0];
         public int[] heavyTypes = new int[0];
+        public int[] pushTypes = new int[0]; // Pokémon of these types are carried along by it (Vol)...
+        public float push; // ... at this many tiles/s
     }
 
     [Serializable]
@@ -210,6 +212,16 @@ public class Climate : MonoBehaviour
             mul *= 1f + w.wind.strength * feel * along;
         }
         return Mathf.Clamp(mul, 0.3f, 2f);
+    }
+
+    /// How the wind of a storm carries this Pokémon (tiles/s), for the types it pushes (Vol); zero otherwise.
+    public static Vector2 WindPush(Combatant c)
+    {
+        var w = Now;
+        if (w?.wind == null || w.wind.push <= 0f || current.windDirection == Vector2.zero || c.Stats?.types == null) return Vector2.zero;
+        foreach (int type in c.Stats.types)
+            if (Array.IndexOf(w.wind.pushTypes, type) >= 0) return current.windDirection * w.wind.push;
+        return Vector2.zero;
     }
 
     /// Direction of the wind blowing now (zero: none).

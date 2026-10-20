@@ -158,7 +158,8 @@ droite ; elle agit aussi sur les traces déjà au sol. Elle change aussi la vite
 les tirs Feu vont 30 % moins loin et les tirs Eau un peu plus ; au soleil, l'inverse ; la grêle porte les tirs Glace.
 La grêle et la tempête de sable ont un **vent** (direction fixe, flèche à l'écran) : un tir dans son sens gagne jusqu'à
 +15 / +25 % de vitesse et de portée, contre lui il en perd autant ; Vol y est deux fois plus sensible, Roche et Sol
-pas du tout. Textures (pluie, grêle, sable, soleil, icônes, zones de Tourniquet et Lance-Boue, sable mouvant) :
+pas du tout. Le vent déporte aussi les Pokémon **Vol** (0,8 case/s sous la grêle, 1,5 dans la tempête de sable),
+même à l'arrêt. Textures (pluie, grêle, sable, soleil, icônes, zones de Tourniquet et Lance-Boue, sable mouvant) :
 `Design/effects_v14_meteo/`, prompt `Design/prompt_meteo.md`. **Tourniquet** et **Lance-Boue** ouvrent une zone de 4 cases
 autour du lanceur pendant 15 s : plus de braises (Tourniquet) ou d'électricité (Lance-Boue) dedans, et les attaques
 Feu (ou Électrik) y font moitié moins de dégâts. L'IA lance une météo quand elle favorise son équipe, un sport
