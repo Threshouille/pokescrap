@@ -200,6 +200,8 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 
 ## 4. Points ouverts
 
+- **Méga-évolutions** : sprites de 27 mégas en place (`megas.json`), fonctionnement en partie à définir (Robin).
+
 ### Structurants
 1. Boutons : avec la visée au stick droit, les 4 attaques vont sur les gâchettes (L1, L2, R1, R2). Quel bouton pour changer de Pokémon ?
 2. Périmètre de la première version : un seul cycle (2 arènes + 1 boss) ?

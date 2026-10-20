@@ -93,6 +93,8 @@ def restore_pokemon():
     count = 0
     for id_file in sorted(SPRITES.glob("*/id.txt")):
         pid = int(id_file.read_text().strip())
+        if pid not in pokemon:
+            continue  # mega evolutions: not in the ROM, see restore_megas
         source = EXPORT / "sprites" / f"{pokemon[pid]['sprite_index']:04d}"
         for f in list(source.glob("*-Anim.png")) + [source / "AnimData.xml"]:
             shutil.copy(f, id_file.parent / f.name)
@@ -101,6 +103,12 @@ def restore_pokemon():
             shutil.copy(portrait, PORTRAITS / f"{pid}.png")
         count += 1
     print(f"{count} Pokémon")
+
+
+def restore_megas(force):
+    """Mega evolutions: PMD-style sprites downloaded from PMDCollab SpriteCollab (not in the ROM)."""
+    step("Mega evolutions (PMDCollab SpriteCollab, needs internet)")
+    run(python(), "-I", PMD / "import_megas.py", ROOT, *(["--force"] if force else []))
 
 
 def restore_tilesets():
@@ -239,6 +247,7 @@ def main():
     setup_venv(args.force)
     extract(args.force)
     restore_pokemon()
+    restore_megas(args.force)
     restore_tilesets()
     restore_obstacle_tiles()
     placeholders()

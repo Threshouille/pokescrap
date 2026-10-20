@@ -210,6 +210,15 @@ des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
 
+### 20/10/2026 — Sprites des méga-évolutions (Robin)
+- 27 méga-évolutions aux sprites complets, absentes de la ROM, téléchargées depuis
+  [PMDCollab SpriteCollab](https://github.com/PMDCollab/SpriteCollab) (CC BY-NC 4.0, auteurs dans
+  `CREDITS_MEGAS.md`) par `Tools/pmd/import_megas.py`, appelé par `setup.py` (connexion internet nécessaire).
+  Liste et ids (20000 + n° de Pokédex × 10 + forme) : `Assets/Resources/Data/megas.json`. Pas encore jouables :
+  le fonctionnement en partie reste à définir.
+- Après la mise à jour : Unity fermé, `python3 Tools/setup.py` (ou `python3 -I Tools/pmd/import_megas.py .` puis
+  `python3 Tools/setup.py --unity-only PmdSpriteImport.BuildAll`).
+
 ### 20/10/2026 — Obstacles, météos (Robin, branche `feature/obstacles`)
 - **Obstacles** : couche durable sous le terrain (eau profonde, lave, vide, ponts, glace, végétation, roche,
   rochers, murs de glace, pylônes électriques, plaques de métal et bornes aimantées, sable mouvant), avec chutes,
@@ -249,6 +258,7 @@ assets par ce GUID. Le dépôt sépare donc les deux :
 | tous les `.meta` | `Assets/Sprites/Pokemon/*/*.png`, `AnimData.xml` |
 | | `Assets/Resources/ObstacleTiles/*/chunks.png`, `tileset.json` (eau, lave, vide des obstacles) |
 | `Assets/Sprites/Pokemon/<Nom>/id.txt` (liste des Pokémon du projet) | `Assets/Resources/Portraits/*.png` |
+| `megas.json`, `CREDITS_MEGAS.md` | sprites et portraits des méga-évolutions (SpriteCollab, téléchargés par `setup.py`) |
 | code, scènes, réglages, `Tools/` | `Assets/Resources/AnimSets/*.asset` |
 | données écrites à la main (`realtime_moves.json`, `meta.json`, `statuses.json`, `upgrades.json`, `type_chart.json`) | `Assets/Tilesets/*/chunks.png`, `tileset.json`, `Tileset.asset` |
 | effets d'attaque originaux (`Assets/Resources/Effects`, `Design/`) | `Assets/Data/*.json`, `pokemon_rt.json`, `levels_rt.bytes`, `generated_moves.json` |

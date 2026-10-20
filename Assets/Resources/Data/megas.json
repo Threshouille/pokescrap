@@ -1,0 +1,221 @@
+{
+ "source": "https://github.com/PMDCollab/SpriteCollab (CC BY-NC 4.0)",
+ "megas": [
+  {
+   "id": 20061,
+   "base": 6,
+   "dex": 6,
+   "form": "0001",
+   "name": "Méga-Dracaufeu X",
+   "folder": "MegaCharizardX"
+  },
+  {
+   "id": 20651,
+   "base": 65,
+   "dex": 65,
+   "form": "0001",
+   "name": "Méga-Alakazam",
+   "folder": "MegaAlakazam"
+  },
+  {
+   "id": 20941,
+   "base": 94,
+   "dex": 94,
+   "form": "0001",
+   "name": "Méga-Ectoplasma",
+   "folder": "MegaGengar"
+  },
+  {
+   "id": 21151,
+   "base": 115,
+   "dex": 115,
+   "form": "0001",
+   "name": "Méga-Kangourex",
+   "folder": "MegaKangaskhan"
+  },
+  {
+   "id": 21421,
+   "base": 142,
+   "dex": 142,
+   "form": "0001",
+   "name": "Méga-Ptéra",
+   "folder": "MegaAerodactyl"
+  },
+  {
+   "id": 21502,
+   "base": 150,
+   "dex": 150,
+   "form": "0002",
+   "name": "Méga-Mewtwo Y",
+   "folder": "MegaMewtwoY"
+  },
+  {
+   "id": 22081,
+   "base": 235,
+   "dex": 208,
+   "form": "0001",
+   "name": "Méga-Steelix",
+   "folder": "MegaSteelix"
+  },
+  {
+   "id": 22271,
+   "base": 254,
+   "dex": 227,
+   "form": "0001",
+   "name": "Méga-Airmure",
+   "folder": "MegaSkarmory"
+  },
+  {
+   "id": 22291,
+   "base": 256,
+   "dex": 229,
+   "form": "0001",
+   "name": "Méga-Démolosse",
+   "folder": "MegaHoundoom"
+  },
+  {
+   "id": 22481,
+   "base": 275,
+   "dex": 248,
+   "form": "0001",
+   "name": "Méga-Tyranocif",
+   "folder": "MegaTyranitar"
+  },
+  {
+   "id": 22821,
+   "base": 310,
+   "dex": 282,
+   "form": "0001",
+   "name": "Méga-Gardevoir",
+   "folder": "MegaGardevoir"
+  },
+  {
+   "id": 23021,
+   "base": 330,
+   "dex": 302,
+   "form": "0001",
+   "name": "Méga-Ténéfix",
+   "folder": "MegaSableye"
+  },
+  {
+   "id": 23031,
+   "base": 331,
+   "dex": 303,
+   "form": "0001",
+   "name": "Méga-Mysdibule",
+   "folder": "MegaMawile"
+  },
+  {
+   "id": 23081,
+   "base": 336,
+   "dex": 308,
+   "form": "0001",
+   "name": "Méga-Charmina",
+   "folder": "MegaMedicham"
+  },
+  {
+   "id": 23101,
+   "base": 338,
+   "dex": 310,
+   "form": "0001",
+   "name": "Méga-Elecsprint",
+   "folder": "MegaManectric"
+  },
+  {
+   "id": 23231,
+   "base": 351,
+   "dex": 323,
+   "form": "0001",
+   "name": "Méga-Camérupt",
+   "folder": "MegaCamerupt"
+  },
+  {
+   "id": 23341,
+   "base": 362,
+   "dex": 334,
+   "form": "0001",
+   "name": "Méga-Altaria",
+   "folder": "MegaAltaria"
+  },
+  {
+   "id": 23541,
+   "base": 386,
+   "dex": 354,
+   "form": "0001",
+   "name": "Méga-Branette",
+   "folder": "MegaBanette"
+  },
+  {
+   "id": 23591,
+   "base": 391,
+   "dex": 359,
+   "form": "0001",
+   "name": "Méga-Absol",
+   "folder": "MegaAbsol"
+  },
+  {
+   "id": 23621,
+   "base": 394,
+   "dex": 362,
+   "form": "0001",
+   "name": "Méga-Oniglali",
+   "folder": "MegaGlalie"
+  },
+  {
+   "id": 23801,
+   "base": 412,
+   "dex": 380,
+   "form": "0001",
+   "name": "Méga-Latias",
+   "folder": "MegaLatias"
+  },
+  {
+   "id": 23811,
+   "base": 413,
+   "dex": 381,
+   "form": "0001",
+   "name": "Méga-Latios",
+   "folder": "MegaLatios"
+  },
+  {
+   "id": 23841,
+   "base": 416,
+   "dex": 384,
+   "form": "0001",
+   "name": "Méga-Rayquaza",
+   "folder": "MegaRayquaza"
+  },
+  {
+   "id": 24281,
+   "base": 470,
+   "dex": 428,
+   "form": "0001",
+   "name": "Méga-Lockpin",
+   "folder": "MegaLopunny"
+  },
+  {
+   "id": 24481,
+   "base": 490,
+   "dex": 448,
+   "form": "0001",
+   "name": "Méga-Lucario",
+   "folder": "MegaLucario"
+  },
+  {
+   "id": 24751,
+   "base": 517,
+   "dex": 475,
+   "form": "0001",
+   "name": "Méga-Gallame",
+   "folder": "MegaGallade"
+  },
+  {
+   "id": 24912,
+   "base": 533,
+   "dex": 491,
+   "form": "0002",
+   "name": "Méga-Darkrai",
+   "folder": "MegaDarkrai"
+  }
+ ]
+}
