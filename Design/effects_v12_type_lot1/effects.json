@@ -1,0 +1,182 @@
+{
+  "sheets": [
+    {
+      "file": "vibraqua_vol.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#0b1d5a",
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#f0faff"
+      ]
+    },
+    {
+      "file": "vibraqua_impact.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#0b1d5a",
+        "#1846c8",
+        "#2f82f2",
+        "#8ccaff",
+        "#f0faff"
+      ]
+    },
+    {
+      "file": "lame_d_air_vol.png",
+      "frame_width": 24,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#1a2a48",
+        "#4a6e9a",
+        "#a8c8e8",
+        "#e8f4ff"
+      ]
+    },
+    {
+      "file": "lame_d_air_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        60,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1a2a48",
+        "#4a6e9a",
+        "#a8c8e8",
+        "#e8f4ff"
+      ]
+    },
+    {
+      "file": "plaie_croix_trainee.png",
+      "frame_width": 40,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#142a06",
+        "#2e5a12",
+        "#6aa81e",
+        "#b4e83c",
+        "#f0ffb0"
+      ]
+    },
+    {
+      "file": "plaie_croix_impact.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        60,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#142a06",
+        "#2e5a12",
+        "#6aa81e",
+        "#b4e83c",
+        "#f0ffb0"
+      ]
+    },
+    {
+      "file": "onde_folie_coup.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#2a0c3c",
+        "#7a2ea8",
+        "#c062b4",
+        "#f0a6dc"
+      ]
+    },
+    {
+      "file": "telluriforce_marque.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#1c0c04",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#ffa640"
+      ]
+    },
+    {
+      "file": "telluriforce_colonne.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        60,
+        70,
+        70,
+        70,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#1c0c04",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a",
+        "#ffa640"
+      ]
+    }
+  ]
+}

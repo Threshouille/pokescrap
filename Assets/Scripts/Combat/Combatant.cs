@@ -132,6 +132,10 @@ public class Combatant : MonoBehaviour
     float chainUntil;
     float lungeSpeed;
     bool lungeBouncing, lungeFinishPending, lungeStrikePending, lungeShotPending;
+    readonly List<Combatant> delayedTargets = new(); // cut by a dash with delayedHit, struck at delayedAt
+    MoveDef delayedMove;
+    Vector2 delayedDirection;
+    float delayedAt;
     Combatant lungeShotTarget; // opponent targeted when a dash followed by shots started
     Vector2 lungeShotAim;
     bool sweepBack; // the next sweeping strike turns the other way
@@ -556,10 +560,13 @@ public class Combatant : MonoBehaviour
 
         if (move.family == "zone" && move.target == "each")
         {
-            // One zone under every opponent still standing.
+            // One zone under every opponent still standing (within areaRadius of the user when set, shown by a ring).
             readyAt[slot] = Time.time + CooldownOf(move);
             foreach (var c in all.ToArray())
-                if (c.team != team && c.IsAlive) Zone.Spawn(this, move, c.transform.position);
+                if (c.team != team && c.IsAlive
+                    && (move.areaRadius <= 0f || Vector2.Distance(c.transform.position, transform.position) <= move.areaRadius))
+                    Zone.Spawn(this, move, c.transform.position);
+            if (move.areaRadius > 0f) Shapes.AreaRing(transform.position, move.areaRadius, GameData.TypeColor(move.type), 0.8f);
             return true;
         }
 
@@ -710,7 +717,7 @@ public class Combatant : MonoBehaviour
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move) * factor, move, out float dealt))
             {
-                target.Stun(StunOf(move));
+                if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
                 if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
@@ -773,6 +780,13 @@ public class Combatant : MonoBehaviour
         dodgeDirection = direction.normalized;
         dodgeUntil = Time.time + settings.dodgeTime;
         dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown);
+        PassThroughOpponents();
+        return true;
+    }
+
+    // Collisions with the opponents are ignored until EndDodge (dodges, dashes going through).
+    void PassThroughOpponents()
+    {
         Team opponents = team == Team.Player ? Team.Enemy : Team.Player;
         var mine = GetComponents<Collider2D>();
         foreach (var other in all)
@@ -784,7 +798,6 @@ public class Combatant : MonoBehaviour
                 dodgeIgnored.Add(theirs);
             }
         }
-        return true;
     }
 
     void EndDodge()
@@ -807,6 +820,7 @@ public class Combatant : MonoBehaviour
         lungeBouncing = false;
         lungeFinishPending = move.finishRadius > 0f;
         lungeStrikePending = move.strikeAfterLunge;
+        if (move.lungeThrough) PassThroughOpponents();
         // Trail just behind the attacker, following it for the length of the dash.
         EffectPlayer.Spawn(move.family == "melee" ? move.effect : move.trailEffect, transform.position - (Vector3)(direction * 0.5f), direction, transform, LungeTime(move));
     }
@@ -920,6 +934,21 @@ public class Combatant : MonoBehaviour
             castMove = null;
         }
 
+        if (delayedMove != null && Time.time >= delayedAt)
+        {
+            foreach (var target in delayedTargets)
+            {
+                if (target == null || !target.IsAlive) continue;
+                EffectPlayer.Spawn(delayedMove.impactEffect, target.transform.position, delayedDirection);
+                if (!target.TakeHit(DamageOf(delayedMove), delayedMove, out float dealt)) continue;
+                target.Stun(StunOf(delayedMove));
+                target.ApplyEffects(delayedMove, false, this);
+                HitLanded(delayedMove, dealt);
+            }
+            delayedTargets.Clear();
+            delayedMove = null;
+        }
+
         for (int i = 0; i < strikes.Count; i++)
         {
             var strike = strikes[i];
@@ -945,7 +974,7 @@ public class Combatant : MonoBehaviour
             body.linearVelocity = dodgeDirection * settings.dodgeDistance / settings.dodgeTime;
             return;
         }
-        if (dodgeIgnored.Count > 0) EndDodge();
+        if (dodgeIgnored.Count > 0 && !(IsLunging && lungeMove.lungeThrough)) EndDodge();
 
         // During a dash the attacker is pushed forward and hits each opponent it reaches once; it may end with a
         // strike around it, or bounce back off the first one it hits.
@@ -960,6 +989,16 @@ public class Combatant : MonoBehaviour
             {
                 lungeShotPending = false;
                 if (CanAttack) FireFlankShots(lungeMove);
+            }
+            if (lungeMove != null && lungeMove.delayedHit > 0f && lungeHit.Count > 0)
+            {
+                // Like a sword stroke that lands late: everyone passed through is cut at once.
+                delayedTargets.Clear();
+                delayedTargets.AddRange(lungeHit);
+                lungeHit.Clear();
+                delayedMove = lungeMove;
+                delayedDirection = lungeDirection;
+                delayedAt = Time.time + lungeMove.delayedHit;
             }
             if (lungeStrikePending)
             {
@@ -1029,10 +1068,16 @@ public class Combatant : MonoBehaviour
             var target = other.GetComponentInParent<Combatant>();
             if (target == null || target.team == team || !hit.Add(target)) continue;
             count++;
+            if (move.delayedHit > 0f)
+            {
+                // Struck when the dash is over; frozen (Hurt animation) until then.
+                target.Stun(lungeUntil - Time.time + move.delayedHit);
+                continue;
+            }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             if (target.TakeHit(DamageOf(move), move, out float dealt))
             {
-                target.Stun(StunOf(move));
+                if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 // A dash pushes what it hits (a bouncing dash pushes its target when it bounces).
                 if (move.knockback > 0f && move.bounceBack <= 0f)
                     target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
