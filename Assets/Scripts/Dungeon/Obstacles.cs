@@ -654,10 +654,13 @@ public class Obstacles : MonoBehaviour
     public static float TollCost(int x, int y, Combatant agent) =>
         At(x, y) is { } def && agent != null && TollFor(def, agent.Stats) is { } t ? 8f + 100f * t.damageShare : 0f;
 
-    // Thrown (pushed, sliding) against a solid obstacle: stunned and hurt. Walking never does it: Drive stops at it.
+    // Thrown against a solid obstacle — pushed by a hit, or sliding on a slippery ground — : stunned and hurt.
+    // Walking into it, dodging or dashing on purpose never does.
     void Bump(Combatant c, Vector2 position)
     {
-        if (c.IsDashing) return;
+        bool pushed = c.IsKnockedBack;
+        bool sliding = !c.IsLunging && !c.IsDodging && (Terrain.SlideAccel(c) > 0f || SlideAccel(c) > 0f);
+        if (!pushed && !sliding) return;
         var body = c.GetComponent<Rigidbody2D>();
         if (body == null || body.linearVelocity.magnitude < BumpSpeed) return;
         var hit = At(position + body.linearVelocity.normalized * BumpReach);
@@ -926,6 +929,7 @@ public class Obstacles : MonoBehaviour
         public float bigChance = 0.35f; // boulders: share of big ones (2 x 2, two blows)
         public int[] distance = { 4, 7 }; // pylons: tiles between the two of a pair
         public int[] magnets = { 1, 1 }; // metal: magnets on the edge of the plates
+        public string[] near = new string[0]; // ice_patch: obstacles it lies against (void, water, boulders)
     }
 
     /// Two obstacles that never touch: at least "gap" tiles of plain floor between them (water and lava).
@@ -980,7 +984,8 @@ public class Obstacles : MonoBehaviour
                 pool.RemoveAll(p => p.type == f.type && p.kind == f.kind); // never twice the same
                 drawn.Add(f);
             }
-            drawn.Sort((x, y) => Band(y).CompareTo(Band(x))); // bands first: they must run unbroken
+            // Bands first (they must run unbroken), ice patches last (they lie against what the others placed).
+            drawn.Sort((x, y) => Order(x).CompareTo(Order(y)));
             foreach (var f in drawn)
                 if (Place(f, rng)) names.Add(Describe(f));
             if (Connected(keep)) return names;
@@ -992,6 +997,8 @@ public class Obstacles : MonoBehaviour
     }
 
     static bool Band(Feature f) => f.type == "chasm" || f.type == "river";
+
+    static int Order(Feature f) => Band(f) ? 0 : f.type == "ice_patch" ? 2 : 1;
 
     void Clear()
     {
@@ -1022,6 +1029,7 @@ public class Obstacles : MonoBehaviour
         "boulders" => "Rochers",
         "pylons" => "Pylônes électriques",
         "metal" => "Plaques de métal et borne aimantée",
+        "ice_patch" => "Glace au bord du danger",
         _ => "Murs de glace",
     };
 
@@ -1068,6 +1076,7 @@ public class Obstacles : MonoBehaviour
             "boulders" => PlaceBoulders(f, rng),
             "pylons" => PlacePylons(f, rng),
             "metal" => PlaceMetal(f, rng),
+            "ice_patch" => PlaceIcePatch(f, rng),
             _ => PlaceIceWalls(f, rng),
         };
     }
@@ -1333,6 +1342,36 @@ public class Obstacles : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    // Patches of slippery ground against a danger (void, water, boulders): sliding, or being pushed, there sends
+    // a Pokémon into it.
+    bool PlaceIcePatch(Feature f, System.Random rng)
+    {
+        var ice = Def(f.kind ?? "ice_floor");
+        if (ice == null || f.near.Length == 0) return false;
+        var targets = new List<Vector2Int>();
+        for (int x = 0; x < size; x++)
+            for (int y = 0; y < size; y++)
+                if (KindAt(x, y) is { } k && Array.IndexOf(f.near, k.key) >= 0) targets.Add(new Vector2Int(x, y));
+        if (targets.Count == 0) return false;
+        int wanted = Pick(f.count, rng, 1), built = 0;
+        for (int attempt = 0; attempt < 60 && built < wanted; attempt++)
+        {
+            var t = targets[rng.Next(targets.Count)];
+            var centre = t + new Vector2Int(rng.Next(-2, 3), rng.Next(-2, 3));
+            if (!Free(centre.x, centre.y, ice)) continue;
+            int r = f.sizes != null && f.sizes.Length > 0 ? f.sizes[rng.Next(f.sizes.Length)] : 2;
+            int placed = 0;
+            for (int x = centre.x - r; x <= centre.x + r; x++)
+                for (int y = centre.y - r; y <= centre.y + r; y++)
+                {
+                    float d = Mathf.Sqrt((x - centre.x) * (x - centre.x) + (y - centre.y) * (y - centre.y)) + (float)rng.NextDouble() * 0.7f;
+                    if (d <= r + 0.3f && Free(x, y, ice)) { Set(x, y, ice); placed++; }
+                }
+            if (placed > 0) built++;
+        }
+        return built > 0;
     }
 
     // Short straight walls of ice, three tiles long.

@@ -46,6 +46,13 @@
     {"move": 501, "comment": "Boue-Bombe", "terrain": "mud", "shape": "impact"}
   ],
   "reactions": [
+    {"on": "charged_metal", "by": "water", "becomes": "electrified", "comment": "de l'eau sur du métal chargé s'électrifie"},
+    {"on": "electric", "by": "water", "becomes": "electrified", "comment": "de l'eau sur un sol chargé s'électrifie"},
+    {"on": "water", "by": "charged_metal", "becomes": "electrified", "keepDuration": true, "spread": true, "spreadDelay": 0.03, "comment": "les plaques chargées électrifient toute la flaque posée dessus"},
+    {"on": "electrified", "by": "charged_metal", "becomes": "=", "comment": "l'eau électrifiée le reste"},
+    {"on": "hot_metal", "by": "water", "becomes": "", "comment": "l'eau sur le métal brûlant s'évapore et le refroidit"},
+    {"on": "water", "by": "hot_metal", "becomes": "", "comment": "la flaque sur une plaque qui chauffe s'évapore"},
+    {"on": "hot_metal", "by": "ice", "becomes": "water", "comment": "la glace fond sur le métal brûlant"},
     {"on": "brambles", "by": "embers", "becomes": "embers", "duration": 1.5, "spread": true, "spreadDelay": 0.15, "comment": "les ronces brûlent de proche en proche puis disparaissent"},
     {"on": "ice", "by": "embers", "becomes": "water", "comment": "le verglas fond"},
     {"on": "water", "by": "embers", "becomes": "=", "comment": "le feu s'éteint dans l'eau"},

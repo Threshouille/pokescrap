@@ -60,6 +60,7 @@ public class Combatant : MonoBehaviour
     public bool IsDodging => Time.time < dodgeUntil;
     /// True while a dash (melee lunge or dodge) drives the body: controllers leave its velocity alone.
     public bool IsDashing => IsLunging || IsDodging || Time.time < knockUntil;
+    public bool IsKnockedBack => Time.time < knockUntil;
     public float DodgeCooldownLeft => Mathf.Max(0f, dodgeReadyAt - Time.time);
     /// Where the player controlling this Pokémon aims right now (zero for an AI). A shot that leaves after a cast
     /// or a delay follows it, rather than the direction it was aimed at when the move started.

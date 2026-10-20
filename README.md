@@ -112,14 +112,18 @@ ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et mur
   le feu gagne tout le pont (rouge, bloqué), qui finit brûlé (gris, bloqué) ; Eau refroidit la lave en roche.
 
 - **Rochers** (décors 9 et 18 de la ROM) : solides, brisés par une attaque **Combat** (les gros en 2 coups), qui laisse
-  des gravats ; le Combat brise aussi les murs de glace en éclats glissants. Un Pokémon projeté ou qui glisse contre un
-  rocher, un mur de glace, un pylône ou une borne est étourdi et perd 5 % de ses PV.
+  des gravats ; le Combat brise aussi les murs de glace en éclats glissants. Un Pokémon **poussé** par un coup ou qui
+  **glisse** sur une surface glissante contre un rocher, un mur de glace, un pylône ou une borne est étourdi et perd
+  5 % de ses PV ; marcher dedans, esquiver ou foncer volontairement ne fait rien. Des plaques de glace sont souvent
+  posées contre le vide, l'eau ou les rochers pour profiter des glissades.
 - **Pylônes électriques** : par paires, un arc les relie toutes les 4,8 s (avertissement qui crépite, puis arc
   d'1 s) : dégâts, paralysie, étourdissement ; Électrik et Sol immunisés, Vol ×1,5, Spectre touchés. Électrik
   surcharge un pylône (arc continu 4 s), Sol le met à la terre (coupé 6 s). Un arc au-dessus de l'eau ou du métal
   l'électrifie en entier.
 - **Métal** : les plaques conduisent l'électricité (toutes les plaques reliées), chauffent au Feu, gèlent à la Glace ;
-  un Acier dessus ne peut pas être poussé, résiste mieux (+20 %) et n'est pas électrocuté. Les **bornes aimantées**
+  un Acier dessus ne peut pas être poussé, résiste mieux (+20 %) et n'est pas électrocuté. Les effets se combinent :
+  de l'eau sur du métal ou un sol chargé devient de l'eau électrifiée (et des plaques qu'on électrifie électrifient
+  la flaque posée dessus) ; l'eau s'évapore sur le métal brûlant, la glace y fond. Les **bornes aimantées**
   attirent les Acier et happent les tirs Acier et Électrik ; chargées, elles électrifient les plaques qu'elles
   touchent.
 

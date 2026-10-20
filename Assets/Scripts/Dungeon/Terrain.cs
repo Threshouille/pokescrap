@@ -90,6 +90,7 @@ public class Terrain : MonoBehaviour
 {
     const float Tick = 1f; // seconds between two damages or heals
     const float FadeTime = 1f; // a tile fades out over its last second
+    const float FadeIn = 0.25f; // ... and in over its first quarter of a second
     const float HazardCost = 5f; // navCost from which a tile is worth stepping out of
 
     [Serializable] class TerrainFile { public TerrainSizing sizing; public TerrainDef[] terrains; public MoveTerrain[] moves; public TerrainReaction[] reactions; }
@@ -325,8 +326,9 @@ public class Terrain : MonoBehaviour
     {
         var def = Def(key);
         if (Current == null || def == null) return;
+        // With the reactions (wet plates turn into electrified water), wherever it lies (the water obstacle too).
         foreach (var (x, y) in cells)
-            if (x >= 0 && y >= 0 && x < Current.size && y < Current.size) Current.Set(y * Current.size + x, def, duration, caster);
+            if (x >= 0 && y >= 0 && x < Current.size && y < Current.size) Current.Hit(x, y, def, duration, caster, true);
     }
 
     /// Makes the tiles of a disc that still hold that terrain last "duration" more seconds from now; tiles where
@@ -343,8 +345,9 @@ public class Terrain : MonoBehaviour
             {
                 if (Current.KindAt(x, y) != def || Vector2.Distance(grid.CentreOf(x, y), centre) > radius) continue;
                 int i = y * Current.size + x;
+                float placed = Current.until[i] - Current.length[i]; // kept: the tile must not fade in again
                 Current.until[i] = Mathf.Max(Current.until[i], Time.time + duration);
-                Current.length[i] = Mathf.Max(Current.length[i], duration);
+                Current.length[i] = Current.until[i] - placed;
             }
     }
 
@@ -380,9 +383,9 @@ public class Terrain : MonoBehaviour
     }
 
     // A tile reached by a move: reacts with what is already there, possibly spreading over the connected area.
-    void Hit(int x, int y, TerrainDef def, float duration, Combatant caster)
+    void Hit(int x, int y, TerrainDef def, float duration, Combatant caster, bool anywhere = false)
     {
-        if (Obstacles.RejectsTerrain(x, y))
+        if (!anywhere && Obstacles.RejectsTerrain(x, y))
         {
             // No puddle on lava or in the void, but the contact still counts (water on lava cools it into rock).
             Obstacles.OnTerrain(x, y, def.key, caster);
@@ -661,7 +664,9 @@ public class Terrain : MonoBehaviour
                 continue;
             }
             live++;
-            float fade = Mathf.Clamp01(left / Mathf.Min(FadeTime, length[i]));
+            // Fades in over its first FadeIn seconds and out over its last second.
+            float fade = Mathf.Clamp01(left / Mathf.Min(FadeTime, length[i]))
+                * Mathf.Clamp01((Time.time - (until[i] - length[i])) / FadeIn);
             if (def.sheet != null)
             {
                 pixels[i] = default;
