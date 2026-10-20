@@ -67,8 +67,9 @@ public class Projectile : MonoBehaviour
         projectile.damage = owner.DamageOf(move);
         projectile.radius = projectile.baseRadius = move.radius * owner.projectileSizeMul;
         projectile.baseScale = go.transform.localScale;
-        projectile.speed = move.speed * owner.projectileSpeedMul;
-        projectile.range = (move.path == "arc" && distance > 0f ? Mathf.Min(distance, move.range) : move.range) + extraRange;
+        float weather = Climate.ShotMul(move, direction); // rain shortens Fire shots, a storm's wind carries or holds
+        projectile.speed = move.speed * owner.projectileSpeedMul * weather;
+        projectile.range = ((move.path == "arc" && distance > 0f ? Mathf.Min(distance, move.range) : move.range) + extraRange) * weather;
         projectile.side = shotIndex % 2 == 0 ? 1f : -1f;
         projectile.forward = direction.normalized;
         projectile.origin = go.transform.position;

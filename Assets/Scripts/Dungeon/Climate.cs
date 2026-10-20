@@ -14,6 +14,17 @@ public class Climate : MonoBehaviour
     [Serializable] public class TypeMul { public int type; public float mul = 1f; }
     [Serializable] public class Chip { public float share; public int[] immuneTypes = new int[0]; }
     [Serializable] public class Scatter { public string terrain; public float chance, radius = 0.5f, duration = 3f; }
+    [Serializable] public class TypeShot { public int type; public float mul = 1f; } // speed and range of shots of a type
+
+    /// The wind of a storm: a direction drawn when it starts; a shot with it gains up to "strength" of its speed and
+    /// range, against it loses as much (sideways: nothing). "sensitive" types feel it more, "heavy" ones not at all.
+    [Serializable]
+    public class Wind
+    {
+        public float strength;
+        public TypeShot[] sensitive = new TypeShot[0];
+        public int[] heavyTypes = new int[0];
+    }
 
     [Serializable]
     public class Weather
@@ -27,6 +38,9 @@ public class Climate : MonoBehaviour
         public TypeMul[] typeDamage = new TypeMul[0];
         public Chip chip;
         public Scatter scatter;
+        public TypeShot[] shots = new TypeShot[0];
+        public Wind wind;
+        public float scroll = 2f; // tiles/s the pattern of its veil drifts (with the wind, else straight down)
     }
 
     [Serializable]
@@ -55,7 +69,8 @@ public class Climate : MonoBehaviour
 
     Weather weather;
     float weatherUntil;
-    SpriteRenderer veil;
+    Vector2 windDirection; // of the weather on now (zero: no wind)
+    SpriteRenderer veil, pattern;
     readonly List<Zone> zones = new();
     float nextChip;
     GUIStyle label;
@@ -113,6 +128,9 @@ public class Climate : MonoBehaviour
         {
             Current.weather = w;
             Current.weatherUntil = Time.time + w.duration;
+            // A storm's wind blows one way for the whole weather: one of the 8 directions.
+            float angle = UnityEngine.Random.Range(0, 8) * 45f * Mathf.Deg2Rad;
+            Current.windDirection = w.wind != null && w.wind.strength > 0f ? new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) : Vector2.zero;
             foreach (var t in w.terrains) Terrain.ScaleRemaining(t.terrain, t.durationMul); // what lies there already
             return;
         }
@@ -124,11 +142,20 @@ public class Climate : MonoBehaviour
         go.transform.position = zone.centre;
         go.transform.localScale = Vector3.one * s.radius * 2f;
         zone.ring = go.AddComponent<SpriteRenderer>();
-        zone.ring.sprite = Shapes.Circle;
         zone.ring.sortingOrder = 0; // on the ground, under the Pokémon
-        var tint = ColorUtility.TryParseHtmlString(s.tint, out var c) ? c : Color.white;
-        tint.a = 0.18f;
-        zone.ring.color = tint;
+        var sheet = EffectLibrary.Get("sport_" + s.key); // its own look, stretched over the zone
+        if (sheet != null)
+        {
+            zone.ring.sprite = sheet.Frame(0);
+            go.transform.localScale = Vector3.one * s.radius * 2f / (sheet.frame_width / (float)EffectLibrary.PixelsPerUnit);
+        }
+        else
+        {
+            zone.ring.sprite = Shapes.Circle;
+            var tint = ColorUtility.TryParseHtmlString(s.tint, out var c) ? c : Color.white;
+            tint.a = 0.18f;
+            zone.ring.color = tint;
+        }
         Current.zones.Add(zone);
         Current.Wipe(zone);
     }
@@ -164,6 +191,29 @@ public class Climate : MonoBehaviour
                         if (t.type == moveType) mul *= t.mul;
         return mul;
     }
+
+    /// Speed and range multiplier of a shot of that move fired that way: the weather (Fire shots fall short in the
+    /// rain...) and the wind of a storm (with it, faster and further; against it, slower and shorter).
+    public static float ShotMul(MoveDef move, Vector2 direction)
+    {
+        var w = Now;
+        if (w == null || move == null) return 1f;
+        float mul = 1f;
+        foreach (var s in w.shots)
+            if (s.type == move.type) mul *= s.mul;
+        if (w.wind != null && current.windDirection != Vector2.zero && Array.IndexOf(w.wind.heavyTypes, move.type) < 0)
+        {
+            float feel = 1f;
+            foreach (var s in w.wind.sensitive)
+                if (s.type == move.type) feel *= s.mul;
+            float along = direction == Vector2.zero ? 0f : Vector2.Dot(direction.normalized, current.windDirection);
+            mul *= 1f + w.wind.strength * feel * along;
+        }
+        return Mathf.Clamp(mul, 0.3f, 2f);
+    }
+
+    /// Direction of the wind blowing now (zero: none).
+    public static Vector2 WindNow => Now != null ? current.windDirection : Vector2.zero;
 
     // ---- AI ---------------------------------------------------------------------------------------------------
 
@@ -211,6 +261,14 @@ public class Climate : MonoBehaviour
     void Wipe(Zone z)
     {
         foreach (string key in z.def.blocks) Terrain.ClearArea(key, z.centre, z.def.radius);
+    }
+
+    void Update()
+    {
+        // Animated sport zones.
+        foreach (var z in zones)
+            if (z.ring != null && EffectLibrary.Get("sport_" + z.def.key) is { frame_count: > 1 } sheet)
+                z.ring.sprite = sheet.Frame(Obstacles.FrameOf(sheet));
     }
 
     void FixedUpdate()
@@ -263,11 +321,33 @@ public class Climate : MonoBehaviour
         }
         if (veil == null) return;
         veil.enabled = w != null;
+        if (pattern != null) pattern.enabled = false;
         if (w == null) return;
         var tint = ColorUtility.TryParseHtmlString(w.tint, out var c) ? c : Color.white;
         tint.a = w.alpha;
         veil.color = tint;
+        // The weather's own pattern (weather_<key>: rain, hail, sand, sun rays), tiled over the screen and drifting
+        // with the wind (straight down without wind).
+        var sheet = EffectLibrary.Get("weather_" + w.key);
+        if (sheet == null || cam == null) return;
+        if (pattern == null)
+        {
+            var go = new GameObject("Météo");
+            go.transform.SetParent(cam.transform, false);
+            pattern = go.AddComponent<SpriteRenderer>();
+            pattern.drawMode = SpriteDrawMode.Tiled;
+            pattern.sortingOrder = 3; // over the veil
+        }
+        pattern.enabled = true;
+        pattern.sprite = sheet.Frame(Obstacles.FrameOf(sheet));
+        float tile = sheet.frame_width / (float)EffectLibrary.PixelsPerUnit;
+        float height = cam.orthographicSize * 2f + 2f * tile, width = height * cam.aspect + 2f * tile;
+        pattern.size = new Vector2(width + tile, height + tile);
+        Vector2 drift = (windDirection != Vector2.zero ? windDirection : Vector2.down) * w.scroll * Time.time;
+        pattern.transform.localPosition = new Vector3(Mathf.Repeat(drift.x, tile) - tile / 2f, Mathf.Repeat(drift.y, tile) - tile / 2f, 1f);
     }
+
+    static readonly string[] Arrows = { "→", "↗", "↑", "↖", "←", "↙", "↓", "↘" };
 
     void OnGUI()
     {
@@ -276,6 +356,22 @@ public class Climate : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleRight };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        GUI.Label(new Rect(0f, 4f * s, Screen.width - 8f * s, 12f * s), $"{w.name} — {Mathf.CeilToInt(weatherUntil - Time.time)} s", label);
+        string wind = "";
+        if (windDirection != Vector2.zero)
+        {
+            int octant = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(windDirection.y, windDirection.x) * Mathf.Rad2Deg, 360f) / 45f) % 8;
+            wind = $"  vent {Arrows[octant]}";
+        }
+        var rect = new Rect(0f, 4f * s, Screen.width - 8f * s, 12f * s);
+        GUI.Label(rect, $"{w.name} — {Mathf.CeilToInt(weatherUntil - Time.time)} s{wind}", label);
+        // Its icon (weather_icon_<key>), left of the text.
+        var icon = EffectLibrary.Get("weather_icon_" + w.key);
+        if (icon?.texture != null)
+        {
+            float size = 12f * s, textWidth = label.CalcSize(new GUIContent($"{w.name} — 00 s{wind}")).x;
+            var tex = icon.texture;
+            GUI.DrawTextureWithTexCoords(new Rect(rect.xMax - textWidth - size - 4f * s, rect.y, size, size), tex,
+                new Rect(0f, 0f, icon.frame_width / (float)tex.width, icon.frame_height / (float)tex.height));
+        }
     }
 }

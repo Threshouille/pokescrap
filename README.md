@@ -154,7 +154,11 @@ Six attaques de la ROM jusque-là écartées deviennent jouables (`Assets/Resour
 | Tempêtesable | boue plus grande et plus longue ; 2 % des PV par seconde sauf Roche, Sol, Acier ; boue éparse |
 
 Une seule météo à la fois (la dernière lancée remplace l'autre), signalée par un voile coloré et son nom en haut à
-droite ; elle agit aussi sur les traces déjà au sol. **Tourniquet** et **Lance-Boue** ouvrent une zone de 4 cases
+droite ; elle agit aussi sur les traces déjà au sol. Elle change aussi la vitesse et la portée des tirs : sous la pluie,
+les tirs Feu vont 30 % moins loin et les tirs Eau un peu plus ; au soleil, l'inverse ; la grêle porte les tirs Glace.
+La grêle et la tempête de sable ont un **vent** (direction fixe, flèche à l'écran) : un tir dans son sens gagne jusqu'à
++15 / +25 % de vitesse et de portée, contre lui il en perd autant ; Vol y est deux fois plus sensible, Roche et Sol
+pas du tout. Textures : prompt `Design/prompt_meteo.md`. **Tourniquet** et **Lance-Boue** ouvrent une zone de 4 cases
 autour du lanceur pendant 15 s : plus de braises (Tourniquet) ou d'électricité (Lance-Boue) dedans, et les attaques
 Feu (ou Électrik) y font moitié moins de dégâts. L'IA lance une météo quand elle favorise son équipe, un sport
 quand des adversaires du type visé sont proches.
