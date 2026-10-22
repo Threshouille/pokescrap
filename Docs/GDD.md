@@ -67,6 +67,19 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   fait et testé le 20/10/2026 ; tâche en pause, reprise par l'étape 2) ;
   2) pierres (sauvegarde, menu, obtention) ; 3) passifs. Plus tard : boss qui méga-évoluent. Capacités Z : sujet à part.
 
+### IA (décidé le 20/10/2026, Robin)
+- Alliés et ennemis profitent des mêmes améliorations. Pas des maîtres stratèges : évoluer dans l'environnement de
+  manière propice et sûre.
+- Lot A (fait et testé, fusionné dans `dev` le 22/10/2026) : cible choisie par score (K.O. possible, types, menace sur un coéquipier, concentration,
+  distance) ; les alliés suivent le Pokémon joué quand il recule, le rejoignent par un chemin sûr, sont plus offensifs
+  sinon, et restent près de lui quand ils sont blessés.
+- Lot B : placement et attaques combinées selon les types de l'équipe (préparer une flaque pour un coéquipier
+  Électrik ou Plante, se rapprocher d'un coéquipier complémentaire, préférer les terrains qui avantagent).
+- Lot C (alliés d'abord, commencé) : couper le chemin d'un ennemi au corps à corps (brûler un pont, faire fondre la
+  glace) et réparer un chemin pour rejoindre le Pokémon joué (geler l'eau, nénuphars, refroidir la lave).
+- Les IA ne doivent pas être parfaites : elles se font surprendre par les pylônes de temps en temps, et ne prévoient
+  pas le sol métallique (elles marchent dessus sans s'en soucier).
+
 ### Outils de test
 - Terrain de test (19/10/2026) : depuis le menu en `devMode` (Select / T), arène ouverte où des émetteurs entretiennent chaque terrain et deux démonstrations d'affinités, sans ennemis (vagues en boucle en option), rien de recruté ni compté.
 - Persos de dev (décidé le 19/10/2026) : 3 personnages réservés au développement (Dev Mew, Dev Métamorph, Dev Porygon), visibles en tête du menu quand `devMode` est actif. Ils peuvent apprendre toutes les attaques du jeu (4 au départ, filtre par type au menu), n'ont pas de type (pas de STAB), se déplacent normalement (le terrain s'applique à eux) et ont des statistiques de starter (un physique, un spécial, un équilibré). Ils ne sont ni recrutables, ni sauvegardés, ni ennemis. But : tester les attaques et les effets de terrain.

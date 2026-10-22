@@ -197,6 +197,9 @@ public class Obstacles : MonoBehaviour
     bool dirty;
     int count;
 
+    /// Tiles holding an obstacle.
+    public int Count => count;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset()
     {
@@ -402,10 +405,31 @@ public class Obstacles : MonoBehaviour
     }
 
     /// This Pokémon cannot be on that tile: a solid one, or one it would fall into.
-    public static bool Blocks(int x, int y, Combatant c)
+    public static bool Blocks(int x, int y, Combatant c) => WouldBlock(At(x, y), c);
+
+    /// That obstacle would stop this Pokémon (null: no obstacle, nothing stops it).
+    public static bool WouldBlock(ObstacleDef def, Combatant c) =>
+        def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
+
+    /// What a move of this type does to that obstacle on purpose (no paint, no special action), or null.
+    public static ObstacleInteraction TurnedBy(int moveType, ObstacleDef on)
     {
-        var def = At(x, y);
-        return def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
+        if (on == null || interactions == null) return null;
+        foreach (var it in interactions)
+            if (it.byType == moveType && it.on == on.key && string.IsNullOrEmpty(it.paintTerrain) && string.IsNullOrEmpty(it.action))
+                return it;
+        return null;
+    }
+
+    /// The obstacle left by that interaction (null: bare floor).
+    public static ObstacleDef Result(ObstacleInteraction it) =>
+        !string.IsNullOrEmpty(it.becomes) ? Def(it.becomes) : !string.IsNullOrEmpty(it.leaves) ? Def(it.leaves) : null;
+
+    /// Lays an obstacle on a tile by hand (the AI test bench); key null or empty clears it.
+    public static void Place(int x, int y, string key)
+    {
+        if (Current == null || x < 0 || y < 0 || x >= Current.size || y >= Current.size) return;
+        Current.Set(x, y, string.IsNullOrEmpty(key) ? null : Def(key));
     }
 
     public static bool BlocksAt(Vector2 world, Combatant c)

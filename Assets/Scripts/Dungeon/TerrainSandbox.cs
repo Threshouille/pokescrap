@@ -148,6 +148,9 @@ public class TerrainSandbox : MonoBehaviour
         }
     }
 
+    /// Removes the emitters (the AI test bench needs a quiet arena).
+    public void Quiet() => ClearEmitters();
+
     void ClearEmitters()
     {
         emitters.Clear();

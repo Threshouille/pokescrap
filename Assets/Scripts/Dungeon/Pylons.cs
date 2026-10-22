@@ -31,6 +31,7 @@ public class Pylons : MonoBehaviour
         public float groundTime = 6f;
         public Conduct[] conducts = new Conduct[0];
         public float hazardCost = 20f; // extra path cost of a tile under a live (or warning) arc, for the AIs
+        public float aiAwareness = 0.6f; // chance that an AI sees a given arc coming (drawn per AI, per pair, per cycle)
     }
 
     [Serializable] class File { public ArcSettings arc; }
@@ -135,20 +136,37 @@ public class Pylons : MonoBehaviour
         return Vector2.Distance(p, a + ab * t);
     }
 
-    /// True when a point lies under an arc that is on or about to be (warning, or the last second of rest), for
-    /// a Pokémon it would hurt: the AIs keep out.
+    /// True when a point lies under an arc that is on or warning, for a Pokémon it would hurt and that saw it
+    /// coming: the AIs keep out. They are not perfect: each AI sees a given arc only with the aiAwareness chance, drawn
+    /// again at every cycle (and every few seconds of an overcharge), so that they get caught now and then.
     public static bool Hazard(Vector2 point, Combatant agent)
     {
         if (current == null || (agent != null && Immune(agent))) return false;
         var s = Settings;
-        foreach (var p in current.pairs)
+        float period = s.rest + s.warn + s.active;
+        for (int i = 0; i < current.pairs.Count; i++)
         {
+            var p = current.pairs[i];
             var phase = PhaseOf(p);
-            float t = Mathf.Repeat(Time.time - p.phaseAt, s.rest + s.warn + s.active);
-            bool soon = phase == Phase.Warn || phase == Phase.Active || (phase == Phase.Rest && t > s.rest - 1f);
-            if (soon && DistanceToSegment(point, p.from, p.to) <= s.width + 0.3f) return true;
+            if (phase != Phase.Warn && phase != Phase.Active) continue;
+            if (DistanceToSegment(point, p.from, p.to) > s.width + 0.3f) continue;
+            int cycle = Mathf.FloorToInt((Time.time - p.phaseAt) / Mathf.Max(0.1f, period));
+            if (agent == null || Sees(agent, i, cycle, s.aiAwareness)) return true;
         }
         return false;
+    }
+
+    // Same answer for the same AI, pair and cycle: the AI does not see the arc one frame and miss it the next.
+    static bool Sees(Combatant agent, int pair, int cycle, float awareness)
+    {
+        unchecked
+        {
+            uint h = (uint)agent.GetEntityId().GetHashCode() * 2654435761u ^ (uint)pair * 40503u ^ (uint)cycle * 2246822519u;
+            h ^= h >> 15;
+            h *= 2246822519u;
+            h ^= h >> 13;
+            return (h & 0xffff) / 65535f < awareness;
+        }
     }
 
     /// Extra path cost of a tile for an AI (under a dangerous arc).
