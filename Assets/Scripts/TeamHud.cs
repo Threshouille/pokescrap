@@ -19,6 +19,7 @@ public class TeamHud : MonoBehaviour
     static readonly Color HealthHigh = new(0.3f, 0.85f, 0.3f), HealthLow = new(0.9f, 0.25f, 0.2f);
     static readonly Color KnockedOut = new(0f, 0f, 0f, 0.65f), Poisoned = new(0.69f, 0.31f, 0.85f);
     static readonly Color Experience = new(0.35f, 0.65f, 1f);
+    static readonly Color MegaFilling = new(0.45f, 0.3f, 0.6f), MegaFull = new(0.85f, 0.45f, 1f);
     static readonly Color Recharging = new(0.25f, 0.25f, 0.25f, 0.8f), Shade = new(0f, 0f, 0f, 0.55f);
 
     static readonly Dictionary<int, Texture2D> portraits = new();
@@ -27,6 +28,7 @@ public class TeamHud : MonoBehaviour
     PlayerController team;
     Progression progression;
     Evolution evolution;
+    MegaEvolution mega;
     GUIStyle text;
 
     // Statics can outlive a play session in the editor.
@@ -38,6 +40,7 @@ public class TeamHud : MonoBehaviour
         team = GetComponent<PlayerController>();
         progression = GetComponent<Progression>();
         evolution = GetComponent<Evolution>();
+        mega = GetComponent<MegaEvolution>();
     }
 
     static Texture2D PortraitOf(int pokemonId)
@@ -59,7 +62,7 @@ public class TeamHud : MonoBehaviour
         // Portrait.
         var portrait = new Rect(Margin * s, Screen.height - (Margin + Portrait) * s, Portrait * s, Portrait * s);
         Fill(Grow(portrait, 2f * s), Frame);
-        var picture = PortraitOf(combatant.Stats.id);
+        var picture = PortraitOf(combatant.Mega?.id ?? combatant.Stats.id);
         if (picture != null) GUI.DrawTexture(portrait, picture, ScaleMode.StretchToFill);
         else Fill(portrait, GameData.TypeColor(combatant.Stats.types.Length > 0 ? combatant.Stats.types[0] : 0));
 
@@ -145,6 +148,31 @@ public class TeamHud : MonoBehaviour
             Label(top, "X", TextAnchor.MiddleCenter);
             Label(bottom, left > 0f ? left.ToString("0.0") : "Esq.", TextAnchor.MiddleCenter);
         }
+
+        // Mega gauge, after the dodge: it rises as enemies fall; the time left while the Pokémon is a mega.
+        if (mega != null)
+        {
+            var slot = new Rect(x + (Combatant.MoveSlots + 1) * (Slot + SlotGap) * s, portrait.yMax - Slot * s, Slot * s, Slot * s);
+            var top = new Rect(slot.x, slot.y + s, slot.width, 9f * s);
+            var bottom = new Rect(slot.x, slot.y + 10f * s, slot.width, 11f * s);
+            Fill(slot, Frame);
+            var inner = Grow(slot, -s);
+            float timeLeft = mega.TimeLeft(combatant);
+            if (timeLeft > 0f)
+            {
+                Fill(inner, MegaFull);
+                Fill(new Rect(inner.x, inner.y, inner.width, inner.height * (1f - Mathf.Clamp01(timeLeft / SaveData.Settings.megaTime))), Shade);
+                Label(bottom, timeLeft.ToString("0"), TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                Fill(inner, Recharging);
+                float h = inner.height * mega.Gauge;
+                Fill(new Rect(inner.x, inner.yMax - h, inner.width, h), mega.Full ? MegaFull : MegaFilling);
+                Label(bottom, mega.Ready ? "Méga !" : "Méga", TextAnchor.MiddleCenter);
+            }
+            Label(top, UnityEngine.InputSystem.Gamepad.current != null ? "L3R3" : "F", TextAnchor.MiddleCenter);
+        }
     }
 
     void DrawAlly(Combatant ally, int index, Rect portrait, float s)
@@ -153,7 +181,7 @@ public class TeamHud : MonoBehaviour
         float size = SmallPortrait * s;
         var rect = new Rect(portrait.x + index * (size + SmallGap * s), portrait.y - size - (SmallBar + 8f) * s, size, size);
         Fill(Grow(rect, s), Frame);
-        var picture = PortraitOf(ally.Stats.id);
+        var picture = PortraitOf(ally.Mega?.id ?? ally.Stats.id);
         if (picture != null) GUI.DrawTexture(rect, picture, ScaleMode.StretchToFill);
         else Fill(rect, GameData.TypeColor(ally.Stats.types.Length > 0 ? ally.Stats.types[0] : 0));
 

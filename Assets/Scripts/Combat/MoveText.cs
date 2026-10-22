@@ -11,6 +11,7 @@ public static class MoveText
         "zone" => "Zone",
         "heal" => "Soin",
         "modifier" => move.target == "enemies" ? "Malus" : "Bonus",
+        "climate" => move.radius > 0f ? "Zone autour de soi" : "Météo",
         _ => move.family,
     };
 

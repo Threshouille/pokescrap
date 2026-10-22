@@ -80,6 +80,7 @@ public class EnemyAI : MonoBehaviour
         // Getting out of a harmful zone comes before anything else.
         Vector2 escape = Zone.EscapeDirection(position, combatant.team, RoleTactics.ZoneMargin);
         if (escape == Vector2.zero) escape = Terrain.EscapeDirection(position, combatant);
+        if (escape == Vector2.zero) escape = Pylons.EscapeDirection(position, combatant);
         if (escape != Vector2.zero)
         {
             Move(RoleTactics.EscapeStep(grid, position, escape), escape);

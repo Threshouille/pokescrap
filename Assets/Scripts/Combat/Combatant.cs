@@ -60,6 +60,7 @@ public class Combatant : MonoBehaviour
     public bool IsDodging => Time.time < dodgeUntil;
     /// True while a dash (melee lunge or dodge) drives the body: controllers leave its velocity alone.
     public bool IsDashing => IsLunging || IsDodging || Time.time < knockUntil;
+    public bool IsKnockedBack => Time.time < knockUntil;
     public float DodgeCooldownLeft => Mathf.Max(0f, dodgeReadyAt - Time.time);
     /// Where the player controlling this Pokémon aims right now (zero for an AI). A shot that leaves after a cast
     /// or a delay follows it, rather than the direction it was aimed at when the move started.
@@ -313,6 +314,52 @@ public class Combatant : MonoBehaviour
         Stats = next;
     }
 
+    /// The mega evolution this Pokémon is in, or null.
+    public MegaDef Mega { get; private set; }
+    PokemonStats beforeMega;
+    float megaHp, megaAtk, megaSpAtk, megaDef, megaSpDef, megaSpeedMul = 1f;
+
+    /// Turns into a mega evolution of its current form: its stats grow by the ratio between the official stats of
+    /// the mega and of the base form, it takes the mega's name and types. RevertMega takes the bonus back (level-up
+    /// gains in between are kept); health keeps its share both ways.
+    public void MegaEvolve(MegaDef mega)
+    {
+        if (Mega != null || Stats == null || mega == null) return;
+        Mega = mega;
+        beforeMega = Stats;
+        var form = Stats.Clone();
+        form.name = mega.name;
+        if (mega.types != null && mega.types.Length > 0) form.types = mega.types;
+        Stats = form;
+        static float Gain(float value, int to, int from) => from > 0 ? value * (to / (float)from - 1f) : 0f;
+        float hpShare = maxHp > 0f ? hp / maxHp : 1f;
+        megaHp = Gain(maxHp, mega.stats.hp, mega.baseStats.hp);
+        maxHp += megaHp;
+        if (IsAlive) hp = Mathf.Max(1f, maxHp * hpShare);
+        atk += megaAtk = Gain(atk, mega.stats.atk, mega.baseStats.atk);
+        spAtk += megaSpAtk = Gain(spAtk, mega.stats.spAtk, mega.baseStats.spAtk);
+        def += megaDef = Gain(def, mega.stats.def, mega.baseStats.def);
+        spDef += megaSpDef = Gain(spDef, mega.stats.spDef, mega.baseStats.spDef);
+        megaSpeedMul = GameData.MoveSpeed(mega.stats.speed) / GameData.MoveSpeed(mega.baseStats.speed);
+        moveSpeed *= megaSpeedMul;
+    }
+
+    public void RevertMega()
+    {
+        if (Mega == null) return;
+        float hpShare = maxHp > 0f ? hp / maxHp : 1f;
+        maxHp -= megaHp;
+        if (IsAlive) hp = Mathf.Max(1f, maxHp * hpShare);
+        else hp = Mathf.Min(hp, maxHp);
+        atk -= megaAtk;
+        spAtk -= megaSpAtk;
+        def -= megaDef;
+        spDef -= megaSpDef;
+        moveSpeed /= megaSpeedMul;
+        Stats = beforeMega;
+        Mega = null;
+    }
+
     /// Moves this Pokémon could learn now: those of its first form, plus those of the forms it evolved into,
     /// with a weight (moves of an evolved current form are more likely). Known moves are left out.
     public List<(MoveDef move, float weight)> LearnableMoves(float evolvedWeight)
@@ -394,12 +441,16 @@ public class Combatant : MonoBehaviour
     public void RemoveStatus(string status) => statuses.RemoveAll(st => st.def.key == status);
 
     /// Walking velocity wanted by a controller: the terrain under the Pokémon slows or speeds it up, and on a
-    /// slippery one (ice) the body only gets there gradually, so it slides.
+    /// slippery one (ice) the body only gets there gradually, so it slides. Walking stops at the edge of the
+    /// obstacles it cannot enter (Obstacles.Clamp); a slide, a push or a dash may still carry it in.
     public void Drive(Vector2 velocity)
     {
         if (body == null) return;
-        velocity *= Terrain.SpeedMul(this);
-        float accel = Terrain.SlideAccel(this);
+        velocity = velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this) + Obstacles.Pull(this) // magnets drag Acier
+            + Climate.WindPush(this); // a storm's wind carries the Vol
+        velocity = Obstacles.Clamp(this, body.position, velocity);
+        float accel = Terrain.SlideAccel(this), ground = Obstacles.SlideAccel(this);
+        if (ground > 0f) accel = accel > 0f ? Mathf.Min(accel, ground) : ground;
         body.linearVelocity = accel > 0f ? Vector2.MoveTowards(body.linearVelocity, velocity, accel * Time.fixedDeltaTime) : velocity;
     }
 
@@ -507,6 +558,15 @@ public class Combatant : MonoBehaviour
             patient.Heal(patient.maxHp * move.healShare);
             if (EffectLibrary.Get(move.effect) != null) EffectPlayer.Spawn(move.effect, patient.transform.position, Vector2.right);
             else Shapes.Pulse(patient.transform.position, 0.6f, HealTint);
+            return true;
+        }
+
+        if (move.family == "climate")
+        {
+            // A weather over the whole arena, or a sport's zone around the user (Climate).
+            readyAt[slot] = Time.time + CooldownOf(move);
+            Climate.Cast(move, this);
+            Shapes.Pulse(transform.position, 1.2f, GameData.TypeColor(move.type));
             return true;
         }
 
@@ -636,7 +696,7 @@ public class Combatant : MonoBehaviour
     /// Pushes this Pokémon away for "time" seconds (bosses do not budge).
     public void Knockback(Vector2 velocity, float time)
     {
-        if (isBoss || !IsAlive || body == null) return;
+        if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this)) return; // an Acier on metal holds firm
         time *= Terrain.KnockbackMul(this); // slippery ground: the push carries further
         knockVelocity = velocity;
         knockTime = time;
@@ -1134,18 +1194,30 @@ public class Combatant : MonoBehaviour
         return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab;
     }
 
+    /// The damage a hit of this move would roughly deal to "target" (types, defence; weather and terrain aside),
+    /// for the AIs' choices. 0 for a move without power.
+    public float EstimateHit(MoveDef move, Combatant target)
+    {
+        float raw = DamageOf(move);
+        if (raw <= 0f || target == null) return 0f;
+        float defence = move.category == "physical" ? target.def : target.spDef;
+        return raw * TypeChart.Multiplier(move.type, target.Stats?.types, out _) * DefenseScale / (DefenseScale + defence)
+            / target.Modifier("defense");
+    }
+
     /// A hit from a move: the target's types and defence (physical or special) change it. Returns false when the hit
     /// was ignored (already down, or protected just after a previous hit); "dealt" is the health actually lost.
     public bool TakeHit(float raw, MoveDef move, out float dealt)
     {
         dealt = 0f;
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
-        if (team == Team.Player && Time.time < invulnerableUntil) return false;
+        if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = move.category == "physical" ? def : spDef;
         float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
-        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense"));
+        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this)
+            * Climate.DamageMul(move.type, transform.position)); // weather, sports around it
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
@@ -1215,6 +1287,9 @@ public class Combatant : MonoBehaviour
         foreach (var collider in GetComponents<Collider2D>()) collider.enabled = false;
         if (body != null) body.simulated = false;
     }
+
+    /// Ignores hits for a few seconds, whatever the team (back on its feet after a fall); half transparent meanwhile.
+    public void Protect(float seconds) => invulnerableUntil = Mathf.Max(invulnerableUntil, Time.time + seconds);
 
     /// Brings a knocked-out team member back with a share of its max HP, briefly protected.
     public void Revive(float healthShare)

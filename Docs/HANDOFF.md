@@ -46,7 +46,29 @@ Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps 
 
 ## Effets de terrain (19/10/2026)
 
-Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, commandes clavier U I O P. Suite décidée : affiner la logique et le fonctionnement, puis les affinités entre terrains (table `reactions`). Tuiles animées des 8 terrains livrées (19/10/2026, `Design/effects_v11_terrains/`, prompt `Design/prompt_terrains.md`). Reste : planches des 14 attaques à trace qui n'ont qu'un disque coloré (Lance-Flamme, Déflagration, Hydrocanon, Hydroblast, Canon Graine, Mégafouet, Végé-Attak, Tonnerre, Fatal-Foudre, Laser Glace, Blizzard, Détritus, Bomb-Beurk, Boue-Bombe).
+Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, commandes clavier U I O P. Suite décidée : affiner la logique et le fonctionnement, puis les affinités entre terrains (table `reactions`). Tuiles animées des 8 terrains livrées (19/10/2026, `Design/effects_v11_terrains/`, prompt `Design/prompt_terrains.md`). Reste, reporté par Robin (19/10/2026) : planches des 14 attaques à trace qui n'ont qu'un disque coloré (Lance-Flamme, Déflagration, Hydrocanon, Hydroblast, Canon Graine, Mégafouet, Végé-Attak, Tonnerre, Fatal-Foudre, Laser Glace, Blizzard, Détritus, Bomb-Beurk, Boue-Bombe) ; prompt prêt : `Design/prompt_attaques_terrain.md`. Ces attaques sont générées : leur attribuer les planches via `move_rules.json` plutôt qu'en les recopiant dans `realtime_moves.json`.
+
+## Méga-évolutions (20/10/2026, Robin) : en pause
+
+Étape 1 faite (branche `feature/mega-evolutions`) : sprites de 27 mégas (SpriteCollab), galerie du terrain de test,
+jauge commune, L3 + R3 / F, stats et types, onde de choc, retour au bout de 50 s ; testée en jeu par Robin, réservée
+au `devMode`. Mise en pause par Robin pour passer aux IA. Fusionnée dans `dev` le 22/10/2026. Suite (GDD) : 2) méga-gemmes (sauvegarde, emplacement au menu
+d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : boss qui méga-évoluent.
+
+## Correction des IA (branche `feature/ia`, fusionnée dans `dev` le 22/10/2026, Robin)
+
+- Alliés qui suivaient le Pokémon joué jusque dans une zone nocive : ils visent la case sûre la plus proche de lui
+  (`AllyAI.SafeSpotNear`) par un chemin qui contourne les dangers (`Navigator.Direction(..., avoid: true)`), et
+  n'attendent au bord que s'il n'en existe aucun.
+- Lot A (GDD « IA ») fait et testé : `TargetChoice` (cible par score, alliés et groupes ennemis),
+  alliés qui suivent le Pokémon joué quand il recule, plus offensifs, prudents quand ils sont blessés. Suite : lot B
+  (placement et combos selon les types), lot C (couper et réparer les chemins).
+- Banc d'essai des IA (`AiScenarios`, touche B dans le terrain de test, `python3 Tools/setup.py --ai-scenarios`) :
+  8/8 en batch le 20/10/2026. Il a révélé que l'allié restait coincé au coin d'une bande de danger (coin coupé en
+  diagonale, ligne droite autorisée depuis le danger) : corrigé dans `Navigator` (mode `avoid`).
+- Lot C commencé (20/10/2026) : réparer un chemin (geler, nénuphars, lianes, lave refroidie), brûler un pont sous un
+  ennemi au corps à corps ; pylônes vus avec 60 % de chances par cycle ; métal ignoré par les IA. `Navigator` ne
+  relance plus l'A* à chaque pas vers une cible inaccessible (problème connu, corrigé). Banc : 14 scénarios.
 
 ## En attente
 
@@ -56,10 +78,14 @@ Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, com
 
 ## Problèmes connus et points à surveiller
 
-- Analyse du code (17/10/2026), corrigé : gardes du boss qui rapportaient expérience et recrues, ✕ / Espace qui esquivaient ou attaquaient en fermant un menu (entrées ignorées 0,25 s), ennemi seul forcé en soutien, écran de fin qui se fermait aussitôt (1 s avant d'accepter une touche), recul ignoré pendant l'annonce d'un ennemi, attaque possible en pleine ruée ou esquive. Restent, mineurs : les zones ne déclenchent ni drain ni recul ; `Navigator` relance l'A* à chaque pas quand la cible est inaccessible ; tuiles non détruites à chaque `Generate()` ; Attaque / Attaque Spé proposées même sans attaque de cette catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
+- Analyse du code (17/10/2026), corrigé : gardes du boss qui rapportaient expérience et recrues, ✕ / Espace qui esquivaient ou attaquaient en fermant un menu (entrées ignorées 0,25 s), ennemi seul forcé en soutien, écran de fin qui se fermait aussitôt (1 s avant d'accepter une touche), recul ignoré pendant l'annonce d'un ennemi, attaque possible en pleine ruée ou esquive. Restent, mineurs : les zones ne déclenchent ni drain ni recul ; tuiles non détruites à chaque `Generate()` ; Attaque / Attaque Spé proposées même sans attaque de cette catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
 
 - **Équilibrage entièrement provisoire**, encore plus depuis le système d'attaques : 2 attaques au départ, ennemis à attaques tirées au hasard, recharges génériques (`move_rules.json`). Le soutien devient rare : il faut un soin ou un bonus aux alliés (Bulbizarre n'est soutien qu'avec Synthèse). L'équipe progresse trop vite (niveau 23-25 à la fin de l'arène 2 dans mes tests, mais ces tests tuaient les vagues par code) et écrase Groudon niveau 10. Rythme d'expérience (20 + 4 × niveau) sans lien avec l'objectif « niveau 100 en 30 min ».
 - Un soutien ennemi peut être rattrapé pendant sa pause après attaque.
+- **IA à corriger (prochaine branche, Robin, 20/10/2026)** : un allié qui suit le Pokémon joué ne recalcule pas de
+  chemin sûr pour le rejoindre ; il s'arrête au bord du danger (`AllyAI.SafeSpotNear`, en cours sur la branche des IA).
+- Corrigé le 20/10/2026 : le terrain se dessinait au même ordre que les Pokémon (ils passaient dessous et clignotaient) ;
+  sol descendu à -6 (`DungeonGenerator.FloorOrder`).
 - `meta.json` a `"devMode": true` (persos de dev en tête du menu, 19/10/2026) : le repasser à `false` pour une version de jeu.
 - `meta.json` a `"unlockAll": true` pour les tests d'Owen : le repasser à `false` pour retrouver les vrais déblocages.
 - L'annonce des attaques au corps à corps ennemies reste un disque rouge, qui ne correspond pas aux arcs ni aux estocs.

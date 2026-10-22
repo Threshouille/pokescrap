@@ -83,6 +83,97 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   les 15 s), plus deux démonstrations au centre : une flaque frappée par la foudre toutes les 6 s et un champ
   de ronces incendié toutes les 7 s. Pas d'ennemis par défaut (`"enemyWaves": true` pour faire tourner en boucle les
   vagues de la première étape et voir l'IA réagir). Rien n'est recruté ni compté. Disposition et réglages : `Assets/Resources/Data/terrain_sandbox.json`.
+  L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
+  immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
+  animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 14 scénarios (ne pas suivre
+  le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
+  terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
+  lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
+  brûler un pont sous un ennemi, marcher sur du métal chargé) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
+  Sans ouvrir Unity : `python3 Tools/setup.py --ai-scenarios` (Unity fermé ; résultats dans `Logs/ai_scenarios.log`,
+  code de sortie = nombre d'échecs). Scénarios : `Assets/Scripts/Combat/AiScenarios.cs`.
+
+## Obstacles
+
+**En partie**, chaque arène reçoit 1 ou 2 obstacles selon son décor (`Assets/Resources/Data/arena_obstacles.json`) :
+cristaux (arène 1) : eau, vide, rochers ; sable (arène 2) : ravins, gouffres, sable mouvant, rochers ; volcan (boss) : lave, rochers, arène
+dégagée. Une partie des blocs de mur est remplacée par des rochers cassables ; pylônes et métal y restent rares (ils
+sont faits pour des salles à thème). Le point d'arrivée reste dégagé et les ennemis n'apparaissent que sur des cases
+sûres reliées à l'équipe. `obstaclesInRuns` dans `meta.json` les coupe. Après une mise à jour du dépôt, relancer
+`python3 Tools/setup.py` (ou le menu **Pokescrap > Build Tilesets**) : les décors reçoivent leur numéro de la ROM.
+
+### Salle de test
+
+Depuis le terrain de test, l'**escalier en haut à droite** mène à la **salle des obstacles** (l'escalier en bas à
+gauche ramène). Chaque visite tire 2 ou 3 obstacles au hasard (**R** ou **Select** : nouveau tirage) : vide avec
+ponts (d'un mur à l'autre), ravin (sur une partie de la salle), gouffre, rivière, rivière glacée, lac, lac de lave,
+lac de glace, île entourée de vide ou d'eau, murs de glace, rochers, pylônes électriques, plaques de métal avec bornes
+aimantées. Les rivières vont d'un mur à l'autre, les ponts sont
+droits ; l'eau et la lave ne se touchent jamais. L'eau, la lave, le vide et la glace
+reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
+ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et murs de glace ont leurs planches Claude Design
+(`Design/effects_v12_obstacles/`, prompt `Design/prompt_obstacles.md`).
+
+- On ne marche jamais dedans par erreur : le déplacement s'arrête au bord. Mais une poussée, une glissade ou une ruée
+  peuvent y faire **tomber** : retour sur la terre ferme la plus proche et dégâts (eau 10 %, vide 20 %, lave 25 % +
+  brûlure), puis 1 s d'invincibilité ; si la chute prend ses derniers PV, le Pokémon est K.O. sur la rive.
+- Franchissement : le type de déplacement de la ROM (nage, lave, lévitation, traverse-murs) **ou** le type du Pokémon
+  suffit. Eau : nage dans l'eau profonde ; Feu : marche sur la lave ; Vol : survole l'eau, le vide et la lave (3 % des
+  PV par seconde et risque de brûlure au-dessus de la lave) ; Spectre : traverse tout, rochers et murs de glace compris,
+  seul l'arc des pylônes le touche ; Glace ne glisse pas sur la glace, Plante n'est pas ralenti par la végétation, Sol et
+  Roche par les gravats. Ennemis comme alliés. Les tirs passent au-dessus de l'eau, de la lave et du vide, pas des
+  solides.
+- Interactions, par le type de l'attaque **ou par une trace de terrain posée sur l'obstacle ou juste à côté** :
+  Glace gèle l'eau 8 s (un rayon de glace trace un pont) et refroidit la lave ; Plante couvre l'eau de végétation 10 s
+  et reconstruit un pont brûlé en lianes ; Électrik électrifie toute l'eau ; Poison la contamine ; Feu fait fondre la
+  glace (ceux qui sont dessus tombent), brûle la végétation, fait fondre les murs de glace et **met le feu aux ponts** :
+  le feu gagne tout le pont (rouge, bloqué), qui finit brûlé (gris, bloqué) ; Eau refroidit la lave en roche.
+
+- **Rochers** (décors 9 et 18 de la ROM) : solides, brisés par une attaque **Combat** (les gros en 2 coups), qui laisse
+  des gravats ; le Combat brise aussi les murs de glace en éclats glissants. Un Pokémon **poussé** par un coup ou qui
+  **glisse** sur une surface glissante contre un rocher, un mur de glace, un pylône ou une borne est étourdi et perd
+  5 % de ses PV ; marcher dedans, esquiver ou foncer volontairement ne fait rien. Des plaques de glace sont souvent
+  posées contre le vide, l'eau ou les rochers pour profiter des glissades.
+- **Sable mouvant** : ralentit fortement (×0,4) ; rester plus de 2 s dedans enlise (pris au piège 1,5 s, petits dégâts).
+  Vol, Sol, Spectre et les Pokémon qui lévitent ne sont pas concernés ; l'IA l'évite.
+- **Pylônes électriques** : par paires, un arc les relie toutes les 4,8 s (avertissement qui crépite, puis arc
+  d'1 s) : dégâts, paralysie, étourdissement ; Électrik et Sol immunisés, Vol ×1,5, Spectre touchés. Électrik
+  surcharge un pylône (arc continu 4 s), Sol le met à la terre (coupé 6 s). Un arc au-dessus de l'eau ou du métal
+  l'électrifie en entier.
+- **Métal** : les plaques conduisent l'électricité (toutes les plaques reliées), chauffent au Feu, gèlent à la Glace ;
+  un Acier dessus ne peut pas être poussé, résiste mieux (+20 %) et n'est pas électrocuté. Les effets se combinent :
+  de l'eau sur du métal ou un sol chargé devient de l'eau électrifiée (et des plaques qu'on électrifie électrifient
+  la flaque posée dessus) ; l'eau s'évapore sur le métal brûlant, la glace y fond. Les **bornes aimantées**
+  attirent les Acier et happent les tirs Acier et Électrik ; chargées, elles électrifient les plaques qu'elles
+  touchent.
+
+Réglages : `Assets/Resources/Data/obstacles.json` (obstacles, chutes, interactions, arc des pylônes) et
+`obstacle_room.json` (tirage). Planches des pylônes, de l'arc, du métal et des bornes : `Design/effects_v13_electrique_metal/`
+(prompt `Design/prompt_electrique_metal.md`).
+
+## Météos et sports
+
+Six attaques de la ROM jusque-là écartées deviennent jouables (`Assets/Resources/Data/climates.json`) :
+
+| Attaque | Effet (toute l'arène, 20 s, pour les deux camps) |
+|---|---|
+| Zénith | braises plus grandes et plus longues, flaques et verglas raccourcis ; Feu ×1,3, Eau ×0,7 ; quelques braises éparses |
+| Danse Pluie | flaques plus grandes, eau électrifiée plus longue, braises vite éteintes ; Eau ×1,3, Feu ×0,7 ; flaques éparses |
+| Grêle | verglas plus grand et plus long ; 0,4 % des PV par seconde sauf Glace ; verglas épars |
+| Tempêtesable | boue plus grande et plus longue ; 0,4 % des PV par seconde sauf Roche, Sol, Acier ; boue éparse |
+
+Une seule météo à la fois (la dernière lancée remplace l'autre), signalée par un voile coloré et son nom en haut à
+droite ; elle agit aussi sur les traces déjà au sol. Elle change aussi la vitesse et la portée des tirs : sous la pluie,
+les tirs Feu vont 30 % moins loin et les tirs Eau un peu plus ; au soleil, l'inverse ; la grêle porte les tirs Glace.
+La grêle et la tempête de sable ont un **vent** (direction fixe, flèche à l'écran) : un tir dans son sens gagne jusqu'à
++15 / +25 % de vitesse et de portée, contre lui il en perd autant ; Vol y est deux fois plus sensible, Roche et Sol
+pas du tout. Le vent déporte aussi les Pokémon **Vol** (0,8 case/s sous la grêle, 1,5 dans la tempête de sable),
+même à l'arrêt. Textures (pluie, grêle, sable, soleil, icônes, zones de Tourniquet et Lance-Boue, sable mouvant) :
+`Design/effects_v14_meteo/`, prompt `Design/prompt_meteo.md`. **Tourniquet** et **Lance-Boue** ouvrent une zone de 4 cases
+autour du lanceur pendant 15 s : plus de braises (Tourniquet) ou d'électricité (Lance-Boue) dedans, et les attaques
+Feu (ou Électrik) y font moitié moins de dégâts. L'IA lance une météo quand elle favorise son équipe, un sport
+quand des adversaires du type visé sont proches.
 
 ## Effets de terrain
 
@@ -121,6 +212,73 @@ un terrain nocif auquel il est immunisé (les ennemis l'évitent).
 Tout se règle dans `Assets/Resources/Data/terrains.json` : `terrains` (effets, immunités, soin, coût pour l'IA),
 `moves` (attaques qui laissent une trace et sa forme), `sizing` et `reactions`.
 
+## Journal des changements
+
+### Après la mise à jour (à faire une fois)
+Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tirés de la ROM (eau, lave, vide et glace
+des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
+donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
+obstacles retombent sur des cases de couleur.
+
+### 20/10/2026 — Méga-évolutions, étape 1 (Robin, `feature/mega-evolutions`, fusionnée dans `dev` le 22/10/2026)
+- 27 méga-évolutions aux sprites complets, absentes de la ROM, téléchargées depuis
+  [PMDCollab SpriteCollab](https://github.com/PMDCollab/SpriteCollab) (CC BY-NC 4.0, auteurs dans
+  `CREDITS_MEGAS.md`) par `Tools/pmd/import_megas.py`, appelé par `setup.py` (connexion internet nécessaire une
+  seule fois : il ne contacte plus SpriteCollab quand tout est là). Visibles dans la galerie du terrain de test.
+  Liste et ids (20000 + n° de Pokédex × 10 + forme) : `Assets/Resources/Data/megas.json`, stats et types
+  officiels ajoutés par `Tools/pmd/mega_data.py` (CSV PokéAPI de `Tools/pmd/external`).
+- **Méga-évolution en partie** (étape 1, `devMode` seulement en attendant les méga-gemmes) : la jauge Méga (case
+  après l'esquive) se remplit en mettant des ennemis K.O. (un boss en donne la moitié) et se garde d'une étape à
+  l'autre ; pleine, **L3 + R3** (clic des deux sticks) ou **F** fait méga-évoluer le Pokémon contrôlé s'il a une méga :
+  stats officielles de la méga (en proportion), son type, onde de choc ; retour à la forme au bout de 50 s ou au
+  K.O. Dans le terrain de test, la jauge est toujours pleine. Réglages `mega*` dans `meta.json`.
+- Correctif : le terrain se dessinait au même niveau que les Pokémon (ils semblaient passer dessous et clignotaient).
+- Après la mise à jour : Unity fermé, `python3 Tools/setup.py` (ou `python3 -I Tools/pmd/import_megas.py .` puis
+  `python3 Tools/setup.py --unity-only PmdSpriteImport.BuildAll`).
+
+### 20/10/2026 — IA : cible, suivi, obstacles, banc d'essai (Robin, `feature/ia`, fusionnée dans `dev` le 22/10/2026)
+- **Choix de la cible** (alliés et groupes d'ennemis) : plus seulement le plus proche, mais un score (`TargetChoice`) :
+  K.O. rapide possible, efficacité des types, menace sur un coéquipier faible face à lui, coéquipiers déjà sur lui,
+  distance. Poids `aiTarget*` dans `meta.json`.
+- **Alliés** : ils suivent le Pokémon joué quand il recule, contournent les dangers pour le rejoindre (sinon attendent
+  au bord), engagent plus loin (9 cases) ; blessés (moins de 30 % de PV), ils restent près de lui. Réglages `ally*`.
+- **Obstacles (lot C)** : un allié coupé du Pokémon joué par de l'eau, de la lave, du vide ou un pont brûlé les change
+  avec ses attaques pour passer (gèle la rivière, nénuphars, pont de lianes, lave refroidie) ; il brûle le pont (ou
+  fait fondre la glace) sous un ennemi au corps à corps, jamais sous un coéquipier.
+- **Pylônes** : les IA ne voient venir un arc qu'avec 60 % de chances par cycle (`arc.aiAwareness` dans
+  `obstacles.json`) et se font donc surprendre de temps en temps. **Métal** chargé ou brûlant : les IA ne s'en
+  soucient pas (`aiBlind` dans `terrains.json`).
+- **Banc d'essai des IA** (touche B dans le terrain de test, ou `python3 Tools/setup.py --ai-scenarios`) : 14 scénarios.
+
+### 20/10/2026 — Obstacles, météos (Robin, branche `feature/obstacles`)
+- **Obstacles** : couche durable sous le terrain (eau profonde, lave, vide, ponts, glace, végétation, roche,
+  rochers, murs de glace, pylônes électriques, plaques de métal et bornes aimantées, sable mouvant), avec chutes,
+  chocs, interactions par type d'attaque et par contact du terrain, franchissement selon le type de Pokémon ou de
+  déplacement de la ROM. Visuels : décors de la ROM + planches Claude Design (`Design/effects_v12_obstacles`,
+  `effects_v13_electrique_metal`, `effects_v14_meteo`).
+- **En partie** : 1 ou 2 obstacles par arène selon le décor (`arena_obstacles.json`), blocs de mur réduits, ennemis
+  qui apparaissent seulement sur des cases sûres et atteignables. **Salle de test** des obstacles depuis le terrain de
+  test (escalier, tirage, R pour retirer).
+- **Météos et sports** : Zénith, Danse Pluie, Grêle, Tempêtesable, Tourniquet, Lance-Boue deviennent jouables
+  (`climates.json`) : traces de terrain modifiées, dégâts par type, portée des tirs, vent des tempêtes qui porte les
+  tirs et déporte les Pokémon Vol.
+- Effets de terrain combinés (eau sur métal chargé : eau électrifiée…), apparition en fondu des traces.
+
+### 19-20/10/2026 — Attaques de type, lot 1 (Owen, `feature/attaques-type-lot1`, fusionné dans `dev`)
+- Vibraqua, Lame d'Air, Plaie-Croix, Onde Folie, Telluriforce, avec leurs planches ; spores et poudres (nuages qui se
+  déploient) ; Pistolet à O en rafale très courte. Le lot 2 (Fatal-Foudre, Blizzard, Draco Météor, Pouv. Antique)
+  est en cours sur `feature/attaques-type-lot2`.
+
+### 19/10/2026 — Effets de terrain (Robin, `feature/effets-terrain`, fusionné dans `dev`)
+- Traces au sol laissées par 24 attaques (verglas, braises, flaque, sol chargé, eau électrifiée, ronces, boue, flaque
+  toxique), affinités entre terrains, tuiles animées aux bords découpés par élément, IA qui évite, se replie et
+  profite du terrain ; terrain de test (Select / T au menu en `devMode`).
+
+### 19/10/2026 — Persos de dev, portabilité (Robin)
+- Persos de dev qui apprennent toutes les attaques (`devMode`), filtre par type au menu, commandes clavier U I O P.
+- Portabilité multi-OS : `setup.py` trouve Unity sur Linux, macOS et Windows (`--unity`, `UNITY_PATH`, version la plus
+  proche de la même branche), `uvx` pris dans le `PATH` pour unityMCP.
+
 ## Comment le dépôt gère les assets de la ROM
 
 Unity identifie chaque asset par un **GUID** stocké dans son fichier `.meta`, et les scènes référencent les
@@ -129,7 +287,9 @@ assets par ce GUID. Le dépôt sépare donc les deux :
 | Versionné (Git) | Ignoré (`.gitignore`), régénéré par `Tools/setup.py` |
 |---|---|
 | tous les `.meta` | `Assets/Sprites/Pokemon/*/*.png`, `AnimData.xml` |
+| | `Assets/Resources/ObstacleTiles/*/chunks.png`, `tileset.json` (eau, lave, vide des obstacles) |
 | `Assets/Sprites/Pokemon/<Nom>/id.txt` (liste des Pokémon du projet) | `Assets/Resources/Portraits/*.png` |
+| `megas.json`, `CREDITS_MEGAS.md` | sprites et portraits des méga-évolutions (SpriteCollab, téléchargés par `setup.py`) |
 | code, scènes, réglages, `Tools/` | `Assets/Resources/AnimSets/*.asset` |
 | données écrites à la main (`realtime_moves.json`, `meta.json`, `statuses.json`, `upgrades.json`, `type_chart.json`) | `Assets/Tilesets/*/chunks.png`, `tileset.json`, `Tileset.asset` |
 | effets d'attaque originaux (`Assets/Resources/Effects`, `Design/`) | `Assets/Data/*.json`, `pokemon_rt.json`, `levels_rt.bytes`, `generated_moves.json` |

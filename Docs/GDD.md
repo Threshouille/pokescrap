@@ -30,6 +30,56 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Soin (19/10/2026) : les Pokémon Eau récupèrent 1,5 % de leurs PV max par seconde dans une flaque ; les autres n'y sont que soignés de la brûlure.
 - IA (19/10/2026) : préfère une attaque dont la trace réagit sous l'ennemi en terrain nocif, renonce à une trace qui toucherait un allié non immunisé (y compris sur la même flaque quand la réaction se propage). Repli : sous 35 % de PV et sans ennemi à moins de 2 cases, va vers un terrain qui l'aide à moins de 6 cases (soin, statut soigné, terrain nocif auquel il est immunisé), y reste jusqu'à 60 % de PV ou 8 s, puis pas avant 12 s.
 
+### Obstacles (décidé le 19/10/2026, Robin)
+- Couche durable sous le terrain : eau profonde, lave, vide, ponts, murs de glace, surfaces gelées. Testés d'abord seuls, dans la salle des obstacles du terrain de test (escalier), avant de les mettre dans les arènes.
+- Passage selon le type de déplacement de la ROM (nage, lave, lévitation, traverse-murs). On s'arrête au bord en marchant ; poussé, glissant ou en ruée, on tombe : retour sur la terre ferme la plus proche (le dernier point sûr s'il l'est encore : une glace a pu fondre entre-temps) et dégâts (eau 10 %, vide 20 %, lave 25 % + brûlure), puis 1 s d'invincibilité ; K.O. sur la rive si la chute prend ses derniers PV (19/10/2026, Robin).
+- Interactions selon le type de l'attaque : Glace gèle l'eau (8 s) et refroidit la lave ; Plante végétalise l'eau (10 s) et reconstruit un pont brûlé ; Électrik électrifie toute l'eau ; Feu fait fondre glace et murs de glace, brûle ponts et végétation ; Eau refroidit la lave (pour de bon).
+- Salle : 2 ou 3 obstacles tirés au hasard à chaque visite (vide avec ponts, rivière, rivière glacée, lacs d'eau, de lave ou de glace, murs de glace), jamais de quoi couper la salle en deux.
+- Génération (19/10/2026, Robin) : l'eau et la lave ne se touchent jamais (une case de sol entre les deux) ; les rivières vont d'un mur à l'autre sans case praticable ; le vide n'est pas forcément continu (vide d'un mur à l'autre avec ponts, ravin sur une partie de la salle, gouffres) ; ponts droits sur une portion rectiligne ; îles (vide ou eau autour) reliées par 2 ou 3 ponts, dont la terre et l'arrivée des ponts restent du sol (rien ne s'y pose ensuite).
+- Retours (19/10/2026, Robin) : les traces de terrain agissent aussi sur les obstacles, posées dessus ou sur une case voisine (sol chargé au bord de l'eau : toute l'eau s'électrifie ; braises sur un pont : il prend feu) ; cycle du pont : en feu 2,5 s (bloqué, le feu gagne tout le pont), puis brûlé (bloqué), reconstruit en lianes par une attaque ou des ronces Plante. Planches Claude Design livrées le 19/10/2026 (`Design/effects_v12_obstacles/`).
+- Nouveaux obstacles (20/10/2026, Robin) : rochers (murs isolés des décors 9 et 18, solides, brisés par le type Combat, gros rochers en 2 coups, gravats ralentissants) ; le Combat brise aussi les murs de glace (éclats glissants) ; choc contre un obstacle solide après une poussée ou une glissade : 0,5 s d'étourdissement et 5 % des PV, jamais en marchant, en esquivant ou en fonçant volontairement (20/10/2026, Robin) ; plaques de glace placées contre le vide, l'eau ou les rochers pour favoriser glissades et chutes. Pylônes par paires : arc cyclique (3 s de repos, 0,8 s d'avertissement, 1 s actif) qui blesse (6 %), paralyse et étourdit, immunisés Électrik et Sol, Vol ×1,5, Spectre touchés ; Électrik surcharge (4 s), Sol met à la terre (6 s) ; l'arc électrifie l'eau et le métal qu'il survole ; l'IA évite l'arc. Métal (compromis plaques + aimants) : plaques conductrices (électricité dans toutes les plaques reliées, Feu : brûlantes, Glace : glissantes), Acier ancré dessus (pas de recul, +20 % de défense, pas électrocuté) ; bornes aimantées qui attirent les Acier et happent les tirs Acier et Électrik, et électrifient les plaques voisines une fois chargées.
+- Visuels Claude Design des pylônes (normal, surchargé, à la terre), de l'arc et de son avertissement, des plaques de métal, des bornes et du métal chargé ou brûlant livrés le 20/10/2026 (`Design/effects_v13_electrique_metal/`).
+- Combinaison des effets (20/10/2026, Robin) : une trace posée sur une case qui a déjà un effet se combine avec lui (eau sur métal ou sol chargé : eau électrifiée ; plaques électrifiées sous une flaque : toute la flaque électrifiée ; eau ou glace sur métal brûlant : vapeur ou flaque), y compris quand une interaction peint tout un obstacle ; les traces apparaissent en fondu (0,25 s) par-dessus les obstacles.
+- Sable mouvant (20/10/2026, Robin) : ralentit (×0,4), enlise après 2 s (statut piège 1,5 s), sans effet sur Vol, Sol, Spectre et les Pokémon qui lévitent ; arène 2 surtout.
+- En partie (20/10/2026, Robin) : 1 ou 2 obstacles par arène selon le décor (cristaux : eau, un peu plus de vide et de rivières, rochers ; sable : ravins, gouffres, sable mouvant, rochers ; volcan du boss : lave, rochers, arène dégagée), 4 blocs de mur au lieu de 8 (2 au boss), eau dessinée avec celle du décor ; pylônes et métal rares, réservés à de futures salles à thème (et au boss si cohérent) ; point d'arrivée dégagé, ennemis seulement sur des cases sûres reliées à l'équipe.
+- Franchissement selon le type (20/10/2026, Robin), en plus du type de déplacement de la ROM : Eau nage dans l'eau profonde ; Feu marche sur la lave ; Vol survole eau, vide et lave (3 %/s et 30 %/s de risque de brûlure au-dessus de la lave, sauf s'il passe aussi par un autre type) ; Spectre traverse tous les obstacles, solides compris (les tirs non), seul l'arc des pylônes le touche ; Glace ne glisse pas sur la glace, Plante n'est pas ralenti par la végétation, Sol et Roche par les gravats. Valable pour les ennemis ; l'IA en tient compte (péage compté dans ses chemins).
+- Visuels : couches secondaires des décors de la ROM avec leurs berges (eau : décor 5, vide : 54, lave : 57, glace : 111, eau pâle bordée de neige ; le 71 faisait des briques) ; Claude Design pour ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie, murs de glace (`Design/effects_v12_obstacles/`, prompt `Design/prompt_obstacles.md`).
+
+### Météos et sports (décidé le 20/10/2026, Robin)
+- Zénith, Danse Pluie, Grêle, Tempêtesable : toute l'arène, 20 s, pour les deux camps, une seule à la fois ; elles agrandissent ou réduisent les traces de certains terrains (y compris celles déjà au sol), modifient les dégâts de certains types (comme dans les jeux), la grêle et la tempête de sable blessent (0,4 %/s, soit 8 % sur 20 s ; 2 % puis 0,75 %/s jugés trop forts par Robin le 20/10/2026 ; météos rechargées en 40 s, sports en 25 s, pour qu'aucune ne dure en permanence ; l'IA ne lance une météo blessante que si l'adversaire y perd nettement plus) sauf les types immunisés, et quelques petites traces apparaissent au hasard (flaques, braises, verglas, boue).
+- Tourniquet et Lance-Boue : zone de 4 cases autour du lanceur, 15 s ; braises (ou électricité) effacées et interdites dedans, attaques Feu (ou Électrik) à moitié contre les Pokémon dedans.
+- L'IA lance une météo quand elle favorise les types de son équipe, un sport contre des adversaires proches du type visé. Réglages : `climates.json`.
+- Tirs et vent (20/10/2026, Robin) : la météo change la vitesse et la portée des tirs de certains types (pluie : Feu ×0,7, Eau ×1,15 ; soleil : Feu ×1,2, Eau ×0,8 ; grêle : Glace ×1,2) ; la grêle (15 %) et la tempête de sable (25 %) ont un vent de direction fixe, tirée au lancement, qui accélère et allonge les tirs dans son sens et les freine contre lui (Vol ×2, Roche et Sol insensibles) ; il déporte les Pokémon Vol (0,8 case/s sous la grêle, 1,5 dans la tempête de sable, même à l'arrêt), pas les autres (20/10/2026, Robin).
+
+### Méga-évolutions (décidé le 20/10/2026, Robin)
+- Une sorte d'ultime : une **jauge commune à l'équipe** se remplit au K.O. des ennemis (plus pour un boss) et se garde
+  d'une étape à l'autre ; pleine, le Pokémon contrôlé qui le peut méga-évolue (L3 + R3, F au clavier : L1 et R1 sont des attaques), la jauge
+  se vide.
+- La méga dure 45 à 60 s (réglage), puis le Pokémon revient à sa forme ; les PV gardent leur proportion.
+- Effets : bonus de stats = écart entre les stats officielles de la méga et celles de la forme de base, type de la
+  méga, et un passif inspiré de son talent officiel, adapté au temps réel (27 passifs, par lots).
+- Animation d'évolution existante en version courte, puis aura pendant la durée. Les alliés IA ne méga-évoluent pas.
+- **Méga-gemmes** : seules les 27 mégas qui ont des sprites ont leur pierre. Elles tombent en partie (boss surtout),
+  sans doublon (une pierre obtenue ne retombe plus), et se gardent d'une partie à l'autre. Elles s'équipent hors
+  partie, dans le menu d'équipe ; l'écran de choix du Pokémon montre un emplacement de pierre (vide si aucune). Une
+  pierre posée sur une forme de base (ex. Dracaufite X sur Salamèche) ne sert qu'une fois la bonne forme atteinte.
+- Ordre : 1) jauge, méga, retour, stats et type (sans pierres ; en `devMode`, tout Pokémon compatible y a accès ;
+  fait et testé le 20/10/2026 ; tâche en pause, reprise par l'étape 2) ;
+  2) pierres (sauvegarde, menu, obtention) ; 3) passifs. Plus tard : boss qui méga-évoluent. Capacités Z : sujet à part.
+
+### IA (décidé le 20/10/2026, Robin)
+- Alliés et ennemis profitent des mêmes améliorations. Pas des maîtres stratèges : évoluer dans l'environnement de
+  manière propice et sûre.
+- Lot A (fait et testé, fusionné dans `dev` le 22/10/2026) : cible choisie par score (K.O. possible, types, menace sur un coéquipier, concentration,
+  distance) ; les alliés suivent le Pokémon joué quand il recule, le rejoignent par un chemin sûr, sont plus offensifs
+  sinon, et restent près de lui quand ils sont blessés.
+- Lot B : placement et attaques combinées selon les types de l'équipe (préparer une flaque pour un coéquipier
+  Électrik ou Plante, se rapprocher d'un coéquipier complémentaire, préférer les terrains qui avantagent).
+- Lot C (alliés d'abord, commencé) : couper le chemin d'un ennemi au corps à corps (brûler un pont, faire fondre la
+  glace) et réparer un chemin pour rejoindre le Pokémon joué (geler l'eau, nénuphars, refroidir la lave).
+- Les IA ne doivent pas être parfaites : elles se font surprendre par les pylônes de temps en temps, et ne prévoient
+  pas le sol métallique (elles marchent dessus sans s'en soucier).
+
 ### Outils de test
 - Terrain de test (19/10/2026) : depuis le menu en `devMode` (Select / T), arène ouverte où des émetteurs entretiennent chaque terrain et deux démonstrations d'affinités, sans ennemis (vagues en boucle en option), rien de recruté ni compté.
 - Persos de dev (décidé le 19/10/2026) : 3 personnages réservés au développement (Dev Mew, Dev Métamorph, Dev Porygon), visibles en tête du menu quand `devMode` est actif. Ils peuvent apprendre toutes les attaques du jeu (4 au départ, filtre par type au menu), n'ont pas de type (pas de STAB), se déplacent normalement (le terrain s'applique à eux) et ont des statistiques de starter (un physique, un spécial, un équilibré). Ils ne sont ni recrutables, ni sauvegardés, ni ennemis. But : tester les attaques et les effets de terrain.
@@ -178,6 +228,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Chaque Pokémon a déjà un type de déplacement : standard (305), survol des trous (104), traversée des murs (14, spectres), marche sur la lave (34), nage (101). Les décors contiennent aussi les blocs d'eau et de lave.
 
 ## 4. Points ouverts
+
 
 ### Structurants
 1. Boutons : avec la visée au stick droit, les 4 attaques vont sur les gâchettes (L1, L2, R1, R2). Quel bouton pour changer de Pokémon ?

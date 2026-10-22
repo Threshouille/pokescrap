@@ -11,11 +11,12 @@ public class PmdSpriteImport : AssetPostprocessor
     const string TilesetRoot = "Assets/Tilesets";
     const string EffectRoot = "Assets/Resources/Effects";
     const string PortraitRoot = "Assets/Resources/Portraits";
+    const string ObstacleTileRoot = "Assets/Resources/ObstacleTiles";
     const string AnimSetRoot = "Assets/Resources/" + PokemonRoster.AnimSetPath;
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/"))
+        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/"))
             Configure((TextureImporter)assetImporter);
     }
 
@@ -61,6 +62,7 @@ public class PmdSpriteImport : AssetPostprocessor
             }
             JsonUtility.FromJsonOverwrite(File.ReadAllText(jsonPath), tileset);
             tileset.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            if (int.TryParse(Path.GetFileName(folder), out int romId)) tileset.romId = romId;
             EditorUtility.SetDirty(tileset);
             Debug.Log($"{assetPath}: {tileset.wall.Length / 3} wall masks");
         }

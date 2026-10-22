@@ -34,6 +34,7 @@ public class TerrainDef
     public float regenShare;
     public string cures; // status removed from whoever stands there
     public float navCost; // extra path cost for the AIs, in tiles of detour
+    public bool aiBlind; // the AIs neither foresee nor mind it (they walk on and stay on it); combos still count it
     [NonSerialized] public Color tint, flicker;
     [NonSerialized] public bool flickers;
     [NonSerialized] public EffectLibrary.Sheet sheet, variant; // animated tiles; none: a tinted square instead
@@ -90,6 +91,7 @@ public class Terrain : MonoBehaviour
 {
     const float Tick = 1f; // seconds between two damages or heals
     const float FadeTime = 1f; // a tile fades out over its last second
+    const float FadeIn = 0.25f; // ... and in over its first quarter of a second
     const float HazardCost = 5f; // navCost from which a tile is worth stepping out of
 
     [Serializable] class TerrainFile { public TerrainSizing sizing; public TerrainDef[] terrains; public MoveTerrain[] moves; public TerrainReaction[] reactions; }
@@ -255,7 +257,7 @@ public class Terrain : MonoBehaviour
             if (floor != null)
             {
                 renderer.sortingLayerID = floor.sortingLayerID;
-                renderer.sortingOrder = floor.sortingOrder + 1; // over the floor, under zones and Pokémon
+                renderer.sortingOrder = floor.sortingOrder + 3; // over the floor and the obstacles (2 layers), under walls, zones and Pokémon (DungeonGenerator.FloorOrder)
             }
             sortingLayer = renderer.sortingLayerID;
             sortingOrder = renderer.sortingOrder;
@@ -272,14 +274,35 @@ public class Terrain : MonoBehaviour
     // ---- Painting -------------------------------------------------------------------------------------------
 
     // "caster": the Pokémon using the move, spared by the terrain it leaves.
-    public static void OnTrail(MoveDef move, Vector2 from, Vector2 to, Combatant caster) => PaintLine(move, "trail", from, to, caster);
-    public static void OnDash(MoveDef move, Vector2 at, Combatant caster) => PaintDisc(move, "dash", at, -1f, caster);
-    public static void OnImpact(MoveDef move, Vector2 at, Combatant caster) => PaintDisc(move, "impact", at, -1f, caster);
-    public static void OnAround(MoveDef move, Vector2 at, Combatant caster) => PaintDisc(move, "around", at, -1f, caster);
+    // Each also lets the move act on the obstacles it reaches (Obstacles: ice freezing water, fire burning a bridge).
+    public static void OnTrail(MoveDef move, Vector2 from, Vector2 to, Combatant caster)
+    {
+        Obstacles.OnPath(move, from, to, caster);
+        PaintLine(move, "trail", from, to, caster);
+    }
+
+    public static void OnDash(MoveDef move, Vector2 at, Combatant caster)
+    {
+        Obstacles.OnHit(move, at, 0.4f, caster);
+        PaintDisc(move, "dash", at, -1f, caster);
+    }
+
+    public static void OnImpact(MoveDef move, Vector2 at, Combatant caster)
+    {
+        Obstacles.OnHit(move, at, -1f, caster);
+        PaintDisc(move, "impact", at, -1f, caster);
+    }
+
+    public static void OnAround(MoveDef move, Vector2 at, Combatant caster)
+    {
+        Obstacles.OnHit(move, at, move.radius, caster);
+        PaintDisc(move, "around", at, -1f, caster);
+    }
 
     /// A melee hit area: a line for a thrust, the area itself for the others.
     public static void OnStrike(MoveDef move, string shape, Vector2 at, Vector2 direction, float reach, Combatant caster)
     {
+        Obstacles.OnHit(move, shape == "around" ? at : at + direction * reach / 2f, Mathf.Max(0.5f, reach / 2f), caster);
         var t = Of(move);
         if (t == null || t.shape != "strike") return;
         switch (shape)
@@ -299,6 +322,43 @@ public class Terrain : MonoBehaviour
         Current.Paint(def, duration, centre, centre, radius, caster);
     }
 
+    /// Paints a terrain on the given tiles (a whole obstacle: electrified water), whatever lies there.
+    public static void PaintCells(List<(int x, int y)> cells, string key, float duration, Combatant caster)
+    {
+        var def = Def(key);
+        if (Current == null || def == null) return;
+        // With the reactions (wet plates turn into electrified water), wherever it lies (the water obstacle too).
+        foreach (var (x, y) in cells)
+            if (x >= 0 && y >= 0 && x < Current.size && y < Current.size) Current.Hit(x, y, def, duration, caster, true);
+    }
+
+    /// The weather starting: what lies on the ground of that terrain lasts "mul" times its remaining time.
+    public static void ScaleRemaining(string key, float mul)
+    {
+        var def = Def(key);
+        if (Current == null || def == null || Current.kind == null || Mathf.Approximately(mul, 1f)) return;
+        for (int i = 0; i < Current.kind.Length; i++)
+        {
+            if (Current.Live(i) != def) continue;
+            float left = Current.until[i] - Time.time;
+            Current.until[i] = Time.time + left * mul;
+            Current.length[i] = Mathf.Max(0.01f, Current.length[i] + left * (mul - 1f));
+        }
+    }
+
+    /// Removes that terrain from a disc (a sport's zone).
+    public static void ClearArea(string key, Vector2 centre, float radius)
+    {
+        var def = Def(key);
+        if (Current == null || def == null || Current.grid == null || Current.kind == null) return;
+        var c = Current.grid.CellOf(centre);
+        int r = Mathf.CeilToInt(radius) + 1;
+        for (int x = c.x - r; x <= c.x + r; x++)
+            for (int y = c.y - r; y <= c.y + r; y++)
+                if (Current.KindAt(x, y) == def && Vector2.Distance(Current.grid.CentreOf(x, y), centre) <= radius)
+                    Current.Set(y * Current.size + x, null, 0f, null);
+    }
+
     /// Makes the tiles of a disc that still hold that terrain last "duration" more seconds from now; tiles where
     /// it was removed (burnt, washed away...) stay as they are.
     public static void RefreshArea(string key, Vector2 centre, float radius, float duration)
@@ -313,8 +373,9 @@ public class Terrain : MonoBehaviour
             {
                 if (Current.KindAt(x, y) != def || Vector2.Distance(grid.CentreOf(x, y), centre) > radius) continue;
                 int i = y * Current.size + x;
+                float placed = Current.until[i] - Current.length[i]; // kept: the tile must not fade in again
                 Current.until[i] = Mathf.Max(Current.until[i], Time.time + duration);
-                Current.length[i] = Mathf.Max(Current.length[i], duration);
+                Current.length[i] = Current.until[i] - placed;
             }
     }
 
@@ -337,6 +398,8 @@ public class Terrain : MonoBehaviour
     void Paint(TerrainDef def, float duration, Vector2 from, Vector2 to, float radius, Combatant caster)
     {
         if (def == null || grid == null) return;
+        radius *= Climate.RadiusMul(def.key); // the weather makes some traces bigger and longer, others smaller
+        duration *= Climate.DurationMul(def.key);
         var a = grid.CellOf(from);
         var b = grid.CellOf(to);
         int r = Mathf.CeilToInt(radius) + 1;
@@ -350,8 +413,15 @@ public class Terrain : MonoBehaviour
     }
 
     // A tile reached by a move: reacts with what is already there, possibly spreading over the connected area.
-    void Hit(int x, int y, TerrainDef def, float duration, Combatant caster)
+    void Hit(int x, int y, TerrainDef def, float duration, Combatant caster, bool anywhere = false)
     {
+        if (Climate.Blocks(def.key, grid.CentreOf(x, y))) return; // a sport (Tourniquet, Lance-Boue) forbids it here
+        if (!anywhere && Obstacles.RejectsTerrain(x, y))
+        {
+            // No puddle on lava or in the void, but the contact still counts (water on lava cools it into rock).
+            Obstacles.OnTerrain(x, y, def.key, caster);
+            return;
+        }
         int i = y * size + x;
         var old = Live(i);
         if (old == null || !reactions.TryGetValue((old.key, def.key), out var r))
@@ -411,6 +481,8 @@ public class Terrain : MonoBehaviour
             active++;
         }
         dirty = true;
+        // Terrain touching an obstacle may change it (after the tile is set: the change may repaint it).
+        if (def != null && duration > 0f) Obstacles.OnTerrain(i % size, i / size, def.key, by);
     }
 
     static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
@@ -493,7 +565,7 @@ public class Terrain : MonoBehaviour
     {
         if (Current == null) return 0f;
         var def = Current.ActingAt(x, y, agent);
-        if (def == null) return 0f;
+        if (def == null || def.aiBlind) return 0f;
         // On its own team's terrain only the hindrance counts (a slow or slippery tile).
         return Current.HurtsAt(x, y, agent) ? def.navCost : Hinders(def) ? Mathf.Min(def.navCost, 3f) : 0f;
     }
@@ -623,7 +695,9 @@ public class Terrain : MonoBehaviour
                 continue;
             }
             live++;
-            float fade = Mathf.Clamp01(left / Mathf.Min(FadeTime, length[i]));
+            // Fades in over its first FadeIn seconds and out over its last second.
+            float fade = Mathf.Clamp01(left / Mathf.Min(FadeTime, length[i]))
+                * Mathf.Clamp01((Time.time - (until[i] - length[i])) / FadeIn);
             if (def.sheet != null)
             {
                 pixels[i] = default;

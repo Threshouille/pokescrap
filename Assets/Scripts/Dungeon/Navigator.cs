@@ -3,7 +3,8 @@ using UnityEngine;
 
 /// Per-agent steering on the arena grid: walks straight when the way is free, otherwise follows an A* path
 /// around walls. Hostile zones (gas clouds...) and harmful terrain (embers...) are expensive to cross, so the path
-/// goes around them when it can.
+/// goes around them when it can. With "avoid", dangerous tiles are not crossed at all when a safe way exists (an
+/// ally rejoining the leader); SafePath then says whether the way taken is free of danger.
 public class Navigator
 {
     const float RepathInterval = 0.3f; // seconds between two path searches
@@ -27,24 +28,37 @@ public class Navigator
     int index;
     float nextSearch;
     Vector2Int goalCell;
+    bool pathAvoids; // the mode the current path was searched with
+
+    /// Whether the way taken by the last call avoids every danger (a straight line or a path around them).
+    public bool SafePath { get; private set; } = true;
+
+    /// Whether the last call found a way at all (false: water, lava or void in between, nothing to walk round by).
+    public bool Reachable { get; private set; } = true;
 
     /// Direction to take from "from" to reach "to", or zero when already there or unreachable.
-    public Vector2 Direction(Vector2 from, Vector2 to, Combatant agent)
+    /// avoid: never through a dangerous tile when there is another way (otherwise dangers are only expensive).
+    public Vector2 Direction(Vector2 from, Vector2 to, Combatant agent, bool avoid = false)
     {
-        var team = agent.team;
         var grid = DungeonGenerator.Current;
         if (grid == null) return (to - from).normalized;
 
-        if (Clear(grid, from, to, agent))
+        if (Clear(grid, from, to, agent, avoid))
         {
             path.Clear();
+            SafePath = Reachable = true;
             return (to - from).normalized;
         }
 
         var cell = grid.CellOf(to);
-        if (path.Count == 0 || cell != goalCell || Time.time >= nextSearch)
+        // An unreachable goal is searched again only every RepathInterval, not at every step.
+        if ((path.Count == 0 && Reachable) || cell != goalCell || Time.time >= nextSearch || pathAvoids != avoid)
         {
-            FindPath(grid, from, to, agent);
+            SafePath = false;
+            if (avoid) SafePath = FindPath(grid, from, to, agent, true);
+            if (!SafePath) FindPath(grid, from, to, agent, false);
+            pathAvoids = avoid;
+            Reachable = path.Count > 0;
             goalCell = cell;
             nextSearch = Time.time + RepathInterval;
             index = 0;
@@ -52,36 +66,49 @@ public class Navigator
 
         // Skip waypoints already reached, and cut corners whenever the next one is directly reachable.
         while (index < path.Count - 1
-            && (Vector2.Distance(from, path[index]) < WaypointReached || Clear(grid, from, path[index + 1], agent)))
+            && (Vector2.Distance(from, path[index]) < WaypointReached || Clear(grid, from, path[index + 1], agent, pathAvoids && SafePath)))
             index++;
         if (index >= path.Count) return Vector2.zero;
         Vector2 step = path[index] - from;
         return step.sqrMagnitude < 0.0001f ? Vector2.zero : step.normalized;
     }
 
-    /// Straight line free of walls, and of hostile zones and harmful terrain unless the agent already stands on them.
-    static bool Clear(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent)
+    /// Straight line free of walls, and of hostile zones and harmful terrain unless the agent already stands on them
+    /// (then any way out is fine; not with "avoid", where the way must stay out of danger: the line may cross more).
+    static bool Clear(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent, bool avoid = false)
     {
         var team = agent.team;
         if (!grid.LineClear(from, to, AgentRadius)) return false;
-        if (Zone.Inside(from, team, 0f) || Terrain.Hazard(from, agent)) return true; // already in it: any way out is fine
+        if (!avoid && (Zone.Inside(from, team, 0f) || Terrain.Hazard(from, agent))) return true;
         float length = Vector2.Distance(from, to);
+        Vector2 side = length > 0f ? Vector2.Perpendicular((to - from) / length) * AgentRadius : Vector2.zero;
         for (float d = 0f; d <= length; d += 0.4f)
         {
             var point = Vector2.Lerp(from, to, length > 0f ? d / length : 0f);
             if (Zone.Inside(point, team, AgentRadius) || Terrain.Hazard(point, agent)) return false;
+            // Avoiding: the edges of the body stay off harmful terrain too.
+            if (avoid && (Terrain.Hazard(point + side, agent) || Terrain.Hazard(point - side, agent))) return false;
+            if (Obstacles.BlocksAt(point, agent) || Pylons.Hazard(point, agent)) return false;
         }
         return !Zone.Inside(to, team, AgentRadius);
     }
 
-    void FindPath(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent)
+    /// True when the tile would hurt the agent: hostile zone, harmful terrain, electric arc about to strike.
+    public static bool Dangerous(DungeonGenerator grid, int x, int y, Combatant agent)
+    {
+        Vector2 centre = grid.CentreOf(x, y);
+        return Zone.Inside(centre, agent.team, 0.5f) || Terrain.Hazard(centre, agent) || Pylons.Hazard(centre, agent);
+    }
+
+    /// Fills "path"; false when the goal cannot be reached (with "avoid": not without crossing a danger).
+    bool FindPath(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent, bool avoid)
     {
         var team = agent.team;
         path.Clear();
         int size = grid.Size;
         var start = grid.CellOf(from);
         var goal = grid.CellOf(to);
-        if (!grid.Walkable(start.x, start.y) || !grid.Walkable(goal.x, goal.y)) return;
+        if (!grid.Walkable(start.x, start.y) || !grid.Walkable(goal.x, goal.y)) return false;
 
         if (cost == null || cost.Length != size * size)
         {
@@ -107,26 +134,31 @@ public class Navigator
             foreach (var step in Steps)
             {
                 int nx = x + step.x, ny = y + step.y;
-                if (!grid.Walkable(nx, ny)) continue;
+                if (!grid.Walkable(nx, ny) || Obstacles.Blocks(nx, ny, agent)) continue;
                 // No cutting through the corner of a wall.
-                if (step.x != 0 && step.y != 0 && (!grid.Walkable(nx, y) || !grid.Walkable(x, ny))) continue;
+                if (step.x != 0 && step.y != 0 && (!grid.Walkable(nx, y) || !grid.Walkable(x, ny)
+                    || Obstacles.Blocks(nx, y, agent) || Obstacles.Blocks(x, ny, agent))) continue;
                 int next = ny * size + nx;
                 if (stamp[next] == search && closed[next]) continue;
+                if (avoid && Dangerous(grid, nx, ny, agent)) continue;
+                // Nor through the corner of a dangerous tile: the body would graze it.
+                if (avoid && step.x != 0 && step.y != 0 && (Dangerous(grid, nx, y, agent) || Dangerous(grid, x, ny, agent))) continue;
 
                 float stepCost = step.x != 0 && step.y != 0 ? Diagonal : 1f;
                 if (Zone.Inside(grid.CentreOf(nx, ny), team, 0.5f)) stepCost += HazardCost;
-                stepCost += Terrain.NavCost(nx, ny, agent);
+                stepCost += Terrain.NavCost(nx, ny, agent) + Pylons.NavCost(grid.CentreOf(nx, ny), agent) + Obstacles.PathCost(nx, ny, agent);
                 float total = cost[node] + stepCost;
                 if (stamp[next] == search && total >= cost[next]) continue;
                 Visit(next, total, node, Heuristic(new Vector2Int(nx, ny), goal));
             }
         }
 
-        if (stamp[goalNode] != search || !closed[goalNode]) return; // unreachable
+        if (stamp[goalNode] != search || !closed[goalNode]) return false; // unreachable
         for (int node = goalNode; node != startNode && node >= 0; node = parent[node])
             path.Add(grid.CentreOf(node % size, node / size));
         path.Reverse();
         if (path.Count > 0) path[path.Count - 1] = to;
+        return true;
     }
 
     static float Heuristic(Vector2Int a, Vector2Int b)

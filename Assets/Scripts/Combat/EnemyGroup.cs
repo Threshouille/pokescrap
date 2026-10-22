@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// Enemies spawned together (a support and two fighters, see EnemySpawner): they all go after the same member of
-/// the team, the one nearest to the group, chosen again every few seconds or as soon as it falls.
+/// the team, the best one for the group (TargetChoice, seen from its centre), chosen again every few seconds or as
+/// soon as it falls.
 public class EnemyGroup
 {
     public readonly List<Combatant> members = new();
@@ -17,7 +18,8 @@ public class EnemyGroup
         foreach (var member in members)
             if (member != null && member.IsAlive) { centre += (Vector2)member.transform.position; alive++; }
         if (alive == 0) return null;
-        target = Combatant.Nearest(Team.Player, centre / alive, float.MaxValue);
+        Combatant judge = members.Find(m => m != null && m.IsAlive);
+        target = TargetChoice.Best(judge, centre / alive, float.MaxValue, target != null && target.IsAlive ? target : null);
         retargetAt = Time.time + SaveData.Settings.groupRetargetTime;
         return target;
     }

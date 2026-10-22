@@ -1,0 +1,28 @@
+{
+  "comment": "Obstacle room of the dev sandbox (stairs at the north edge of the terrain sandbox, R to draw again). Each visit draws 'features' different kinds among 'pool' (weight: how often). chasm / river: a band 'width' tiles wide across the arena, wandering a little, over 'coverage' of the width (1 = wall to wall, the default), with 'bridges' crossings (river: 'fordKind' tiles instead of bridges when set); lake: a blob of 'kind' of size S, M or L (radius in tiles); ice_walls: 'count' short walls. boulders: 'count' rocks, 'bigChance' of them big (2 x 2); pylons: 'count' pairs 'distance' tiles apart; metal: a patch of plates of radius 'sizes' with 'magnets' magnets on its edge; ice_patch: 'count' patches of 'kind' of radius 'sizes' against one of the 'near' obstacles (placed last); island: land of radius 'sizes' ringed by 'width' tiles of 'kind', reached by 'bridges' straight bridges. Bands are placed first; bridges sit where a band runs straight. Nothing is placed within 'spawnClear' tiles of the centre or 'stairsClear' of the stairs; 'separate': obstacles that never touch (at least 'gap' tiles of floor between them); a layout that cuts the room in two is drawn again.",
+  "features": [2, 4],
+  "spawnClear": 4,
+  "stairsClear": 2,
+  "separate": [
+    {"a": "water", "b": "lava", "gap": 1},
+    {"a": "ice_floor", "b": "lava", "gap": 1}
+  ],
+  "pool": [
+    {"type": "chasm", "weight": 1, "kind": "void", "width": 2, "bridges": [2, 3], "bridgeKind": "bridge", "comment": "vide d'un mur à l'autre"},
+    {"type": "chasm", "weight": 2, "kind": "void", "width": 2, "coverage": [0.4, 0.8], "bridges": [0, 1], "bridgeKind": "bridge", "comment": "ravin sur une partie de la salle, à contourner"},
+    {"type": "lake", "weight": 2, "kind": "void", "sizes": [1, 2, 3], "comment": "gouffre"},
+    {"type": "lake", "weight": 2, "kind": "quicksand", "sizes": [2, 3], "comment": "sable mouvant"},
+    {"type": "river", "weight": 2, "kind": "water", "width": 2, "bridges": [1, 2], "bridgeKind": "bridge"},
+    {"type": "river", "weight": 1, "kind": "ice_floor", "width": 2, "bridges": [0, 0], "comment": "rivière glacée"},
+    {"type": "lake", "weight": 2, "kind": "water", "sizes": [2, 3, 4]},
+    {"type": "lake", "weight": 2, "kind": "lava", "sizes": [2, 3, 4]},
+    {"type": "lake", "weight": 1, "kind": "ice_floor", "sizes": [2, 3, 4], "comment": "lac de glace"},
+    {"type": "island", "weight": 1, "kind": "void", "sizes": [2, 3], "width": 2, "bridges": [2, 3], "bridgeKind": "bridge", "comment": "île au-dessus du vide"},
+    {"type": "island", "weight": 1, "kind": "water", "sizes": [2, 3], "width": 2, "bridges": [2, 2], "bridgeKind": "bridge", "comment": "île au milieu de l'eau"},
+    {"type": "ice_walls", "weight": 1, "count": [2, 4]},
+    {"type": "boulders", "weight": 2, "count": [3, 6], "bigChance": 0.35, "comment": "rochers à briser au Combat, dont des gros (2 coups)"},
+    {"type": "pylons", "weight": 2, "count": [1, 2], "distance": [4, 7], "comment": "paires de pylônes reliés par un arc électrique"},
+    {"type": "ice_patch", "weight": 3, "kind": "ice_floor", "near": ["void", "water", "boulder", "boulder_big"], "count": [1, 2], "sizes": [1, 2], "comment": "plaques de glace contre le vide, l'eau ou les rochers : glisser ou être poussé y fait tomber ou cogner"},
+    {"type": "metal", "weight": 2, "sizes": [2, 3], "magnets": [1, 2], "comment": "plaques de métal conductrices avec une ou deux bornes aimantées"}
+  ]
+}

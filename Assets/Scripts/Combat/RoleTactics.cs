@@ -49,7 +49,8 @@ public static class RoleTactics
         Team opponents = self.team == Team.Player ? Team.Enemy : Team.Player;
         bool support = self.Role == "support", ranged = self.Role == "ranged", melee = !support && !ranged;
 
-        var foe = target != null && target.IsAlive ? target : Combatant.Nearest(opponents, position, aggroRange);
+        var foe = target != null && target.IsAlive ? target : TargetChoice.Best(self, position, aggroRange, TargetChoice.Current(self));
+        TargetChoice.Note(self, foe);
         decision.foe = foe;
         Vector2 toFoe = foe != null ? (Vector2)foe.transform.position - position : Vector2.zero;
         float foeDistance = toFoe.magnitude;
@@ -63,6 +64,13 @@ public static class RoleTactics
 
         Combatant patient = null; // wounded ally that is out of reach
         float wanted = float.MaxValue; // shortest reach among the ready moves worth walking for
+        // An ally first undoes the walkway an opponent fighting at close range stands on or is about to cross.
+        if (canAttack && self.team == Team.Player && ObstacleTactics.Cut(self, out var cut, out var cutFoe))
+        {
+            decision.foe = cutFoe;
+            return Use(decision, cut.slot, cut.aim, cut.distance);
+        }
+
         var refuge = RefugeTarget(self, foeDistance, foe != null);
         // An attack whose ground effect does nothing special is kept aside while the others are looked at: one
         // whose trace turns against the opponents goes first, one that would hurt a team-mate is not used.
@@ -79,7 +87,7 @@ public static class RoleTactics
                 int slot = k % Combatant.MoveSlots;
                 var move = self.Moves[slot];
                 if (move == null || move.basic != (k >= Combatant.MoveSlots)) continue;
-                bool care = move.family == "heal" || move.family == "modifier";
+                bool care = move.family == "heal" || move.family == "modifier" || move.family == "climate";
                 if (support && care != (pass == 0)) continue;
                 if (care && fallback >= 0) continue; // an attack is already chosen
                 if (!support && pass == 1) continue;
@@ -92,6 +100,12 @@ public static class RoleTactics
                     Vector2 toWounded = (Vector2)wounded.transform.position - position;
                     if (toWounded.magnitude <= move.range) return Use(decision, slot, toWounded == Vector2.zero ? Vector2.right : toWounded, toWounded.magnitude);
                     if (support) patient = wounded;
+                    continue;
+                }
+
+                if (move.family == "climate")
+                {
+                    if (Climate.Worth(self, move)) return Use(decision, slot, Vector2.right, 0f);
                     continue;
                 }
 

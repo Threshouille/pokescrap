@@ -4,6 +4,7 @@
 Usage (from the project root, Unity closed):  python3 Tools/setup.py [--unity <path to the Unity executable>]
 Unity is looked for with --unity, then $UNITY_PATH, then in the Unity Hub folders (Linux, macOS, Windows).
 Only rerun the Unity build (e.g. after importing Pokémon):  python3 Tools/setup.py --unity-only [Class.Method]
+AI test bench (AiScenarios, a play session in batch mode):  python3 Tools/setup.py --ai-scenarios
 
 Needs Rom/eos_eu.nds (Pokémon Mystery Dungeon: Explorers of Sky, EU, dumped from your own cartridge).
 The repository keeps the .meta file of every generated asset: this script puts each asset back at the path of
@@ -32,8 +33,9 @@ SPRITES = ROOT / "Assets/Sprites/Pokemon"
 PORTRAITS = ROOT / "Assets/Resources/Portraits"
 ANIMSETS = ROOT / "Assets/Resources/AnimSets"
 TILESETS = ROOT / "Assets/Tilesets"
+OBSTACLE_TILES = ROOT / "Assets/Resources/ObstacleTiles"
 # Folders whose content comes from the ROM (only their .meta files are versioned).
-GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
+GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
 # ScriptableObjects rebuilt by Unity: a placeholder keeps their GUID until the Build menus fill them.
 PLACEHOLDERS = {ANIMSETS: "Assets/Scripts/Pmd/PmdAnimSet.cs", TILESETS: "Assets/Scripts/Dungeon/DungeonTileset.cs"}
 
@@ -92,6 +94,8 @@ def restore_pokemon():
     count = 0
     for id_file in sorted(SPRITES.glob("*/id.txt")):
         pid = int(id_file.read_text().strip())
+        if pid not in pokemon:
+            continue  # mega evolutions: not in the ROM, see restore_megas
         source = EXPORT / "sprites" / f"{pokemon[pid]['sprite_index']:04d}"
         for f in list(source.glob("*-Anim.png")) + [source / "AnimData.xml"]:
             shutil.copy(f, id_file.parent / f.name)
@@ -102,10 +106,28 @@ def restore_pokemon():
     print(f"{count} Pokémon")
 
 
+def restore_megas(force):
+    """Mega evolutions: PMD-style sprites downloaded from PMDCollab SpriteCollab (not in the ROM)."""
+    step("Mega evolutions (PMDCollab SpriteCollab, needs internet)")
+    run(python(), "-I", PMD / "import_megas.py", ROOT, *(["--force"] if force else []))
+
+
 def restore_tilesets():
     step("Dungeon tilesets")
     ids = [int(d.name) for d in sorted(TILESETS.iterdir()) if d.is_dir() and d.name.isdigit()]
     run(python(), "-I", PMD / "extract_tileset.py", ROM, TILESETS, *ids)
+
+
+def restore_obstacle_tiles():
+    """Water, lava and void of the obstacles (secondary layer of ROM tilesets), and rocks (lone wall chunks)."""
+    step("Obstacle tilesets (water, lava, void)")
+    data = json.loads((ROOT / "Assets/Resources/Data/obstacles.json").read_text(encoding="utf-8"))
+    ids = sorted({o["tileset"] for o in data["obstacles"] if o.get("tileset", -1) >= 0})
+    if ids:
+        run(python(), "-I", PMD / "extract_tileset.py", ROM, OBSTACLE_TILES, *ids)
+    rocks = sorted({f"{r['tileset']}:{r.get('cut', 'floor')}" for o in data["obstacles"] for r in o.get("romRocks", [])})
+    if rocks:
+        run(python(), "-I", PMD / "extract_rock.py", ROM, OBSTACLE_TILES, *rocks)
 
 
 def script_guid(script):
@@ -191,16 +213,16 @@ def version_key(version):
     return tuple(int(p) if p.isdigit() else p for p in re.findall(r"\d+|[a-z]+", version))
 
 
-def build_in_unity(unity, method="PmdSpriteImport.BuildEverything"):
+def build_in_unity(unity, method="PmdSpriteImport.BuildEverything", log_name="setup_unity.log", quit=True):
     step(f"Unity: {method} (batch mode, first import takes a while)")
     if unity is None:
         print("Unity not found: pass --unity <path> (or set UNITY_PATH), or open the project and run the menus\n"
               "Pokescrap > Build Tilesets, then Pokescrap > Build Anim Sets.")
         return
-    log = ROOT / "Logs/setup_unity.log"
+    log = ROOT / "Logs" / log_name
     log.parent.mkdir(exist_ok=True)
     result = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT),
-                             "-executeMethod", method, "-quit", "-logFile", str(log)])
+                             "-executeMethod", method, *(["-quit"] if quit else []), "-logFile", str(log)])
     if result.returncode != 0:
         sys.exit(f"Unity failed (code {result.returncode}), see {log.relative_to(ROOT)}. Is the editor closed?")
     print("ok")
@@ -213,7 +235,23 @@ def main():
     parser.add_argument("--force", action="store_true", help="redo every step")
     parser.add_argument("--unity-only", nargs="?", const="PmdSpriteImport.BuildEverything", metavar="METHOD",
                         help="only run a Unity batch method (default PmdSpriteImport.BuildEverything)")
+    parser.add_argument("--ai-scenarios", action="store_true",
+                        help="run the AI test bench in a batch play session (results in Logs/ai_scenarios.log)")
     args = parser.parse_args()
+
+    if args.ai_scenarios:
+        unity = find_unity(args.unity)
+        if unity is None:
+            sys.exit("Unity not found: pass --unity <path> or set UNITY_PATH.")
+        log = ROOT / "Logs/ai_scenarios.log"
+        step("AI test bench (batch play session)")
+        code = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT),
+                               "-executeMethod", "AiScenarioBatch.Run", "-logFile", str(log)]).returncode
+        if log.exists():
+            for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("AISCENARIO"):
+                    print(line)
+        sys.exit(code)
 
     if args.unity_only:
         unity = find_unity(args.unity)
@@ -226,7 +264,9 @@ def main():
     setup_venv(args.force)
     extract(args.force)
     restore_pokemon()
+    restore_megas(args.force)
     restore_tilesets()
+    restore_obstacle_tiles()
     placeholders()
     missing = missing_assets()
     if missing:
