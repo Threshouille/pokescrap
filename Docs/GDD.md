@@ -267,5 +267,5 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Animations par shader (vent dans l'herbe, les fleurs et les feuillages ; eau qui coule), quelques animations dessinées
   (papillons, reflets). Un arbre devient transparent quand un Pokémon passe derrière. Jour/nuit après le test.
 - Étapes : 1) recherche visuelle (3 concepts, `Design/prompt_da_ile_recherche.md`, fait) ; 2) assets (`Design/prompt_da_ile_assets.md`) ;
-  3) vitrine technique (petit bout d'île : prairie, fleurs, grands arbres, rivière, pont, bord de l'île) ; 4) bilan.
+  3) vitrine technique (petit bout d'île : prairie, fleurs, grands arbres, rivière, pont, bord de l'île ; points 1 à 4 faits le 23/10 : scène, sol organique, eau, décor trié en profondeur ; restent vent, arbres transparents, bord de l'île et nuages, ambiance) ; 4) bilan.
 

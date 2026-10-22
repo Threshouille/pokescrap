@@ -30,10 +30,14 @@ public class DungeonGenerator : MonoBehaviour
     /// The arena currently in play, used by the AIs to find their way.
     public static DungeonGenerator Current { get; private set; }
 
+    /// A hand-made map to build at the next Generate instead of the square arena (the showcase of the new island art,
+    /// drawn by ShowcaseView: this generator's own tiles are then hidden, only their collisions kept).
+    [System.NonSerialized] public ShowcaseMap showcase;
+
     public int Size => size;
 
     /// Tiles of the arena inside its outer walls.
-    public RectInt Interior => new(margin, margin, arenaSize, arenaSize);
+    public RectInt Interior => showcase != null ? new(margin, margin, showcase.width, showcase.height) : new(margin, margin, arenaSize, arenaSize);
 
     bool[,] open;
     int size;
@@ -54,6 +58,13 @@ public class DungeonGenerator : MonoBehaviour
         if (floorMap.GetComponent<TilemapRenderer>() is { } floor) floor.sortingOrder = FloorOrder;
         tiles.Clear(); // the tileset may have changed since the previous arena
         var rng = new System.Random(seed != 0 ? seed : System.Environment.TickCount);
+        foreach (var map in new[] { floorMap, wallMap })
+            if (map.GetComponent<TilemapRenderer>() is { } shown) shown.enabled = showcase == null;
+        if (showcase != null)
+        {
+            GenerateShowcase(rng);
+            return;
+        }
         size = arenaSize + 2 * margin;
         open = new bool[size, size];
         for (int x = margin; x < margin + arenaSize; x++)
@@ -85,6 +96,31 @@ public class DungeonGenerator : MonoBehaviour
 
         if (player != null)
             player.position = floorMap.transform.TransformPoint(new Vector3(centre + 0.5f, centre + 0.5f, 0f));
+    }
+
+    // The showcase: its land walkable but for the tiles a trunk or a big rock blocks, the sky beyond the island edge a
+    // wall; the river deep water, the bridge laid over it.
+    void GenerateShowcase(System.Random rng)
+    {
+        var map = showcase;
+        size = Mathf.Max(map.width, map.height) + 2 * margin;
+        open = new bool[size, size];
+        for (int x = 0; x < map.width; x++)
+            for (int y = 0; y < map.height; y++)
+                open[x + margin, y + margin] = map.Cell(x, y) != ShowcaseMap.Ground.Sky && !map.Blocked(x, y);
+        Draw(rng);
+        Obstacles.Rebuild(this);
+        Terrain.Rebuild(this);
+        Climate.Clear();
+        for (int x = 0; x < map.width; x++)
+            for (int y = 0; y < map.height; y++)
+            {
+                if (map.Cell(x, y) != ShowcaseMap.Ground.Water) continue;
+                Obstacles.Place(x + margin, y + margin, "water");
+                if (map.Bridge(x, y)) Obstacles.Place(x + margin, y + margin, "bridge");
+            }
+        if (player != null)
+            player.position = floorMap.transform.TransformPoint(new Vector3(map.spawn.x + margin, map.spawn.y + margin, 0f));
     }
 
     /// World position of a random free tile at least minDistance tiles away from a point (the centre by default).

@@ -177,6 +177,9 @@ public class Obstacles : MonoBehaviour
 
     public static Obstacles Current { get; private set; }
 
+    /// Obstacles not drawn (the showcase draws its water and bridge itself); they work all the same.
+    public static bool Hidden;
+
     DungeonGenerator grid;
     int size;
     ObstacleDef[] kind;
@@ -205,6 +208,7 @@ public class Obstacles : MonoBehaviour
     {
         defs = null;
         Current = null;
+        Hidden = false;
     }
 
     static void Load()
@@ -288,6 +292,7 @@ public class Obstacles : MonoBehaviour
             sortingLayer = renderer.sortingLayerID;
             sortingOrder = renderer.sortingOrder;
         }
+        if (GetComponent<SpriteRenderer>() is { } flat) flat.enabled = !Hidden;
         Vector2 origin = arena.CentreOf(0, 0), step = arena.CentreOf(1, 1) - origin;
         transform.position = origin - step / 2f;
         transform.localScale = new Vector3(step.x, step.y, 1f);
@@ -909,6 +914,7 @@ public class Obstacles : MonoBehaviour
     void Show(SpriteRenderer[] layer, int i, Sprite sprite, int above, float angle, Color? color = null)
     {
         var tile = layer[i];
+        if (Hidden) sprite = null;
         if (sprite == null)
         {
             if (tile != null) tile.enabled = false;

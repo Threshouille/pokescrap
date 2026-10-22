@@ -1,0 +1,13 @@
+{
+ "comment": "Showcase of the new island art (ShowcaseMap.cs, ShowcaseView.cs; GDD « Refonte visuelle du terrain »). Coordinates in tiles from the bottom left corner. sky: polygon of the sky beyond the island edge; river and path: lines (points, width in tiles); bankWidth: tiles of bank on each side of the river; woods: where the trees grow (centre, radius, trees); scatter: how many of each decor element (per 100 tiles of grass for the grass, flowers by clusters); spawn: where the team arrives.",
+ "width": 40,
+ "height": 30,
+ "seed": 7,
+ "sky": [{"x": -1, "y": -1}, {"x": -1, "y": 12}, {"x": 4, "y": 10.5}, {"x": 8, "y": 8}, {"x": 11, "y": 4.5}, {"x": 13, "y": 1}, {"x": 13.5, "y": -1}],
+ "river": {"points": [{"x": 25, "y": 31}, {"x": 23.5, "y": 25}, {"x": 26.5, "y": 19}, {"x": 25, "y": 13}, {"x": 22.5, "y": 7}, {"x": 24.5, "y": -1}], "width": 3},
+ "bankWidth": 0.75,
+ "path": {"points": [{"x": -1, "y": 15}, {"x": 7, "y": 16.5}, {"x": 15, "y": 15}, {"x": 20, "y": 16}, {"x": 31, "y": 16.5}, {"x": 41, "y": 18}], "width": 1.6},
+ "woods": [{"centre": {"x": 34, "y": 25}, "radius": 6, "trees": 6}, {"centre": {"x": 9, "y": 25}, "radius": 4.5, "trees": 3}, {"centre": {"x": 35, "y": 6}, "radius": 4, "trees": 3}],
+ "scatter": {"tufts": 22, "tallGrass": 5, "flowerClusters": 12, "bushes": 7, "smallRocks": 6, "mediumRocks": 3, "largeRocks": 2, "mushrooms": 5, "pebbles": 8, "reeds": 14, "lilies": 6, "stumps": 1, "logs": 1},
+ "spawn": {"x": 12, "y": 16}
+}

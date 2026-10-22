@@ -60,9 +60,11 @@ public class TerrainSandbox : MonoBehaviour
     const float FadeTime = 0.25f, StairsReach = 0.6f;
     static readonly Vector2 BaseStairs = new(12f, 12f), ObstacleStairs = new(-12f, -12f); // from the arena centre, in tiles
     static readonly Vector2 GalleryStairs = new(12f, -12f), GalleryBackStairs = new(-12f, 12f);
+    static readonly Vector2 ShowcaseStairs = new(-12f, 12f); // to the showcase of the new island art
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
-    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery
+    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: showcase of the new island art
+    ShowcaseView showcase;
     int pendingRoom = -1;
     float fadeOutAt, switchAt, fadeInUntil;
     bool stairsArmed; // the stairs only work once the Pokémon has stepped off them
@@ -170,6 +172,13 @@ public class TerrainSandbox : MonoBehaviour
         {
             AddStairs(arena, BaseStairs, 1, "Escalier vers la salle des obstacles", new Color(0.95f, 0.8f, 0.3f));
             AddStairs(arena, GalleryStairs, 2, "Escalier vers la galerie des mégas", new Color(0.85f, 0.5f, 1f));
+            AddStairs(arena, ShowcaseStairs, 3, "Escalier vers la vitrine de l'île", new Color(0.55f, 0.9f, 0.45f));
+        }
+        else if (room == 3 && arena.showcase != null)
+        {
+            // Two tiles left of where the team arrives.
+            var spawn = Vector2Int.FloorToInt(arena.showcase.spawn) + arena.Interior.min;
+            AddStairs(arena, arena.CentreOf(spawn.x - 2, spawn.y) - Centre(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         }
         else AddStairs(arena, room == 1 ? ObstacleStairs : GalleryBackStairs, 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
@@ -217,7 +226,13 @@ public class TerrainSandbox : MonoBehaviour
         foreach (var zone in FindObjectsByType<Zone>()) Destroy(zone.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         ClearEmitters();
+        // The showcase draws its own ground, water and bridge.
+        arena.showcase = room == 3 ? ShowcaseMap.Load() : null;
+        Obstacles.Hidden = room == 3;
         arena.Generate(); // also clears terrain and obstacles, and moves the team object to the centre
+        if (showcase == null) showcase = gameObject.AddComponent<ShowcaseView>();
+        if (room == 3) showcase.Build(arena, arena.showcase);
+        else showcase.Clear();
         drawn = new List<string>();
         if (room == 1 && Obstacles.Current != null)
         {
@@ -249,7 +264,8 @@ public class TerrainSandbox : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas"
+        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas     Escalier vert (en haut à gauche) : vitrine de l'île"
+            : room == 3 ? "Vitrine de l'île (nouvelle direction artistique)     Escalier (à gauche de l'arrivée) : retour"
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);
