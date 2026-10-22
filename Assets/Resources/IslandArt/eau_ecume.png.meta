@@ -1,0 +1,626 @@
+fileFormatVersion: 2
+guid: fda52d2c21722aed1abe4eace00a8621
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -8166881277646138367
+    second: eau_ecume_0
+  - first:
+      213: -3223796036208217390
+    second: eau_ecume_1
+  - first:
+      213: -8016215007422452840
+    second: eau_ecume_2
+  - first:
+      213: 7367324341842470303
+    second: eau_ecume_3
+  - first:
+      213: 6220528863613140866
+    second: eau_ecume_4
+  - first:
+      213: -4161302981225123403
+    second: eau_ecume_5
+  - first:
+      213: -2874553177443676414
+    second: eau_ecume_6
+  - first:
+      213: 6561258161366989328
+    second: eau_ecume_7
+  - first:
+      213: 6360835007452737102
+    second: eau_ecume_8
+  - first:
+      213: 1913238467106911823
+    second: eau_ecume_9
+  - first:
+      213: -7637991543105204734
+    second: eau_ecume_10
+  - first:
+      213: -8867219124613917899
+    second: eau_ecume_11
+  - first:
+      213: 2100998742448318485
+    second: eau_ecume_12
+  - first:
+      213: -7820397210962237608
+    second: eau_ecume_13
+  - first:
+      213: -4349263661775624013
+    second: eau_ecume_14
+  - first:
+      213: 8429816800937185558
+    second: eau_ecume_15
+  - first:
+      213: 504518258976480568
+    second: eau_ecume_16
+  - first:
+      213: -2984791639643389182
+    second: eau_ecume_17
+  - first:
+      213: 7371671491462833497
+    second: eau_ecume_18
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 0
+    wrapV: 0
+    wrapW: 0
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 0
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: eau_ecume_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 78
+        width: 9
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1041d1b7fb869ae80800000000000000
+      internalID: -8166881277646138367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_1
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 69
+        width: 26
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2d23f71e596c243d0800000000000000
+      internalID: -3223796036208217390
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_2
+      rect:
+        serializedVersion: 2
+        x: 39
+        y: 70
+        width: 15
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 89bed672ceea0c090800000000000000
+      internalID: -8016215007422452840
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_3
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 81
+        width: 18
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f95eb94847efd3660800000000000000
+      internalID: 7367324341842470303
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_4
+      rect:
+        serializedVersion: 2
+        x: 55
+        y: 46
+        width: 25
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28fb9be2b02c35650800000000000000
+      internalID: 6220528863613140866
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_5
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 62
+        width: 29
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5b17d417cf41046c0800000000000000
+      internalID: -4161302981225123403
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_6
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 41
+        width: 23
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 20fcf7a7d198b18d0800000000000000
+      internalID: -2874553177443676414
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_7
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 34
+        width: 20
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 01a79e3e8854e0b50800000000000000
+      internalID: 6561258161366989328
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_8
+      rect:
+        serializedVersion: 2
+        x: 25
+        y: 50
+        width: 15
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e4ee616fcb9364850800000000000000
+      internalID: 6360835007452737102
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_9
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 1
+        width: 30
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f463582cf303d8a10800000000000000
+      internalID: 1913238467106911823
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_10
+      rect:
+        serializedVersion: 2
+        x: 42
+        y: 26
+        width: 31
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 20ec6cbc827600690800000000000000
+      internalID: -7637991543105204734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_11
+      rect:
+        serializedVersion: 2
+        x: 73
+        y: 18
+        width: 23
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 53356dbcf2f41f480800000000000000
+      internalID: -8867219124613917899
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_12
+      rect:
+        serializedVersion: 2
+        x: 89
+        y: 45
+        width: 7
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 518ac25893f382d10800000000000000
+      internalID: 2100998742448318485
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_13
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 18
+        width: 12
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 857e32ebb2e587390800000000000000
+      internalID: -7820397210962237608
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_14
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 0
+        width: 20
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b869553ebf44a3c0800000000000000
+      internalID: -4349263661775624013
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_15
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 0
+        width: 27
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6111b75a7b9bcf470800000000000000
+      internalID: 8429816800937185558
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_16
+      rect:
+        serializedVersion: 2
+        x: 63
+        y: 11
+        width: 18
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 83dddf8fea8600700800000000000000
+      internalID: 504518258976480568
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_17
+      rect:
+        serializedVersion: 2
+        x: 53
+        y: 0
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 203008e51d3e396d0800000000000000
+      internalID: -2984791639643389182
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: eau_ecume_18
+      rect:
+        serializedVersion: 2
+        x: 84
+        y: 0
+        width: 11
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 95524892a207d4660800000000000000
+      internalID: 7371671491462833497
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      eau_ecume_0: -8166881277646138367
+      eau_ecume_1: -3223796036208217390
+      eau_ecume_10: -7637991543105204734
+      eau_ecume_11: -8867219124613917899
+      eau_ecume_12: 2100998742448318485
+      eau_ecume_13: -7820397210962237608
+      eau_ecume_14: -4349263661775624013
+      eau_ecume_15: 8429816800937185558
+      eau_ecume_16: 504518258976480568
+      eau_ecume_17: -2984791639643389182
+      eau_ecume_18: 7371671491462833497
+      eau_ecume_2: -8016215007422452840
+      eau_ecume_3: 7367324341842470303
+      eau_ecume_4: 6220528863613140866
+      eau_ecume_5: -4161302981225123403
+      eau_ecume_6: -2874553177443676414
+      eau_ecume_7: 6561258161366989328
+      eau_ecume_8: 6360835007452737102
+      eau_ecume_9: 1913238467106911823
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

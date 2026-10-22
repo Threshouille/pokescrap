@@ -1,0 +1,913 @@
+{
+  "scale": "24 px = 1 case",
+  "anchor_convention": "pixels depuis le coin bas gauche ; y = 0 = dernière rangée de l'image",
+  "shadow_color": "#000000",
+  "palette": [
+    "#3d6d33",
+    "#52853a",
+    "#6f9e40",
+    "#93b84a",
+    "#c2d468",
+    "#173828",
+    "#24502f",
+    "#336a36",
+    "#4a843c",
+    "#68a043",
+    "#93c055",
+    "#c3df7a",
+    "#2c1f1c",
+    "#45302a",
+    "#644537",
+    "#835d45",
+    "#a57c58",
+    "#7a5638",
+    "#966e46",
+    "#b08756",
+    "#c9a46c",
+    "#e0c38c",
+    "#685a50",
+    "#877866",
+    "#a6977f",
+    "#c6b79c",
+    "#e4d8bf",
+    "#1e5584",
+    "#2a6f9c",
+    "#3f8db4",
+    "#9dd2de",
+    "#e8f8f2",
+    "#43344a",
+    "#5d4a5e",
+    "#7a6273",
+    "#987d87",
+    "#b99d9c",
+    "#d8c0b0",
+    "#3c2618",
+    "#5a3b24",
+    "#7a5332",
+    "#9c6e42",
+    "#bd8c57",
+    "#dbae72",
+    "#2a1a16",
+    "#422a20",
+    "#5e3e2a",
+    "#a3c8e4",
+    "#b4d4ea",
+    "#c6def0",
+    "#a9c7e2",
+    "#c0d8ec",
+    "#d8e8f4",
+    "#eef6fb",
+    "#8eabcb",
+    "#aec7df",
+    "#cbdded",
+    "#e6f0f8",
+    "#ffffff",
+    "#b8406a",
+    "#ee82a8",
+    "#ffd0e0",
+    "#c98a10",
+    "#f5c832",
+    "#fff3a0",
+    "#a8b2cc",
+    "#e8eef8",
+    "#4c4cb4",
+    "#8288ec",
+    "#c0c6ff",
+    "#5a2a1a",
+    "#e07a2a",
+    "#ffc060",
+    "#c8e860",
+    "#f8ffc0",
+    "#fff2b0"
+  ],
+  "assets": [
+    {
+      "file": "sol_herbe_a.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "sol_herbe_b.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "sol_herbe_c.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "sol_chemin.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "sol_berge.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "eau_fond.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "eau_reflets.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "eau_ecume.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "eau_scintillement.png",
+      "kind": "anim",
+      "width": 32,
+      "height": 8,
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 4,
+      "frame_duration_ms": 110,
+      "loop": true,
+      "anchor": {
+        "x": 4,
+        "y": 4
+      }
+    },
+    {
+      "file": "herbe_touffe_1.png",
+      "kind": "prop",
+      "width": 10,
+      "height": 8,
+      "anchor": {
+        "x": 5,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "herbe_touffe_2.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 10,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "herbe_touffe_3.png",
+      "kind": "prop",
+      "width": 14,
+      "height": 12,
+      "anchor": {
+        "x": 7,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "herbe_touffe_4.png",
+      "kind": "prop",
+      "width": 16,
+      "height": 14,
+      "anchor": {
+        "x": 8,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "herbe_haute_1.png",
+      "kind": "prop",
+      "width": 16,
+      "height": 20,
+      "anchor": {
+        "x": 8,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "herbe_haute_2.png",
+      "kind": "prop",
+      "width": 16,
+      "height": 22,
+      "anchor": {
+        "x": 8,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_blanche_1.png",
+      "kind": "prop",
+      "width": 7,
+      "height": 11,
+      "anchor": {
+        "x": 3,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_blanche_2.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 12,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_jaune_1.png",
+      "kind": "prop",
+      "width": 7,
+      "height": 11,
+      "anchor": {
+        "x": 3,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_jaune_2.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 12,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_rose_1.png",
+      "kind": "prop",
+      "width": 7,
+      "height": 11,
+      "anchor": {
+        "x": 3,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_rose_2.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 12,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_bleue_1.png",
+      "kind": "prop",
+      "width": 7,
+      "height": 11,
+      "anchor": {
+        "x": 3,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "fleur_bleue_2.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 12,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "roseau_1.png",
+      "kind": "prop",
+      "width": 10,
+      "height": 24,
+      "anchor": {
+        "x": 5,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "roseau_2.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 21,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "arbre_1_tronc.png",
+      "kind": "prop",
+      "width": 34,
+      "height": 50,
+      "anchor": {
+        "x": 18,
+        "y": 0
+      },
+      "footprint": 0.35
+    },
+    {
+      "file": "arbre_1_feuillage.png",
+      "kind": "prop",
+      "width": 79,
+      "height": 89,
+      "anchor": {
+        "x": 39,
+        "y": 0
+      },
+      "canopy_offset": {
+        "x": 1,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "arbre_1_ombre.png",
+      "kind": "shadow",
+      "width": 73,
+      "height": 26,
+      "anchor": {
+        "x": 23,
+        "y": 15
+      },
+      "shadow_of": "arbre_1_tronc.png"
+    },
+    {
+      "file": "arbre_2_tronc.png",
+      "kind": "prop",
+      "width": 29,
+      "height": 39,
+      "anchor": {
+        "x": 15,
+        "y": 0
+      },
+      "footprint": 0.3
+    },
+    {
+      "file": "arbre_2_feuillage.png",
+      "kind": "prop",
+      "width": 59,
+      "height": 73,
+      "anchor": {
+        "x": 29,
+        "y": 0
+      },
+      "canopy_offset": {
+        "x": -1,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "arbre_2_ombre.png",
+      "kind": "shadow",
+      "width": 58,
+      "height": 20,
+      "anchor": {
+        "x": 18,
+        "y": 12
+      },
+      "shadow_of": "arbre_2_tronc.png"
+    },
+    {
+      "file": "arbre_3_tronc.png",
+      "kind": "prop",
+      "width": 45,
+      "height": 62,
+      "anchor": {
+        "x": 24,
+        "y": 0
+      },
+      "footprint": 0.45
+    },
+    {
+      "file": "arbre_3_feuillage.png",
+      "kind": "prop",
+      "width": 89,
+      "height": 118,
+      "anchor": {
+        "x": 44,
+        "y": 0
+      },
+      "canopy_offset": {
+        "x": 2,
+        "y": 0
+      },
+      "wind": true
+    },
+    {
+      "file": "arbre_3_ombre.png",
+      "kind": "shadow",
+      "width": 88,
+      "height": 31,
+      "anchor": {
+        "x": 29,
+        "y": 17
+      },
+      "shadow_of": "arbre_3_tronc.png"
+    },
+    {
+      "file": "buisson_1.png",
+      "kind": "prop",
+      "width": 24,
+      "height": 21,
+      "anchor": {
+        "x": 13,
+        "y": 2
+      },
+      "footprint": 0.4,
+      "wind": true
+    },
+    {
+      "file": "buisson_1_ombre.png",
+      "kind": "shadow",
+      "width": 28,
+      "height": 10,
+      "anchor": {
+        "x": 11,
+        "y": 5
+      },
+      "shadow_of": "buisson_1.png"
+    },
+    {
+      "file": "buisson_2.png",
+      "kind": "prop",
+      "width": 34,
+      "height": 29,
+      "anchor": {
+        "x": 18,
+        "y": 3
+      },
+      "footprint": 0.53,
+      "wind": true
+    },
+    {
+      "file": "buisson_2_ombre.png",
+      "kind": "shadow",
+      "width": 36,
+      "height": 14,
+      "anchor": {
+        "x": 15,
+        "y": 7
+      },
+      "shadow_of": "buisson_2.png"
+    },
+    {
+      "file": "buisson_3.png",
+      "kind": "prop",
+      "width": 41,
+      "height": 36,
+      "anchor": {
+        "x": 20,
+        "y": 5
+      },
+      "footprint": 0.67,
+      "wind": true
+    },
+    {
+      "file": "buisson_3_ombre.png",
+      "kind": "shadow",
+      "width": 46,
+      "height": 16,
+      "anchor": {
+        "x": 20,
+        "y": 8
+      },
+      "shadow_of": "buisson_3.png"
+    },
+    {
+      "file": "rocher_petit.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 9,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      },
+      "footprint": 0.23
+    },
+    {
+      "file": "rocher_petit_ombre.png",
+      "kind": "shadow",
+      "width": 14,
+      "height": 6,
+      "anchor": {
+        "x": 4,
+        "y": 3
+      },
+      "shadow_of": "rocher_petit.png"
+    },
+    {
+      "file": "rocher_moyen.png",
+      "kind": "prop",
+      "width": 25,
+      "height": 17,
+      "anchor": {
+        "x": 12,
+        "y": 0
+      },
+      "footprint": 0.47
+    },
+    {
+      "file": "rocher_moyen_ombre.png",
+      "kind": "shadow",
+      "width": 28,
+      "height": 10,
+      "anchor": {
+        "x": 11,
+        "y": 5
+      },
+      "shadow_of": "rocher_moyen.png"
+    },
+    {
+      "file": "rocher_grand.png",
+      "kind": "prop",
+      "width": 36,
+      "height": 21,
+      "anchor": {
+        "x": 18,
+        "y": 0
+      },
+      "footprint": 0.68
+    },
+    {
+      "file": "rocher_grand_ombre.png",
+      "kind": "shadow",
+      "width": 54,
+      "height": 14,
+      "anchor": {
+        "x": 24,
+        "y": 7
+      },
+      "shadow_of": "rocher_grand.png"
+    },
+    {
+      "file": "galets_1.png",
+      "kind": "prop",
+      "width": 8,
+      "height": 4,
+      "anchor": {
+        "x": 3,
+        "y": 0
+      }
+    },
+    {
+      "file": "galets_2.png",
+      "kind": "prop",
+      "width": 14,
+      "height": 7,
+      "anchor": {
+        "x": 6,
+        "y": 0
+      }
+    },
+    {
+      "file": "souche.png",
+      "kind": "prop",
+      "width": 25,
+      "height": 17,
+      "anchor": {
+        "x": 12,
+        "y": 0
+      },
+      "footprint": 0.35
+    },
+    {
+      "file": "souche_ombre.png",
+      "kind": "shadow",
+      "width": 20,
+      "height": 8,
+      "anchor": {
+        "x": 6,
+        "y": 3
+      },
+      "shadow_of": "souche.png"
+    },
+    {
+      "file": "tronc_couche.png",
+      "kind": "prop",
+      "width": 46,
+      "height": 17,
+      "anchor": {
+        "x": 24,
+        "y": 0
+      },
+      "footprint": 0.8
+    },
+    {
+      "file": "tronc_couche_ombre.png",
+      "kind": "shadow",
+      "width": 45,
+      "height": 6,
+      "anchor": {
+        "x": 18,
+        "y": 3
+      },
+      "shadow_of": "tronc_couche.png"
+    },
+    {
+      "file": "champignons_1.png",
+      "kind": "prop",
+      "width": 9,
+      "height": 6,
+      "anchor": {
+        "x": 4,
+        "y": 1
+      }
+    },
+    {
+      "file": "champignons_2.png",
+      "kind": "prop",
+      "width": 16,
+      "height": 8,
+      "anchor": {
+        "x": 7,
+        "y": 2
+      }
+    },
+    {
+      "file": "nenuphar_1.png",
+      "kind": "prop",
+      "width": 9,
+      "height": 6,
+      "anchor": {
+        "x": 5,
+        "y": 0
+      },
+      "flat_on_water": true
+    },
+    {
+      "file": "nenuphar_2.png",
+      "kind": "prop",
+      "width": 17,
+      "height": 8,
+      "anchor": {
+        "x": 9,
+        "y": 1
+      },
+      "flat_on_water": true
+    },
+    {
+      "file": "pont_horizontal.png",
+      "kind": "prop",
+      "width": 120,
+      "height": 45,
+      "anchor": {
+        "x": 60,
+        "y": 1
+      }
+    },
+    {
+      "file": "pont_horizontal_ombre.png",
+      "kind": "shadow",
+      "width": 120,
+      "height": 35,
+      "anchor": {
+        "x": 55,
+        "y": 4
+      },
+      "shadow_of": "pont_horizontal.png"
+    },
+    {
+      "file": "pont_vertical.png",
+      "kind": "prop",
+      "width": 37,
+      "height": 129,
+      "anchor": {
+        "x": 18,
+        "y": 0
+      }
+    },
+    {
+      "file": "pont_vertical_ombre.png",
+      "kind": "shadow",
+      "width": 34,
+      "height": 121,
+      "anchor": {
+        "x": 12,
+        "y": 3
+      },
+      "shadow_of": "pont_vertical.png"
+    },
+    {
+      "file": "bord_levre.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 16,
+      "tileable": "horizontal"
+    },
+    {
+      "file": "bord_roche.png",
+      "kind": "texture",
+      "width": 96,
+      "height": 96,
+      "tileable": "both"
+    },
+    {
+      "file": "bord_racines_1.png",
+      "kind": "prop",
+      "width": 8,
+      "height": 24,
+      "anchor": {
+        "x": 4,
+        "y": 23
+      },
+      "hangs_from_top": true
+    },
+    {
+      "file": "bord_racines_2.png",
+      "kind": "prop",
+      "width": 12,
+      "height": 36,
+      "anchor": {
+        "x": 6,
+        "y": 35
+      },
+      "hangs_from_top": true
+    },
+    {
+      "file": "bord_racines_3.png",
+      "kind": "prop",
+      "width": 16,
+      "height": 48,
+      "anchor": {
+        "x": 8,
+        "y": 47
+      },
+      "hangs_from_top": true
+    },
+    {
+      "file": "nuage_loin_1.png",
+      "kind": "prop",
+      "width": 48,
+      "height": 20,
+      "anchor": {
+        "x": 24,
+        "y": 0
+      }
+    },
+    {
+      "file": "nuage_loin_2.png",
+      "kind": "prop",
+      "width": 72,
+      "height": 26,
+      "anchor": {
+        "x": 36,
+        "y": 0
+      }
+    },
+    {
+      "file": "nuage_loin_3.png",
+      "kind": "prop",
+      "width": 96,
+      "height": 42,
+      "anchor": {
+        "x": 48,
+        "y": 0
+      }
+    },
+    {
+      "file": "nuage_milieu_1.png",
+      "kind": "prop",
+      "width": 96,
+      "height": 56,
+      "anchor": {
+        "x": 48,
+        "y": 0
+      }
+    },
+    {
+      "file": "nuage_milieu_2.png",
+      "kind": "prop",
+      "width": 128,
+      "height": 65,
+      "anchor": {
+        "x": 64,
+        "y": 0
+      }
+    },
+    {
+      "file": "nuage_milieu_3.png",
+      "kind": "prop",
+      "width": 160,
+      "height": 85,
+      "anchor": {
+        "x": 80,
+        "y": 0
+      }
+    },
+    {
+      "file": "nuage_proche_1.png",
+      "kind": "prop",
+      "width": 176,
+      "height": 104,
+      "anchor": {
+        "x": 88,
+        "y": 0
+      }
+    },
+    {
+      "file": "nuage_proche_2.png",
+      "kind": "prop",
+      "width": 240,
+      "height": 149,
+      "anchor": {
+        "x": 120,
+        "y": 0
+      }
+    },
+    {
+      "file": "papillon_1.png",
+      "kind": "anim",
+      "width": 32,
+      "height": 8,
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 4,
+      "frame_duration_ms": 90,
+      "loop": true,
+      "anchor": {
+        "x": 4,
+        "y": 4
+      }
+    },
+    {
+      "file": "papillon_2.png",
+      "kind": "anim",
+      "width": 32,
+      "height": 8,
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 4,
+      "frame_duration_ms": 90,
+      "loop": true,
+      "anchor": {
+        "x": 4,
+        "y": 4
+      }
+    },
+    {
+      "file": "luciole.png",
+      "kind": "anim",
+      "width": 24,
+      "height": 6,
+      "frame_width": 6,
+      "frame_height": 6,
+      "frame_count": 4,
+      "frame_duration_ms": 120,
+      "loop": true,
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "file": "pollen.png",
+      "kind": "anim",
+      "width": 12,
+      "height": 3,
+      "frame_width": 3,
+      "frame_height": 3,
+      "frame_count": 4,
+      "frame_duration_ms": 150,
+      "loop": true,
+      "anchor": {
+        "x": 1,
+        "y": 1
+      }
+    }
+  ]
+}

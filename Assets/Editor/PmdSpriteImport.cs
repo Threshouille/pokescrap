@@ -12,12 +12,22 @@ public class PmdSpriteImport : AssetPostprocessor
     const string EffectRoot = "Assets/Resources/Effects";
     const string PortraitRoot = "Assets/Resources/Portraits";
     const string ObstacleTileRoot = "Assets/Resources/ObstacleTiles";
+    const string IslandArtRoot = "Assets/Resources/IslandArt"; // the new island art (Design/da_ile_v1)
+    // Island art drawn as repeating textures (ground, water, island edge): wrapped, not clamped.
+    static readonly string[] IslandRepeating = { "sol_", "eau_fond", "eau_reflets", "eau_ecume", "bord_roche", "bord_levre" };
     const string AnimSetRoot = "Assets/Resources/" + PokemonRoster.AnimSetPath;
 
     void OnPreprocessTexture()
     {
         if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/"))
             Configure((TextureImporter)assetImporter);
+        if (assetPath.StartsWith(IslandArtRoot + "/"))
+        {
+            var importer = (TextureImporter)assetImporter;
+            Configure(importer);
+            string name = Path.GetFileName(assetPath);
+            if (System.Array.Exists(IslandRepeating, prefix => name.StartsWith(prefix))) importer.wrapMode = TextureWrapMode.Repeat;
+        }
     }
 
     static bool Configure(TextureImporter importer)
