@@ -254,6 +254,7 @@ public class TerrainSandbox : MonoBehaviour
             {
                 island = gameObject.AddComponent<IslandRun>();
                 island.Built += PlaceStairs; // the way back, near where the team arrives in each zone
+                island.revealAll = true; // test island: the whole mini-map at once
             }
             island.Begin(rng);
             PlaceStairs();

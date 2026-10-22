@@ -15,6 +15,9 @@ public class IslandRun : MonoBehaviour
 
     public IslandPlan Plan { get; private set; }
 
+    /// Tests: each zone's mini-map comes fully revealed, its passage ends shown (also with devMode in meta.json).
+    public bool revealAll;
+
     /// Called once a zone is built (the team in place).
     public event System.Action Built;
 
@@ -77,6 +80,15 @@ public class IslandRun : MonoBehaviour
             if (p.from == zone) AddExit(p.a, p.to, p.b);
             if (p.to == zone) AddExit(p.b, p.from, p.a);
         }
+        if (revealAll || SaveData.Settings.devMode)
+            for (int y = bounds.yMin; y < bounds.yMax; y++)
+                for (int x = bounds.xMin; x < bounds.xMax; x++)
+                {
+                    int i = Plan.Index(x, y);
+                    if (Plan.region[i] != zone || revealed[i]) continue;
+                    revealed[i] = true;
+                    pixels[i] = Colour(i);
+                }
         armed = false;
         dirty = true;
         nextReveal = 0f;
