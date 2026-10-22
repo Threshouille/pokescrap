@@ -253,3 +253,19 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 14. Terrains spéciaux (trous, eau, lave) : dans la première version ou plus tard ? Les spectres traversent-ils les murs ?
 15. Boss : lesquels, et avec quels comportements spécifiques ?
 16. Objets et boutiques : quels objets, quels effets ? Piste d'Owen (15/10/2026) : objets trouvés au hasard ou chez des marchands, qui donnent des effets passifs aux Pokémon.
+
+### Refonte visuelle du terrain (décidé le 23/10/2026, Owen)
+- But : s'éloigner de la direction artistique de Donjon Mystère pour un monde féerique, organique et profond ;
+  remplacer les décors de la ROM biome par biome si le test est concluant.
+- Vue de 3/4 dessus (pas d'isométrique : commandes, formes d'attaque, effets et sprites des Pokémon inchangés), faux
+  3D par la profondeur : tri par profondeur, grands éléments qui passent devant, ombres portées, dénivelés décoratifs,
+  dessous de l'île et nuages en contrebas qui défilent à des vitesses différentes, lumière et étalonnage.
+- Pixel art riche à 24 px par case, compatible avec les sprites de DM. Références : Eastward, Minecraft Dungeons,
+  Pokémon Ranger. Contours : à choisir sur les images de concept.
+- Organique à l'écran, grille invisible pour le gameplay : sol mélangé par shader (transitions irrégulières), éléments
+  posés librement ; écart d'environ une demi-case accepté entre le bord visible et la collision.
+- Animations par shader (vent dans l'herbe, les fleurs et les feuillages ; eau qui coule), quelques animations dessinées
+  (papillons, reflets). Un arbre devient transparent quand un Pokémon passe derrière. Jour/nuit après le test.
+- Étapes : 1) recherche visuelle (3 concepts, `Design/prompt_da_ile_recherche.md`) ; 2) liste des assets et prompts ;
+  3) vitrine technique (petit bout d'île : prairie, fleurs, grands arbres, rivière, pont, bord de l'île) ; 4) bilan.
+
