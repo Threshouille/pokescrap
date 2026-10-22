@@ -111,6 +111,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Salle : une attaque Feu tirée brûle le pont", InRoom("water", "river", FireShotBurnsBridge()));
         yield return Scenario("Salle : les pylônes lancent leur arc", InRoom("electric", "storm", PylonsFire()));
         yield return Scenario("Niveau : pas de gel sur les obstacles traversables", LevelHitches());
+        yield return Scenario("Île : arrivée praticable, pas de gel en se promenant", IslandWalk());
         RestoreArena();
 
         Clear();
@@ -558,6 +559,55 @@ public class AiScenarios : MonoBehaviour
                 found.Add((o.key, new Vector2Int(x, y)));
             }
         return found;
+    }
+
+    // The whole island: built, the team lands on a walkable tile; the controlled Pokémon then runs inland (8 tiles a
+    // second, twice the walk) for three seconds; the longest frame must stay short.
+    IEnumerator IslandWalk()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var plan = IslandPlan.Generate(new System.Random(55));
+        float built = Time.realtimeSinceStartup;
+        arena.island = plan;
+        arena.Generate();
+        built = Time.realtimeSinceStartup - built;
+        team.PrepareForNextArena(arena.SpawnPoint, 0f);
+        var startCell = arena.CellOf(arena.SpawnPoint);
+        bool landed = arena.Walkable(startCell.x, startCell.y) && !Obstacles.Blocks(startCell.x, startCell.y, null);
+        yield return new WaitForSeconds(0.5f);
+        var leader = team.Controlled;
+        Vector2 from = arena.SpawnPoint, to = arena.CentreOf(arena.Size / 2, arena.Size / 2);
+        var heading = (to - from).normalized;
+        var phases = new List<string>();
+        float worst = 0f;
+        for (int phase = 0; phase < 3; phase++)
+        {
+            // 0: still; 1: running, allies' AI off; 2: running with the allies.
+            foreach (var m in team.Members)
+                if (m != leader && m.GetComponent<AllyAI>() is { } ai) ai.enabled = phase != 1;
+            Teleport(leader, from);
+            yield return new WaitForSeconds(0.3f);
+            float phaseWorst = 0f, started = Time.realtimeSinceStartup, last = started;
+            int slow = 0;
+            while (Time.realtimeSinceStartup - started < 3f)
+            {
+                if (phase > 0) Teleport(leader, from + heading * 8f * (Time.realtimeSinceStartup - started));
+                yield return null;
+                float now = Time.realtimeSinceStartup, frame = now - last;
+                last = now;
+                if (now - started < 0.05f) continue;
+                phaseWorst = Mathf.Max(phaseWorst, frame);
+                if (frame > 0.05f) slow++;
+            }
+            phases.Add($"{(phase == 0 ? "immobile" : phase == 1 ? "course sans IA" : "course avec IA")} {phaseWorst * 1000f:0} ms ({slow} > 50 ms)");
+            worst = Mathf.Max(worst, phaseWorst);
+        }
+        Debug.Log("AISCENARIO île : " + string.Join(" ; ", phases));
+        arena.island = null;
+        arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
+        Report(landed && worst < 0.1f, $"construite en {built * 1000f:0} ms, arrivée {(landed ? "praticable" : "BLOQUÉE")}, pire image {worst * 1000f:0} ms");
     }
 
     // First tile of that obstacle, scanning the room.

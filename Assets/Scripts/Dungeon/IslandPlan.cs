@@ -8,7 +8,7 @@ using UnityEngine;
 /// a barrier between two quarters. Inside a quarter, two noise fields (altitude, with a peak for a volcano or a
 /// glacier, and moisture), ranked within the quarter, pick each tile's sub-biome. Big features (rivers, lakes,
 /// cliffs), the drawing and the islet chains come next.
-public class IslandPlan
+public partial class IslandPlan
 {
     public const int Void = -1, Border = -2, Moat = -3, Centre = 4;
 
@@ -29,6 +29,7 @@ public class IslandPlan
         public string key, name, color;
         public float[] alt = { 0f, 1f }, moist = { 0f, 1f };
         public int[] tilesets = new int[0];
+        public float walls; // share taken by thickets or rock masses
     }
 
     [Serializable]
@@ -37,6 +38,10 @@ public class IslandPlan
         public string key, name;
         public float peak, peakRadius = 0.2f;
         public SubBiome[] subbiomes = new SubBiome[0];
+        // Big features (IslandFeatures.cs).
+        public int[] rivers = { 1, 2 }, riverWidth = { 2, 3 }, lakes = { 1, 2 }, lakeSize = { 3, 6 };
+        public string riverKind = "water", bridgeKind = "bridge", lakeKind = "water", crater;
+        public float[] cliffLevels = new float[0];
     }
 
     [Serializable] class IslandFile { public Settings island = new(); }
@@ -150,6 +155,7 @@ public class IslandPlan
         start = Vector2Int.RoundToInt(new Vector2(c, c) + dir * s.radius * 0.95f);
         for (int k = 0; k < 40 && (Outside(start) || region[Index(start.x, start.y)] != order[0]); k++)
             start = Vector2Int.RoundToInt(new Vector2(c, c) + dir * s.radius * (0.95f - k * 0.02f));
+        BuildFeatures(rng, offsets[5]);
     }
 
     bool Outside(Vector2Int p) => p.x < 0 || p.y < 0 || p.x >= size || p.y >= size;

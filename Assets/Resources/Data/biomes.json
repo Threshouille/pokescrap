@@ -1,5 +1,5 @@
 {
- "comment": "Themes of the island's quarters and their sub-biomes (IslandPlan.cs). A quarter takes one theme (four different ones per run); each of its tiles gets the first sub-biome whose altitude and moisture ranges (0 to 1, ranked within the quarter so that every quarter spreads over its whole range) contain the tile's. tilesets: ROM décors drawing it (rooms.json numbers); color: on the preview map (IslandCheck). peak: strength of a high point in the middle of the quarter (a volcano's cone, a glacier's summit; 0: none), peakRadius in share of the island's radius.",
+ "comment": "Themes of the island's quarters and their sub-biomes (IslandPlan.cs). A quarter takes one theme (four different ones per run); each of its tiles gets the first sub-biome whose altitude and moisture ranges (0 to 1, ranked within the quarter so that every quarter spreads over its whole range) contain the tile's. tilesets: ROM décors drawing it (rooms.json numbers); color: on the preview map (IslandCheck). peak: strength of a high point in the middle of the quarter (a volcano's cone, a glacier's summit; 0: none), peakRadius in share of the island's radius. Big features: rivers (count) start high and run down the slope to the coast or a lake, riverKind (water, lava; void for a canyon) riverWidth tiles wide, crossed every so often by bridgeKind (a bridge, cooled rock, vines); lakes (count, lakeKind, lakeSize radius in tiles) lie in the lowest hollows; crater: the obstacle filling the top of the peak; cliffLevels: altitudes where a cliff (wall) runs along the slope, with gaps. walls (per sub-biome): share of it taken by thickets or rock masses (semi-open). Everything stays reachable from the landing point and the passages between quarters.",
  "themes": [
   {
    "key": "volcano",
@@ -21,7 +21,8 @@
      "tilesets": [
       110
      ],
-     "color": "#8a6a5a"
+     "color": "#8a6a5a",
+     "walls": 0.06
     },
     {
      "key": "ash",
@@ -37,7 +38,8 @@
      "tilesets": [
       57
      ],
-     "color": "#6a5a72"
+     "color": "#6a5a72",
+     "walls": 0.06
     },
     {
      "key": "magma_caves",
@@ -53,7 +55,8 @@
      "tilesets": [
       58
      ],
-     "color": "#9a3a2a"
+     "color": "#9a3a2a",
+     "walls": 0.25
     },
     {
      "key": "flows",
@@ -69,7 +72,8 @@
      "tilesets": [
       123
      ],
-     "color": "#c8501a"
+     "color": "#c8501a",
+     "walls": 0.06
     },
     {
      "key": "crater",
@@ -85,8 +89,33 @@
      "tilesets": [
       58
      ],
-     "color": "#e8641a"
+     "color": "#e8641a",
+     "walls": 0.06
     }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "lava",
+   "riverWidth": [
+    3,
+    4
+   ],
+   "bridgeKind": "rock",
+   "lakes": [
+    1,
+    2
+   ],
+   "lakeKind": "lava",
+   "lakeSize": [
+    3,
+    6
+   ],
+   "crater": "lava",
+   "cliffLevels": [
+    0.55,
+    0.78
    ]
   },
   {
@@ -109,7 +138,8 @@
      "tilesets": [
       139
      ],
-     "color": "#b8c8c0"
+     "color": "#b8c8c0",
+     "walls": 0.06
     },
     {
      "key": "frozen_forest",
@@ -125,7 +155,8 @@
      "tilesets": [
       137
      ],
-     "color": "#8aa8b0"
+     "color": "#8aa8b0",
+     "walls": 0.2
     },
     {
      "key": "ice_fields",
@@ -141,7 +172,8 @@
      "tilesets": [
       140
      ],
-     "color": "#a8c8e8"
+     "color": "#a8c8e8",
+     "walls": 0.06
     },
     {
      "key": "summit",
@@ -157,8 +189,33 @@
      "tilesets": [
       140
      ],
-     "color": "#e8f4ff"
+     "color": "#e8f4ff",
+     "walls": 0.06
     }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    3,
+    4
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    2,
+    3
+   ],
+   "lakeKind": "ice_floor",
+   "lakeSize": [
+    5,
+    9
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.5,
+    0.75
    ]
   },
   {
@@ -181,7 +238,8 @@
      "tilesets": [
       52
      ],
-     "color": "#e8d8a0"
+     "color": "#e8d8a0",
+     "walls": 0.06
     },
     {
      "key": "lagoon",
@@ -197,7 +255,8 @@
      "tilesets": [
       4
      ],
-     "color": "#4ab8a8"
+     "color": "#4ab8a8",
+     "walls": 0.06
     },
     {
      "key": "cliffs",
@@ -213,7 +272,8 @@
      "tilesets": [
       126
      ],
-     "color": "#3a7888"
+     "color": "#3a7888",
+     "walls": 0.2
     },
     {
      "key": "caves",
@@ -229,8 +289,32 @@
      "tilesets": [
       39
      ],
-     "color": "#5a5a9a"
+     "color": "#5a5a9a",
+     "walls": 0.2
     }
+   ],
+   "rivers": [
+    3,
+    4
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    4,
+    6
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    2,
+    4
+   ],
+   "lakeKind": "water",
+   "lakeSize": [
+    4,
+    8
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.62
    ]
   },
   {
@@ -253,7 +337,8 @@
      "tilesets": [
       5
      ],
-     "color": "#7ab84a"
+     "color": "#7ab84a",
+     "walls": 0.06
     },
     {
      "key": "deep",
@@ -269,7 +354,8 @@
      "tilesets": [
       35
      ],
-     "color": "#2a6a3a"
+     "color": "#2a6a3a",
+     "walls": 0.3
     },
     {
      "key": "jungle",
@@ -285,7 +371,8 @@
      "tilesets": [
       44
      ],
-     "color": "#3a9a2a"
+     "color": "#3a9a2a",
+     "walls": 0.25
     },
     {
      "key": "highwood",
@@ -301,8 +388,32 @@
      "tilesets": [
       128
      ],
-     "color": "#5a4a7a"
+     "color": "#5a4a7a",
+     "walls": 0.18
     }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    3,
+    5
+   ],
+   "bridgeKind": "vine_bridge",
+   "lakes": [
+    1,
+    2
+   ],
+   "lakeKind": "water",
+   "lakeSize": [
+    3,
+    6
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.6
    ]
   },
   {
@@ -325,7 +436,8 @@
      "tilesets": [
       17
      ],
-     "color": "#e8c870"
+     "color": "#e8c870",
+     "walls": 0.06
     },
     {
      "key": "oasis",
@@ -341,7 +453,8 @@
      "tilesets": [
       85
      ],
-     "color": "#7ac8a0"
+     "color": "#7ac8a0",
+     "walls": 0.06
     },
     {
      "key": "canyon",
@@ -357,7 +470,8 @@
      "tilesets": [
       20
      ],
-     "color": "#b8783a"
+     "color": "#b8783a",
+     "walls": 0.15
     },
     {
      "key": "quicksand",
@@ -373,8 +487,32 @@
      "tilesets": [
       19
      ],
-     "color": "#c8a050"
+     "color": "#c8a050",
+     "walls": 0.06
     }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "void",
+   "riverWidth": [
+    3,
+    5
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    2,
+    3
+   ],
+   "lakeKind": "quicksand",
+   "lakeSize": [
+    4,
+    7
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.6
    ]
   },
   {
@@ -397,7 +535,8 @@
      "tilesets": [
       28
      ],
-     "color": "#6a7a6a"
+     "color": "#6a7a6a",
+     "walls": 0.06
     },
     {
      "key": "halls",
@@ -413,7 +552,8 @@
      "tilesets": [
       29
      ],
-     "color": "#5a6a5a"
+     "color": "#5a6a5a",
+     "walls": 0.2
     },
     {
      "key": "overgrown",
@@ -429,7 +569,8 @@
      "tilesets": [
       30
      ],
-     "color": "#6a8a3a"
+     "color": "#6a8a3a",
+     "walls": 0.22
     },
     {
      "key": "temple",
@@ -445,8 +586,33 @@
      "tilesets": [
       45
      ],
-     "color": "#a8b8a8"
+     "color": "#a8b8a8",
+     "walls": 0.1
     }
+   ],
+   "rivers": [
+    1,
+    2
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    3,
+    4
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    1,
+    2
+   ],
+   "lakeKind": "water",
+   "lakeSize": [
+    3,
+    5
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.55,
+    0.8
    ]
   }
  ]

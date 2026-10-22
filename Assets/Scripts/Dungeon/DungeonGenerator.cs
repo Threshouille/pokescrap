@@ -37,6 +37,12 @@ public class DungeonGenerator : MonoBehaviour
     /// The level to build at the next Generate (LevelPlan: zones and paths on one continuous map); before "room".
     [System.NonSerialized] public LevelPlan level;
 
+    /// The island to build at the next Generate (IslandPlan); before "level" and "room".
+    [System.NonSerialized] public IslandPlan island;
+
+    /// ROM décor of the central zone of the island (its final dungeon, sealed for now).
+    const int CentreDecor = 45;
+
     public int Size => size;
 
     /// Tiles of the arena inside its outer walls (a rectangle centred in the square grid).
@@ -73,13 +79,97 @@ public class DungeonGenerator : MonoBehaviour
         if (player != null) player.position = CentreOf(spawn.x, spawn.y);
     }
 
+    // The whole island: land and its sub-biomes' décors tile by tile, walls (cliffs, thickets, barriers) drawn with the
+    // décor next to them, the void around the central zone, the sky beyond the coast (nothing drawn, an invisible wall
+    // along it); then the island's obstacles (lakes, rivers, bridges, crater) laid tile by tile.
+    void GenerateIsland(System.Random rng)
+    {
+        var plan = island;
+        width = height = plan.size;
+        size = plan.size + 2 * margin;
+        open = new bool[size, size];
+        cellDecor = new DungeonTileset[size * size];
+        skyWall = new bool[size * size];
+        var origin = Interior.min;
+        var centreDecor = TilesetRoster.Get(CentreDecor);
+        int n = plan.size;
+        // The décor of the nearest land tile, for the tiles that have none of their own (barriers, void, walls of the sky).
+        var nearest = new DungeonTileset[n * n];
+        var dist = new int[n * n];
+        var queue = new Queue<int>();
+        for (int i = 0; i < n * n; i++)
+        {
+            dist[i] = int.MaxValue;
+            int r = plan.region[i];
+            DungeonTileset own = r >= 0 && r < 4 && plan.biome[i] != null && plan.biome[i].tilesets.Length > 0
+                ? TilesetRoster.Get(plan.biome[i].tilesets[(i * 7919) % plan.biome[i].tilesets.Length])
+                : r == IslandPlan.Centre ? centreDecor : null;
+            if (own == null) continue;
+            nearest[i] = own;
+            dist[i] = 0;
+            queue.Enqueue(i);
+        }
+        while (queue.Count > 0)
+        {
+            int c = queue.Dequeue();
+            int cx = c % n, cy = c / n;
+            foreach (var d in Neighbours)
+            {
+                int x = cx + d.x, y = cy + d.y;
+                if (x < 0 || y < 0 || x >= n || y >= n) continue;
+                int k = y * n + x;
+                if (dist[k] <= dist[c] + 1) continue;
+                dist[k] = dist[c] + 1;
+                nearest[k] = nearest[c];
+                queue.Enqueue(k);
+            }
+        }
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                int i = y * n + x, gx = x + origin.x, gy = y + origin.y, g = gy * size + gx;
+                int r = plan.region[i];
+                bool land = r >= 0 && r < 4;
+                if (r == IslandPlan.Void)
+                {
+                    skyWall[g] = dist[i] <= 2; // the edge of the island
+                    continue;
+                }
+                cellDecor[g] = nearest[i];
+                open[gx, gy] = r == IslandPlan.Centre || r == IslandPlan.Moat || (land && !plan.wall[i]);
+            }
+        tileset = nearest[plan.start.y * n + plan.start.x] ?? tileset;
+        tiles.Clear();
+        spawn = origin + plan.start;
+        Draw(rng);
+        Obstacles.Rebuild(this);
+        Terrain.Rebuild(this);
+        Climate.Clear();
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                int i = y * n + x;
+                string key = plan.region[i] == IslandPlan.Moat ? "void" : plan.region[i] >= 0 && plan.region[i] < 4 && !plan.wall[i] ? plan.obstacle[i] : null;
+                if (key == null) continue;
+                // A bridge spans its river: the river first, the bridge laid over it.
+                var theme = plan.region[i] >= 0 && plan.region[i] < 4 ? plan.themes[plan.region[i]] : null;
+                if (theme != null && key == theme.bridgeKind) Obstacles.Place(x + origin.x, y + origin.y, theme.riverKind);
+                Obstacles.Place(x + origin.x, y + origin.y, key);
+            }
+        Obstacles.Current.FinishLevel(spawn);
+        if (player != null) player.position = CentreOf(spawn.x, spawn.y);
+    }
+
     /// Where the team appeared in the arena.
     public Vector2 SpawnPoint => CentreOf(spawn.x, spawn.y);
 
 
     bool[,] open;
     int size;
-    readonly Dictionary<(int, bool), Tile> tiles = new();
+    readonly Dictionary<(DungeonTileset, int, bool), Tile> tiles = new();
+    DungeonTileset[] cellDecor; // per tile when the map mixes décors (the island); null: "tileset" everywhere
+    bool[] skyWall; // island: sky tiles next to land, an invisible wall (nothing drawn, a collider)
+    Tile invisibleWall;
 
     void Start()
     {
@@ -96,6 +186,13 @@ public class DungeonGenerator : MonoBehaviour
         if (floorMap.GetComponent<TilemapRenderer>() is { } floor) floor.sortingOrder = FloorOrder;
         int s = seed != 0 ? seed : room != null ? room.seed : 0; // a room of a floor is laid out the same way each time
         var rng = new System.Random(s != 0 ? s : System.Environment.TickCount);
+        cellDecor = null;
+        skyWall = null;
+        if (island != null)
+        {
+            GenerateIsland(rng);
+            return;
+        }
         if (level != null)
         {
             GenerateLevel(rng);
@@ -188,18 +285,45 @@ public class DungeonGenerator : MonoBehaviour
     {
         floorMap.ClearAllTiles();
         wallMap.ClearAllTiles();
+        // Laid in batches: a whole island is hundreds of thousands of tiles.
+        var floorCells = new List<Vector3Int>();
+        var floorTiles = new List<TileBase>();
+        var wallCells = new List<Vector3Int>();
+        var wallTiles = new List<TileBase>();
         for (int x = 0; x < size; x++)
             for (int y = 0; y < size; y++)
             {
                 bool isOpen = open[x, y];
+                var decor = cellDecor != null ? cellDecor[y * size + x] : tileset;
+                if (decor == null)
+                {
+                    // The sky around the island: nothing drawn, an invisible wall along the coast.
+                    if (skyWall != null && skyWall[y * size + x])
+                    {
+                        wallCells.Add(new Vector3Int(x, y, 0));
+                        wallTiles.Add(InvisibleWall());
+                    }
+                    continue;
+                }
                 int mask = 0;
                 for (int i = 0; i < Neighbours.Length; i++)
                     if (IsOpen(x + Neighbours[i].x, y + Neighbours[i].y) == isOpen)
                         mask |= 1 << i;
                 int variation = rng.Next(8) == 0 ? rng.Next(1, 3) : 0;
-                int chunk = (isOpen ? tileset.floor : tileset.wall)[mask * 3 + variation];
-                (isOpen ? floorMap : wallMap).SetTile(new Vector3Int(x, y, 0), GetTile(chunk, !isOpen));
+                int chunk = (isOpen ? decor.floor : decor.wall)[mask * 3 + variation];
+                (isOpen ? floorCells : wallCells).Add(new Vector3Int(x, y, 0));
+                (isOpen ? floorTiles : wallTiles).Add(GetTile(decor, chunk, !isOpen));
             }
+        floorMap.SetTiles(floorCells.ToArray(), floorTiles.ToArray());
+        wallMap.SetTiles(wallCells.ToArray(), wallTiles.ToArray());
+    }
+
+    Tile InvisibleWall()
+    {
+        if (invisibleWall != null) return invisibleWall;
+        invisibleWall = ScriptableObject.CreateInstance<Tile>();
+        invisibleWall.colliderType = Tile.ColliderType.Grid;
+        return invisibleWall;
     }
 
     // Everything outside the map counts as wall.
@@ -237,16 +361,16 @@ public class DungeonGenerator : MonoBehaviour
         return true;
     }
 
-    Tile GetTile(int chunk, bool solid)
+    Tile GetTile(DungeonTileset decor, int chunk, bool solid)
     {
-        if (tiles.TryGetValue((chunk, solid), out var tile) && tile != null) return tile;
-        int chunkSize = tileset.chunkSize, cell = chunkSize + 2 * tileset.padding;
-        var rect = new Rect(chunk % tileset.columns * cell + tileset.padding,
-            tileset.texture.height - (chunk / tileset.columns + 1) * cell + tileset.padding, chunkSize, chunkSize);
+        if (tiles.TryGetValue((decor, chunk, solid), out var tile) && tile != null) return tile;
+        int chunkSize = decor.chunkSize, cell = chunkSize + 2 * decor.padding;
+        var rect = new Rect(chunk % decor.columns * cell + decor.padding,
+            decor.texture.height - (chunk / decor.columns + 1) * cell + decor.padding, chunkSize, chunkSize);
         tile = ScriptableObject.CreateInstance<Tile>();
-        tile.sprite = Sprite.Create(tileset.texture, rect, new Vector2(0.5f, 0.5f), chunkSize, 0, SpriteMeshType.FullRect);
+        tile.sprite = Sprite.Create(decor.texture, rect, new Vector2(0.5f, 0.5f), chunkSize, 0, SpriteMeshType.FullRect);
         tile.colliderType = solid ? Tile.ColliderType.Grid : Tile.ColliderType.None;
-        tiles[(chunk, solid)] = tile;
+        tiles[(decor, chunk, solid)] = tile;
         return tile;
     }
 }

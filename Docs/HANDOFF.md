@@ -80,11 +80,15 @@ la mécanique marchait, mais le liquide de certains décors trompait (eau violet
 sortaient vides ; corrigé (aspect standard, décors écartés, nouvel essai). Banc : 22/22.
 Étage façon Isaac fait puis remplacé (22/10/2026, demande de Robin) par des **niveaux continus** façon Minecraft
 Dungeons : phase 1 faite (`LevelPlan`, `LevelRun`, zones naturelles, chemins sinueux et renfoncements, branches,
-boucles, mini-carte avec brouillard, niveau de test par l'escalier orange) ; `LevelCheck` 20 niveaux sans problème,
+boucles, mini-carte avec brouillard ; l'escalier orange mène désormais à l'île) ; `LevelCheck` 20 niveaux sans problème,
 exploration ≈ 2 à 4,5 min sans combat ; banc 22/22. Suite (GDD) : 2) sous-biomes (`biomes.json`, décor par case,
 transitions sur frontières naturelles), 3) passages secrets, 4) rencontres. Puis brancher les niveaux sur la vraie partie.
 **Nouvelle direction (22/10/2026)** : une run = une île flottante (GDD « L'île flottante ») ; les niveaux continus
-serviront aux chaînes d'îlots. Étape 1 faite : `IslandPlan`, `island.json`, `biomes.json`, aperçu `IslandCheck`.
+serviront aux chaînes d'îlots. Étapes 1 et 2 faites (données seulement) : `IslandPlan`, `IslandFeatures`, `island.json`,
+`biomes.json`, aperçu `IslandCheck`. Étape 3 faite : île jouable (escalier orange du terrain de test), décor par case,
+haies aux changements de décor, ciel autour ; pire image 24 ms en courant avec les alliés (les pics de 108 ms venaient de
+la réparation de chemin, rendue locale). Banc 24/24. Suite : 4) chaînes d'îlots, 5) sceaux et engrenages, 6) centre,
+7) rencontres.
 Gels des grands niveaux corrigés par une session parallèle (pire image 167 → 31 ms ; banc 23/23), à confirmer en jeu.
 Retour de Robin sur l'étage de test : plus d'obstacles (pylônes dans les labyrinthes…) et obstacles fondus dans le décor
 (capture : vide standard bordé de bleu sur la Grotte Abîme aux murs noirs). Fait : liquide du décor par thème

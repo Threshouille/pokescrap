@@ -1430,13 +1430,13 @@
      "obstacles": {
       "features": [
        1,
-       2
+       1
       ],
       "spawnClear": 2,
       "pool": [
        {
         "type": "pylons",
-        "weight": 3,
+        "weight": 1,
         "count": [
          2,
          3
@@ -1444,18 +1444,6 @@
         "distance": [
          4,
          7
-        ]
-       },
-       {
-        "type": "metal",
-        "weight": 1,
-        "sizes": [
-         2,
-         3
-        ],
-        "magnets": [
-         0,
-         1
         ]
        }
       ]

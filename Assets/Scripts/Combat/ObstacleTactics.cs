@@ -39,6 +39,9 @@ public static class ObstacleTactics
         int size = grid.Size;
         var start = grid.CellOf(self.transform.position);
         var end = grid.CellOf(goal);
+        // A repair is local (the river between the ally and the leader): not when the leader is far away.
+        if (Vector2Int.Distance(start, end) > RepairRange) return false;
+        var slots = new Dictionary<ObstacleDef, int>(); // the move that changes each kind of obstacle, looked up once
 
         // Dijkstra on 4-neighbours: walkable tiles cost 1, tiles one of self's moves would make walkable ChangeCost.
         // Buffers shared by every search (a level is a large map), "stamp" marks what belongs to this one; at most
@@ -61,7 +64,8 @@ public static class ObstacleTactics
                 int next = ny * size + nx, slot = -1, add = 1;
                 if (Obstacles.Blocks(nx, ny, self))
                 {
-                    slot = ChangingSlot(self, Obstacles.At(nx, ny), turnsWalkable: true);
+                    var on = Obstacles.At(nx, ny);
+                    if (!slots.TryGetValue(on, out slot)) slots[on] = slot = ChangingSlot(self, on, turnsWalkable: true);
                     if (slot < 0) continue;
                     add = ChangeCost;
                 }
@@ -104,7 +108,8 @@ public static class ObstacleTactics
         return true;
     }
 
-    const int MaxSearched = 30000; // tiles a repair search looks at
+    const int MaxSearched = 5000; // tiles a repair search looks at
+    const float RepairRange = 40f; // tiles: a leader farther than this is not reached by a repair
 
     static int[] cost, parent, changeSlot, stamp;
     static int search;

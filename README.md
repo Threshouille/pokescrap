@@ -86,11 +86,12 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 22 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 24 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
-  brûler un pont sous un ennemi, marcher sur du métal chargé, puis les obstacles dans des salles du catalogue) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
+  brûler un pont sous un ennemi, marcher sur du métal chargé, puis les obstacles dans des salles du catalogue, l'absence
+  de gel sur un grand niveau et sur l'île) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
   Sans ouvrir Unity : `python3 Tools/setup.py --ai-scenarios` (Unity fermé ; résultats dans `Logs/ai_scenarios.log`,
   code de sortie = nombre d'échecs). Scénarios : `Assets/Scripts/Combat/AiScenarios.cs`.
 
@@ -126,16 +127,32 @@ Binding of Isaac (le plan de l'étage et les règles des salles viendront ensuit
 ## L'île
 
 Une run se déroule sur une **île flottante** (GDD, « L'île flottante ») : 4 quartiers, ouverts un à un dans le sens
-des aiguilles d'une montre par les **Engrenages du Temps**, autour d'une zone centrale finale en salles. Étape 1 faite
-(données seulement, pas encore jouable) :
+des aiguilles d'une montre par les **Engrenages du Temps**, autour d'une zone centrale finale en salles. Étapes 1 à 3
+faites (l'île est jouable, sans sceaux ni ennemis) :
 - `IslandPlan` (réglages `Assets/Resources/Data/island.json`) : côte irrégulière, zone centrale entourée de vide,
   frontières sinueuses entre quartiers, point d'arrivée sur la côte du premier quartier.
 - **Biomes** (`Assets/Resources/Data/biomes.json`) : chaque quartier prend un thème (Volcan, Glacier, Côte, Forêt,
   Désert, Ruines : quatre différents par run) ; deux champs de bruit (altitude, avec un pic pour un volcan ou un
   glacier, et humidité), classés dans le quartier, donnent à chaque case son sous-biome (Cratère, Coulées, Pentes de
   cendres…) et ses décors de la ROM.
-- **Aperçu** sans Unity : `python3 Tools/setup.py --unity-only IslandCheck.Run` → `Logs/island_preview.png` (4 îles,
-  une case = un pixel, sous-biomes en couleur).
+- **Grands éléments** (étape 2, `IslandFeatures`, réglages par thème dans `biomes.json`) : cratère de lave au sommet du
+  volcan ; lacs dans les creux (eau, glace au glacier, sable mouvant au désert, lave au volcan) ; grandes rivières qui
+  traversent le quartier vers la côte en serpentant, avec des ponts réguliers (coulées de lave franchies par de la roche,
+  canyons de vide au désert) ; falaises le long des lignes de niveau, avec des passages ; massifs (bosquets, rochers)
+  selon le sous-biome pour le côté semi-ouvert ; un couloir à travers chaque frontière vers le quartier suivant. Tout
+  reste atteignable depuis le point d'arrivée (zones coupées reliées, petites poches murées).
+- **Rendu** (étape 3) : chaque case est dessinée avec le décor de la ROM de son sous-biome ; là où le décor change, une
+  haie ou un rebord d'une case (murs du décor, bords propres) avec des passages, les décors de la ROM n'ayant pas de
+  tuiles de transition ; murs (falaises, massifs, frontières) avec le décor voisin ; au-delà de la côte, le ciel (fond de
+  caméra) et un bord invisible ; le vide autour du centre ; ponts droits en travers des rivières. Construction ≈ 0,4 à
+  0,7 s pour ~250 000 cases.
+- **Île de test** : dans le terrain de test, l'**escalier orange** (en bas) ; R / Select tire une nouvelle île ; le
+  bandeau indique le quartier (ordre d'ouverture), son thème et le sous-biome ; mini-carte avec brouillard (passages vers
+  les quartiers suivants en jaune une fois vus) ; l'escalier bleu près de l'arrivée ramène au terrain de test.
+- **Aperçus** sans Unity : `python3 Tools/setup.py --unity-only IslandCheck.Run` → `Logs/island_preview.png` (4 îles,
+  une case = un pixel : sous-biomes en couleur, murs assombris, eau, lave, vide, ponts, passages en blanc) ; rendu réel
+  et temps de construction : `Unity -batchmode -projectPath . -executeMethod IslandCheck.Shots -quit` →
+  `Logs/island_shots.png` (l'île entière, l'arrivée, un pont, un passage).
 
 ## Niveaux
 
@@ -152,8 +169,7 @@ réglages `Assets/Resources/Data/levels.json`) :
   couleur, zones spéciales marquées une fois vues).
 - Un thème et un décor par niveau pour l'instant ; viendront les sous-biomes et leurs transitions, les passages secrets,
   puis les rencontres (GDD, « Niveaux continus »).
-- **Niveau de test** : dans le terrain de test, l'**escalier orange** (en bas) ; R / Select tire un nouveau niveau ;
-  l'escalier bleu près du départ ramène au terrain de test.
+- Le niveau de test a laissé l'escalier orange à l'île ; `LevelRun` reste dans le code pour les chaînes d'îlots.
 - **Contrôles** sans Unity : `python3 Tools/setup.py --unity-only LevelCheck.Run` (20 niveaux : toutes les zones
   atteignables, temps de marche) ; captures de niveaux entiers : `Unity -batchmode -projectPath . -executeMethod
   LevelCheck.Shots -quit` → `Logs/levels_shots.png`.
@@ -283,6 +299,15 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 22/10/2026 — Île flottante, étapes 1 à 3 (Robin, branche `feature/salles`)
+- Nouvelle structure de run (GDD « L'île flottante ») : 4 quartiers à thème autour d'une zone centrale, sous-biomes par
+  champs d'altitude et d'humidité, grands éléments (cratère, lacs, grandes rivières avec ponts, canyons, falaises,
+  massifs), haies aux changements de décor, ciel autour ; jouable par l'escalier orange du terrain de test (mini-carte
+  avec brouillard). Pas encore de sceaux, d'Engrenages ni d'ennemis. Voir « L'île ».
+- Performances sur les grandes cartes : recherche de chemin bornée et budget par image, réparation de chemin locale
+  (pire image 24 ms en courant avec les alliés). Banc d'essai : 24 scénarios.
+- Après la mise à jour : rien de nouveau à extraire de la ROM (les décors des salles suffisent).
 
 ### 22/10/2026 — Salles, étape 1 (Robin, branche `feature/salles`)
 - Catalogue de salles (`rooms.json`, `RoomCatalog`, `RoomLayouts`) : 7 types, 11 thèmes, 37 variantes, 5 tailles,

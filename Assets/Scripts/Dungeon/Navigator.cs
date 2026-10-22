@@ -12,7 +12,11 @@ public class Navigator
     const float WaypointReached = 0.35f;
     const float HazardCost = 25f; // extra cost of a tile inside a hostile zone, in tiles of detour
     const float Diagonal = 1.41421356f;
-    const int MaxExpanded = 9000; // tiles a search may look at (a level is a large map): beyond, a partial path
+    const int MaxExpanded = 4000; // tiles a search may look at (a level is a large map): beyond, a partial path
+    // Tiles all the searches of one frame may look at together (several AIs chasing across an island): beyond, a
+    // search waits for the next frame and the AI keeps to its current path.
+    const int FrameBudget = 4000;
+    static int budgetFrame, spent;
     static readonly Vector2Int[] Steps =
     {
         new(1, 0), new(-1, 0), new(0, 1), new(0, -1), new(1, 1), new(1, -1), new(-1, 1), new(-1, -1),
@@ -53,7 +57,14 @@ public class Navigator
 
         var cell = grid.CellOf(to);
         // An unreachable goal is searched again only every RepathInterval, not at every step.
-        if ((path.Count == 0 && Reachable) || cell != goalCell || Time.time >= nextSearch || pathAvoids != avoid)
+        if (Time.frameCount != budgetFrame)
+        {
+            budgetFrame = Time.frameCount;
+            spent = 0;
+        }
+        bool due = (path.Count == 0 && Reachable) || cell != goalCell || Time.time >= nextSearch || pathAvoids != avoid;
+        if (due && spent >= FrameBudget && path.Count > 0) due = false; // over this frame's budget: next frame
+        if (due)
         {
             SafePath = false;
             if (avoid) SafePath = FindPath(grid, from, to, agent, true);
@@ -132,6 +143,7 @@ public class Navigator
             if (closed[node]) continue;
             closed[node] = true;
             expanded++;
+            spent++;
             if (node == goalNode) break;
             float left = priority[node] - cost[node];
             if (left < closestLeft) { closestLeft = left; closest = node; }
