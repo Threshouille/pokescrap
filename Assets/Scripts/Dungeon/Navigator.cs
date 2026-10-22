@@ -12,6 +12,7 @@ public class Navigator
     const float WaypointReached = 0.35f;
     const float HazardCost = 25f; // extra cost of a tile inside a hostile zone, in tiles of detour
     const float Diagonal = 1.41421356f;
+    const int MaxExpanded = 9000; // tiles a search may look at (a level is a large map): beyond, a partial path
     static readonly Vector2Int[] Steps =
     {
         new(1, 0), new(-1, 0), new(0, 1), new(0, -1), new(1, 1), new(1, -1), new(-1, 1), new(-1, -1),
@@ -123,12 +124,17 @@ public class Navigator
 
         int startNode = start.y * size + start.x, goalNode = goal.y * size + goal.x;
         Visit(startNode, 0f, -1, Heuristic(start, goal));
-        while (heap.Count > 0)
+        int expanded = 0, closest = startNode;
+        float closestLeft = Heuristic(start, goal);
+        while (heap.Count > 0 && expanded < MaxExpanded)
         {
             int node = Pop();
             if (closed[node]) continue;
             closed[node] = true;
+            expanded++;
             if (node == goalNode) break;
+            float left = priority[node] - cost[node];
+            if (left < closestLeft) { closestLeft = left; closest = node; }
 
             int x = node % size, y = node / size;
             foreach (var step in Steps)
@@ -153,11 +159,15 @@ public class Navigator
             }
         }
 
-        if (stamp[goalNode] != search || !closed[goalNode]) return false; // unreachable
-        for (int node = goalNode; node != startNode && node >= 0; node = parent[node])
+        bool reached = stamp[goalNode] == search && closed[goalNode];
+        // Every reachable tile looked at without finding the goal: unreachable. The search stopped by its limit
+        // (the goal is far, on a large map): a partial path to the tile closest to the goal, walked meanwhile.
+        if (!reached && heap.Count == 0) return false;
+        int end = reached ? goalNode : closest;
+        for (int node = end; node != startNode && node >= 0; node = parent[node])
             path.Add(grid.CentreOf(node % size, node / size));
         path.Reverse();
-        if (path.Count > 0) path[path.Count - 1] = to;
+        if (reached && path.Count > 0) path[path.Count - 1] = to;
         return true;
     }
 

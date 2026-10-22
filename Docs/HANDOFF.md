@@ -70,6 +70,30 @@ d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : b
   ennemi au corps à corps ; pylônes vus avec 60 % de chances par cycle ; métal ignoré par les IA. `Navigator` ne
   relance plus l'A* à chaque pas vers une cible inaccessible (problème connu, corrigé). Banc : 14 scénarios.
 
+## Salles (branche `feature/salles`, 22/10/2026, Robin)
+
+Étape 1 faite : catalogue `rooms.json` (types, thèmes, variantes, tailles), générateur (plans de murs, décors de la ROM,
+liquide du décor), galerie des salles dans le terrain de test, `RoomCheck` (84 salles, 0 problème). Le point de départ
+est encore le centre (spawnClear réduit à 2 dans les salles) : les portes le remplaceront à l'étape 2.
+Retour de Robin (22/10/2026) : les obstacles des salles « ne marchaient pas ». Diagnostic (banc + captures `RoomShots`) :
+la mécanique marchait, mais le liquide de certains décors trompait (eau violette, sol d'eau, glace = sol) et des salles
+sortaient vides ; corrigé (aspect standard, décors écartés, nouvel essai). Banc : 22/22.
+Étage façon Isaac fait puis remplacé (22/10/2026, demande de Robin) par des **niveaux continus** façon Minecraft
+Dungeons : phase 1 faite (`LevelPlan`, `LevelRun`, zones naturelles, chemins sinueux et renfoncements, branches,
+boucles, mini-carte avec brouillard, niveau de test par l'escalier orange) ; `LevelCheck` 20 niveaux sans problème,
+exploration ≈ 2 à 4,5 min sans combat ; banc 22/22. Suite (GDD) : 2) sous-biomes (`biomes.json`, décor par case,
+transitions sur frontières naturelles), 3) passages secrets, 4) rencontres. Puis brancher les niveaux sur la vraie partie.
+**Nouvelle direction (22/10/2026)** : une run = une île flottante (GDD « L'île flottante ») ; les niveaux continus
+serviront aux chaînes d'îlots. Étape 1 faite : `IslandPlan`, `island.json`, `biomes.json`, aperçu `IslandCheck`.
+Gels des grands niveaux corrigés par une session parallèle (pire image 167 → 31 ms ; banc 23/23), à confirmer en jeu.
+Retour de Robin sur l'étage de test : plus d'obstacles (pylônes dans les labyrinthes…) et obstacles fondus dans le décor
+(capture : vide standard bordé de bleu sur la Grotte Abîme aux murs noirs). Fait : liquide du décor par thème
+(`liquidDecors`), rochers découpés dans chaque décor, décor 26 écarté, plus d'éléments par variante.
+Décors de la ROM utiles, par donjon d'origine : lave 57/58 (Cratère Obscur), 110 (Caverne Brasier), 123 (Volcan Géant) ;
+glace 88, 111, 137, 139, 140 ; eau 4, 39, 52, 96, 113, 126 ; forêt 5, 10, 35, 44, 128 ; caverne 1, 9, 22, 49, 103, 130 ;
+désert 17, 19, 20, 85, 133 ; électrique 14 (Plaines Elek), 127 (Registeel) ; néant 26, 55 (Faille Spatiale, liquide
+noir), 59, 99 ; ruines 28, 29, 30, 45/46 (Tour du Temps) ; labyrinthe 102 (Grotte Labyrinthe).
+
 ## En attente
 
 - **Icônes de bonus/malus** (`status_attack_up`… six fichiers) : prompt donné plus tôt, archive pas encore reçue ; flèches colorées provisoires.
@@ -77,6 +101,12 @@ d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : b
 - Archives qui ne servent plus (Owen peut les supprimer) : `Jeu d'action 2D pixel art*.zip`, `Groudon.zip`, `Statuts.zip` à la racine ; `Design/Attaquesbasedistance.zip`, `Design/CaC.zip`, `Design/Evolution.zip`, `Design/Jeu d'action 2D pixel art.zip`. Garder l'archive de la ROM.
 
 ## Problèmes connus et points à surveiller
+
+- Corrigé le 22/10/2026 : gels sur les grands niveaux quand le Pokémon joué survolait l'eau, la lave ou le vide (Ptéra) :
+  les alliés, sans chemin, lançaient l'A* jusqu'à sa limite puis la réparation de chemin (Dijkstra quadratique sur
+  toute la carte, toutes les 0,5 s). Correctifs : cible de suivi praticable, chemin partiel à la limite de l'A*,
+  réparation à tas binaire bornée, redessin incrémental des obstacles et du terrain. Sonde au banc (« Niveau : pas de
+  gel… ») : pire image 167 ms → 31 ms sur un niveau 360×268. Reste à confirmer en jeu par Robin.
 
 - Analyse du code (17/10/2026), corrigé : gardes du boss qui rapportaient expérience et recrues, ✕ / Espace qui esquivaient ou attaquaient en fermant un menu (entrées ignorées 0,25 s), ennemi seul forcé en soutien, écran de fin qui se fermait aussitôt (1 s avant d'accepter une touche), recul ignoré pendant l'annonce d'un ennemi, attaque possible en pleine ruée ou esquive. Restent, mineurs : les zones ne déclenchent ni drain ni recul ; tuiles non détruites à chaque `Generate()` ; Attaque / Attaque Spé proposées même sans attaque de cette catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
 

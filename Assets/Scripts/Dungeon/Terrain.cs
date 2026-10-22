@@ -89,6 +89,13 @@ public class TerrainSizing
 /// spreading over the whole connected area as a wave.
 public class Terrain : MonoBehaviour
 {
+    // Outside play mode (batch tools building rooms) Destroy never runs: the objects go at once.
+    static void Discard(UnityEngine.Object o)
+    {
+        if (Application.isPlaying) Destroy(o);
+        else DestroyImmediate(o);
+    }
+
     const float Tick = 1f; // seconds between two damages or heals
     const float FadeTime = 1f; // a tile fades out over its last second
     const float FadeIn = 0.25f; // ... and in over its first quarter of a second
@@ -114,6 +121,9 @@ public class Terrain : MonoBehaviour
     bool[] owned;
     int active;
     bool dirty;
+    // Tiles holding terrain, or cleared since the last frame: LateUpdate looks at them only (a level is a large map).
+    readonly HashSet<int> live = new();
+    readonly List<int> gone = new();
     Texture2D texture;
     Color32[] pixels;
     SpriteRenderer[] tiles; // animated tile of each cell, created when first needed
@@ -237,17 +247,18 @@ public class Terrain : MonoBehaviour
                 if (tile != null) tile.enabled = false;
         if (tiles == null || tiles.Length != size * size)
         {
-            if (tileRoot != null) Destroy(tileRoot.gameObject); // laid out for another arena size
+            if (tileRoot != null) Discard(tileRoot.gameObject); // laid out for another arena size
             tileRoot = null;
             tiles = new SpriteRenderer[size * size];
         }
         active = 0;
+        live.Clear();
         pending.Clear();
         queued.Clear();
         nextTick.Clear();
         if (texture == null || texture.width != size)
         {
-            if (texture != null) Destroy(texture);
+            if (texture != null) Discard(texture);
             texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             pixels = new Color32[size * size];
             var renderer = GetComponent<SpriteRenderer>();
@@ -480,6 +491,7 @@ public class Terrain : MonoBehaviour
             length[i] = duration;
             active++;
         }
+        live.Add(i); // drawn, or cleared, at the next LateUpdate
         dirty = true;
         // Terrain touching an obstacle may change it (after the tile is set: the change may repaint it).
         if (def != null && duration > 0f) Obstacles.OnTerrain(i % size, i / size, def.key, by);
@@ -681,25 +693,30 @@ public class Terrain : MonoBehaviour
     void LateUpdate()
     {
         if (texture == null || (active <= 0 && !dirty)) return;
-        int live = 0;
-        for (int i = 0; i < kind.Length; i++)
+        int count = 0;
+        bool upload = false; // the texture is sent again only when one of its pixels changed
+        gone.Clear();
+        foreach (int i in live)
         {
             var def = kind[i];
-            if (def == null) { pixels[i] = default; HideTile(i); continue; }
+            if (def == null) { pixels[i] = default; HideTile(i); gone.Add(i); upload = true; continue; }
             float left = until[i] - Time.time;
             if (left <= 0f)
             {
                 kind[i] = null;
                 pixels[i] = default;
                 HideTile(i);
+                gone.Add(i);
+                upload = true;
                 continue;
             }
-            live++;
+            count++;
             // Fades in over its first FadeIn seconds and out over its last second.
             float fade = Mathf.Clamp01(left / Mathf.Min(FadeTime, length[i]))
                 * Mathf.Clamp01((Time.time - (until[i] - length[i])) / FadeIn);
             if (def.sheet != null)
             {
+                if (pixels[i].a != 0) upload = true;
                 pixels[i] = default;
                 DrawTile(i, def, fade);
                 continue;
@@ -708,9 +725,12 @@ public class Terrain : MonoBehaviour
             var c = def.flickers ? Color.Lerp(def.tint, def.flicker, Mathf.PingPong(Time.time * def.flickerRate * 2f, 1f)) : def.tint;
             c.a *= fade;
             pixels[i] = c;
+            upload = true;
         }
-        dirty = live > 0 || active > 0; // one more frame to clear the last tiles
-        active = live;
+        foreach (int i in gone) live.Remove(i);
+        dirty = count > 0 || active > 0; // one more frame to clear the last tiles
+        active = count;
+        if (!upload) return;
         texture.SetPixels32(pixels);
         texture.Apply();
     }

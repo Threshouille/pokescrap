@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-/// Generates a square arena (walls around, a few obstacles inside) and draws it with a DungeonTileset.
+/// Generates a square arena (walls around, a few obstacles inside) and draws it with a DungeonTileset; or, when
+/// "room" is set (RoomCatalog.Pick), a room of the catalogue: its size, wall plan, décor and obstacles.
 public class DungeonGenerator : MonoBehaviour
 {
     // Neighbour offsets in tileset mask bit order: S, SE, E, NE, N, NW, W, SW.
@@ -30,10 +31,51 @@ public class DungeonGenerator : MonoBehaviour
     /// The arena currently in play, used by the AIs to find their way.
     public static DungeonGenerator Current { get; private set; }
 
+    /// The room to build at the next Generate (null: the classic square arena).
+    [System.NonSerialized] public RoomInstance room;
+
+    /// The level to build at the next Generate (LevelPlan: zones and paths on one continuous map); before "room".
+    [System.NonSerialized] public LevelPlan level;
+
     public int Size => size;
 
-    /// Tiles of the arena inside its outer walls.
-    public RectInt Interior => new(margin, margin, arenaSize, arenaSize);
+    /// Tiles of the arena inside its outer walls (a rectangle centred in the square grid).
+    public RectInt Interior => new((size - width) / 2, (size - height) / 2, width, height);
+
+    int width, height; // of the interior
+    int retries;
+    Vector2Int spawn;
+    // A whole level: its canvas as the interior, zones and paths carved by the plan, each zone's obstacles laid
+    // within it, the team at the start zone's centre.
+    void GenerateLevel(System.Random rng)
+    {
+        if (TilesetRoster.Get(level.tileset) is { } decor) tileset = decor;
+        tiles.Clear();
+        width = level.size.x;
+        height = level.size.y;
+        size = Mathf.Max(width, height) + 2 * margin;
+        open = new bool[size, size];
+        var origin = Interior.min;
+        level.Carve(open, origin, rng, spawnClearance);
+        spawn = origin + Vector2Int.RoundToInt(level.start.centre);
+        Draw(rng);
+        Obstacles.Rebuild(this);
+        Terrain.Rebuild(this);
+        Climate.Clear();
+        foreach (var z in level.zones)
+        {
+            var keep = new List<Vector2Int> { origin + Vector2Int.RoundToInt(z.centre) };
+            keep.AddRange(z.entries);
+            var rect = z.Rect;
+            Obstacles.Current.GenerateZone(z.room.obstacles, rng, keep, new RectInt(rect.xMin + origin.x, rect.yMin + origin.y, rect.width, rect.height));
+        }
+        Obstacles.Current.FinishLevel(spawn);
+        if (player != null) player.position = CentreOf(spawn.x, spawn.y);
+    }
+
+    /// Where the team appeared in the arena.
+    public Vector2 SpawnPoint => CentreOf(spawn.x, spawn.y);
+
 
     bool[,] open;
     int size;
@@ -52,39 +94,70 @@ public class DungeonGenerator : MonoBehaviour
     {
         Current = this;
         if (floorMap.GetComponent<TilemapRenderer>() is { } floor) floor.sortingOrder = FloorOrder;
-        tiles.Clear(); // the tileset may have changed since the previous arena
-        var rng = new System.Random(seed != 0 ? seed : System.Environment.TickCount);
-        size = arenaSize + 2 * margin;
-        open = new bool[size, size];
-        for (int x = margin; x < margin + arenaSize; x++)
-            for (int y = margin; y < margin + arenaSize; y++)
-                open[x, y] = true;
-
-        // Obstacles are only placed where a free ring remains around them, so nothing gets sealed off.
-        int centre = size / 2, placed = 0;
-        // The dev sandbox is an open field; a real arena keeps the wall blocks its décor's obstacle profile asks for.
-        var profile = Run.Sandbox || tileset == null ? null : Obstacles.ArenaProfile(tileset.romId);
-        int wanted = Run.Sandbox ? 0 : profile != null && profile.walls >= 0 ? profile.walls : obstacles;
-        for (int attempt = 0; attempt < wanted * 20 && placed < wanted; attempt++)
+        int s = seed != 0 ? seed : room != null ? room.seed : 0; // a room of a floor is laid out the same way each time
+        var rng = new System.Random(s != 0 ? s : System.Environment.TickCount);
+        if (level != null)
         {
-            int w = rng.Next(obstacleMinSize, obstacleMaxSize + 1), h = rng.Next(obstacleMinSize, obstacleMaxSize + 1);
-            if (w + 2 > arenaSize || h + 2 > arenaSize) continue;
-            var block = new RectInt(rng.Next(margin + 1, margin + arenaSize - w), rng.Next(margin + 1, margin + arenaSize - h), w, h);
-            if (!IsFree(block, centre)) continue;
-            for (int x = block.xMin; x < block.xMax; x++)
-                for (int y = block.yMin; y < block.yMax; y++)
-                    open[x, y] = false;
-            placed++;
+            GenerateLevel(rng);
+            return;
+        }
+        if (room != null && TilesetRoster.Get(room.tileset) is { } decor) tileset = decor;
+        tiles.Clear(); // the tileset may have changed since the previous arena
+        width = room != null ? room.size.x : arenaSize;
+        height = room != null ? room.size.y : arenaSize;
+        size = Mathf.Max(width, height) + 2 * margin;
+        open = new bool[size, size];
+        var inside = Interior;
+        for (int x = inside.xMin; x < inside.xMax; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+                open[x, y] = true;
+        int centre = size / 2;
+        spawn = new Vector2Int(centre, centre);
+        var keep = new List<Vector2Int> { spawn };
+
+        Obstacles.Room profile;
+        if (room != null)
+        {
+            RoomLayouts.Apply(open, inside, keep, room.layout, rng, spawnClearance);
+            profile = room.obstacles;
+        }
+        else
+        {
+            // Obstacles are only placed where a free ring remains around them, so nothing gets sealed off.
+            // The dev sandbox is an open field; a real arena keeps the wall blocks its décor's obstacle profile asks for.
+            profile = Run.Sandbox || tileset == null ? null : Obstacles.ArenaProfile(tileset.romId);
+            int wanted = Run.Sandbox ? 0 : profile != null && profile.walls >= 0 ? profile.walls : obstacles, placed = 0;
+            for (int attempt = 0; attempt < wanted * 20 && placed < wanted; attempt++)
+            {
+                int w = rng.Next(obstacleMinSize, obstacleMaxSize + 1), h = rng.Next(obstacleMinSize, obstacleMaxSize + 1);
+                if (w + 2 > width || h + 2 > height) continue;
+                var block = new RectInt(rng.Next(inside.xMin + 1, inside.xMax - w), rng.Next(inside.yMin + 1, inside.yMax - h), w, h);
+                if (!IsFree(block, centre)) continue;
+                for (int x = block.xMin; x < block.xMax; x++)
+                    for (int y = block.yMin; y < block.yMax; y++)
+                        open[x, y] = false;
+                placed++;
+            }
         }
 
         Draw(rng);
         Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
         Climate.Clear(); // a new arena starts with clear skies
-        if (!Run.Sandbox) Obstacles.Current.GenerateArena(profile, rng, new Vector2Int(centre, centre));
+        if (room != null || !Run.Sandbox) Obstacles.Current.GenerateArena(profile, rng, keep);
+        // A room whose obstacles found no room to fit (a lake in a small room) is laid out again, a few times.
+        if (room != null && profile?.pool != null && profile.pool.Length > 0 && Obstacles.Current.Count == 0 && retries < 6)
+        {
+            retries++;
+            int kept = seed;
+            seed = rng.Next(1, int.MaxValue);
+            Generate();
+            seed = kept;
+            return;
+        }
+        retries = 0;
 
-        if (player != null)
-            player.position = floorMap.transform.TransformPoint(new Vector3(centre + 0.5f, centre + 0.5f, 0f));
+        if (player != null) player.position = CentreOf(spawn.x, spawn.y);
     }
 
     /// World position of a random free tile at least minDistance tiles away from a point (the centre by default).
@@ -92,9 +165,10 @@ public class DungeonGenerator : MonoBehaviour
     {
         int centre = size / 2;
         Vector2 origin = around.HasValue ? (Vector2)CellOf(around.Value) : new Vector2(centre, centre);
+        var inside = Interior;
         for (int attempt = 0; attempt < 200; attempt++)
         {
-            int x = rng.Next(margin, margin + arenaSize), y = rng.Next(margin, margin + arenaSize);
+            int x = rng.Next(inside.xMin, inside.xMax), y = rng.Next(inside.yMin, inside.yMax);
             if (open[x, y] && Obstacles.Standable(x, y) && Vector2.Distance(new Vector2(x, y), origin) >= minDistance)
                 return floorMap.transform.TransformPoint(new Vector3(x + 0.5f, y + 0.5f, 0f));
         }

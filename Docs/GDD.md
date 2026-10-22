@@ -152,6 +152,41 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Une arène = plusieurs vagues d'ennemis (à confirmer).
 - Boutiques possibles entre les niveaux, avec un système d'objets (à préciser).
 
+### Étages et salles (décidé le 22/10/2026, Robin)
+- Étages façon Binding of Isaac : plusieurs salles reliées, dont des salles optionnelles (défis) ; une salle de boss
+  par étage : tous les 1 ou 2 étages un gros boss (légendaire), sinon une équipe de 3 Pokémon un peu forts ; sous-boss.
+- Salles inspirées de Donjon Mystère (décors de la ROM), de tailles variées ; instances tirées au hasard (plusieurs
+  salles de lave différentes). Portes fermées pendant le combat. Pas de butin pour l'instant.
+- Ordre : 1) catalogue et générateur de salles (fait le 22/10/2026) ; 2) plan procédural de l'étage et mini-carte (fait le 22/10/2026 façon Isaac, puis remplacé par les niveaux continus, voir ci-dessous) ;
+  3) règles des salles (portes, embuscade, défis, sous-boss, boss, cadence des légendaires).
+
+### L'île flottante (décidé le 22/10/2026, Robin) — remplace les niveaux continus comme structure de la run
+- Une run = une île flottante : 4 quartiers (un quart d'île chacun) + une zone centrale finale. Ordre imposé, sens des
+  aiguilles d'une montre ; chaque quartier s'ouvre avec un Engrenage du Temps, les 4 ouvrent le centre.
+- Quartier : région principale ouverte / semi-ouverte, biomes générés (champs d'altitude, d'humidité, de température :
+  volcans, grandes rivières, lacs, forêts, falaises), variations de sous-biomes fluides et organiques ; plus des chaînes
+  d'îlots flottants au thème en rupture (code des niveaux continus réutilisé, quitte à le revoir).
+- Durée : trame principale ≈ 30 min sans les îlots ; les îlots sont une voie optionnelle qui rallonge la run.
+- Engrenages du Temps : par run, deux quartiers donnent le leur par un boss, un en 3 fragments dispersés dans trois
+  sous-biomes de la région (gardés : mini-gardien, énigme de décor ou recoin ; indice sur la mini-carte), un par une
+  quête du Tableau des missions tirée parmi Sauvetage (ramener un Pokémon perdu), Avis de recherche (traquer un Pokémon
+  qui fuit), Défense du sanctuaire (tenir 3 vagues) ; chaque quête se termine par un boss. Le 4e quartier finit
+  toujours par un boss. Les îlots ne donnent pas d'engrenage : récompenses de détour (plus tard).
+- Centre : série de salles défis et combats, structure de donjon (salles du catalogue), boss final.
+
+### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
+- Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue
+  sans fondu ; les salles deviennent des zones aux contours naturels (ou construites : ruines, labyrinthe) reliées par
+  des chemins sinueux ; chemin principal du départ au boss, branches optionnelles (défis, recoins), quelques boucles.
+- Taille : 10 à 14 zones, 5 à 8 minutes de traversée sans combat. Mini-carte avec brouillard qui se révèle.
+- Biomes : un thème par niveau et une suite de sous-biomes cohérents le long du chemin (`biomes.json`), changement de
+  décor sur une frontière naturelle (goulet, rivière, ravin, arche) et dégradé d'obstacles avant la frontière.
+- Exploration : passages secrets ouverts par les interactions du décor (rocher brisé, lianes brûlées, rivière gelée,
+  pont refait), points de repère.
+- Combats libres en général ; sortie bloquée (barrière de glace ou de ronces) pour les défis et le boss.
+- Ordre : 1) carte continue (zones, chemins, branches, mini-carte), 2) sous-biomes et transitions, 3) exploration,
+  4) rencontres (ennemis par zone, défis, sous-boss, boss).
+
 ### Types et environnement
 - La table des types est conservée (avantages et faiblesses), celle de la 4e génération (époque de la ROM).
 - Multiplicateurs adoucis (17/10/2026, `meta.json`) : super efficace × 1,5, pas très efficace × 0,6, sans effet × 0,25 (pas d'immunité totale) ; une faiblesse et une résistance s'annulent ; résultat borné entre × 0,2 et × 2. Bonus d'attaque du même type (STAB) × 1,25.

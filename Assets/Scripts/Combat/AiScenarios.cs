@@ -101,6 +101,17 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Refroidit la lave pour passer", Repair("lava", 3, "any"));
         yield return Scenario("Brûle le pont sous un ennemi au corps à corps", CutBridge());
         yield return Scenario("Marche sur le métal chargé sans s'en soucier", IgnoreMetal());
+        // Interactive obstacles inside rooms of the catalogue (rooms.json).
+        yield return Scenario("Salle : les obstacles sont dessinés", InRoom("lava", "lake", RoomDrawn()));
+        yield return Scenario("Salle : l'eau arrête la marche", InRoom("water", "river", WaterStopsWalking()));
+        yield return Scenario("Salle : poussé dans la lave, tombe et revient", InRoom("lava", "lake", PushedIntoLava()));
+        yield return Scenario("Salle : le feu brûle un pont", InRoom("water", "river", Turns("bridge", 2, "burning_bridge")));
+        yield return Scenario("Salle : la glace gèle l'eau", InRoom("water", "lake", Turns("water", 6, "frozen")));
+        yield return Scenario("Salle : l'eau refroidit la lave", InRoom("lava", "lake", Turns("lava", 3, "rock")));
+        yield return Scenario("Salle : une attaque Feu tirée brûle le pont", InRoom("water", "river", FireShotBurnsBridge()));
+        yield return Scenario("Salle : les pylônes lancent leur arc", InRoom("electric", "storm", PylonsFire()));
+        yield return Scenario("Niveau : pas de gel sur les obstacles traversables", LevelHitches());
+        RestoreArena();
 
         Clear();
         Failures = results.FindAll(r => !r.passed).Count;
@@ -306,6 +317,279 @@ public class AiScenarios : MonoBehaviour
             if (Obstacles.At(ally.transform.position)?.key == "metal") onMetal++;
         }
         Report(onMetal > 0 && Distance(ally, leader) <= 3f, $"{onMetal} images sur le métal, arrivé en {Time.time - started:0.0} s");
+    }
+
+    // ---------------------------------------------------------------- rooms
+
+    DungeonTileset arenaDecor; // the test arena's own décor, put back after the room scenarios
+
+    // Builds a room of the catalogue (that theme and variant), runs the scenario in it.
+    IEnumerator InRoom(string theme, string variant, IEnumerator body)
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        var room = RoomCatalog.Pick("combat", new System.Random(1234), theme, variant);
+        if (room == null)
+        {
+            Report(false, $"pas de salle {theme}/{variant} dans rooms.json");
+            yield break;
+        }
+        Clear();
+        arena.room = room;
+        arena.Generate();
+        team.PrepareForNextArena(team.transform.position, 0f);
+        yield return new WaitForFixedUpdate();
+        yield return body;
+        if (results.Count > 0) results[^1].detail = $"[{room.variant.name}, décor {room.tileset}] " + results[^1].detail;
+    }
+
+    void RestoreArena()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arena == null || arena.room == null) return;
+        arena.room = null;
+        if (arenaDecor != null) arena.tileset = arenaDecor;
+        Clear();
+        arena.Generate();
+        team.PrepareForNextArena(team.transform.position, 0f);
+    }
+
+    IEnumerator RoomDrawn()
+    {
+        yield return new WaitForSeconds(0.2f);
+        int count = Obstacles.Current != null ? Obstacles.Current.Count : 0, drawn = Obstacles.Current != null ? Obstacles.Current.DrawnTiles : 0;
+        Report(count > 0 && drawn >= count, $"{count} cases d'obstacle, {drawn} tuiles dessinées");
+    }
+
+    // Walks the ally (its AI off) straight at the water from the bank for a second: it must stop at the edge.
+    IEnumerator WaterStopsWalking()
+    {
+        var (_, ally) = Place(Vector2.zero, Vector2.zero, settle: false);
+        if (!Shore("water", out var bank, out var into)) { Report(false, "pas de rive trouvée"); yield break; }
+        var ai = ally.GetComponent<AllyAI>();
+        ai.enabled = false;
+        Teleport(ally, bank);
+        float hp = ally.hp;
+        int onWater = 0;
+        float started = Time.time;
+        while (Time.time - started < 1.2f)
+        {
+            yield return new WaitForFixedUpdate();
+            ally.Drive((into - bank).normalized * ally.CurrentSpeed);
+            if (Obstacles.At(ally.transform.position)?.key == "water") onWater++;
+        }
+        ai.enabled = true;
+        Report(onWater == 0 && ally.hp >= hp, $"{onWater} images sur l'eau, PV {hp:0} → {ally.hp:0}");
+    }
+
+    // Knocks the ally from the bank into the lava: it falls, loses health and comes back to firm ground.
+    IEnumerator PushedIntoLava()
+    {
+        var (_, ally) = Place(Vector2.zero, Vector2.zero, settle: false);
+        if (!Shore("lava", out var bank, out var into)) { Report(false, "pas de rive trouvée"); yield break; }
+        var ai = ally.GetComponent<AllyAI>();
+        ai.enabled = false;
+        Teleport(ally, bank);
+        float hp = ally.hp;
+        ally.Knockback((into - bank).normalized * 10f, 0.4f);
+        yield return new WaitForSeconds(2f);
+        ai.enabled = true;
+        bool onLava = Obstacles.At(ally.transform.position)?.key == "lava";
+        Report(ally.hp < hp && !onLava, $"PV {hp:0} → {ally.hp:0}, {(onLava ? "toujours dans la lave" : "revenu sur la terre ferme")}");
+    }
+
+    // A hit of that type on a tile of "from": it turns into "to".
+    IEnumerator Turns(string from, int type, string to)
+    {
+        var cell = FindCell(from);
+        var move = FindMove(type, m => true);
+        if (cell == null || move == null) { Report(false, cell == null ? $"pas de case {from}" : "pas d'attaque"); yield break; }
+        var grid = DungeonGenerator.Current;
+        Terrain.OnImpact(move, grid.CentreOf(cell.Value.x, cell.Value.y), null);
+        yield return new WaitForSeconds(0.6f);
+        string now = Obstacles.At(cell.Value.x, cell.Value.y)?.key ?? "sol";
+        Report(now == to || (to == "burning_bridge" && now == "burnt_bridge"), $"{move.name} : {from} → {now}");
+    }
+
+    // The ally (AI off) fires a straight Fire shot that ends its flight on a bridge tile: the bridge burns.
+    IEnumerator FireShotBurnsBridge()
+    {
+        var (_, ally) = Place(Vector2.zero, Vector2.zero, settle: false);
+        var cell = FindCell("bridge");
+        var fire = FindMove(2, m => m.family == "projectile" && m.path != "arc");
+        if (cell == null || fire == null) { Report(false, "pas de pont ou pas d'attaque Feu"); yield break; }
+        var grid = DungeonGenerator.Current;
+        Vector2 target = grid.CentreOf(cell.Value.x, cell.Value.y);
+        Vector2? stand = null;
+        foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+        {
+            var at = grid.CellOf(target - d * fire.range);
+            if (grid.Walkable(at.x, at.y) && Obstacles.At(at.x, at.y) == null && grid.LineClear(grid.CentreOf(at.x, at.y), target, 0.2f))
+            {
+                stand = grid.CentreOf(at.x, at.y);
+                break;
+            }
+        }
+        if (stand == null) { Report(false, $"pas d'endroit à {fire.range:0} cases du pont"); yield break; }
+        var ai = ally.GetComponent<AllyAI>();
+        ai.enabled = false;
+        Teleport(ally, stand.Value);
+        var kept = (MoveDef[])ally.Moves.Clone();
+        ally.LearnMove(0, fire);
+        yield return new WaitForFixedUpdate();
+        bool used = ally.TryUseMove(0, target - stand.Value, Vector2.Distance(target, stand.Value));
+        yield return new WaitForSeconds(2f);
+        for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, kept[i]);
+        ai.enabled = true;
+        string now = Obstacles.At(cell.Value.x, cell.Value.y)?.key ?? "sol";
+        Report(used && now != "bridge", $"{fire.name} {(used ? "lancée" : "refusée")} : pont → {now}");
+    }
+
+    IEnumerator PylonsFire()
+    {
+        int pairs = Pylons.PairCount;
+        float started = Time.time;
+        bool live = false;
+        while (!live && Time.time - started < 8f)
+        {
+            yield return new WaitForFixedUpdate();
+            live = Pylons.AnyArcLive();
+        }
+        Report(pairs > 0 && live, $"{pairs} paire(s), arc {(live ? "lancé" : "jamais lancé")}");
+    }
+
+    // A whole level: the controlled Pokémon (and the allies following it) stand on each kind of obstacle one can walk
+    // on, then a flying Pokémon (Ptéra) controlled in its place hovers over water, lava and void, where the allies cannot
+    // follow; the longest frame must stay short.
+    IEnumerator LevelHitches()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var rng = new System.Random(21);
+        LevelPlan plan = null;
+        // A level with walkable obstacles in it (bridges, ice, metal...).
+        for (int n = 0; n < 20; n++)
+        {
+            plan = LevelPlan.Generate(rng);
+            arena.level = plan;
+            arena.Generate();
+            if (WalkableKinds().Count >= 2 && FlyOverCells().Exists(c => c.key == "water")) break;
+        }
+        team.PrepareForNextArena(arena.SpawnPoint, 0f);
+        yield return new WaitForSeconds(0.5f);
+        var leader = team.Controlled;
+        float worst = 0f;
+        string worstWhere = "-";
+        var kinds = WalkableKinds();
+        foreach (var (key, cell) in kinds)
+        {
+            Teleport(leader, arena.CentreOf(cell.x, cell.y));
+            float started = Time.realtimeSinceStartup, last = started;
+            while (Time.realtimeSinceStartup - started < 0.6f)
+            {
+                yield return null;
+                float now = Time.realtimeSinceStartup, frame = now - last;
+                last = now;
+                if (now - started > 0.05f && frame > worst) { worst = frame; worstWhere = key; }
+            }
+        }
+        // A flyer over what the others cannot cross.
+        var over = FlyOverCells();
+        var setControlled = typeof(PlayerController).GetMethod("SetControlled", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var flyer = team.Count < team.teamSize ? team.AddMember(Flyer, leader.transform.position) : null;
+        if (flyer != null && setControlled != null)
+        {
+            setControlled.Invoke(team, new object[] { team.Count - 1 });
+            foreach (var (key, cell) in over)
+            {
+                float started = Time.realtimeSinceStartup, last = started;
+                while (Time.realtimeSinceStartup - started < 2f)
+                {
+                    Teleport(flyer, arena.CentreOf(cell.x, cell.y));
+                    yield return null;
+                    float now = Time.realtimeSinceStartup, frame = now - last;
+                    last = now;
+                    if (now - started > 0.05f && frame > worst) { worst = frame; worstWhere = $"{key} (survol)"; }
+                }
+            }
+            setControlled.Invoke(team, new object[] { 0 });
+            flyer.hp = flyer.maxHp;
+        }
+        arena.level = null;
+        arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
+        string flown = flyer != null ? $", survol de {string.Join(", ", over.ConvertAll(k => k.key))}" : ", pas de survol (équipe pleine)";
+        Report(worst < 0.1f, $"{kinds.Count} sortes d'obstacles ({string.Join(", ", kinds.ConvertAll(k => k.key))}){flown}, pire image {worst * 1000f:0} ms sur {worstWhere}, carte {plan.size.x}×{plan.size.y}");
+    }
+
+    const int Flyer = 142; // Ptéra: Rock / Flying, crosses water, lava and void
+
+    // One tile well inside each of water, lava and void (its 8 neighbours of the same kind).
+    static List<(string key, Vector2Int cell)> FlyOverCells()
+    {
+        var found = new List<(string, Vector2Int)>();
+        var grid = DungeonGenerator.Current;
+        int size = grid.Size;
+        for (int x = 1; x < size - 1; x++)
+            for (int y = 1; y < size - 1; y++)
+            {
+                var o = Obstacles.At(x, y);
+                if (o == null || (o.key != "water" && o.key != "lava" && o.key != "void") || found.Exists(f => f.Item1 == o.key)) continue;
+                bool deep = true;
+                for (int dx = -1; dx <= 1 && deep; dx++)
+                    for (int dy = -1; dy <= 1 && deep; dy++)
+                        deep = Obstacles.At(x + dx, y + dy) == o;
+                if (deep) found.Add((o.key, new Vector2Int(x, y)));
+            }
+        return found;
+    }
+
+    // One tile of each kind of obstacle a walker can stand on.
+    static List<(string key, Vector2Int cell)> WalkableKinds()
+    {
+        var found = new List<(string, Vector2Int)>();
+        var grid = DungeonGenerator.Current;
+        int size = grid.Size;
+        for (int x = 0; x < size; x++)
+            for (int y = 0; y < size; y++)
+            {
+                var o = Obstacles.At(x, y);
+                if (o == null || Obstacles.Blocks(x, y, null) || found.Exists(f => f.Item1 == o.key)) continue;
+                found.Add((o.key, new Vector2Int(x, y)));
+            }
+        return found;
+    }
+
+    // First tile of that obstacle, scanning the room.
+    static Vector2Int? FindCell(string key)
+    {
+        var inside = DungeonGenerator.Current.Interior;
+        for (int x = inside.xMin; x < inside.xMax; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+                if (Obstacles.At(x, y)?.key == key) return new Vector2Int(x, y);
+        return null;
+    }
+
+    // A bare floor tile next to that obstacle (bank) and the obstacle tile beside it.
+    static bool Shore(string key, out Vector2 bank, out Vector2 into)
+    {
+        var grid = DungeonGenerator.Current;
+        var inside = grid.Interior;
+        bank = into = Vector2.zero;
+        for (int x = inside.xMin; x < inside.xMax; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+            {
+                if (Obstacles.At(x, y)?.key != key) continue;
+                foreach (var d in new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down })
+                {
+                    int bx = x + d.x, by = y + d.y;
+                    if (!grid.Walkable(bx, by) || Obstacles.At(bx, by) != null) continue;
+                    bank = grid.CentreOf(bx, by);
+                    into = grid.CentreOf(x, y);
+                    return true;
+                }
+            }
+        return false;
     }
 
     // ---------------------------------------------------------------- helpers

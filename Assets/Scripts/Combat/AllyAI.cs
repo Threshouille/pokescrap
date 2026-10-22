@@ -17,7 +17,7 @@ public class AllyAI : MonoBehaviour
     const float ShotLookahead = 0.5f; // seconds: a shot arriving within this is dodged
     const float PursuitMin = 3f, PursuitMax = 6f; // melee: dodges toward a target this far away...
     const float PursuitHealth = 0.5f; // ...when above this share of its HP (the dodge stays for defence otherwise)
-    const int SafeSearch = 6; // tiles around the leader searched for a safe spot when it stands in danger
+    const int SafeSearch = 12; // tiles around the leader searched for a safe spot (in danger, or out of reach)
     const float EdgeLook = 0.6f; // tiles ahead checked before a step while following
 
     [Tooltip("The Pokémon the player controls (the team object follows it)")]
@@ -163,7 +163,8 @@ public class AllyAI : MonoBehaviour
     // when there is none within reach).
     Vector2 SafeSpotNear(Vector2 target, DungeonGenerator grid)
     {
-        if (grid == null || !Dangerous(target)) return target;
+        // Also when the leader stands where this ally cannot (a flyer over water, lava or void).
+        if (grid == null || (!Dangerous(target) && !Obstacles.BlocksAt(target, combatant))) return target;
         var cell = grid.CellOf(target);
         for (int r = 1; r <= SafeSearch; r++)
         {

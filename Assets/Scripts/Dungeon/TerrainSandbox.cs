@@ -60,9 +60,15 @@ public class TerrainSandbox : MonoBehaviour
     const float FadeTime = 0.25f, StairsReach = 0.6f;
     static readonly Vector2 BaseStairs = new(12f, 12f), ObstacleStairs = new(-12f, -12f); // from the arena centre, in tiles
     static readonly Vector2 GalleryStairs = new(12f, -12f), GalleryBackStairs = new(-12f, 12f);
+    static readonly Vector2 RoomsStairs = new(-12f, -12f); // to the room gallery (rooms.json)
+    static readonly Vector2 LevelStairs = new(0f, -12f); // to a test level (LevelPlan, LevelRun)
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
-    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery
+    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: room gallery, 4: test level
+    LevelRun level; // test level
+    RoomInstance shownRoom; // room gallery: the room on show
+    int roomType; // room gallery: 0 any type, else RoomCatalog.Types[roomType - 1]
+    DungeonTileset sandboxDecor; // the arena's own décor, put back when leaving the room gallery
     int pendingRoom = -1;
     float fadeOutAt, switchAt, fadeInUntil;
     bool stairsArmed; // the stairs only work once the Pokémon has stepped off them
@@ -170,7 +176,12 @@ public class TerrainSandbox : MonoBehaviour
         {
             AddStairs(arena, BaseStairs, 1, "Escalier vers la salle des obstacles", new Color(0.95f, 0.8f, 0.3f));
             AddStairs(arena, GalleryStairs, 2, "Escalier vers la galerie des mégas", new Color(0.85f, 0.5f, 1f));
+            AddStairs(arena, RoomsStairs, 3, "Escalier vers la galerie des salles", new Color(0.5f, 0.9f, 0.5f));
+            AddStairs(arena, LevelStairs, 4, "Escalier vers un niveau de test", new Color(1f, 0.6f, 0.2f));
         }
+        else if (room == 4)
+            AddStairs(arena, arena.SpawnPoint - Centre(arena) + new Vector2(3f, 0f), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
+        else if (room == 3) AddStairs(arena, BackStairsNearSpawn(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         else AddStairs(arena, room == 1 ? ObstacleStairs : GalleryBackStairs, 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
     }
@@ -191,6 +202,22 @@ public class TerrainSandbox : MonoBehaviour
         inner.color = colour;
         inner.sortingOrder = 0;
         stairs.Add((go, target));
+    }
+
+    // A room of the gallery may be small or full of walls: the way back is laid on the first free tile found a few
+    // tiles from the spawn point (as an offset from the centre).
+    static Vector2 BackStairsNearSpawn(DungeonGenerator arena)
+    {
+        var centre = arena.CellOf(Centre(arena));
+        for (int r = 3; r <= 8; r++)
+            for (int dx = -r; dx <= r; dx++)
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    int x = centre.x + dx, y = centre.y + dy;
+                    if (arena.Walkable(x, y) && Obstacles.At(x, y) == null) return arena.CentreOf(x, y) - Centre(arena);
+                }
+        return Vector2.zero;
     }
 
     List<Vector2Int> KeptClear(DungeonGenerator arena)
@@ -217,6 +244,28 @@ public class TerrainSandbox : MonoBehaviour
         foreach (var zone in FindObjectsByType<Zone>()) Destroy(zone.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         ClearEmitters();
+        // The room gallery builds a room of the catalogue; the other rooms are the sandbox's own open arena.
+        if (sandboxDecor == null) sandboxDecor = arena.tileset;
+        if (level != null) level.End();
+        if (room == 4)
+        {
+            // A test level: zones of the catalogue on one continuous map, joined by winding paths.
+            if (level == null) level = gameObject.AddComponent<LevelRun>();
+            level.Begin(rng);
+            PlaceStairs();
+            return;
+        }
+        if (room == 3)
+        {
+            var types = RoomCatalog.Types;
+            shownRoom = RoomCatalog.Pick(roomType > 0 && roomType <= types.Count ? types[roomType - 1].key : null, rng);
+            arena.room = shownRoom;
+        }
+        else
+        {
+            arena.room = null;
+            arena.tileset = sandboxDecor;
+        }
         arena.Generate(); // also clears terrain and obstacles, and moves the team object to the centre
         drawn = new List<string>();
         if (room == 1 && Obstacles.Current != null)
@@ -238,10 +287,16 @@ public class TerrainSandbox : MonoBehaviour
             pendingRoom = -1;
             fadeInUntil = Time.unscaledTime + FadeTime;
         }
-        if (room != 1 || pendingRoom >= 0) return;
+        if ((room != 1 && room != 3 && room != 4) || pendingRoom >= 0) return;
         var pad = Gamepad.current;
         var kb = Keyboard.current;
-        if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame)) Switch(1);
+        if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame)) Switch(room);
+        // Room gallery: N or d-pad up picks the type of room shown (any, then each type in turn).
+        if (room == 3 && ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame)))
+        {
+            roomType = (roomType + 1) % (RoomCatalog.Types.Count + 1);
+            Switch(3);
+        }
     }
 
     void OnGUI()
@@ -249,13 +304,16 @@ public class TerrainSandbox : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas"
+        string line = room == 0 ? "Escaliers : jaune (en haut à droite) obstacles, violet (en bas à droite) mégas, vert (en bas à gauche) salles, orange (en bas) niveau"
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
+            : room == 4 ? $"Niveau de test ({level?.Plan?.theme}, décor {level?.Plan?.tileset}) : {(level?.Here != null ? level.Here.room.Describe() : "chemin")}     R ou Select : nouveau niveau     Escalier (au départ) : retour"
+            : room == 3 ? $"{shownRoom?.Describe() ?? "Aucune salle dans rooms.json"}     Type : {(roomType > 0 && roomType <= RoomCatalog.Types.Count ? RoomCatalog.Types[roomType - 1].name : "tous")} (N, croix haut)     R ou Select : autre salle     Escalier : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);
         var previous = GUI.color;
         GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(new Rect(Screen.width / 2f - 200f * s, rect.y, 400f * s, rect.height), Texture2D.whiteTexture);
+        float boxWidth = Mathf.Min(Screen.width, label.CalcSize(new GUIContent(line)).x + 16f * s);
+        GUI.DrawTexture(new Rect((Screen.width - boxWidth) / 2f, rect.y, boxWidth, rect.height), Texture2D.whiteTexture);
         GUI.color = previous;
         GUI.Label(rect, line, label);
         GalleryLabels(s);

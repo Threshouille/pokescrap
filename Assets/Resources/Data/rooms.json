@@ -1,0 +1,2063 @@
+{
+ "comment": "Rooms of a floor (RoomCatalog.cs). sizes: interior width x height in tiles. types: what a room is for; sizes it comes in; themes it may take (empty: every theme not 'restricted'); obstacles false: none; layout: wall plan replacing the variant's (RoomLayouts.cs: open, blocks, pillars, cross, ring, bars, maze); weight: how often it is drawn when any type will do (start: never by chance). themes: tilesets = ROM décor numbers (TilesetRoster, extracted under Assets/Tilesets, Tools/setup.py); liquid + liquidDecors: the obstacle (water, lava, void) drawn with the décor's own secondary layer, banks included, for the décors listed (the others, whose layer would mislead: purple water, a floor of water, grey void, keep the standard look); variants: rooms of that theme, each with its sizes (empty: any of the type's), its wall plan and its obstacles (same format as obstacle_room.json). rocks: see its comment. Each room is then laid out at random by DungeonGenerator and Obstacles.Generate.",
+ "sizes": [
+  {
+   "key": "small",
+   "width": 18,
+   "height": 14
+  },
+  {
+   "key": "medium",
+   "width": 24,
+   "height": 18
+  },
+  {
+   "key": "large",
+   "width": 30,
+   "height": 26
+  },
+  {
+   "key": "long",
+   "width": 34,
+   "height": 14
+  },
+  {
+   "key": "tall",
+   "width": 16,
+   "height": 26
+  }
+ ],
+ "types": [
+  {
+   "key": "start",
+   "name": "Départ",
+   "weight": 0,
+   "sizes": [
+    "medium"
+   ],
+   "obstacles": false,
+   "layout": {
+    "style": "open"
+   }
+  },
+  {
+   "key": "combat",
+   "name": "Combat",
+   "weight": 6,
+   "sizes": [
+    "small",
+    "medium",
+    "large",
+    "long",
+    "tall"
+   ]
+  },
+  {
+   "key": "monster_house",
+   "name": "Maison des monstres",
+   "weight": 2,
+   "sizes": [
+    "large"
+   ],
+   "themes": [
+    "lava",
+    "ice",
+    "water",
+    "forest",
+    "cave",
+    "desert",
+    "void",
+    "ruins"
+   ]
+  },
+  {
+   "key": "challenge",
+   "name": "Défi",
+   "weight": 2,
+   "sizes": [
+    "medium",
+    "large",
+    "long"
+   ]
+  },
+  {
+   "key": "rest",
+   "name": "Repos",
+   "weight": 1,
+   "sizes": [
+    "small"
+   ],
+   "themes": [
+    "forest",
+    "water",
+    "cave",
+    "ice"
+   ],
+   "obstacles": false,
+   "layout": {
+    "style": "open"
+   }
+  },
+  {
+   "key": "subboss",
+   "name": "Sous-boss",
+   "weight": 1,
+   "sizes": [
+    "large"
+   ],
+   "themes": [
+    "boss",
+    "lava",
+    "ice",
+    "cave",
+    "ruins"
+   ],
+   "layout": {
+    "style": "open"
+   }
+  },
+  {
+   "key": "boss",
+   "name": "Boss",
+   "weight": 1,
+   "sizes": [
+    "large"
+   ],
+   "themes": [
+    "boss"
+   ]
+  }
+ ],
+ "themes": [
+  {
+   "key": "lava",
+   "name": "Lave",
+   "weight": 3,
+   "tilesets": [
+    57,
+    58,
+    110,
+    123
+   ],
+   "liquid": "lava",
+   "variants": [
+    {
+     "key": "lake",
+     "name": "Lac de lave",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large",
+      "long"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "lava",
+        "sizes": [
+         3,
+         4
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "flow",
+     "name": "Coulée de lave",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       1,
+       2
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "river",
+        "weight": 1,
+        "kind": "lava",
+        "width": 2,
+        "bridges": [
+         1,
+         2
+        ],
+        "bridgeKind": "rock"
+       }
+      ]
+     }
+    },
+    {
+     "key": "archipelago",
+     "name": "Archipel de lave",
+     "weight": 1,
+     "sizes": [
+      "large"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "island",
+        "weight": 1,
+        "kind": "lava",
+        "sizes": [
+         2,
+         3
+        ],
+        "width": 2,
+        "bridges": [
+         2,
+         3
+        ],
+        "bridgeKind": "rock"
+       }
+      ]
+     }
+    },
+    {
+     "key": "rocks",
+     "name": "Champ de roches brûlantes",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       2,
+       4
+      ],
+      "sizes": [
+       1,
+       2
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 2,
+        "kind": "lava",
+        "sizes": [
+         2,
+         3
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         3,
+         5
+        ],
+        "bigChance": 0.4
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         2
+        ],
+        "magnets": [
+         0,
+         1
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "furnace",
+     "name": "Fournaise à piliers",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       5,
+       6
+      ],
+      "sizes": [
+       1,
+       2
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "lava",
+        "sizes": [
+         2,
+         3
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquidDecors": [
+    57,
+    58,
+    110,
+    123
+   ]
+  },
+  {
+   "key": "ice",
+   "name": "Glace",
+   "weight": 3,
+   "tilesets": [
+    137,
+    139,
+    140
+   ],
+   "variants": [
+    {
+     "key": "frozen_lake",
+     "name": "Lac gelé",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large",
+      "long"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 2,
+        "kind": "ice_floor",
+        "sizes": [
+         3,
+         4
+        ]
+       },
+       {
+        "type": "ice_walls",
+        "weight": 1,
+        "count": [
+         1,
+         2
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "icy_river",
+     "name": "Rivière glacée",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       1,
+       2
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "river",
+        "weight": 1,
+        "kind": "water",
+        "width": 2,
+        "bridges": [
+         1,
+         2
+        ],
+        "bridgeKind": "bridge"
+       },
+       {
+        "type": "ice_patch",
+        "weight": 1,
+        "kind": "ice_floor",
+        "near": [
+         "water"
+        ],
+        "count": [
+         1,
+         2
+        ],
+        "sizes": [
+         1,
+         2
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "ice_walls",
+     "name": "Murs de glace",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       6,
+       7
+      ],
+      "sizes": [
+       1,
+       1
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "ice_walls",
+        "weight": 1,
+        "count": [
+         3,
+         5
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "rink",
+     "name": "Patinoire",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "ice_floor",
+        "sizes": [
+         3,
+         4
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    139,
+    140
+   ]
+  },
+  {
+   "key": "water",
+   "name": "Eau",
+   "weight": 3,
+   "tilesets": [
+    4,
+    39,
+    52,
+    126
+   ],
+   "variants": [
+    {
+     "key": "lake",
+     "name": "Lac",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "water",
+        "sizes": [
+         3,
+         4
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "river",
+     "name": "Rivière",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       1,
+       3
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "river",
+        "weight": 1,
+        "kind": "water",
+        "width": 2,
+        "bridges": [
+         1,
+         2
+        ],
+        "bridgeKind": "bridge"
+       }
+      ]
+     }
+    },
+    {
+     "key": "islet",
+     "name": "Îlot",
+     "weight": 1,
+     "sizes": [
+      "large"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "island",
+        "weight": 1,
+        "kind": "water",
+        "sizes": [
+         2,
+         3
+        ],
+        "width": 2,
+        "bridges": [
+         2,
+         2
+        ],
+        "bridgeKind": "bridge"
+       }
+      ]
+     }
+    },
+    {
+     "key": "pools",
+     "name": "Bassins",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       5,
+       6
+      ],
+      "sizes": [
+       1,
+       1
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 2,
+        "kind": "water",
+        "sizes": [
+         2,
+         3
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         4
+        ],
+        "bigChance": 0.2
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         2
+        ],
+        "magnets": [
+         0,
+         1
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    4,
+    52,
+    126
+   ]
+  },
+  {
+   "key": "forest",
+   "name": "Forêt",
+   "weight": 3,
+   "tilesets": [
+    5,
+    35,
+    44,
+    128
+   ],
+   "variants": [
+    {
+     "key": "clearing",
+     "name": "Clairière",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "boulders",
+        "weight": 2,
+        "count": [
+         2,
+         4
+        ],
+        "bigChance": 0.3
+       },
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "water",
+        "sizes": [
+         2,
+         3
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "undergrowth",
+     "name": "Sous-bois",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       5,
+       9
+      ],
+      "sizes": [
+       1,
+       2
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "boulders",
+        "weight": 2,
+        "count": [
+         2,
+         3
+        ],
+        "bigChance": 0.3
+       },
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "water",
+        "sizes": [
+         2
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "brook",
+     "name": "Ruisseau",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       2,
+       4
+      ],
+      "sizes": [
+       1,
+       2
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "river",
+        "weight": 1,
+        "kind": "water",
+        "width": 1,
+        "bridges": [
+         1,
+         2
+        ],
+        "bridgeKind": "bridge"
+       }
+      ]
+     }
+    },
+    {
+     "key": "pond",
+     "name": "Étang",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       2,
+       4
+      ],
+      "sizes": [
+       1,
+       2
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "water",
+        "sizes": [
+         2,
+         3
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    5,
+    44
+   ]
+  },
+  {
+   "key": "cave",
+   "name": "Caverne",
+   "weight": 3,
+   "tilesets": [
+    1,
+    9,
+    22,
+    49,
+    103,
+    130
+   ],
+   "variants": [
+    {
+     "key": "rockfall",
+     "name": "Éboulis",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       2,
+       4
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         5,
+         8
+        ],
+        "bigChance": 0.4
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         2
+        ],
+        "magnets": [
+         0,
+         1
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "chasm",
+     "name": "Gouffre",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "chasm",
+        "weight": 1,
+        "kind": "void",
+        "width": 2,
+        "bridges": [
+         1,
+         2
+        ],
+        "bridgeKind": "bridge",
+        "coverage": [
+         0.5,
+         0.8
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "pillars",
+     "name": "Salle des piliers",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       4,
+       5
+      ],
+      "sizes": [
+       1,
+       2
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "boulders",
+        "weight": 2,
+        "count": [
+         2,
+         4
+        ],
+        "bigChance": 0.3
+       },
+       {
+        "type": "pylons",
+        "weight": 1,
+        "count": [
+         1,
+         1
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "galleries",
+     "name": "Galeries",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large"
+     ],
+     "layout": {
+      "style": "cross",
+      "corridor": [
+       6,
+       9
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         3
+        ],
+        "bigChance": 0.2
+       }
+      ]
+     }
+    },
+    {
+     "key": "mine",
+     "name": "Mine",
+     "weight": 2,
+     "sizes": [
+      "medium",
+      "large",
+      "long"
+     ],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       1,
+       3
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "metal",
+        "weight": 2,
+        "sizes": [
+         2,
+         3
+        ],
+        "magnets": [
+         1,
+         2
+        ]
+       },
+       {
+        "type": "pylons",
+        "weight": 1,
+        "count": [
+         1,
+         1
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         4
+        ],
+        "bigChance": 0.3
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    1,
+    9,
+    22,
+    103,
+    130
+   ]
+  },
+  {
+   "key": "desert",
+   "name": "Désert",
+   "weight": 2,
+   "tilesets": [
+    17,
+    19,
+    20,
+    85,
+    133
+   ],
+   "variants": [
+    {
+     "key": "quicksand",
+     "name": "Sables mouvants",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 2,
+        "kind": "quicksand",
+        "sizes": [
+         2,
+         3,
+         4
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         4
+        ],
+        "bigChance": 0.3
+       }
+      ]
+     }
+    },
+    {
+     "key": "ravines",
+     "name": "Ravins",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       1,
+       2
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "chasm",
+        "weight": 1,
+        "kind": "void",
+        "width": 2,
+        "bridges": [
+         0,
+         1
+        ],
+        "bridgeKind": "bridge",
+        "coverage": [
+         0.4,
+         0.7
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "dunes",
+     "name": "Dunes rocheuses",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       3,
+       5
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         3,
+         5
+        ],
+        "bigChance": 0.5
+       }
+      ]
+     }
+    },
+    {
+     "key": "relay",
+     "name": "Relais abandonné",
+     "weight": 1,
+     "sizes": [
+      "large",
+      "long"
+     ],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       1,
+       2
+      ],
+      "sizes": [
+       2,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 2,
+        "count": [
+         1,
+         2
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         3
+        ],
+        "magnets": [
+         1,
+         1
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         3
+        ],
+        "bigChance": 0.3
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    17,
+    19,
+    20,
+    85
+   ]
+  },
+  {
+   "key": "electric",
+   "name": "Électrique",
+   "weight": 3,
+   "tilesets": [
+    14,
+    127
+   ],
+   "variants": [
+    {
+     "key": "plant",
+     "name": "Centrale",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       2,
+       3
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 3,
+        "count": [
+         2,
+         3
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "metal",
+        "weight": 2,
+        "sizes": [
+         3,
+         4
+        ],
+        "magnets": [
+         1,
+         2
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         1,
+         3
+        ],
+        "bigChance": 0.3
+       }
+      ]
+     }
+    },
+    {
+     "key": "plates",
+     "name": "Plaques aimantées",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       6,
+       7
+      ],
+      "sizes": [
+       1,
+       1
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "metal",
+        "weight": 3,
+        "sizes": [
+         3,
+         4
+        ],
+        "magnets": [
+         1,
+         2
+        ]
+       },
+       {
+        "type": "pylons",
+        "weight": 1,
+        "count": [
+         1,
+         1
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "storm",
+     "name": "Plaine d'orage",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large",
+      "long"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 3,
+        "count": [
+         2,
+         3
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         3
+        ],
+        "magnets": [
+         0,
+         1
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "grid",
+     "name": "Réseau électrique",
+     "weight": 1,
+     "sizes": [
+      "large",
+      "long"
+     ],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       7,
+       8
+      ],
+      "sizes": [
+       1,
+       1
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 2,
+        "count": [
+         3,
+         3
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         3
+        ],
+        "magnets": [
+         1,
+         1
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    14,
+    127
+   ]
+  },
+  {
+   "key": "void",
+   "name": "Néant",
+   "weight": 2,
+   "tilesets": [
+    55,
+    59,
+    99
+   ],
+   "liquid": "void",
+   "variants": [
+    {
+     "key": "rift",
+     "name": "Faille",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large",
+      "long",
+      "tall"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "chasm",
+        "weight": 1,
+        "kind": "void",
+        "width": 2,
+        "bridges": [
+         1,
+         2
+        ],
+        "bridgeKind": "bridge"
+       }
+      ]
+     }
+    },
+    {
+     "key": "floating",
+     "name": "Îles flottantes",
+     "weight": 1,
+     "sizes": [
+      "large"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       1,
+       1
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "island",
+        "weight": 1,
+        "kind": "void",
+        "sizes": [
+         2,
+         3
+        ],
+        "width": 2,
+        "bridges": [
+         2,
+         3
+        ],
+        "bridgeKind": "bridge"
+       }
+      ]
+     }
+    },
+    {
+     "key": "holes",
+     "name": "Trous béants",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "blocks",
+      "count": [
+       1,
+       2
+      ],
+      "sizes": [
+       2,
+       2
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "lake",
+        "weight": 2,
+        "kind": "void",
+        "sizes": [
+         1,
+         2
+        ]
+       },
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "void",
+        "sizes": [
+         2,
+         3
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquidDecors": [
+    55
+   ]
+  },
+  {
+   "key": "ruins",
+   "name": "Ruines",
+   "weight": 2,
+   "tilesets": [
+    28,
+    29,
+    30,
+    45,
+    46
+   ],
+   "variants": [
+    {
+     "key": "hall",
+     "name": "Grand hall",
+     "weight": 1,
+     "sizes": [
+      "medium",
+      "large"
+     ],
+     "layout": {
+      "style": "ring",
+      "inset": [
+       4,
+       5
+      ],
+      "thickness": 1,
+      "gaps": [
+       2,
+       4
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 2,
+        "count": [
+         1,
+         1
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         4
+        ],
+        "bigChance": 0.3
+       },
+       {
+        "type": "lake",
+        "weight": 1,
+        "kind": "water",
+        "sizes": [
+         2
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "colonnade",
+     "name": "Colonnade",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       4,
+       4
+      ],
+      "sizes": [
+       1,
+       1
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 1,
+        "count": [
+         1,
+         1
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         3
+        ],
+        "bigChance": 0.3
+       }
+      ]
+     }
+    },
+    {
+     "key": "corridors",
+     "name": "Couloirs",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "bars",
+      "spacing": [
+       5,
+       6
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         1,
+         3
+        ],
+        "bigChance": 0.3
+       },
+       {
+        "type": "pylons",
+        "weight": 1,
+        "count": [
+         1,
+         1
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "machines",
+     "name": "Salle des machines",
+     "weight": 2,
+     "sizes": [
+      "medium",
+      "large"
+     ],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       6,
+       7
+      ],
+      "sizes": [
+       1,
+       1
+      ]
+     },
+     "obstacles": {
+      "features": [
+       2,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 2,
+        "count": [
+         1,
+         2
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "metal",
+        "weight": 2,
+        "sizes": [
+         2,
+         3
+        ],
+        "magnets": [
+         1,
+         2
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    28,
+    29,
+    30,
+    45,
+    46
+   ]
+  },
+  {
+   "key": "maze",
+   "name": "Labyrinthe",
+   "weight": 1,
+   "tilesets": [
+    102,
+    103,
+    49
+   ],
+   "variants": [
+    {
+     "key": "maze",
+     "name": "Labyrinthe",
+     "weight": 1,
+     "sizes": [
+      "large",
+      "medium"
+     ],
+     "layout": {
+      "style": "maze",
+      "corridor": [
+       3,
+       3
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 2,
+        "count": [
+         1,
+         1
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         1,
+         3
+        ],
+        "bigChance": 0.3
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         2
+        ],
+        "magnets": [
+         0,
+         1
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "key": "maze_wide",
+     "name": "Labyrinthe large",
+     "weight": 1,
+     "sizes": [
+      "large"
+     ],
+     "layout": {
+      "style": "maze",
+      "corridor": [
+       4,
+       4
+      ]
+     },
+     "obstacles": {
+      "features": [
+       1,
+       2
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "pylons",
+        "weight": 2,
+        "count": [
+         1,
+         2
+        ],
+        "distance": [
+         4,
+         7
+        ]
+       },
+       {
+        "type": "boulders",
+        "weight": 1,
+        "count": [
+         2,
+         3
+        ],
+        "bigChance": 0.3
+       },
+       {
+        "type": "metal",
+        "weight": 1,
+        "sizes": [
+         2,
+         2
+        ],
+        "magnets": [
+         0,
+         1
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "liquid": "water",
+   "liquidDecors": [
+    102,
+    103
+   ]
+  },
+  {
+   "key": "boss",
+   "name": "Arène du boss",
+   "weight": 1,
+   "restricted": true,
+   "tilesets": [
+    45,
+    46,
+    49,
+    123,
+    140
+   ],
+   "variants": [
+    {
+     "key": "arena",
+     "name": "Arène dégagée",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "open"
+     }
+    },
+    {
+     "key": "columns",
+     "name": "Arène à colonnes",
+     "weight": 1,
+     "sizes": [],
+     "layout": {
+      "style": "pillars",
+      "spacing": [
+       8,
+       9
+      ],
+      "sizes": [
+       2,
+       2
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "rocks": {
+  "comment": "Rocks (boulders) are cut from the room's own décor by Tools/setup.py (extract_rock.py): 'core' for the décors whose cut keeps a square of floor, 'none' for those with no usable lone wall (the rocks of obstacles.json are drawn instead).",
+  "core": [
+   4,
+   44
+  ],
+  "none": [
+   14,
+   26,
+   59
+  ]
+ }
+}
