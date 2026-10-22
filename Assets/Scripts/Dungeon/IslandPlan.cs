@@ -5,7 +5,7 @@ using UnityEngine;
 /// The floating island a run takes place on (GDD, "L'île flottante"; Assets/Resources/Data/island.json and
 /// biomes.json). Data only, one value per tile: four quarters around a central zone, each with a theme of its own
 /// (four different ones per run) and played clockwise from a random first one; a ring of void around the central zone;
-/// a barrier between two quarters. Inside a quarter, two noise fields (altitude, with a peak for a volcano or a
+/// a barrier between two quarters (all played as walls: each zone is a map of its own, see passages). Inside a quarter, two noise fields (altitude, with a peak for a volcano or a
 /// glacier, and moisture), ranked within the quarter, pick each tile's sub-biome. Big features (rivers, lakes,
 /// cliffs), the drawing and the islet chains come next.
 public partial class IslandPlan
@@ -55,6 +55,30 @@ public partial class IslandPlan
     public readonly int[] order = new int[4]; // quarters in the order they open (clockwise)
     public Vector2Int start; // where the team lands, on the first quarter's coast
     public Settings settings;
+    float rotation; // degrees: where the first quarter starts
+
+    /// The zones, each played as a map of its own (DungeonGenerator.islandZone): the quarters 0 to 3, the centre.
+    public const int ZoneCount = 5;
+
+    /// Name shown while a zone loads.
+    public string ZoneName(int zone) => zone == Centre ? "Centre de l'île" : themes[zone].name;
+
+    /// The tiles of a zone and a few around (its walls), within the map.
+    public RectInt ZoneBounds(int zone)
+    {
+        int minX = size, minY = size, maxX = -1, maxY = -1;
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                if (region[Index(x, y)] != zone) continue;
+                minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
+                minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y);
+            }
+        const int Around = 3;
+        minX = Mathf.Max(0, minX - Around); minY = Mathf.Max(0, minY - Around);
+        maxX = Mathf.Min(size - 1, maxX + Around); maxY = Mathf.Min(size - 1, maxY + Around);
+        return new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    }
 
     public int Index(int x, int y) => y * size + x;
 
@@ -95,7 +119,7 @@ public partial class IslandPlan
         }
         int first = rng.Next(4);
         for (int k = 0; k < 4; k++) order[k] = (first - k + 4) % 4; // quarter angles grow anticlockwise
-        float rotation = (float)rng.NextDouble() * 90f;
+        rotation = (float)rng.NextDouble() * 90f;
         var offsets = new Vector2[6];
         for (int i = 0; i < offsets.Length; i++) offsets[i] = new Vector2((float)rng.NextDouble() * 1000f, (float)rng.NextDouble() * 1000f);
 

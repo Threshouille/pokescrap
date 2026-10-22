@@ -250,7 +250,11 @@ public class TerrainSandbox : MonoBehaviour
         if (room == 4)
         {
             // A test island: four quarters of biomes around the sealed central zone.
-            if (island == null) island = gameObject.AddComponent<IslandRun>();
+            if (island == null)
+            {
+                island = gameObject.AddComponent<IslandRun>();
+                island.Built += PlaceStairs; // the way back, near where the team arrives in each zone
+            }
             island.Begin(rng);
             PlaceStairs();
             return;

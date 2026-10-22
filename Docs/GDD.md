@@ -173,6 +173,10 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   qui fuit), Défense du sanctuaire (tenir 3 vagues) ; chaque quête se termine par un boss. Le 4e quartier finit
   toujours par un boss. Les îlots ne donnent pas d'engrenage : récompenses de détour (plus tard).
 - Centre : série de salles défis et combats, structure de donjon (salles du catalogue), boss final.
+- Zones séparées (décidé le 22/10/2026, Owen) : chaque quartier et le centre sont des instances à part (une carte
+  chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
+  passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts
+  pour l'instant (verrou par Engrenage du Temps à l'étape « sceaux et engrenages »).
 
 ### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
 - Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue

@@ -4,14 +4,33 @@ using UnityEngine;
 /// The island's big features (step 2), laid on the biome fields of IslandPlan, per quarter as its theme says
 /// (biomes.json): the crater at the top of the peak; lakes in the lowest hollows; rivers from the heights down the
 /// slope to the coast, a lake or the border, crossed by bridges every so often; cliffs where the slope crosses given
-/// altitudes, with gaps; thickets and rock masses as each sub-biome asks. A passage through the barrier joins each
-/// quarter to the next. Last, every walkable tile is made reachable from the landing point: an area cut off gets a
-/// way through (walls opened, a bridge laid), a tiny one is walled up.
+/// altitudes, with gaps; thickets and rock masses as each sub-biome asks. Each zone is played as a map of its own: a
+/// passage (two ends, one in each zone, against their walls) joins each quarter to the next, and the last one to the
+/// centre. Last, every walkable tile of a quarter is made reachable from where the team arrives in it: an area cut off
+/// gets a way through (walls opened, a bridge laid), a tiny one is walled up.
 public partial class IslandPlan
 {
     public string[] obstacle; // per tile: an obstacle key of obstacles.json, or null
     public bool[] wall; // per tile: a wall (cliff, thicket, rock mass)
-    public readonly List<Vector2Int> gates = new(); // passage from order[k] to order[k + 1]
+    /// A way between two zones, both ways: "a" in zone "from", "b" in zone "to"; walking onto one end loads the other zone.
+    public class Passage
+    {
+        public int from, to;
+        public Vector2Int a, b;
+    }
+
+    /// Quarter to quarter in opening order (order[k] to order[k + 1]), then the last quarter to the centre.
+    public readonly List<Passage> passages = new();
+
+    /// Where the team arrives in a zone: the landing point in the first quarter, else the end of the passage from
+    /// the zone before.
+    public Vector2Int Arrival(int zone)
+    {
+        if (zone == order[0]) return start;
+        foreach (var p in passages)
+            if (p.to == zone) return p.b;
+        return start;
+    }
 
     const int KeepClear = 5; // tiles kept free around the landing point and the passages
     const int BridgeEvery = 22, TinyArea = 20;
@@ -38,8 +57,9 @@ public partial class IslandPlan
         wall = new bool[size * size];
         // Every barrier tile is wall; the passages open it.
         for (int i = 0; i < wall.Length; i++) wall[i] = region[i] == Border;
-        Gates();
-        var keep = new List<Vector2Int>(gates) { start };
+        Passages();
+        var keep = new List<Vector2Int> { start };
+        foreach (var p in passages) { keep.Add(p.a); keep.Add(p.b); }
 
         for (int q = 0; q < 4; q++)
         {
@@ -51,11 +71,18 @@ public partial class IslandPlan
             Thickets(q, noise, keep);
         }
         DecorEdges(noise, keep);
+        foreach (var k in keep) Clear(k);
         Connect();
     }
 
-    // A passage through each barrier between two quarters that open one after the other, halfway to the coast.
-    void Gates()
+    // A passage end and the tiles around it free: no wall, no obstacle.
+    void Clear(Vector2Int p) =>
+        Stamp(p, 2.2f, i => { if (region[i] == region[Index(p.x, p.y)]) { wall[i] = false; obstacle[i] = null; } });
+
+    // Each pair of quarters that open one after the other: where their barrier is halfway to the coast, the nearest
+    // tile on each side. The last quarter: the tiles facing each other across the void around the centre, in the
+    // middle of its arc.
+    void Passages()
     {
         float c = size / 2f;
         for (int k = 0; k < 3; k++)
@@ -72,15 +99,40 @@ public partial class IslandPlan
                     if (score < bestScore) { bestScore = score; best = new Vector2Int(x, y); }
                 }
             if (bestScore == float.MaxValue) continue;
-            gates.Add(best);
-            // A corridor through the barrier, from the nearest tile of one quarter to the nearest of the other.
             var na = Nearest(best, a, 14);
             var nb = Nearest(best, b, 14);
-            if (na == null || nb == null) continue;
-            float length = Vector2.Distance(na.Value, nb.Value);
-            for (float t = 0f; t <= 1f; t += 0.5f / Mathf.Max(1f, length))
-                Stamp(Vector2.Lerp(na.Value, nb.Value, t), 2.2f, i => { if (region[i] == Border) { region[i] = a; wall[i] = false; } });
+            if (na != null && nb != null) passages.Add(new Passage { from = a, to = b, a = Inward(na.Value, a), b = Inward(nb.Value, b) });
         }
+        int last = order[3];
+        float angle = (rotation + last * 90f + 45f) * Mathf.Deg2Rad;
+        var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+        float rim = settings.centreRatio * settings.radius + settings.moat;
+        var toCentre = Nearest(Vector2Int.RoundToInt(new Vector2(c, c) + dir * (rim - settings.moat - 3f)), Centre, 30);
+        var fromLast = Nearest(Vector2Int.RoundToInt(new Vector2(c, c) + dir * (rim + 3f)), last, 30);
+        if (toCentre != null && fromLast != null)
+            passages.Add(new Passage { from = last, to = Centre, a = Inward(fromLast.Value, last), b = Inward(toCentre.Value, Centre) });
+    }
+
+    // A few tiles further into the zone than a tile on its edge, so the passage end has room around it.
+    Vector2Int Inward(Vector2Int p, int zone)
+    {
+        var best = p;
+        int bestCount = -1;
+        for (int x = p.x - 3; x <= p.x + 3; x++)
+            for (int y = p.y - 3; y <= p.y + 3; y++)
+            {
+                if (!InMap(x, y) || region[Index(x, y)] != zone) continue;
+                int count = 0;
+                for (int dx = -2; dx <= 2; dx++)
+                    for (int dy = -2; dy <= 2; dy++)
+                        if (InMap(x + dx, y + dy) && region[Index(x + dx, y + dy)] == zone) count++;
+                if (count > bestCount || (count == bestCount && (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y) < (best.x - p.x) * (best.x - p.x) + (best.y - p.y) * (best.y - p.y)))
+                {
+                    bestCount = count;
+                    best = new Vector2Int(x, y);
+                }
+            }
+        return best;
     }
 
     // The tile of that quarter nearest to a point, within reach, or null.
@@ -300,12 +352,18 @@ public partial class IslandPlan
     // walls (opened) and water, lava or void (bridged); tiny ones are walled up.
     void Connect()
     {
+        for (int q = 0; q < 4; q++) Connect(q);
+    }
+
+    void Connect(int q)
+    {
+        var from = Arrival(q);
         for (int round = 0; round < 400; round++)
         {
-            var reached = Reach(Index(start.x, start.y));
+            var reached = Reach(Index(from.x, from.y));
             int lost = -1;
             for (int i = 0; i < region.Length && lost < 0; i++)
-                if (Walkable(i) && !reached[i]) lost = i;
+                if (region[i] == q && Walkable(i) && !reached[i]) lost = i;
             if (lost < 0) return;
             // That area.
             var area = new List<int>();
@@ -321,7 +379,7 @@ public partial class IslandPlan
                     int nx = c % size + d.x, ny = c / size + d.y;
                     if (!InMap(nx, ny)) continue;
                     int n = Index(nx, ny);
-                    if (Walkable(n) && inArea.Add(n)) queue.Enqueue(n);
+                    if (region[n] == q && Walkable(n) && inArea.Add(n)) queue.Enqueue(n);
                 }
             }
             if (area.Count < TinyArea)
@@ -342,7 +400,7 @@ public partial class IslandPlan
                     int nx = c % size + d.x, ny = c / size + d.y;
                     if (!InMap(nx, ny)) continue;
                     int n = Index(nx, ny);
-                    if (parent.ContainsKey(n) || !Land(n)) continue;
+                    if (parent.ContainsKey(n) || region[n] != q) continue;
                     parent[n] = c;
                     if (reached[n]) { found = n; break; }
                     queue.Enqueue(n);
@@ -366,7 +424,8 @@ public partial class IslandPlan
         }
     }
 
-    bool[] Reach(int from)
+    /// Every walkable tile reached from a tile, within its zone.
+    public bool[] Reach(int from)
     {
         var reached = new bool[region.Length];
         if (!Walkable(from)) return reached;
@@ -381,7 +440,7 @@ public partial class IslandPlan
                 int nx = c % size + d.x, ny = c / size + d.y;
                 if (!InMap(nx, ny)) continue;
                 int n = Index(nx, ny);
-                if (!reached[n] && Walkable(n)) { reached[n] = true; queue.Enqueue(n); }
+                if (!reached[n] && Walkable(n) && region[n] == region[from]) { reached[n] = true; queue.Enqueue(n); }
             }
         }
         return reached;

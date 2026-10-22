@@ -37,8 +37,15 @@ public class DungeonGenerator : MonoBehaviour
     /// The level to build at the next Generate (LevelPlan: zones and paths on one continuous map); before "room".
     [System.NonSerialized] public LevelPlan level;
 
-    /// The island to build at the next Generate (IslandPlan); before "level" and "room".
+    /// The island to build at the next Generate (IslandPlan); before "level" and "room". Only one zone of it is built
+    /// (islandZone: a quarter or the centre; the first quarter when negative), the team at islandArrival (island tile;
+    /// by default where the team arrives in that zone).
     [System.NonSerialized] public IslandPlan island;
+    [System.NonSerialized] public int islandZone = -1;
+    [System.NonSerialized] public Vector2Int? islandArrival;
+
+    /// Island tile of the arena's Interior.min when an island zone is built: island tile = cell - Interior.min + this.
+    public Vector2Int IslandOrigin { get; private set; }
 
     /// ROM décor of the central zone of the island (its final dungeon, sealed for now).
     const int CentreDecor = 45;
@@ -79,36 +86,45 @@ public class DungeonGenerator : MonoBehaviour
         if (player != null) player.position = CentreOf(spawn.x, spawn.y);
     }
 
-    // The whole island: land and its sub-biomes' décors tile by tile, walls (cliffs, thickets, barriers) drawn with the
-    // décor next to them, the void around the central zone, the sky beyond the coast (nothing drawn, an invisible wall
-    // along it); then the island's obstacles (lakes, rivers, bridges, crater) laid tile by tile.
+    // One zone of the island, as a map of its own: the zone's land and its sub-biomes' décors tile by tile (the centre
+    // in its own décor), its walls (cliffs, thickets) drawn with the décor next to them; everything else around it
+    // (the other zones, the barriers, the void around the centre) a thick wall; the sky beyond the coast (nothing
+    // drawn, an invisible wall along it); then the zone's obstacles (lakes, rivers, bridges, crater) tile by tile.
     void GenerateIsland(System.Random rng)
     {
         var plan = island;
-        width = height = plan.size;
-        size = plan.size + 2 * margin;
+        int zone = islandZone >= 0 ? islandZone : plan.order[0];
+        var box = plan.ZoneBounds(zone);
+        int n = Mathf.Max(box.width, box.height); // the zone in a square of n × n island tiles
+        IslandOrigin = box.min;
+        width = height = n;
+        size = n + 2 * margin;
         open = new bool[size, size];
         cellDecor = new DungeonTileset[size * size];
         skyWall = new bool[size * size];
         var origin = Interior.min;
         var centreDecor = TilesetRoster.Get(CentreDecor);
-        int n = plan.size;
-        // The décor of the nearest land tile, for the tiles that have none of their own (barriers, void, walls of the sky).
+        int PlanIndex(int x, int y) => x + box.x < plan.size && y + box.y < plan.size ? plan.Index(x + box.x, y + box.y) : -1;
+        int Region(int x, int y) => PlanIndex(x, y) is var i && i >= 0 ? plan.region[i] : IslandPlan.Void;
+        // The décor of the nearest tile of the zone, for the tiles that have none of their own (walls, sky).
         var nearest = new DungeonTileset[n * n];
         var dist = new int[n * n];
         var queue = new Queue<int>();
-        for (int i = 0; i < n * n; i++)
-        {
-            dist[i] = int.MaxValue;
-            int r = plan.region[i];
-            DungeonTileset own = r >= 0 && r < 4 && plan.biome[i] != null && plan.biome[i].tilesets.Length > 0
-                ? TilesetRoster.Get(plan.biome[i].tilesets[(i * 7919) % plan.biome[i].tilesets.Length])
-                : r == IslandPlan.Centre ? centreDecor : null;
-            if (own == null) continue;
-            nearest[i] = own;
-            dist[i] = 0;
-            queue.Enqueue(i);
-        }
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                int k = y * n + x;
+                dist[k] = int.MaxValue;
+                if (Region(x, y) != zone) continue;
+                int i = PlanIndex(x, y);
+                var b = plan.biome[i];
+                var own = zone == IslandPlan.Centre ? centreDecor
+                    : b != null && b.tilesets.Length > 0 ? TilesetRoster.Get(b.tilesets[(i * 7919) % b.tilesets.Length]) : null;
+                if (own == null) continue;
+                nearest[k] = own;
+                dist[k] = 0;
+                queue.Enqueue(k);
+            }
         while (queue.Count > 0)
         {
             int c = queue.Dequeue();
@@ -127,35 +143,38 @@ public class DungeonGenerator : MonoBehaviour
         for (int y = 0; y < n; y++)
             for (int x = 0; x < n; x++)
             {
-                int i = y * n + x, gx = x + origin.x, gy = y + origin.y, g = gy * size + gx;
-                int r = plan.region[i];
-                bool land = r >= 0 && r < 4;
+                int k = y * n + x, gx = x + origin.x, gy = y + origin.y, g = gy * size + gx;
+                int r = Region(x, y);
                 if (r == IslandPlan.Void)
                 {
-                    skyWall[g] = dist[i] <= 2; // the edge of the island
+                    skyWall[g] = dist[k] <= 2; // the edge of the island
                     continue;
                 }
-                cellDecor[g] = nearest[i];
-                open[gx, gy] = r == IslandPlan.Centre || r == IslandPlan.Moat || (land && !plan.wall[i]);
+                cellDecor[g] = nearest[k];
+                open[gx, gy] = r == zone && (zone == IslandPlan.Centre || !plan.wall[PlanIndex(x, y)]);
             }
-        tileset = nearest[plan.start.y * n + plan.start.x] ?? tileset;
+        var arrival = (islandArrival ?? plan.Arrival(zone)) - box.min;
+        tileset = nearest[Mathf.Clamp(arrival.y, 0, n - 1) * n + Mathf.Clamp(arrival.x, 0, n - 1)] ?? tileset;
         tiles.Clear();
-        spawn = origin + plan.start;
+        spawn = origin + arrival;
         Draw(rng);
         Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
         Climate.Clear();
-        for (int y = 0; y < n; y++)
-            for (int x = 0; x < n; x++)
-            {
-                int i = y * n + x;
-                string key = plan.region[i] == IslandPlan.Moat ? "void" : plan.region[i] >= 0 && plan.region[i] < 4 && !plan.wall[i] ? plan.obstacle[i] : null;
-                if (key == null) continue;
-                // A bridge spans its river: the river first, the bridge laid over it.
-                var theme = plan.region[i] >= 0 && plan.region[i] < 4 ? plan.themes[plan.region[i]] : null;
-                if (theme != null && key == theme.bridgeKind) Obstacles.Place(x + origin.x, y + origin.y, theme.riverKind);
-                Obstacles.Place(x + origin.x, y + origin.y, key);
-            }
+        if (zone != IslandPlan.Centre)
+        {
+            var theme = plan.themes[zone];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    int i = PlanIndex(x, y);
+                    if (i < 0 || plan.region[i] != zone || plan.wall[i] || plan.obstacle[i] == null) continue;
+                    string key = plan.obstacle[i];
+                    // A bridge spans its river: the river first, the bridge laid over it.
+                    if (key == theme.bridgeKind) Obstacles.Place(x + origin.x, y + origin.y, theme.riverKind);
+                    Obstacles.Place(x + origin.x, y + origin.y, key);
+                }
+        }
         Obstacles.Current.FinishLevel(spawn);
         if (player != null) player.position = CentreOf(spawn.x, spawn.y);
     }

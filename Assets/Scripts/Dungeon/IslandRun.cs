@@ -1,15 +1,25 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-/// The island (IslandPlan) in play: built whole by DungeonGenerator, the sky around it (camera background), the team
-/// landing on the first quarter's coast. The mini-map (top right) starts in the fog and is revealed around the team:
-/// walls, floor in its sub-biome's colour, water, lava and void; the passages to the next quarters and the central
-/// zone marked once seen. Seals, Time Gears and encounters come later (GDD, "L'île flottante").
+/// The island (IslandPlan) in play, one zone at a time (a quarter or the centre, each a map of its own built by
+/// DungeonGenerator, walled off from the others), the sky around it (camera background), the team landing on the first
+/// quarter's coast. Walking onto a passage end loads the zone at its other end behind a loading screen, both ways. The
+/// mini-map (top right) shows the current zone, in the fog at first and revealed around the team (kept for the whole
+/// island): walls, floor in its sub-biome's colour, water, lava and void; the passage ends marked once seen. Seals,
+/// Time Gears and encounters come later (GDD, "L'île flottante").
 public class IslandRun : MonoBehaviour
 {
     const float RevealRadius = 12f, RevealEvery = 0.2f, MapSize = 140f;
+    const float PassageReach = 0.8f, PassageLeave = 1.6f; // tiles: walking onto a passage end; stepping off it again
     static readonly Color Sky = new(0.42f, 0.62f, 0.86f);
 
     public IslandPlan Plan { get; private set; }
+
+    /// Called once a zone is built (the team in place).
+    public event System.Action Built;
+
+    /// The zone being played: a quarter (0 to 3) or the centre (IslandPlan.Centre).
+    public int Zone { get; private set; } = -1;
 
     /// The quarter the controlled Pokémon stands in (0 to 3), or -1 elsewhere.
     public int Quarter { get; private set; } = -1;
@@ -25,6 +35,9 @@ public class IslandRun : MonoBehaviour
     float nextReveal;
     bool dirty;
     Color previousBackground;
+    RectInt bounds; // the current zone on the island
+    readonly List<(GameObject marker, int zone, Vector2Int arrival)> exits = new(); // the passage ends of the zone
+    bool armed; // the passage ends only work once the controlled Pokémon has stepped off them
 
     public void Begin(System.Random rng)
     {
@@ -34,8 +47,6 @@ public class IslandRun : MonoBehaviour
         arena.room = null;
         arena.level = null;
         arena.island = Plan;
-        arena.Generate();
-        if (team != null) team.PrepareForNextArena(arena.SpawnPoint, 0f);
         if (Camera.main != null)
         {
             previousBackground = Camera.main.backgroundColor;
@@ -45,13 +56,70 @@ public class IslandRun : MonoBehaviour
         map = new Texture2D(Plan.size, Plan.size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
         pixels = new Color32[Plan.size * Plan.size];
         revealed = new bool[pixels.Length];
+        Build(Plan.order[0], null);
+    }
+
+    // Builds a zone and places the team at its arrival tile (island tile; the zone's default when null).
+    void Build(int zone, Vector2Int? arrival)
+    {
+        foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
+        exits.Clear();
+        foreach (var zoneArea in FindObjectsByType<global::Zone>()) Destroy(zoneArea.gameObject);
+        foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
+        Zone = zone;
+        bounds = Plan.ZoneBounds(zone);
+        arena.islandZone = zone;
+        arena.islandArrival = arrival;
+        arena.Generate();
+        if (team != null) team.PrepareForNextArena(arena.SpawnPoint, 0f);
+        foreach (var p in Plan.passages)
+        {
+            if (p.from == zone) AddExit(p.a, p.to, p.b);
+            if (p.to == zone) AddExit(p.b, p.from, p.a);
+        }
+        armed = false;
         dirty = true;
         nextReveal = 0f;
+        Built?.Invoke();
     }
+
+    // A passage end: a dark square with a light one inside (like the test stairs), in the colour of where it leads.
+    void AddExit(Vector2Int tile, int zone, Vector2Int arrival)
+    {
+        var go = new GameObject($"Passage vers {Plan.ZoneName(zone)}");
+        go.transform.position = Cell(tile);
+        var outer = go.AddComponent<SpriteRenderer>();
+        outer.sprite = Shapes.Square;
+        outer.color = new Color(0.1f, 0.1f, 0.12f);
+        var inner = new GameObject("Marches").AddComponent<SpriteRenderer>();
+        inner.transform.SetParent(go.transform, false);
+        inner.transform.localScale = Vector3.one * 0.6f;
+        inner.sprite = Shapes.Square;
+        inner.color = zone == IslandPlan.Centre ? new Color(0.75f, 0.5f, 1f) : new Color(1f, 0.85f, 0.3f);
+        exits.Add((go, zone, arrival));
+    }
+
+    // World position of an island tile of the current zone.
+    Vector2 Cell(Vector2Int tile)
+    {
+        var c = tile - arena.IslandOrigin + arena.Interior.min;
+        return arena.CentreOf(c.x, c.y);
+    }
+
+    // Island tile under a world position.
+    Vector2Int TileOf(Vector2 position) => arena.CellOf(position) - arena.Interior.min + arena.IslandOrigin;
 
     public void End()
     {
-        if (arena != null) arena.island = null;
+        foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
+        exits.Clear();
+        Zone = -1;
+        if (arena != null)
+        {
+            arena.island = null;
+            arena.islandZone = -1;
+            arena.islandArrival = null;
+        }
         if (Camera.main != null && Plan != null) Camera.main.backgroundColor = previousBackground;
         Plan = null;
         if (map != null) Destroy(map);
@@ -60,9 +128,27 @@ public class IslandRun : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (Plan == null || team == null || team.Controlled == null || Time.time < nextReveal) return;
+        if (Plan == null || team == null || team.Controlled == null || LoadingScreen.Busy) return;
+        // Passage ends: armed once the controlled Pokémon stands clear of them all.
+        Vector2 at = team.Controlled.transform.position;
+        float closest = float.MaxValue;
+        foreach (var e in exits)
+        {
+            float d = Vector2.Distance(at, e.marker.transform.position);
+            closest = Mathf.Min(closest, d);
+            if (armed && d <= PassageReach)
+            {
+                int zone = e.zone;
+                var arrival = e.arrival;
+                armed = false;
+                LoadingScreen.Run(Plan.ZoneName(zone), () => Build(zone, arrival));
+                return;
+            }
+        }
+        if (closest > PassageLeave) armed = true;
+        if (Time.time < nextReveal) return;
         nextReveal = Time.time + RevealEvery;
-        var cell = arena.CellOf(team.Controlled.transform.position) - arena.Interior.min;
+        var cell = TileOf(at);
         if (cell.x < 0 || cell.y < 0 || cell.x >= Plan.size || cell.y >= Plan.size) return;
         int here = Plan.Index(cell.x, cell.y);
         Quarter = Plan.region[here] >= 0 && Plan.region[here] < 4 ? Plan.region[here] : -1;
@@ -74,7 +160,7 @@ public class IslandRun : MonoBehaviour
                 if (x < 0 || y < 0 || x >= Plan.size || y >= Plan.size) continue;
                 if ((x - cell.x) * (x - cell.x) + (y - cell.y) * (y - cell.y) > RevealRadius * RevealRadius) continue;
                 int i = Plan.Index(x, y);
-                if (revealed[i]) continue;
+                if (revealed[i] || Plan.region[i] != Zone) continue; // the other zones are behind the walls
                 revealed[i] = true;
                 pixels[i] = Colour(i);
                 dirty = true;
@@ -109,21 +195,27 @@ public class IslandRun : MonoBehaviour
             dirty = false;
         }
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
-        float scale = MapSize / Plan.size * s;
-        var rect = new Rect(Screen.width - 8f * s - Plan.size * scale, 34f * s, Plan.size * scale, Plan.size * scale);
+        // The current zone only.
+        float scale = MapSize / Mathf.Max(bounds.width, bounds.height) * s;
+        var rect = new Rect(Screen.width - 8f * s - bounds.width * scale, 34f * s, bounds.width * scale, bounds.height * scale);
+        var uv = new Rect(bounds.x / (float)Plan.size, bounds.y / (float)Plan.size, bounds.width / (float)Plan.size, bounds.height / (float)Plan.size);
         var previous = GUI.color;
         GUI.color = new Color(0f, 0f, 0f, 0.35f);
         GUI.DrawTexture(rect, Texture2D.whiteTexture);
         GUI.color = Color.white;
-        GUI.DrawTexture(rect, map);
-        // Passages to the next quarters, once seen; the team.
-        GUI.color = new Color(1f, 0.85f, 0.3f);
-        foreach (var g in Plan.gates)
-            if (revealed[Plan.Index(g.x, g.y)]) Dot(rect, scale, g, 3f * s);
+        GUI.DrawTextureWithTexCoords(rect, map, uv);
+        // Passage ends, once seen; the team.
+        foreach (var e in exits)
+        {
+            var tile = TileOf(e.marker.transform.position);
+            if (!revealed[Plan.Index(tile.x, tile.y)]) continue;
+            GUI.color = e.zone == IslandPlan.Centre ? new Color(0.75f, 0.5f, 1f) : new Color(1f, 0.85f, 0.3f);
+            Dot(rect, scale, tile - bounds.min, 3f * s);
+        }
         if (team != null && team.Controlled != null)
         {
             GUI.color = Color.white;
-            Dot(rect, scale, arena.CellOf(team.Controlled.transform.position) - arena.Interior.min, 2.5f * s);
+            Dot(rect, scale, TileOf(team.Controlled.transform.position) - bounds.min, 2.5f * s);
         }
         GUI.color = previous;
     }

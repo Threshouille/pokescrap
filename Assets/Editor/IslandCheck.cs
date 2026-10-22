@@ -7,8 +7,10 @@ using UnityEngine;
 /// Generates 4 islands (IslandPlan) and draws their sub-biome maps, one pixel per tile, in Logs/island_preview.png:
 /// sub-biomes in their colour (biomes.json), barriers between quarters grey, the void around the central zone black,
 /// the central zone purple, the sky dark blue, the landing point red; walls darker, water blue, lava orange, void
-/// black, bridges brown, cooled rock dark, ice pale, quicksand ochre; the passages between quarters white. ISLAND lines in Logs/setup_unity.log give each
-/// island's themes in opening order and the share of each sub-biome.
+/// black, bridges brown, cooled rock dark, ice pale, quicksand ochre; the passage ends between zones white (to the centre:
+/// pink). ISLAND lines in Logs/setup_unity.log give each island's themes in opening order and the share of each sub-biome;
+/// ZONES lines check each zone (a map of its own): all its walkable tiles reached from its arrival tile, its passage ends
+/// walkable, its size.
 public static class IslandCheck
 {
     public static void Run()
@@ -40,10 +42,11 @@ public static class IslandCheck
                     counts[key] = counts.GetValueOrDefault(key) + 1;
                 }
             }
-            foreach (var g in plan.gates)
-                for (int dx = -2; dx <= 2; dx++)
-                    for (int dy = -2; dy <= 2; dy++)
-                        px[plan.Index(g.x + dx, g.y + dy)] = new Color32(255, 255, 255, 255);
+            foreach (var p in plan.passages)
+                foreach (var end in new[] { p.a, p.b })
+                    for (int dx = -2; dx <= 2; dx++)
+                        for (int dy = -2; dy <= 2; dy++)
+                            px[plan.Index(end.x + dx, end.y + dy)] = p.to == IslandPlan.Centre ? new Color32(255, 150, 220, 255) : new Color32(255, 255, 255, 255);
             for (int dx = -3; dx <= 3; dx++)
                 for (int dy = -3; dy <= 3; dy++)
                 {
@@ -58,6 +61,7 @@ public static class IslandCheck
             var shares = new List<string>();
             foreach (var kv in counts) shares.Add($"{kv.Key} {kv.Value * 100f / px.Length:0.#}%");
             Debug.Log($"ISLAND #{seed} {plan.size}×{plan.size}, ordre : {string.Join(" → ", themes)} ; {string.Join(", ", shares)}");
+            Debug.Log($"ZONES #{seed} : {CheckZones(plan)}");
         }
         int s = shots[0].width;
         var sheet = new Texture2D(2 * s + 6, 2 * s + 6, TextureFormat.RGB24, false);
@@ -70,6 +74,39 @@ public static class IslandCheck
         sheet.Apply();
         File.WriteAllBytes("Logs/island_preview.png", sheet.EncodeToPNG());
         Debug.Log("ISLAND DONE");
+    }
+
+    // Each zone: walkable tiles left unreached from its arrival tile, passage ends that are not walkable, size.
+    static string CheckZones(IslandPlan plan)
+    {
+        var parts = new List<string>();
+        int problems = 0;
+        for (int zone = 0; zone < IslandPlan.ZoneCount; zone++)
+        {
+            var box = plan.ZoneBounds(zone);
+            var arrival = plan.Arrival(zone);
+            string name = zone == IslandPlan.Centre ? "centre" : plan.themes[zone].name;
+            if (zone == IslandPlan.Centre)
+            {
+                parts.Add($"{name} {box.width}×{box.height}");
+                continue;
+            }
+            var reached = plan.Reach(plan.Index(arrival.x, arrival.y));
+            int lost = 0;
+            for (int i = 0; i < reached.Length; i++)
+                if (plan.region[i] == zone && plan.Walkable(i) && !reached[i]) lost++;
+            int badEnds = 0, ends = 0;
+            foreach (var p in plan.passages)
+                foreach (var (end, z) in new[] { (p.a, p.from), (p.b, p.to) })
+                    if (z == zone)
+                    {
+                        ends++;
+                        if (!reached[plan.Index(end.x, end.y)]) badEnds++;
+                    }
+            problems += lost + badEnds + (reached[plan.Index(arrival.x, arrival.y)] ? 0 : 1);
+            parts.Add($"{name} {box.width}×{box.height}, {ends} passage(s){(badEnds > 0 ? $" dont {badEnds} INACCESSIBLE(S)" : "")}{(lost > 0 ? $", {lost} cases isolées" : "")}");
+        }
+        return $"{plan.passages.Count} passages, {(problems == 0 ? "OK" : $"{problems} PROBLÈME(S)")} ; " + string.Join(" ; ", parts);
     }
 
     static Color32 Darker(Color32 c) => new((byte)(c.r * 0.35f), (byte)(c.g * 0.35f), (byte)(c.b * 0.35f), 255);
@@ -90,8 +127,9 @@ public static class IslandCheck
         ColorUtility.TryParseHtmlString(hex ?? "", out var c) ? (Color32)c : new Color32(255, 0, 255, 255);
 
     /// Unity -batchmode -projectPath . -executeMethod IslandCheck.Shots -quit (graphics, not -nographics): builds an
-    /// island in the arena scene, logs how long it takes, and draws it as the game does in Logs/island_shots.png: the
-    /// whole island, then close-ups of the landing point, a bridge and a passage to the next quarter.
+    /// island's first quarter (a map of its own) in the arena scene, logs how long it takes, and draws it as the game
+    /// does in Logs/island_shots.png: the whole quarter, then close-ups of the landing point, a bridge and the passage
+    /// to the next quarter.
     public static void Shots()
     {
         EditorSceneManager.OpenScene("Assets/Scenes/SampleScene.unity");
@@ -103,18 +141,20 @@ public static class IslandCheck
         gen.Generate();
         long build = watch.ElapsedMilliseconds;
         typeof(Obstacles).GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(Obstacles.Current, null);
-        Debug.Log($"ISLANDSHOT construction {build} ms, obstacles {Obstacles.Current.Count}, carte {plan.size}×{plan.size}");
-        var origin = gen.Interior.min;
+        Debug.Log($"ISLANDSHOT construction du premier quartier {build} ms, obstacles {Obstacles.Current.Count}, zone {gen.Interior.width}×{gen.Interior.height} (île {plan.size}×{plan.size})");
+        var origin = gen.Interior.min - gen.IslandOrigin;
         Vector2 Tile(Vector2Int p) => gen.CentreOf(p.x + origin.x, p.y + origin.y);
+        int zone = plan.order[0];
         Vector2Int bridge = plan.start;
         for (int i = 0; i < plan.obstacle.Length; i++)
-            if (plan.obstacle[i] == "bridge" || plan.obstacle[i] == "rock" || plan.obstacle[i] == "vine_bridge") { bridge = new Vector2Int(i % plan.size, i / plan.size); break; }
+            if (plan.region[i] == zone && (plan.obstacle[i] == "bridge" || plan.obstacle[i] == "rock" || plan.obstacle[i] == "vine_bridge")) { bridge = new Vector2Int(i % plan.size, i / plan.size); break; }
+        var exit = plan.passages.Find(p => p.from == zone);
         var views = new List<(Vector2 centre, float half)>
         {
-            (gen.CentreOf(gen.Size / 2, gen.Size / 2), plan.size / 2f + 2f),
+            (gen.CentreOf(gen.Size / 2, gen.Size / 2), gen.Interior.width / 2f + 2f),
             (Tile(plan.start), 12f),
             (Tile(bridge), 12f),
-            (Tile(plan.gates.Count > 0 ? plan.gates[0] : plan.start), 14f),
+            (Tile(exit != null ? exit.a : plan.start), 14f),
         };
         cam.backgroundColor = new Color(0.42f, 0.62f, 0.86f);
         const int W = 800;

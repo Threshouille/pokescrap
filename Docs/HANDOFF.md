@@ -89,6 +89,10 @@ serviront aux chaînes d'îlots. Étapes 1 et 2 faites (données seulement) : `I
 haies aux changements de décor, ciel autour ; pire image 24 ms en courant avec les alliés (les pics de 108 ms venaient de
 la réparation de chemin, rendue locale). Banc 24/24. Suite : 4) chaînes d'îlots, 5) sceaux et engrenages, 6) centre,
 7) rencontres.
+**Zones séparées (22/10/2026, Owen)** : chaque quartier et le centre sont des cartes à part, murées, avec écran de
+chargement aux passages (dans les deux sens ; dernier quartier → centre). `IslandCheck.Run` : 4 îles, zones toutes
+accessibles depuis leur arrivée ; construction d'un quartier ≈ 0,9 s. Limite : une zone revisitée est reconstruite
+telle qu'à l'origine (pont brûlé, rivière gelée non gardés).
 Gels des grands niveaux corrigés par une session parallèle (pire image 167 → 31 ms ; banc 23/23), à confirmer en jeu.
 Retour de Robin sur l'étage de test : plus d'obstacles (pylônes dans les labyrinthes…) et obstacles fondus dans le décor
 (capture : vide standard bordé de bleu sur la Grotte Abîme aux murs noirs). Fait : liquide du décor par thème
