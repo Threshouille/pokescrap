@@ -24,7 +24,39 @@ public partial class IslandPlan
         public SubBiome left = new(), right = new();
         public Road road = new();
         public Relief relief = new();
+        public Props props = new();
     }
+
+    /// Decor elements cut from the story maps (map_props.json) scattered on each sub-biome's open ground.
+    [Serializable]
+    public class Props
+    {
+        public float clearance = 3f, blockSpacing = 2.5f;
+        public SubBiomeProps[] bySubBiome = new SubBiomeProps[0];
+    }
+
+    [Serializable]
+    public class SubBiomeProps
+    {
+        public string subBiome;
+        public PropGroup[] groups = new PropGroup[0];
+    }
+
+    [Serializable]
+    public class PropGroup
+    {
+        public string group;
+        public float per100;
+    }
+
+    [Serializable]
+    class MapProp
+    {
+        public string key, group;
+        public bool block;
+    }
+
+    [Serializable] class MapPropFile { public MapProp[] props = new MapProp[0]; }
 
     /// Hills, plateaus and a mountain: levels of ground whose edges are cliffs (walls), crossed by ramps and, going
     /// down only, by ledges; a cave at the top of the mountain, a branch of the road to its foot.
@@ -88,6 +120,7 @@ public partial class IslandPlan
         var rng = new System.Random(seed);
         plan.BuildQuarterTest(t, rng);
         plan.LayRelief(t, rng, rock);
+        plan.ScatterProps(t, rng);
         return plan;
     }
 
@@ -695,5 +728,75 @@ public partial class IslandPlan
             }
         }
         return reached;
+    }
+
+    // ---- Decor elements ----
+
+    void ScatterProps(QuarterTest t, System.Random rng)
+    {
+        var asset = Resources.Load<TextAsset>("Data/map_props");
+        if (asset == null) return;
+        var groups = new Dictionary<string, List<MapProp>>();
+        foreach (var p in JsonUtility.FromJson<MapPropFile>(asset.text).props)
+        {
+            if (!groups.TryGetValue(p.group, out var list)) groups[p.group] = list = new List<MapProp>();
+            list.Add(p);
+        }
+        // Distance (tiles) to what they keep away from: sky, river, road, cliffs, stairs, the cave, portals, landing.
+        int n = size * size;
+        var dist = new int[n];
+        var queue = new Queue<int>();
+        for (int i = 0; i < n; i++)
+        {
+            bool keep = region[i] != 0 || obstacle[i] != null || wall[i] || (decor != null && decor[i] > 0)
+                || (cut != null && cut[i] != 0) || (roof != null && roof[i]);
+            dist[i] = keep ? 0 : int.MaxValue;
+            if (keep) queue.Enqueue(i);
+        }
+        var landmarks = new List<Vector2Int>(markers) { start };
+        foreach (var m in landmarks) Stamp(m, 3.5f, i => { if (dist[i] != 0) { dist[i] = 0; queue.Enqueue(i); } });
+        while (queue.Count > 0)
+        {
+            int c = queue.Dequeue();
+            foreach (var d in Around4)
+            {
+                int x = c % size + d.x, y = c / size + d.y;
+                if (!InMap(x, y)) continue;
+                int k = Index(x, y);
+                if (dist[k] <= dist[c] + 1) continue;
+                dist[k] = dist[c] + 1;
+                queue.Enqueue(k);
+            }
+        }
+        var blockers = new List<Vector2>();
+        foreach (var sub in t.props.bySubBiome)
+        {
+            var tiles = new List<int>();
+            for (int i = 0; i < n; i++)
+                if (region[i] == 0 && biome[i] != null && biome[i].key == sub.subBiome && dist[i] >= 1) tiles.Add(i);
+            if (tiles.Count == 0) continue;
+            foreach (var g in sub.groups)
+            {
+                if (!groups.TryGetValue(g.group, out var choices)) continue;
+                int count = Mathf.RoundToInt(tiles.Count * g.per100 / 100f);
+                for (int k = 0, tries = 0; k < count && tries < count * 20; tries++)
+                {
+                    int i = tiles[rng.Next(tiles.Count)];
+                    var prop = choices[rng.Next(choices.Count)];
+                    var tile = new Vector2(i % size + 0.5f, i / size + 0.5f);
+                    if (obstacle[i] != null) continue;
+                    if (prop.block)
+                    {
+                        if (dist[i] < t.props.clearance || blockers.Exists(b => Vector2.Distance(b, tile) < t.props.blockSpacing)) continue;
+                        obstacle[i] = "blocker";
+                        blockers.Add(tile);
+                        decorProps.Add((prop.key, new Vector2(tile.x, tile.y - 0.3f)));
+                    }
+                    else
+                        decorProps.Add((prop.key, tile + new Vector2((float)rng.NextDouble() - 0.5f, (float)rng.NextDouble() - 0.5f) * 0.7f));
+                    k++;
+                }
+            }
+        }
     }
 }

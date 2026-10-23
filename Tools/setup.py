@@ -35,8 +35,9 @@ ANIMSETS = ROOT / "Assets/Resources/AnimSets"
 TILESETS = ROOT / "Assets/Tilesets"
 OBSTACLE_TILES = ROOT / "Assets/Resources/ObstacleTiles"
 CLIFFS = ROOT / "Assets/Resources/Cliffs"
+MAP_PROPS = ROOT / "Assets/Resources/MapProps"
 # Folders whose content comes from the ROM (only their .meta files are versioned).
-GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
+GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, MAP_PROPS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
 # ScriptableObjects rebuilt by Unity: a placeholder keeps their GUID until the Build menus fill them.
 PLACEHOLDERS = {ANIMSETS: "Assets/Scripts/Pmd/PmdAnimSet.cs", TILESETS: "Assets/Scripts/Dungeon/DungeonTileset.cs"}
 
@@ -143,6 +144,8 @@ def restore_cliffs():
     """Cliff faces cut from the story maps (cliff_styles.json)."""
     step("Cliff faces (story maps)")
     run(python(), "-I", PMD / "extract_cliffs.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/cliff_styles.json", CLIFFS)
+    step("Decor elements (story maps)")
+    run(python(), "-I", PMD / "extract_map_props.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/map_props.json", MAP_PROPS)
 
 
 def script_guid(script):

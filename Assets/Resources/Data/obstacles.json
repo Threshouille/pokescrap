@@ -16,6 +16,7 @@
     {"key": "boulder", "name": "Rocher", "solid": true, "romRocks": [{"tileset": 9, "cut": "core"}, {"tileset": 18}], "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#6a4a3a", "passTypes": [3], "passPokemonTypes": [14]},
     {"key": "column", "name": "Colonne brisée", "solid": true, "ownRocks": true, "romRocks": [{"tileset": 46}], "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#b8a090", "passTypes": [3], "passPokemonTypes": [14]},
     {"key": "ledge", "name": "Rebord", "oneWay": [0, -1], "hidden": true, "color": "#8a6a50"},
+    {"key": "blocker", "name": "Élément de décor", "solid": true, "hidden": true, "color": "#406030"},
     {"key": "boulder_big", "name": "Gros rocher", "solid": true, "romRocks": [{"tileset": 9, "cut": "core"}, {"tileset": 18}], "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#5a3a2a", "passTypes": [3], "passPokemonTypes": [14]},
     {"key": "boulder_cracked", "name": "Gros rocher fissuré", "solid": true, "romRocks": [{"tileset": 9, "cut": "core"}, {"tileset": 18}], "spriteTint": "#9a8a80", "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#4a3a32", "passTypes": [3], "passPokemonTypes": [14]},
     {"key": "rubble", "name": "Gravats", "speedMul": 0.7, "decaysTo": "", "decayTime": 6, "color": "#7a6a5a", "flatAlpha": 0.7, "easyTypes": [9, 13]},

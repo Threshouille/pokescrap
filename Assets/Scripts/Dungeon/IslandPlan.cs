@@ -54,6 +54,7 @@ public partial class IslandPlan
     public int[] decor; // per tile: a ROM décor drawing it instead of its sub-biome's (a road), 0 for none; may be null
     public readonly List<Vector2Int> markers = new(); // landmarks shown as passage ends that lead nowhere yet (test quarter's portals)
     public readonly List<Vector2Int> caves = new(); // cave mouths (test quarter's mountain top), leading nowhere yet
+    public readonly List<(string key, Vector2 at)> decorProps = new(); // decor elements (Resources/MapProps/<key>) at their foot, in tiles
     public int[] height; // per tile: level of the ground (0 = plain, 1, 2... on hills), may be null
     public bool[] wallLook; // per tile: walkable but drawn as a wall (a ledge looks like its cliff), may be null
     public bool[] roof; // per tile: under a roof that hides it until the controlled Pokémon goes under (a cave), may be null

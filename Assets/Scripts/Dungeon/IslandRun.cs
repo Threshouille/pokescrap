@@ -88,6 +88,7 @@ public class IslandRun : MonoBehaviour
         }
         foreach (var m in Plan.markers)
             if (Plan.region[Plan.Index(m.x, m.y)] == zone) AddMarker(m, "Portail (test)", new Color(1f, 0.85f, 0.3f));
+        PlaceProps(zone);
 
         if (revealAll || SaveData.Settings.devMode)
             for (int y = bounds.yMin; y < bounds.yMax; y++)
@@ -121,6 +122,39 @@ public class IslandRun : MonoBehaviour
         exits.Add((go, zone, arrival));
     }
 
+    static readonly Dictionary<string, Sprite> propSprites = new();
+    Transform propRoot;
+
+    // The zone's decor elements, standing on their foot, sorted with the Pokémon (lower on screen in front).
+    void PlaceProps(int zone)
+    {
+        if (propRoot != null) Destroy(propRoot.gameObject);
+        propRoot = new GameObject("Éléments de décor").transform;
+        foreach (var (key, at) in Plan.decorProps)
+        {
+            var tile = Vector2Int.FloorToInt(at);
+            if (Plan.region[Plan.Index(tile.x, tile.y)] != zone) continue;
+            var sprite = PropSprite(key);
+            if (sprite == null) continue;
+            var go = new GameObject(key);
+            go.transform.SetParent(propRoot, false);
+            go.transform.position = Cell(tile) + (at - tile - new Vector2(0.5f, 0.5f));
+            var r = go.AddComponent<SpriteRenderer>();
+            r.sprite = sprite;
+            r.sortingOrder = 1; // the Pokémon's
+            r.spriteSortPoint = SpriteSortPoint.Pivot;
+        }
+    }
+
+    static Sprite PropSprite(string key)
+    {
+        if (propSprites.TryGetValue(key, out var sprite) && sprite != null) return sprite;
+        var texture = Resources.Load<Texture2D>("MapProps/" + key);
+        sprite = texture != null ? Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0f), 24f, 0, SpriteMeshType.FullRect) : null;
+        propSprites[key] = sprite;
+        return sprite;
+    }
+
     // A landmark that looks like a passage end but leads nowhere (yet): the test quarter's portals.
     void AddMarker(Vector2Int tile, string name, Color colour)
     {
@@ -150,6 +184,7 @@ public class IslandRun : MonoBehaviour
 
     public void End()
     {
+        if (propRoot != null) Destroy(propRoot.gameObject);
         foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
         exits.Clear();
         foreach (var m in markers) if (m != null) Destroy(m);
