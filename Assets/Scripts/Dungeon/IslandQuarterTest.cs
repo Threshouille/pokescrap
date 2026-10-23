@@ -36,7 +36,8 @@ public partial class IslandPlan
         public float upperChance = 0.5f, mountainRadius = 24f;
         public int mountainLevels = 3, clearance = 3;
         public int[] rockDecors = { 49, 9 };
-        public int rampDecor = 35, rampWidth = 3, ledges = 4;
+        public int rampDecor = 35, rampWidth = 3, ledges = 4, faceRows = 2;
+        public float faceShade = 0.12f; // a face's rows darker by that much each, towards its foot
         public int[] ledgeLength = { 3, 6 };
         public float[] levelShade = { 0.93f, 0.96f, 0.98f, 1f }, footShadow = { 0.7f, 0.85f };
         public Cave cave = new();
@@ -374,75 +375,153 @@ public partial class IslandPlan
             });
         }
 
-        // Cliffs: the edge of each level, where the ground next to it is lower.
+        // Cliffs, as seen in 3/4 view: the side of each level facing the camera (south) is a face faceRows tiles tall
+        // per level climbed, standing on the lower ground below it; the other sides a thin rim (the level's own edge).
         var cliff = new bool[n];
+        var face = new int[n]; // per face tile: its row from the top of the face (1, 2...); 0 elsewhere
+        var faceOf = new int[n]; // the level whose face it is
         for (int i = 0; i < n; i++)
         {
-            if (height[i] == 0) continue;
-            foreach (var d in Around4)
+            int level = height[i];
+            if (level == 0) continue;
+            int x = i % size, y = i / size;
+            if (y == 0 || height[Index(x, y - 1)] >= level) continue;
+            int rows = r.faceRows * (level - height[Index(x, y - 1)]);
+            for (int k = 1; k <= rows && y - k >= 0; k++)
             {
-                int x = i % size + d.x, y = i / size + d.y;
-                if (InMap(x, y) && height[Index(x, y)] < height[i]) { cliff[i] = true; break; }
+                int j = Index(x, y - k);
+                if (region[j] != 0 || obstacle[j] != null || decor[j] > 0 || height[j] >= level) break; // river, road...
+                if (faceOf[j] < level) { face[j] = k; faceOf[j] = level; }
             }
         }
+        // The rims: an edge of a level with lower ground behind or beside it, unless that ground is the level's own
+        // face (along the steps of a round hill's bottom, the face carries on).
+        for (int i = 0; i < n; i++)
+        {
+            int level = height[i];
+            if (level == 0) continue;
+            int x = i % size, y = i / size;
+            foreach (var d in new[] { Vector2Int.up, Vector2Int.left, Vector2Int.right })
+            {
+                if (!InMap(x + d.x, y + d.y)) continue;
+                int j = Index(x + d.x, y + d.y);
+                if (height[j] < level && faceOf[j] < level) cliff[i] = true;
+            }
+        }
+        for (int i = 0; i < n; i++)
+            if (face[i] > 0) { cliff[i] = true; height[i] = faceOf[i]; }
+
         var ramps = new bool[n];
-        // Opens a ramp in the cliff of that level around a centre, on the tile nearest that direction.
-        Vector2Int Ramp(Vector2 centre, float reach, int level, float angle)
+        // A column of a level's face fit for stairs: the face whole and in one piece, the level's ground right above it,
+        // free lower ground right below it. Returns the tile at its foot, or y = -1.
+        Vector2Int Column(int x, int level, Vector2 centre, float reach)
         {
-            int found = -1;
-            float bestGap = float.MaxValue;
-            Stamp(centre, reach, i =>
+            int top = -1, bottom = int.MaxValue, count = 0;
+            for (int y = 0; y < size; y++)
             {
-                if (!cliff[i] || height[i] != level) return;
-                var p = new Vector2(i % size + 0.5f, i / size + 0.5f) - centre;
-                float gap = Mathf.Abs(Mathf.DeltaAngle(Mathf.Atan2(p.y, p.x) * Mathf.Rad2Deg, angle * Mathf.Rad2Deg));
-                if (gap < bestGap) { bestGap = gap; found = i; }
-            });
-            if (found < 0) return new Vector2Int(-1, -1);
-            var at = new Vector2(found % size + 0.5f, found / size + 0.5f);
-            Stamp(at, r.rampWidth / 2f, i => { if (cliff[i] && height[i] == level) ramps[i] = true; });
-            return new Vector2Int(found % size, found / size);
-        }
-        // The mountain's ramps go round it: the first one facing the road, each next one further round.
-        Vector2Int foot = new(-1, -1);
-        if (hasMountain)
-        {
-            float toRoad = 0f, nearest = float.MaxValue;
-            for (int i = 0; i < n; i++)
-            {
-                if (decor[i] <= 0 || region[i] != 0) continue;
-                var p = new Vector2(i % size + 0.5f, i / size + 0.5f);
-                float d = Vector2.Distance(p, mountain);
-                if (d < nearest) { nearest = d; toRoad = Mathf.Atan2(p.y - mountain.y, p.x - mountain.x); }
+                int i = Index(x, y);
+                if (face[i] == 0 || faceOf[i] != level || Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), centre) > reach) continue;
+                top = Mathf.Max(top, y);
+                bottom = Mathf.Min(bottom, y);
+                count++;
             }
-            Vector2Int mouth = new(-1, -1);
+            if (top < 0 || count != top - bottom + 1 || top + 1 >= size || bottom < 1) return new Vector2Int(x, -1);
+            int above = Index(x, top + 1), below = Index(x, bottom - 1);
+            bool upOk = height[above] == level && !cliff[above] && region[above] == 0;
+            bool downOk = region[below] == 0 && !cliff[below] && height[below] < level && (obstacle[below] == null || obstacle[below] == t.bridgeKind);
+            return upOk && downOk ? new Vector2Int(x, bottom - 1) : new Vector2Int(x, -1);
+        }
+        // Stairs cut into a level's face (3 columns, the whole face), on the fit column nearest targetX; returns the
+        // tile at their foot, or (-1, -1).
+        Vector2Int Stairs(Vector2 centre, float reach, int level, float targetX)
+        {
+            var xs = new SortedSet<int>();
+            Stamp(centre, reach, i => { if (face[i] > 0 && faceOf[i] == level) xs.Add(i % size); });
+            var order = new List<int>(xs);
+            order.Sort((a, b) => Mathf.Abs(a + 0.5f - targetX).CompareTo(Mathf.Abs(b + 0.5f - targetX)));
+            foreach (int x in order)
+            {
+                var left = Column(x - 1, level, centre, reach);
+                var middle = Column(x, level, centre, reach);
+                var right = Column(x + 1, level, centre, reach);
+                if (left.y < 0 || middle.y < 0 || right.y < 0) continue;
+                for (int dx = -1; dx <= 1; dx++)
+                    for (int y = 0; y < size; y++)
+                    {
+                        int i = Index(x + dx, y);
+                        if (face[i] > 0 && faceOf[i] == level && Vector2.Distance(new Vector2(x + dx + 0.5f, y + 0.5f), centre) <= reach) ramps[i] = true;
+                    }
+                return middle;
+            }
+            return new Vector2Int(-1, -1);
+        }
+        // The mountain is climbed in zigzags towards the top of the screen: the first stairs on the left of its face,
+        // the next ones on the right, the cave's mouth in the middle of the last face.
+        Vector2Int foot = new(-1, -1);
+        float mountainReach = big * 1.3f + r.faceRows * r.mountainLevels;
+        if (hasMountain)
             for (int level = 1; level <= r.mountainLevels; level++)
             {
-                var ramp = Ramp(mountain, big * 1.3f, level, toRoad + (level - 1) * 150f * Mathf.Deg2Rad);
-                if (level == 1) foot = ramp;
-                if (level == r.mountainLevels) mouth = ramp;
+                float target = level == r.mountainLevels ? mountain.x : mountain.x + (level % 2 == 1 ? -0.45f : 0.35f) * big;
+                var stairs = Stairs(mountain, mountainReach, level, target);
+                if (level == 1) foot = stairs;
             }
-            caves.Add(Vector2Int.FloorToInt(mountain));
-            Hollow(r, rng, mountain, big, mouth, cliff, ramps);
-        }
         foreach (var (centre, radius) in hills)
         {
-            float a = (float)rng.NextDouble() * Mathf.PI * 2f;
-            Ramp(centre, radius * 1.3f, 1, a);
-            if (radius > 7f) Ramp(centre, radius * 1.3f, 1, a + Mathf.PI);
-            Ramp(centre, radius * 0.7f, 2, a + Mathf.PI * 0.8f);
+            Stairs(centre, radius * 1.3f + r.faceRows * 2, 1, centre.x + ((float)rng.NextDouble() - 0.5f) * radius);
+            Stairs(centre, radius * 0.7f + r.faceRows * 2, 2, centre.x + ((float)rng.NextDouble() - 0.5f) * radius * 0.5f);
+        }
+        // Whatever high ground is still out of reach (a face cut by the river, too narrow...) gets stairs of its own,
+        // on the nearest fit face of its level.
+        for (int round = 0; round < 40; round++)
+        {
+            var reached = ReachWithout(cliff, ramps);
+            int lost = -1;
+            for (int i = 0; i < n && lost < 0; i++)
+                if (height[i] > 0 && !cliff[i] && region[i] == 0 && obstacle[i] == null && !reached[i]) lost = i;
+            if (lost < 0) break;
+            var at = new Vector2(lost % size + 0.5f, lost / size + 0.5f);
+            if (Stairs(at, 40f, height[lost], at.x).y >= 0) continue;
+            // No way found: that piece of high ground is left be (marked, then unmarked below).
+            int level = height[lost];
+            var piece = new Queue<int>();
+            height[lost] = -level;
+            piece.Enqueue(lost);
+            while (piece.Count > 0)
+            {
+                int c = piece.Dequeue();
+                foreach (var d in Around4)
+                {
+                    int x = c % size + d.x, y = c / size + d.y;
+                    if (!InMap(x, y)) continue;
+                    int j = Index(x, y);
+                    if (height[j] != level || cliff[j]) continue;
+                    height[j] = -level;
+                    piece.Enqueue(j);
+                }
+            }
+        }
+        for (int i = 0; i < n; i++) if (height[i] < 0) height[i] = -height[i];
+        if (hasMountain)
+        {
+            int top = r.mountainLevels;
+            Vector2Int mouth = new(-1, -1);
+            for (int i = 0; i < n && mouth.x < 0; i++)
+                if (ramps[i] && faceOf[i] == top && Vector2.Distance(new Vector2(i % size, i / size), mountain) < mountainReach) mouth = new Vector2Int(i % size, i / size);
+            caves.Add(Vector2Int.FloorToInt(mountain));
+            Hollow(r, rng, mountain, big, mouth, cliff, ramps, face, faceOf);
         }
 
-        // Ledges: a few stretches of cliff facing down (lower ground below, the top above), crossed going down only.
+        // Ledges: a few stretches of face (3 to 6 columns wide), jumped down, never climbed.
         var runs = new List<List<int>>();
         for (int y = 1; y + 1 < size; y++)
         {
             List<int> run = null;
             for (int x = 0; x < size; x++)
             {
-                int i = Index(x, y), below = Index(x, y - 1), above = Index(x, y + 1);
-                bool fits = cliff[i] && !ramps[i] && height[below] < height[i] && !cliff[below] && obstacle[below] == null
-                    && region[below] == 0 && height[above] == height[i] && !cliff[above] && (roof == null || !roof[i]);
+                int i = Index(x, y), above = Index(x, y + 1);
+                // The top row of a face: the level's ground just above it.
+                bool fits = face[i] == 1 && !ramps[i] && faceOf[i] == height[above] && !cliff[above] && (roof == null || !roof[above]);
                 if (fits) { run ??= new List<int>(); run.Add(i); }
                 else { if (run != null && run.Count >= r.ledgeLength[0]) runs.Add(run); run = null; }
             }
@@ -454,14 +533,19 @@ public partial class IslandPlan
             int length = Mathf.Min(run.Count, rng.Next(r.ledgeLength[0], r.ledgeLength[1] + 1));
             int from = rng.Next(run.Count - length + 1);
             for (int j = from; j < from + length; j++)
-            {
-                int i = run[j];
-                cliff[i] = false;
-                wallLook[i] = true;
-                obstacle[i] = "ledge";
-                decor[i] = rockDecor;
-            }
+                for (int i = run[j]; i >= 0 && face[i] > 0 && faceOf[i] == faceOf[run[j]]; i -= size) // down the face
+                {
+                    cliff[i] = false;
+                    wallLook[i] = true;
+                    obstacle[i] = "ledge";
+                    decor[i] = rockDecor;
+                }
         }
+
+        // Faces darker towards their foot (the light comes from the top).
+        shadeOverride ??= new float[n];
+        for (int i = 0; i < n; i++)
+            if (face[i] > 0 && shadeOverride[i] == 0f && !ramps[i]) shadeOverride[i] = Mathf.Max(0.55f, 1f - r.faceShade * face[i]);
 
         for (int i = 0; i < n; i++)
         {
@@ -471,11 +555,11 @@ public partial class IslandPlan
             if (decor[i] == 0) decor[i] = rockDecor;
         }
 
-        // A branch of the road to the mountain's first ramp.
+        // A branch of the road to the foot of the mountain's first stairs.
         if (foot.x >= 0)
         {
-            var outward = ((Vector2)foot + Vector2.one * 0.5f - mountain).normalized;
-            var from = (Vector2)foot + Vector2.one * 0.5f + outward * 2f;
+            var outward = Vector2.down; // the stairs face the camera
+            var from = (Vector2)foot + Vector2.one * 0.5f;
             Vector2 to = from;
             float nearest = float.MaxValue;
             for (int i = 0; i < n; i++)
@@ -494,20 +578,26 @@ public partial class IslandPlan
         }
     }
 
-    // The mountain's top level hollowed into a cave: its floor and its ring of cliff under a roof, the last ramp its
+    // The mountain's top level hollowed into a cave: its floor and its rim under a roof, the stairs of its face its
     // mouth, a few rock pillars inside.
-    void Hollow(Relief r, System.Random rng, Vector2 centre, float radius, Vector2Int mouth, bool[] cliff, bool[] ramps)
+    void Hollow(Relief r, System.Random rng, Vector2 centre, float radius, Vector2Int mouth, bool[] cliff, bool[] ramps,
+        int[] face, int[] faceOf)
     {
         var c = r.cave;
         int top = r.mountainLevels, n = size * size;
         roof = new bool[n];
         roofDecor = c.roofDecor;
-        shadeOverride = new float[n];
+        shadeOverride ??= new float[n];
         var inside = new List<int>();
-        Stamp(centre, radius, i =>
+        Stamp(centre, radius + r.faceRows * top, i =>
         {
             if (height[i] != top) return;
-            if (ramps[i]) { decor[i] = c.decor; shadeOverride[i] = c.mouthShade; return; } // the mouth, open to the sky
+            if (face[i] > 0)
+            {
+                // The summit's face stays outside; the stairs cut into it are the cave's mouth, dark.
+                if (ramps[i]) { decor[i] = c.decor; shadeOverride[i] = c.mouthShade; }
+                return;
+            }
             roof[i] = true;
             if (cliff[i]) return; // the cave's wall: the cliff ring (rock outside), under the roof too
             decor[i] = c.decor;
@@ -548,5 +638,30 @@ public partial class IslandPlan
             if (height[above] != height[i]) break;
         }
         return shade;
+    }
+
+    // Tiles reached on foot from the landing point, cliffs blocking but their stairs open (no ledges yet).
+    bool[] ReachWithout(bool[] cliff, bool[] ramps)
+    {
+        var reached = new bool[size * size];
+        var queue = new Queue<int>();
+        int from = Index(start.x, start.y);
+        reached[from] = true;
+        queue.Enqueue(from);
+        while (queue.Count > 0)
+        {
+            int c = queue.Dequeue();
+            foreach (var d in Around4)
+            {
+                int x = c % size + d.x, y = c / size + d.y;
+                if (!InMap(x, y)) continue;
+                int i = Index(x, y);
+                if (reached[i] || region[i] != 0 || (cliff[i] && !ramps[i]) || wall[i]) continue;
+                if (obstacle[i] != null && obstacle[i] != themes[0].bridgeKind) continue;
+                reached[i] = true;
+                queue.Enqueue(i);
+            }
+        }
+        return reached;
     }
 }

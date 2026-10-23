@@ -355,15 +355,16 @@ public class DungeonGenerator : MonoBehaviour
             }
         floorMap.SetTiles(floorCells.ToArray(), floorTiles.ToArray());
         wallMap.SetTiles(wallCells.ToArray(), wallTiles.ToArray());
-        // Relief: each level's ground tinted, darker at the foot of the cliffs.
+        // Relief: each level's ground tinted, darker at the foot of the cliffs; the cliff faces darker towards their foot.
         if (cellShade != null)
-            foreach (var cell in floorCells)
-            {
-                float shade = cellShade[cell.y * size + cell.x];
-                if (shade <= 0f || Mathf.Approximately(shade, 1f)) continue;
-                floorMap.SetTileFlags(cell, TileFlags.None);
-                floorMap.SetColor(cell, new Color(shade, shade, shade, 1f));
-            }
+            foreach (var (map, cells) in new[] { (floorMap, floorCells), (wallMap, wallCells) })
+                foreach (var cell in cells)
+                {
+                    float shade = cellShade[cell.y * size + cell.x];
+                    if (shade <= 0f || Mathf.Approximately(shade, 1f)) continue;
+                    map.SetTileFlags(cell, TileFlags.None);
+                    map.SetColor(cell, new Color(shade, shade, shade, 1f));
+                }
     }
 
     // The roof: the walls of its décor over every roofed tile (its own edges where the roof ends), one tile layer.
