@@ -262,6 +262,8 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   dessous de l'île et nuages en contrebas qui défilent à des vitesses différentes, lumière et étalonnage.
 - Pixel art riche à 24 px par case, compatible avec les sprites de DM. Références : Eastward, Minecraft Dungeons,
   Pokémon Ranger. Choix du 23/10 : concept A, sans contours (façon Eastward).
+  Premier essai jugé décevant en jeu (23/10, Owen) : deuxième essai d'assets dans le style des décors de Donjon
+  Mystère (couleurs, contours, végétation en boules), même liste et même format (`Design/prompt_da_ile_assets_dm.md`).
 - Organique à l'écran, grille invisible pour le gameplay : sol mélangé par shader (transitions irrégulières), éléments
   posés librement ; écart d'environ une demi-case accepté entre le bord visible et la collision.
 - Animations par shader (vent dans l'herbe, les fleurs et les feuillages ; eau qui coule), quelques animations dessinées
