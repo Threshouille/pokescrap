@@ -40,6 +40,7 @@ public class IslandRun : MonoBehaviour
     Color previousBackground;
     RectInt bounds; // the current zone on the island
     readonly List<(GameObject marker, int zone, Vector2Int arrival)> exits = new(); // the passage ends of the zone
+    readonly List<GameObject> markers = new(); // landmarks of the zone (IslandPlan.markers)
     bool armed; // the passage ends only work once the controlled Pokémon has stepped off them
 
     public void Begin(System.Random rng) => Begin(IslandPlan.Generate(rng));
@@ -70,6 +71,8 @@ public class IslandRun : MonoBehaviour
     {
         foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
         exits.Clear();
+        foreach (var m in markers) if (m != null) Destroy(m);
+        markers.Clear();
         foreach (var zoneArea in FindObjectsByType<global::Zone>()) Destroy(zoneArea.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         Zone = zone;
@@ -83,6 +86,8 @@ public class IslandRun : MonoBehaviour
             if (p.from == zone) AddExit(p.a, p.to, p.b);
             if (p.to == zone) AddExit(p.b, p.from, p.a);
         }
+        foreach (var m in Plan.markers)
+            if (Plan.region[Plan.Index(m.x, m.y)] == zone) AddMarker(m);
         if (revealAll || SaveData.Settings.devMode)
             for (int y = bounds.yMin; y < bounds.yMax; y++)
                 for (int x = bounds.xMin; x < bounds.xMax; x++)
@@ -106,12 +111,30 @@ public class IslandRun : MonoBehaviour
         var outer = go.AddComponent<SpriteRenderer>();
         outer.sprite = Shapes.Square;
         outer.color = new Color(0.1f, 0.1f, 0.12f);
+        outer.sortingOrder = -1; // under the light square inside (a tie would hide it)
         var inner = new GameObject("Marches").AddComponent<SpriteRenderer>();
         inner.transform.SetParent(go.transform, false);
         inner.transform.localScale = Vector3.one * 0.6f;
         inner.sprite = Shapes.Square;
         inner.color = zone == IslandPlan.Centre ? new Color(0.75f, 0.5f, 1f) : new Color(1f, 0.85f, 0.3f);
         exits.Add((go, zone, arrival));
+    }
+
+    // A landmark that looks like a passage end but leads nowhere (yet): the test quarter's portals.
+    void AddMarker(Vector2Int tile)
+    {
+        var go = new GameObject("Portail (test)");
+        go.transform.position = Cell(tile);
+        var outer = go.AddComponent<SpriteRenderer>();
+        outer.sprite = Shapes.Square;
+        outer.color = new Color(0.1f, 0.1f, 0.12f);
+        outer.sortingOrder = -1; // under the light square inside (a tie would hide it)
+        var inner = new GameObject("Marches").AddComponent<SpriteRenderer>();
+        inner.transform.SetParent(go.transform, false);
+        inner.transform.localScale = Vector3.one * 0.6f;
+        inner.sprite = Shapes.Square;
+        inner.color = new Color(1f, 0.85f, 0.3f);
+        markers.Add(go);
     }
 
     // World position of an island tile of the current zone.
@@ -128,6 +151,8 @@ public class IslandRun : MonoBehaviour
     {
         foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
         exits.Clear();
+        foreach (var m in markers) if (m != null) Destroy(m);
+        markers.Clear();
         Zone = -1;
         if (arena != null)
         {
@@ -197,6 +222,7 @@ public class IslandRun : MonoBehaviour
             case null: break;
             default: return new Color32(150, 100, 50, 255); // bridges, ice, quicksand, rock
         }
+        if (Plan.decor != null && Plan.decor[i] > 0) return new Color32(150, 110, 70, 255); // a road
         return ColorUtility.TryParseHtmlString(Plan.biome[i]?.color ?? "", out var c) ? (Color32)c : new Color32(170, 170, 160, 255);
     }
 
@@ -227,6 +253,9 @@ public class IslandRun : MonoBehaviour
             GUI.color = e.zone == IslandPlan.Centre ? new Color(0.75f, 0.5f, 1f) : new Color(1f, 0.85f, 0.3f);
             Dot(rect, scale, tile - bounds.min, 3f * s);
         }
+        GUI.color = new Color(1f, 0.85f, 0.3f);
+        foreach (var m in Plan.markers)
+            if (revealed[Plan.Index(m.x, m.y)]) Dot(rect, scale, m - bounds.min, 3f * s);
         if (team != null && team.Controlled != null)
         {
             GUI.color = Color.white;

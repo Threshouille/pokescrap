@@ -120,6 +120,7 @@ public static class IslandCheck
         "quicksand" => new Color32(150, 110, 40, 255),
         "bridge" or "vine_bridge" => new Color32(150, 95, 40, 255),
         "rock" => new Color32(60, 45, 45, 255),
+        "column" => new Color32(255, 255, 255, 255),
         _ => new Color32(255, 0, 255, 255),
     };
 
@@ -198,14 +199,26 @@ public static class IslandCheck
                 if (plan.region[i] != 0) { px[i] = new Color32(12, 20, 48, 255); continue; }
                 px[i] = Hex(plan.biome[i]?.color);
                 if (plan.biome[i] == plan.themes[0].subbiomes[0]) left++; else right++;
+                if (plan.decor != null && plan.decor[i] > 0) px[i] = plan.decor[i] == 30 ? new Color32(120, 120, 120, 255) : new Color32(130, 85, 50, 255);
                 if (plan.obstacle[i] != null) px[i] = Obstacle(plan.obstacle[i]);
                 if (plan.obstacle[i] == "water") water++;
                 else if (plan.obstacle[i] != null) bridge++;
                 if (plan.Walkable(i)) { walkable++; if (!reached[i]) lost++; }
             }
-            for (int dx = -2; dx <= 2; dx++)
-                for (int dy = -2; dy <= 2; dy++)
+            foreach (var m in plan.markers)
+                for (int dx = -2; dx <= 2; dx++)
+                    for (int dy = -2; dy <= 2; dy++)
+                        px[plan.Index(m.x + dx, m.y + dy)] = new Color32(255, 210, 60, 255);
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
                     px[plan.Index(plan.start.x + dx, plan.start.y + dy)] = new Color32(255, 0, 0, 255);
+            int roadTiles = 0, stones = 0, columns = 0;
+            for (int i = 0; i < px.Length; i++)
+            {
+                if (plan.decor != null && plan.decor[i] > 0) { roadTiles++; if (plan.decor[i] == 30) stones++; }
+                if (plan.obstacle[i] == "column") columns++;
+            }
+            Debug.Log($"QUARTER #{k + 1} route : {roadTiles} cases dont {stones} de pierre, {columns} colonnes, portails {string.Join(" ", plan.markers)}");
             var tex = new Texture2D(plan.size, plan.size, TextureFormat.RGB24, false);
             tex.SetPixels32(px);
             tex.Apply();

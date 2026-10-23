@@ -51,6 +51,8 @@ public partial class IslandPlan
     public int[] region; // Void, Border, Moat, Centre, or the quarter (0 to 3)
     public SubBiome[] biome; // per tile, null off the quarters
     public float[] altitude, moisture; // per tile, 0 to 1 (ranked within the quarter)
+    public int[] decor; // per tile: a ROM décor drawing it instead of its sub-biome's (a road), 0 for none; may be null
+    public readonly List<Vector2Int> markers = new(); // landmarks shown as passage ends that lead nowhere yet (test quarter's portals)
     public readonly Theme[] themes = new Theme[4]; // per quarter
     public readonly int[] order = new int[4]; // quarters in the order they open (clockwise)
     public Vector2Int start; // where the team lands, on the first quarter's coast

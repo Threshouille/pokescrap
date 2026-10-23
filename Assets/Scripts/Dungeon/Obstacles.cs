@@ -30,6 +30,7 @@ public class ObstacleDef
     public string decaysTo; // what it becomes by itself after decayTime seconds (a burning bridge burns out)
     public float decayTime;
     public RockSource[] romRocks = new RockSource[0]; // ROM rocks drawing it, one picked per tile (variants)
+    public bool ownRocks; // always drawn with its romRocks, never with the rock cut from the arena's décor (ruins' columns)
     public string spriteTint; // colour laid over its sprite (a cracked boulder is darker)
     public float bumpStun; // solid: seconds a Pokémon thrown against it (push, slide) is stunned
     public float bumpDamage; // ... and the share of its max HP it loses
@@ -919,7 +920,7 @@ public class Obstacles : MonoBehaviour
         // A rock is cut from the arena's own décor when there is one (a tree in a forest, a magma block in a
         // volcano: rooms.json "rocks"), else from the ROM décors of romRocks.
         Sprite rock = def != null && sheet == null && def.romRocks.Length > 0
-            ? (grid != null && grid.tileset != null ? RockSprite(grid.tileset.romId) : null)
+            ? (!def.ownRocks && grid != null && grid.tileset != null ? RockSprite(grid.tileset.romId) : null)
               ?? RockSprite(def.romRocks[(x * 7 + y * 13) % def.romRocks.Length].tileset) : null;
         Sprite flat = def != null && sheet == null && rock == null && def.tileset < 0 ? FlatSprite(def) : null;
         Show(baseTiles, i, rom != null ? rom.Tile(Mask(x, y, floorKind), (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0) : null, 0, 0f);

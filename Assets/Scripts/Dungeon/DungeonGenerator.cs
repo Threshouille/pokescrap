@@ -119,6 +119,7 @@ public class DungeonGenerator : MonoBehaviour
                 int i = PlanIndex(x, y);
                 var b = plan.biome[i];
                 var own = zone == IslandPlan.Centre ? centreDecor
+                    : plan.decor != null && plan.decor[i] > 0 ? TilesetRoster.Get(plan.decor[i])
                     : b != null && b.tilesets.Length > 0 ? TilesetRoster.Get(b.tilesets[(i * 7919) % b.tilesets.Length]) : null;
                 if (own == null) continue;
                 nearest[k] = own;

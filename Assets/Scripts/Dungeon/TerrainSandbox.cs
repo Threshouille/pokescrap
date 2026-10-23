@@ -196,7 +196,7 @@ public class TerrainSandbox : MonoBehaviour
         var outer = go.AddComponent<SpriteRenderer>();
         outer.sprite = Shapes.Square;
         outer.color = new Color(0.1f, 0.1f, 0.12f);
-        outer.sortingOrder = 0;
+        outer.sortingOrder = -1; // under the light square inside (a tie would hide it)
         var inner = new GameObject("Marches").AddComponent<SpriteRenderer>();
         inner.transform.SetParent(go.transform, false);
         inner.transform.localScale = Vector3.one * 0.6f;
