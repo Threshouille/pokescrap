@@ -34,8 +34,9 @@ PORTRAITS = ROOT / "Assets/Resources/Portraits"
 ANIMSETS = ROOT / "Assets/Resources/AnimSets"
 TILESETS = ROOT / "Assets/Tilesets"
 OBSTACLE_TILES = ROOT / "Assets/Resources/ObstacleTiles"
+CLIFFS = ROOT / "Assets/Resources/Cliffs"
 # Folders whose content comes from the ROM (only their .meta files are versioned).
-GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
+GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
 # ScriptableObjects rebuilt by Unity: a placeholder keeps their GUID until the Build menus fill them.
 PLACEHOLDERS = {ANIMSETS: "Assets/Scripts/Pmd/PmdAnimSet.cs", TILESETS: "Assets/Scripts/Dungeon/DungeonTileset.cs"}
 
@@ -136,6 +137,12 @@ def restore_obstacle_tiles():
                 rocks.append(f"{t}:{'core' if t in cut.get('core', []) else 'floor'}")
     if rocks:
         run(python(), "-I", PMD / "extract_rock.py", ROM, OBSTACLE_TILES, *rocks)
+
+
+def restore_cliffs():
+    """Cliff faces cut from the story maps (cliff_styles.json)."""
+    step("Cliff faces (story maps)")
+    run(python(), "-I", PMD / "extract_cliffs.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/cliff_styles.json", CLIFFS)
 
 
 def script_guid(script):
@@ -275,6 +282,7 @@ def main():
     restore_megas(args.force)
     restore_tilesets()
     restore_obstacle_tiles()
+    restore_cliffs()
     placeholders()
     missing = missing_assets()
     if missing:

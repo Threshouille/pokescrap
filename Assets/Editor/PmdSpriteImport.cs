@@ -12,11 +12,12 @@ public class PmdSpriteImport : AssetPostprocessor
     const string EffectRoot = "Assets/Resources/Effects";
     const string PortraitRoot = "Assets/Resources/Portraits";
     const string ObstacleTileRoot = "Assets/Resources/ObstacleTiles";
+    const string CliffRoot = "Assets/Resources/Cliffs"; // cliff pieces cut from the story maps (extract_cliffs.py)
     const string AnimSetRoot = "Assets/Resources/" + PokemonRoster.AnimSetPath;
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/"))
+        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/") || assetPath.StartsWith(CliffRoot + "/"))
             Configure((TextureImporter)assetImporter);
     }
 

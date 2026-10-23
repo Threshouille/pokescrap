@@ -156,6 +156,13 @@ public class DungeonGenerator : MonoBehaviour
                 cellDecor[g] = nearest[k];
                 open[gx, gy] = r == zone && (zone == IslandPlan.Centre || !plan.wall[PlanIndex(x, y)]);
                 if (r == zone && wallLook != null) wallLook[g] = plan.wallLook[PlanIndex(x, y)];
+                if (r == zone && plan.cliffStyle != null && plan.CliffRole(PlanIndex(x, y)) is { } role)
+                {
+                    cliffTiles ??= new Tile[size * size];
+                    var sprites = CliffSprites(plan.cliffStyles[plan.cliffStyle[PlanIndex(x, y)]], role);
+                    if (sprites.Length == 0) sprites = CliffSprites(plan.cliffStyles[1], role); // borrowed (the rock's stairs)
+                    if (sprites.Length > 0) cliffTiles[g] = CliffTile(sprites[(x * 7 + y * 13) % sprites.Length], !open[gx, gy]);
+                }
                 if (r == zone && cellShade != null) cellShade[g] = plan.Shade(PlanIndex(x, y));
             }
         var arrival = (islandArrival ?? plan.Arrival(zone)) - box.min;
@@ -202,6 +209,9 @@ public class DungeonGenerator : MonoBehaviour
     float roofAlpha = 1f, roofSeeThrough = 0.15f, roofFade = 0.25f;
     PlayerController team;
     float[] cellShade; // per tile: tint of its ground (relief), 1 = none; may be null
+    Tile[] cliffTiles; // per tile: a cliff piece drawn over its ground (cliff_styles.json), may be null
+    static readonly Dictionary<(string style, string role), Sprite[]> cliffSprites = new();
+    readonly Dictionary<(Sprite, bool), Tile> cliffTileCache = new();
     bool[] skyWall; // island: sky tiles next to land, an invisible wall (nothing drawn, a collider)
     Tile invisibleWall;
 
@@ -224,6 +234,7 @@ public class DungeonGenerator : MonoBehaviour
         skyWall = null;
         wallLook = null;
         cellShade = null;
+        cliffTiles = null;
         roofed = null;
         if (roofMap != null) roofMap.ClearAllTiles();
         if (island != null)
@@ -344,11 +355,20 @@ public class DungeonGenerator : MonoBehaviour
                     }
                     continue;
                 }
+                int variation = rng.Next(8) == 0 ? rng.Next(1, 3) : 0;
+                // A cliff piece: the ground under it (whole floor), the piece over it (blocking unless walkable).
+                if (cliffTiles != null && cliffTiles[y * size + x] != null)
+                {
+                    floorCells.Add(new Vector3Int(x, y, 0));
+                    floorTiles.Add(GetTile(decor, decor.floor[255 * 3 + variation], false));
+                    wallCells.Add(new Vector3Int(x, y, 0));
+                    wallTiles.Add(cliffTiles[y * size + x]);
+                    continue;
+                }
                 int mask = 0;
                 for (int i = 0; i < Neighbours.Length; i++)
                     if (Looks(x + Neighbours[i].x, y + Neighbours[i].y) == isOpen)
                         mask |= 1 << i;
-                int variation = rng.Next(8) == 0 ? rng.Next(1, 3) : 0;
                 int chunk = (isOpen ? decor.floor : decor.wall)[mask * 3 + variation];
                 (isOpen ? floorCells : wallCells).Add(new Vector3Int(x, y, 0));
                 (isOpen ? floorTiles : wallTiles).Add(GetTile(decor, chunk, solid));
@@ -407,6 +427,35 @@ public class DungeonGenerator : MonoBehaviour
         roofAlpha = 1f;
         roofMap.color = Color.white;
     }
+
+    // The pieces of a cliff role (Resources/Cliffs/<style>/<role>_<n>, extracted by Tools/setup.py), empty if none.
+    static Sprite[] CliffSprites(string style, string role)
+    {
+        if (cliffSprites.TryGetValue((style, role), out var found) && (found.Length == 0 || found[0] != null)) return found;
+        var list = new List<Sprite>();
+        for (int n = 0; ; n++)
+        {
+            var texture = Resources.Load<Texture2D>($"Cliffs/{style}/{role}_{n}");
+            if (texture == null) break;
+            list.Add(Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f), texture.width, 0, SpriteMeshType.FullRect));
+        }
+        found = list.ToArray();
+        cliffSprites[(style, role)] = found;
+        return found;
+    }
+
+    Tile CliffTile(Sprite sprite, bool solid)
+    {
+        if (cliffTileCache.TryGetValue((sprite, solid), out var tile) && tile != null) return tile;
+        tile = ScriptableObject.CreateInstance<Tile>();
+        tile.sprite = sprite;
+        tile.colliderType = solid ? Tile.ColliderType.Grid : Tile.ColliderType.None;
+        cliffTileCache[(sprite, solid)] = tile;
+        return tile;
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetCliffSprites() => cliffSprites.Clear();
 
     bool Roofed(int x, int y) => roofed != null && x >= 0 && y >= 0 && x < size && y < size && roofed[y * size + x];
 

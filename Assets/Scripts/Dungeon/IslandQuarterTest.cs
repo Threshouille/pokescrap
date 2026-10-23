@@ -38,6 +38,7 @@ public partial class IslandPlan
         public int[] rockDecors = { 49, 9 };
         public int rampDecor = 35, rampWidth = 3, ledges = 4, faceRows = 2;
         public float faceShade = 0.12f; // a face's rows darker by that much each, towards its foot
+        public string hillStyle = "meadow", mountainStyle = "rock"; // cliff_styles.json: how their cliffs are drawn
         public int[] ledgeLength = { 3, 6 };
         public float[] levelShade = { 0.93f, 0.96f, 0.98f, 1f }, footShadow = { 0.7f, 0.85f };
         public Cave cave = new();
@@ -553,6 +554,37 @@ public partial class IslandPlan
             if (!cliff[i]) continue;
             wall[i] = true;
             if (decor[i] == 0) decor[i] = rockDecor;
+        }
+
+        // How each cliff tile is drawn: its style (the mountain's or the hills'), its row in its face, stairs or the
+        // cave's mouth and their column. Their own ground shows the sub-biome's (no décor of their own).
+        cliffStyles = new[] { "", r.hillStyle, r.mountainStyle };
+        cliffStyle = new byte[n];
+        faceRow = new int[n];
+        faceLen = new int[n];
+        cut = new sbyte[n];
+        cutPart = new sbyte[n];
+        for (int i = 0; i < n; i++)
+        {
+            bool drawn = cliff[i] || obstacle[i] == "ledge" || (ramps[i] && face[i] > 0);
+            if (!drawn || region[i] != 0) continue;
+            bool onMountain = hasMountain && Vector2.Distance(new Vector2(i % size + 0.5f, i / size + 0.5f), mountain) < mountainReach;
+            cliffStyle[i] = (byte)(onMountain ? 2 : 1);
+            faceRow[i] = face[i];
+            if (face[i] > 0)
+            {
+                int length = face[i];
+                for (int j = i - size; j >= 0 && face[j] > 0 && faceOf[j] == faceOf[i] && face[j] > face[j + size]; j -= size) length = face[j];
+                faceLen[i] = length;
+            }
+            if (ramps[i] && face[i] > 0)
+            {
+                cut[i] = (sbyte)(onMountain && faceOf[i] == r.mountainLevels ? 2 : 1);
+                bool left = i % size > 0 && ramps[i - 1] && faceOf[i - 1] == faceOf[i];
+                bool right = i % size < size - 1 && ramps[i + 1] && faceOf[i + 1] == faceOf[i];
+                cutPart[i] = (sbyte)(!left ? -1 : !right ? 1 : 0);
+            }
+            else if (decor[i] == rockDecor) decor[i] = 0;
         }
 
         // A branch of the road to the foot of the mountain's first stairs.

@@ -58,6 +58,27 @@ public partial class IslandPlan
     public bool[] wallLook; // per tile: walkable but drawn as a wall (a ledge looks like its cliff), may be null
     public bool[] roof; // per tile: under a roof that hides it until the controlled Pokémon goes under (a cave), may be null
     public int roofDecor; // ROM décor whose walls draw the roof
+    // Cliffs drawn with pieces cut from the story maps (cliff_styles.json, Resources/Cliffs), may be null:
+    public string[] cliffStyles; // style names, by index (0: none)
+    public byte[] cliffStyle; // per tile: index of its style, 0 for a tile that is no cliff
+    public int[] faceRow, faceLen; // per face tile: its row from the top of its face (1...), and the face's rows there
+    public sbyte[] cut, cutPart; // per face tile: 1 stairs, 2 a cave's mouth; their column (-1 left, 0 middle, 1 right)
+
+    /// The piece drawing a cliff tile (a role of cliff_styles.json), or null.
+    public string CliffRole(int i)
+    {
+        if (cliffStyle == null || cliffStyle[i] == 0) return null;
+        string column = cutPart[i] < 0 ? "Left" : cutPart[i] > 0 ? "Right" : "Mid", row = faceRow[i] <= 1 ? "Top" : "Bottom";
+        if (cut[i] == 2) return "mouth" + column + row;
+        if (cut[i] == 1) return "stairs" + column + row;
+        if (faceRow[i] == 0) return "rim";
+        // The face carries on along its neighbours of the same level; it ends beside anything else (stairs too).
+        bool Face(int j) => faceRow[j] > 0 && height[j] == height[i] && cut[j] == 0;
+        int x = i % size;
+        bool leftEnd = x == 0 || !Face(i - 1), rightEnd = x == size - 1 || !Face(i + 1);
+        if (leftEnd != rightEnd) return (leftEnd ? "left" : "right") + row;
+        return faceRow[i] == 1 ? "top" : faceRow[i] >= faceLen[i] ? "bottom" : "middle";
+    }
     public readonly Theme[] themes = new Theme[4]; // per quarter
     public readonly int[] order = new int[4]; // quarters in the order they open (clockwise)
     public Vector2Int start; // where the team lands, on the first quarter's coast

@@ -1,0 +1,44 @@
+{
+ "comment": "Cliff faces cut from the story maps of the ROM (MAP_BG) by Tools/pmd/extract_cliffs.py into Resources/Cliffs/<style>/<role>_<n>.png (24×24, one tile each). map: the BMA name; layer: lower, upper (its transparent pixels kept) or both; pieces: per role, the top left corner (pixels) of each 24×24 piece in the rendered map, several = variants picked at random. Roles: top / middle / bottom (rows of a face, from the ground above it down), leftTop, leftBottom, rightTop, rightBottom (the ends of a face; middle rows use the bottom ones), rim (the thin edge on the other sides), stairsLeft/Mid/Right + Top/Bottom (stairs 3 tiles wide cut into a face), mouthLeft/Mid/Right + Top/Bottom (a cave's mouth in a face).",
+ "styles": [
+  {
+   "key": "meadow", "map": "P01P01A", "layer": "lower",
+   "pieces": {
+    "top": [[264, 312], [144, 312]],
+    "middle": [[258, 336], [150, 336]],
+    "bottom": [[258, 336], [150, 336]],
+    "leftTop": [[240, 312]],
+    "leftBottom": [[240, 336]],
+    "rightTop": [[168, 312]],
+    "rightBottom": [[168, 336]],
+    "rim": [[264, 312]],
+    "stairsLeftTop": [[192, 312]],
+    "stairsLeftBottom": [[192, 336]],
+    "stairsMidTop": [[204, 312]],
+    "stairsMidBottom": [[204, 336]],
+    "stairsRightTop": [[216, 312]],
+    "stairsRightBottom": [[216, 336]]
+   }
+  },
+  {
+   "key": "rock", "map": "D09P11A", "layer": "lower",
+   "pieces": {
+    "top": [[120, 72], [144, 72], [312, 72]],
+    "middle": [[120, 96], [168, 96], [144, 120], [312, 120], [336, 96]],
+    "bottom": [[144, 120], [312, 120]],
+    "leftTop": [[120, 72]],
+    "leftBottom": [[120, 120]],
+    "rightTop": [[312, 72]],
+    "rightBottom": [[312, 120]],
+    "rim": [[144, 72]],
+    "mouthLeftTop": [[216, 168]],
+    "mouthMidTop": [[240, 168]],
+    "mouthRightTop": [[264, 168]],
+    "mouthLeftBottom": [[216, 192]],
+    "mouthMidBottom": [[240, 192]],
+    "mouthRightBottom": [[264, 192]]
+   },
+   "both": ["mouthLeftTop", "mouthMidTop", "mouthRightTop", "mouthLeftBottom", "mouthMidBottom", "mouthRightBottom"]
+  }
+ ]
+}
