@@ -89,6 +89,10 @@ serviront aux chaînes d'îlots. Étapes 1 et 2 faites (données seulement) : `I
 haies aux changements de décor, ciel autour ; pire image 24 ms en courant avec les alliés (les pics de 108 ms venaient de
 la réparation de chemin, rendue locale). Banc 24/24. Suite : 4) chaînes d'îlots, 5) sceaux et engrenages, 6) centre,
 7) rencontres.
+**Composition d'un quartier (23/10/2026, Owen, `feature/quart-ile`)** : salle de test d'un quart d'île « nature
+luxuriante » (escalier turquoise) : grande zone sans murs, rivière large et sinueuse de la pointe (centre de l'île) à
+la côte, jungle (décor 44) d'un côté, prairie fleurie (décor 5) de l'autre, 3 ponts. Point de départ pour composer les
+quartiers de l'île principale.
 **Zones séparées (22/10/2026, Owen)** : chaque quartier et le centre sont des cartes à part, murées, avec écran de
 chargement aux passages (dans les deux sens ; dernier quartier → centre). `IslandCheck.Run` : 4 îles, zones toutes
 accessibles depuis leur arrivée ; construction d'un quartier ≈ 0,9 s. Limite : une zone revisitée est reconstruite

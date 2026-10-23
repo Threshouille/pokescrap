@@ -42,11 +42,14 @@ public class IslandRun : MonoBehaviour
     readonly List<(GameObject marker, int zone, Vector2Int arrival)> exits = new(); // the passage ends of the zone
     bool armed; // the passage ends only work once the controlled Pokémon has stepped off them
 
-    public void Begin(System.Random rng)
+    public void Begin(System.Random rng) => Begin(IslandPlan.Generate(rng));
+
+    /// Plays a plan made elsewhere (the test quarter).
+    public void Begin(IslandPlan plan)
     {
         arena = DungeonGenerator.Current;
         team = FindAnyObjectByType<PlayerController>();
-        Plan = IslandPlan.Generate(rng);
+        Plan = plan;
         arena.room = null;
         arena.level = null;
         arena.island = Plan;

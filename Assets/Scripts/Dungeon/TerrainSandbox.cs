@@ -62,9 +62,10 @@ public class TerrainSandbox : MonoBehaviour
     static readonly Vector2 GalleryStairs = new(12f, -12f), GalleryBackStairs = new(-12f, 12f);
     static readonly Vector2 RoomsStairs = new(-12f, -12f); // to the room gallery (rooms.json)
     static readonly Vector2 IslandStairs = new(0f, -12f); // to a test island (IslandPlan, IslandRun)
+    static readonly Vector2 QuarterStairs = new(0f, 12f); // to the test quarter of island (quarter_test.json)
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
-    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: room gallery, 4: test island
+    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: room gallery, 4: test island, 5: test quarter
     IslandRun island; // test island
     RoomInstance shownRoom; // room gallery: the room on show
     int roomType; // room gallery: 0 any type, else RoomCatalog.Types[roomType - 1]
@@ -178,9 +179,10 @@ public class TerrainSandbox : MonoBehaviour
             AddStairs(arena, GalleryStairs, 2, "Escalier vers la galerie des mégas", new Color(0.85f, 0.5f, 1f));
             AddStairs(arena, RoomsStairs, 3, "Escalier vers la galerie des salles", new Color(0.5f, 0.9f, 0.5f));
             AddStairs(arena, IslandStairs, 4, "Escalier vers une île de test", new Color(1f, 0.6f, 0.2f));
+            AddStairs(arena, QuarterStairs, 5, "Escalier vers le quart d'île de test", new Color(0.3f, 0.85f, 0.75f));
         }
-        else if (room == 4)
-            AddStairs(arena, arena.SpawnPoint - Centre(arena) + new Vector2(3f, 0f), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
+        else if (room == 4 || room == 5)
+            AddStairs(arena, FreeNear(arena, arena.CellOf(arena.SpawnPoint)) - Centre(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         else if (room == 3) AddStairs(arena, BackStairsNearSpawn(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         else AddStairs(arena, room == 1 ? ObstacleStairs : GalleryBackStairs, 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
@@ -202,6 +204,20 @@ public class TerrainSandbox : MonoBehaviour
         inner.color = colour;
         inner.sortingOrder = 0;
         stairs.Add((go, target));
+    }
+
+    // The first free tile (no wall, no water) about 3 tiles from a cell, for the way back on an island.
+    static Vector2 FreeNear(DungeonGenerator arena, Vector2Int cell)
+    {
+        for (int r = 3; r <= 10; r++)
+            for (int dx = -r; dx <= r; dx++)
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    int x = cell.x + dx, y = cell.y + dy;
+                    if (arena.Walkable(x, y) && Obstacles.At(x, y) == null) return arena.CentreOf(x, y);
+                }
+        return arena.CentreOf(cell.x, cell.y);
     }
 
     // A room of the gallery may be small or full of walls: the way back is laid on the first free tile found a few
@@ -247,16 +263,17 @@ public class TerrainSandbox : MonoBehaviour
         // The room gallery builds a room of the catalogue; the other rooms are the sandbox's own open arena.
         if (sandboxDecor == null) sandboxDecor = arena.tileset;
         if (island != null) island.End();
-        if (room == 4)
+        if (room == 4 || room == 5)
         {
-            // A test island: four quarters of biomes around the sealed central zone.
+            // A test island: four quarters of biomes around the sealed central zone; or the test quarter.
             if (island == null)
             {
                 island = gameObject.AddComponent<IslandRun>();
                 island.Built += PlaceStairs; // the way back, near where the team arrives in each zone
                 island.revealAll = true; // test island: the whole mini-map at once
             }
-            island.Begin(rng);
+            if (room == 5) island.Begin(IslandPlan.QuarterTestPlan());
+            else island.Begin(rng);
             PlaceStairs();
             return;
         }
@@ -292,7 +309,7 @@ public class TerrainSandbox : MonoBehaviour
             pendingRoom = -1;
             fadeInUntil = Time.unscaledTime + FadeTime;
         }
-        if ((room != 1 && room != 3 && room != 4) || pendingRoom >= 0) return;
+        if ((room != 1 && room != 3 && room != 4 && room != 5) || pendingRoom >= 0) return;
         var pad = Gamepad.current;
         var kb = Keyboard.current;
         if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame)) Switch(room);
@@ -309,9 +326,10 @@ public class TerrainSandbox : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        string line = room == 0 ? "Escaliers : jaune (en haut à droite) obstacles, violet (en bas à droite) mégas, vert (en bas à gauche) salles, orange (en bas) île"
+        string line = room == 0 ? "Escaliers : jaune (en haut à droite) obstacles, violet (en bas à droite) mégas, vert (en bas à gauche) salles, orange (en bas) île, turquoise (en haut) quart d'île"
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : room == 4 ? $"Île de test : {(island?.Quarter >= 0 ? $"{island.Plan.themes[island.Quarter].name} (quartier {System.Array.IndexOf(island.Plan.order, island.Quarter) + 1}/4) — {island.Biome?.name}" : "hors des quartiers")}     R ou Select : nouvelle île     Escalier (à l'arrivée) : retour"
+            : room == 5 ? $"Quart d'île de test : {island?.Biome?.name ?? "—"}     R ou Select : nouveau tirage     Escalier (à l'arrivée) : retour"
             : room == 3 ? $"{shownRoom?.Describe() ?? "Aucune salle dans rooms.json"}     Type : {(roomType > 0 && roomType <= RoomCatalog.Types.Count ? RoomCatalog.Types[roomType - 1].name : "tous")} (N, croix haut)     R ou Select : autre salle     Escalier : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);

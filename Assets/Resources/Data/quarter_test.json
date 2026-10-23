@@ -1,0 +1,25 @@
+{
+ "comment": "Test quarter of island (IslandQuarterTest.cs; sandbox room 5): a fan-shaped quarter, its point standing for the centre of the island (bottom left), its arc for the coast. seed: 0 = a new one each time (R or Select draws again). radius: tiles from the point to the coast; coastNoise / coastScale: how much the coast wavers and the size of its bays; sideNoise: tiles the two straight sides waver; voidMargin: sky around. River: from a spring sourceDistance tiles from the point (a pond of sourceRadius tiles) to the coast, along the middle of the quarter; riverWidth: tiles, at the spring then at the mouth (plus widthNoise); meanderAmplitude / meanderWavelength: tiles; wobble: share of the amplitude left to noise. bridges: how many, spread along the river (bridgeWidth tiles wide). left / right: the sub-biome on each side of the river (left when going downstream), its ROM décors (tilesets) and its colour on the mini-map.",
+ "test": {
+  "seed": 0,
+  "themeName": "Nature luxuriante",
+  "radius": 120,
+  "coastNoise": 0.1,
+  "coastScale": 0.025,
+  "sideNoise": 5,
+  "voidMargin": 16,
+  "sourceDistance": 10,
+  "sourceRadius": 6,
+  "riverWidth": [6, 9],
+  "widthNoise": 1.5,
+  "meanderAmplitude": 14,
+  "meanderWavelength": 60,
+  "wobble": 0.35,
+  "bridges": 3,
+  "bridgeWidth": 2,
+  "bridgeKind": "bridge",
+  "riverKind": "water",
+  "left": {"key": "jungle", "name": "Jungle", "tilesets": [44], "color": "#3a9a2a"},
+  "right": {"key": "meadow", "name": "Prairie fleurie", "tilesets": [5], "color": "#c8b040"}
+ }
+}
