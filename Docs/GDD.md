@@ -51,6 +51,27 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - L'IA lance une météo quand elle favorise les types de son équipe, un sport contre des adversaires proches du type visé. Réglages : `climates.json`.
 - Tirs et vent (20/10/2026, Robin) : la météo change la vitesse et la portée des tirs de certains types (pluie : Feu ×0,7, Eau ×1,15 ; soleil : Feu ×1,2, Eau ×0,8 ; grêle : Glace ×1,2) ; la grêle (15 %) et la tempête de sable (25 %) ont un vent de direction fixe, tirée au lancement, qui accélère et allonge les tirs dans son sens et les freine contre lui (Vol ×2, Roche et Sol insensibles) ; il déporte les Pokémon Vol (0,8 case/s sous la grêle, 1,5 dans la tempête de sable, même à l'arrêt), pas les autres (20/10/2026, Robin).
 
+### Objets spéciaux : méga-gemmes, cristaux Z, Téra-Éclats (décidé le 23/10/2026, Robin)
+- Trois familles : 27 méga-gemmes (une par méga ayant ses sprites), 17 cristaux Z et 17 Téra-Éclats (un par type ; pas
+  de Fée, absente de la table de la 4e génération).
+- Un emplacement par famille et par Pokémon ; un seul objet actif par partie, choisi avant la partie (ex. Dracaufeu :
+  méga, Z ou Téra). Les encoches de l'écran de choix montrent les familles disponibles pour ce Pokémon (3 pour
+  Dracaufeu, 2 pour un Pokémon sans méga). Pas de changement d'objet en cours de partie (pour l'instant).
+- Conservation : méga-gemmes permanentes et uniques (une gemme obtenue ne retombe plus) ; cristaux Z et Téra-Éclats en
+  collection permanente à niveaux (le premier exemplaire débloque, chaque doublon fait monter de niveau, jusqu'à 3).
+- Compatibilité : méga-gemme pour sa lignée (utile une fois la bonne forme atteinte) ; cristal Z si le Pokémon connaît
+  une attaque offensive du type ; Téra-Éclat pour tout Pokémon. Rayquaza méga-évolue sans gemme s'il connaît Draco
+  Ascension.
+- Les trois effets sont des ultimes alimentés par la jauge commune de la méga : seul le Pokémon joué déclenche le sien,
+  la jauge se vide. Capacité Z (revu le 23/10/2026, Robin) : tous les ennemis
+  visibles à l'écran sont frappés directement (dégâts de sa plus forte attaque du type, multipliés selon le niveau) et
+  subissent un effet propre au type (ex. Électrik : éclair + paralysie ; Feu : brûlure + braises ; Eau : poussée +
+  flaque ; Acier : bonus de défense à l'équipe ; détail dans `items.json`). Persos de dev : Dev Mew a un cristal Z Feu,
+  Dev Métamorph un Téra-Éclat Spectre. Téracristal : le Pokémon prend le type de l'éclat pendant 40 à 60 s selon le niveau (défense,
+  terrains, immunités ; attaques de ce type renforcées).
+- Obtention (à affiner) : boss (méga-gemme non possédée, compatible avec l'équipe en priorité), coffre de fin d'étape
+  (Z ou Téra pondérés vers les types de l'équipe), rare ennemi d'élite ; plus tard défis, quêtes, îlots, boutique.
+
 ### Méga-évolutions (décidé le 20/10/2026, Robin)
 - Une sorte d'ultime : une **jauge commune à l'équipe** se remplit au K.O. des ennemis (plus pour un boss) et se garde
   d'une étape à l'autre ; pleine, le Pokémon contrôlé qui le peut méga-évolue (L3 + R3, F au clavier : L1 et R1 sont des attaques), la jauge

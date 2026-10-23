@@ -13,6 +13,10 @@ using UnityEngine.InputSystem;
 /// drawn at random, R or Select to draw again), and back. Other stairs lead to the mega gallery: every mega evolution
 /// of megas.json standing still in a grid, scenery like the emitters, unnamed; the one the Pokémon stands next to faces it and
 /// plays its animations one after the other.
+/// The obstacle room also holds training dummies ("dummies"): enemies that neither move nor attack, at random free
+/// tiles, which come back a few seconds after being knocked out, to try moves, Z moves and obstacles on.
+/// A fourth room shows the Z moves: sturdy dummies in a ring, the controlled Pokémon carries the Z crystal picked with
+/// ↑/↓ (1/2) and borrows the strongest move of its type when it knows none (Ultimates.DemoMoves).
 public class TerrainSandbox : MonoBehaviour
 {
     const float AttackAnimTime = 0.4f;
@@ -31,7 +35,9 @@ public class TerrainSandbox : MonoBehaviour
         public float recast = 15f; // seconds between two full casts of the zone
     }
 
-    [Serializable] class SandboxFile { public bool enemyWaves = true; public Emitter[] emitters; public int galleryColumns = 9; public float gallerySpacing = 3f; }
+    [Serializable] class SandboxFile { public bool enemyWaves = true; public Emitter[] emitters; public int galleryColumns = 9; public float gallerySpacing = 3f;
+        public int[] dummies = new int[0]; public int dummyCount = 6, dummyLevel = 5; public float dummyRespawn = 4f, dummyHealth = 3f, dummyMinDistance = 4f;
+        public int zDemoCount = 8; public float zDemoRadius = 4.5f, zDemoHealth = 30f, zDemoRespawn = 2f; }
 
     [Serializable] class Mega { public int id; public string name; }
     [Serializable] class MegaFile { public Mega[] megas; }
@@ -60,9 +66,21 @@ public class TerrainSandbox : MonoBehaviour
     const float FadeTime = 0.25f, StairsReach = 0.6f;
     static readonly Vector2 BaseStairs = new(12f, 12f), ObstacleStairs = new(-12f, -12f); // from the arena centre, in tiles
     static readonly Vector2 GalleryStairs = new(12f, -12f), GalleryBackStairs = new(-12f, 12f);
+    static readonly Vector2 ZDemoStairs = new(-12f, 12f), ZDemoBackStairs = new(12f, 12f);
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
-    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery
+    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: Z demo
+    class Dummy
+    {
+        public Combatant combatant;
+        public int pokemon;
+        public Vector2? at; // where it stands again (Z demo room), else a random free tile
+        public float health, back; // health ×; when a knocked-out dummy comes back
+    }
+
+    readonly List<Dummy> dummies = new();
+    readonly Dictionary<Combatant, SpecialItems.Equipped> keptItems = new(); // items before the Z demo room
+    int zDemoIndex;
     int pendingRoom = -1;
     float fadeOutAt, switchAt, fadeInUntil;
     bool stairsArmed; // the stairs only work once the Pokémon has stepped off them
@@ -148,8 +166,129 @@ public class TerrainSandbox : MonoBehaviour
         }
     }
 
-    /// Removes the emitters (the AI test bench needs a quiet arena).
-    public void Quiet() => ClearEmitters();
+    /// Removes the emitters and dummies (the AI test bench needs a quiet arena).
+    public void Quiet()
+    {
+        ClearEmitters();
+        ClearDummies();
+    }
+
+    // ---- Training dummies (obstacle room) ----
+
+    static SandboxFile Settings()
+    {
+        var asset = Resources.Load<TextAsset>("Data/terrain_sandbox");
+        return asset != null ? JsonUtility.FromJson<SandboxFile>(asset.text) : new SandboxFile();
+    }
+
+    void SpawnDummies()
+    {
+        var file = Settings();
+        for (int i = 0; i < file.dummyCount && file.dummies.Length > 0; i++)
+            AddDummy(file, file.dummies[i % file.dummies.Length], null, file.dummyHealth);
+    }
+
+    // Z demo room: dummies in a ring around the arrival point, sturdy enough to show every effect, back where they stood.
+    void SpawnZDemo()
+    {
+        var file = Settings();
+        var arena = DungeonGenerator.Current;
+        if (arena == null || file.dummies.Length == 0) return;
+        for (int i = 0; i < file.zDemoCount; i++)
+        {
+            float angle = (90f + 360f * i / file.zDemoCount) * Mathf.Deg2Rad;
+            AddDummy(file, file.dummies[i % file.dummies.Length], Centre(arena) + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * file.zDemoRadius, file.zDemoHealth);
+        }
+    }
+
+    void AddDummy(SandboxFile file, int pokemonId, Vector2? at, float health)
+    {
+        var d = new Dummy { pokemon = pokemonId, at = at, health = health };
+        d.combatant = SpawnDummy(file, d);
+        dummies.Add(d);
+    }
+
+    // An enemy without AI: it stands still and never attacks, but takes hits, statuses and pushes.
+    Combatant SpawnDummy(SandboxFile file, Dummy d)
+    {
+        var arena = DungeonGenerator.Current;
+        if (arena == null || !PokemonRoster.Has(d.pokemon)) return null;
+        var go = new GameObject($"Cible : {GameData.Pokemon(d.pokemon)?.name}");
+        go.transform.SetParent(transform, false);
+        go.transform.position = d.at ?? (Vector2)arena.RandomOpenPosition(rng, file.dummyMinDistance);
+        go.AddComponent<SpriteRenderer>().sortingOrder = 1;
+        var body = go.AddComponent<Rigidbody2D>();
+        body.gravityScale = 0f;
+        body.freezeRotation = true;
+        body.mass = 5f; // hard to shove by walking into it
+        body.linearDamping = 8f; // stops where a push leaves it
+        go.AddComponent<CircleCollider2D>().radius = 0.3f;
+        var animator = go.AddComponent<PmdAnimator>();
+        animator.SetAnimSet(PokemonRoster.Get(d.pokemon));
+        animator.direction = PmdAnimator.DirectionIndex(Vector2.down);
+        var c = go.AddComponent<Combatant>();
+        c.Init(d.pokemon, Team.Enemy, new int[0]);
+        for (int level = 2; level <= file.dummyLevel; level++) c.ApplyGrowth(LevelData.Growth(d.pokemon, level), level);
+        c.maxHp = c.hp = c.maxHp * d.health;
+        go.AddComponent<HealthBar>();
+        return c;
+    }
+
+    void UpdateDummies()
+    {
+        if (dummies.Count == 0) return;
+        SandboxFile file = null;
+        foreach (var d in dummies)
+        {
+            if (d.combatant != null && d.combatant.IsAlive) continue;
+            file ??= Settings();
+            if (d.back <= 0f)
+            {
+                d.back = Time.time + (room == 3 ? file.zDemoRespawn : file.dummyRespawn);
+                continue;
+            }
+            if (Time.time < d.back) continue;
+            if (d.combatant != null) Destroy(d.combatant.gameObject);
+            if (d.at == null) d.pokemon = file.dummies[rng.Next(file.dummies.Length)];
+            d.combatant = SpawnDummy(file, d);
+            d.back = 0f;
+        }
+    }
+
+    // ---- Z demo room: the controlled Pokémon carries the chosen Z crystal ----
+
+    void UpdateZDemo()
+    {
+        var team = FindAnyObjectByType<PlayerController>();
+        var member = team != null ? team.Controlled : null;
+        var crystals = SpecialItems.Crystals;
+        if (member == null || crystals.Count == 0) return;
+        if (!keptItems.ContainsKey(member)) keptItems[member] = member.Special;
+        var pad = Gamepad.current;
+        var kb = Keyboard.current;
+        int step = 0;
+        if ((pad != null && pad.dpad.up.wasPressedThisFrame) || (kb != null && kb.digit1Key.wasPressedThisFrame)) step = -1;
+        if ((pad != null && pad.dpad.down.wasPressedThisFrame) || (kb != null && kb.digit2Key.wasPressedThisFrame)) step = 1;
+        zDemoIndex = (zDemoIndex + step + crystals.Count) % crystals.Count;
+        int type = crystals[zDemoIndex].type;
+        if (member.Special == null || member.Special.family != SpecialItems.Family.Z || member.Special.type != type)
+            member.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Z, type = type, level = 1 };
+    }
+
+    void RestoreItems()
+    {
+        foreach (var (member, item) in keptItems)
+            if (member != null) member.Special = item;
+        keptItems.Clear();
+        Ultimates.DemoMoves = false;
+    }
+
+    void ClearDummies()
+    {
+        foreach (var d in dummies)
+            if (d.combatant != null) Destroy(d.combatant.gameObject);
+        dummies.Clear();
+    }
 
     void ClearEmitters()
     {
@@ -170,8 +309,10 @@ public class TerrainSandbox : MonoBehaviour
         {
             AddStairs(arena, BaseStairs, 1, "Escalier vers la salle des obstacles", new Color(0.95f, 0.8f, 0.3f));
             AddStairs(arena, GalleryStairs, 2, "Escalier vers la galerie des mégas", new Color(0.85f, 0.5f, 1f));
+            AddStairs(arena, ZDemoStairs, 3, "Escalier vers la démo des capacités Z", new Color(1f, 0.55f, 0.2f));
         }
-        else AddStairs(arena, room == 1 ? ObstacleStairs : GalleryBackStairs, 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
+        else AddStairs(arena, room switch { 1 => ObstacleStairs, 3 => ZDemoBackStairs, _ => GalleryBackStairs }, 0,
+            "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
     }
 
@@ -217,6 +358,7 @@ public class TerrainSandbox : MonoBehaviour
         foreach (var zone in FindObjectsByType<Zone>()) Destroy(zone.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         ClearEmitters();
+        ClearDummies();
         arena.Generate(); // also clears terrain and obstacles, and moves the team object to the centre
         drawn = new List<string>();
         if (room == 1 && Obstacles.Current != null)
@@ -225,6 +367,13 @@ public class TerrainSandbox : MonoBehaviour
             if (asset != null) drawn = Obstacles.Current.Generate(JsonUtility.FromJson<Obstacles.Room>(asset.text), rng, KeptClear(arena));
         }
         if (room == 0) SpawnEmitters();
+        if (room == 1) SpawnDummies();
+        RestoreItems();
+        if (room == 3)
+        {
+            SpawnZDemo();
+            Ultimates.DemoMoves = true;
+        }
         if (room == 2) SpawnGallery();
         PlaceStairs();
         if (team != null) team.PrepareForNextArena(team.transform.position, 0f);
@@ -238,10 +387,20 @@ public class TerrainSandbox : MonoBehaviour
             pendingRoom = -1;
             fadeInUntil = Time.unscaledTime + FadeTime;
         }
+        if (room == 3 && pendingRoom < 0) UpdateZDemo(); // input: read each frame
         if (room != 1 || pendingRoom >= 0) return;
         var pad = Gamepad.current;
         var kb = Keyboard.current;
         if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame)) Switch(1);
+    }
+
+    string ZDemoLine()
+    {
+        var crystals = SpecialItems.Crystals;
+        if (crystals.Count == 0) return "Pas de cristal Z dans items.json";
+        var c = crystals[zDemoIndex % crystals.Count];
+        return $"Démo Z ({zDemoIndex % crystals.Count + 1}/{crystals.Count}) : {c.name} → {c.move} : {SpecialItems.ZDescription(c.type)}"
+               + "     ↑/↓ ou 1/2 : cristal     F ou L3 + R3 : lancer     Escalier (en haut à droite) : retour";
     }
 
     void OnGUI()
@@ -249,13 +408,15 @@ public class TerrainSandbox : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas"
+        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas     Escalier orange (en haut à gauche) : démo des capacités Z"
+            : room == 3 ? ZDemoLine()
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
-            : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
+            : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     Cibles immobiles (reviennent après un K.O.)     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);
         var previous = GUI.color;
         GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(new Rect(Screen.width / 2f - 200f * s, rect.y, 400f * s, rect.height), Texture2D.whiteTexture);
+        float width = Mathf.Min(Screen.width, Mathf.Max(400f * s, label.CalcSize(new GUIContent(line)).x + 16f * s));
+        GUI.DrawTexture(new Rect(Screen.width / 2f - width / 2f, rect.y, width, rect.height), Texture2D.whiteTexture);
         GUI.color = previous;
         GUI.Label(rect, line, label);
         GalleryLabels(s);
@@ -334,6 +495,7 @@ public class TerrainSandbox : MonoBehaviour
             if (!onAny) stairsArmed = true;
         }
         UpdateGallery(walker);
+        UpdateDummies();
         foreach (var e in emitters)
         {
             if (e.animator != null && e.idleAt > 0f && Time.time >= e.idleAt)

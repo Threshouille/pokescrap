@@ -101,6 +101,11 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Refroidit la lave pour passer", Repair("lava", 3, "any"));
         yield return Scenario("Brûle le pont sous un ennemi au corps à corps", CutBridge());
         yield return Scenario("Marche sur le métal chargé sans s'en soucier", IgnoreMetal());
+        yield return Scenario("Objets : la capacité Z frappe et paralyse tous les ennemis visibles", ZMoveHits());
+        yield return Scenario("Objets : la capacité Z épargne les alliés (chaque cristal)", ZSparesAllies());
+        yield return Scenario("Objets : le Téracristal change le type", TeraChangesType());
+        yield return Scenario("Objets : une méga-gemme obtenue ne retombe plus", StonesStayUnique());
+        yield return Scenario("Objets : les types de l'équipe tombent plus souvent", LootFavoursTeam());
 
         Clear();
         Failures = results.FindAll(r => !r.passed).Count;
@@ -306,6 +311,114 @@ public class AiScenarios : MonoBehaviour
             if (Obstacles.At(ally.transform.position)?.key == "metal") onMetal++;
         }
         Report(onMetal > 0 && Distance(ally, leader) <= 3f, $"{onMetal} images sur le métal, arrivé en {Time.time - started:0.0} s");
+    }
+
+    // The controlled Pokémon carries an Electric Z crystal and knows an Electric move; its Z move must strike both
+    // opponents on screen, near and behind it, far harder than one hit of the move, and paralyse them.
+    IEnumerator ZMoveHits()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-4f, -3f), settle: false);
+        var move = FindMove(5, m => m.family == "projectile" && m.path != "arc");
+        if (move == null) { Report(false, "pas d'attaque Électrik"); yield break; }
+        var kept = (MoveDef[])leader.Moves.Clone();
+        var keptItem = leader.Special;
+        leader.LearnMove(1, move);
+        leader.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Z, type = 5, level = 1 };
+        var near = Enemy(BatchTeam[1], new Vector2(3f, 0f));
+        var far = Enemy(BatchTeam[1], new Vector2(-4f, 2.5f));
+        foreach (var foe in new[] { near, far }) foe.maxHp = foe.hp = 100000f;
+        yield return new WaitForFixedUpdate();
+        float one = leader.EstimateHit(move, near);
+        bool triggered = team.GetComponent<Ultimates>().Trigger(leader);
+        yield return new WaitForSeconds(SpecialItems.ZPose + 0.5f);
+        float a = near.maxHp - near.hp, b = far.maxHp - far.hp;
+        bool stuck = near.HasStatus("paralysis") && far.HasStatus("paralysis");
+        for (int i = 0; i < Combatant.MoveSlots; i++) leader.LearnMove(i, kept[i]);
+        leader.Special = keptItem;
+        Report(triggered && stuck && one > 0f && a >= one * 2.5f && b >= one * 2.5f,
+            $"{(triggered ? "lancée" : "refusée")} : {a:0} et {b:0} dégâts (un coup de {move.name} : ≈ {one:0}), paralysie {(stuck ? "sur les deux" : "manquante")}");
+    }
+
+    // An ally stands right by the opponent while each Z crystal in turn strikes it: the ally must lose no health, get
+    // no status, penalty or stun, stand on no terrain that acts on it, and still follow the controlled Pokémon.
+    IEnumerator ZSparesAllies()
+    {
+        var (leader, ally) = Place(Vector2.zero, new Vector2(2.4f, 0.6f), settle: false);
+        var keptItem = leader.Special;
+        bool keptDemo = Ultimates.DemoMoves;
+        Ultimates.DemoMoves = true; // Pikachu borrows a move of each type
+        var foe = Enemy(BatchTeam[1], new Vector2(3f, 0f));
+        foe.maxHp = foe.hp = 1000000f;
+        var ultimates = team.GetComponent<Ultimates>();
+        var faults = new List<string>();
+        foreach (var crystal in SpecialItems.Crystals)
+        {
+            ally.hp = ally.maxHp;
+            leader.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Z, type = crystal.type, level = 3 };
+            yield return new WaitForFixedUpdate();
+            if (!ultimates.Trigger(leader)) { faults.Add($"{crystal.name} refusé"); continue; }
+            yield return new WaitForSeconds(SpecialItems.ZPose + 0.6f);
+            var wrong = new List<string>();
+            if (ally.hp < ally.maxHp) wrong.Add("PV");
+            if (ally.Modifier("attack") < 0.999f || ally.Modifier("defense") < 0.999f || ally.Modifier("speed") < 0.999f) wrong.Add("malus");
+            foreach (var key in new[] { "poison", "paralysis", "burn", "sleep", "freeze", "confusion", "trap", "yawn", "leech-seed" })
+                if (ally.HasStatus(key)) wrong.Add(key);
+            if (ally.IsHurt) wrong.Add("étourdi");
+            if (Terrain.Affecting(ally) != null) wrong.Add($"terrain {Terrain.Affecting(ally).key}");
+            if (wrong.Count > 0) faults.Add($"{crystal.name} : {string.Join(", ", wrong)}");
+        }
+        // Then the ally still follows: the controlled Pokémon walks away.
+        leader.transform.position = Centre + new Vector2(-6f, 0f);
+        yield return new WaitForSeconds(4f);
+        float distance = Distance(ally, leader);
+        if (distance > 4f) faults.Add($"l'allié ne suit plus ({distance:0.0} cases)");
+        leader.Special = keptItem;
+        Ultimates.DemoMoves = keptDemo;
+        Report(faults.Count == 0, faults.Count == 0 ? $"{SpecialItems.Crystals.Count} cristaux, allié intact et toujours à {distance:0.0} case(s)" : string.Join(" ; ", faults));
+    }
+
+    // The controlled Pokémon (Pikachu, Électrik) carries a Water Tera shard: once Terastallized it is Water, and an
+    // Électrik move hits it twice as hard instead of half.
+    IEnumerator TeraChangesType()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-4f, -3f), settle: false);
+        var keptItem = leader.Special;
+        leader.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Tera, type = 3, level = 1 };
+        float before = TypeChart.Multiplier(5, leader.Stats.types, out _);
+        yield return new WaitForFixedUpdate();
+        bool triggered = team.GetComponent<Ultimates>().Trigger(leader);
+        yield return new WaitForSeconds(0.8f);
+        float after = TypeChart.Multiplier(5, leader.Stats.types, out _);
+        int tera = leader.TeraType;
+        leader.RevertTera();
+        leader.Special = keptItem;
+        Report(triggered && tera == 3 && after > before, $"type Téra {tera}, Électrik contre lui : ×{before} → ×{after}");
+    }
+
+    // With every stone owned but one, a boss's roll gives that one; with all owned, none.
+    IEnumerator StonesStayUnique()
+    {
+        var rng = new System.Random(3);
+        string left = SpecialItems.Stones[5].key;
+        bool always = true;
+        for (int n = 0; n < 50; n++)
+            always &= Loot.RollStone(rng, new[] { 1 }, key => key != left)?.stone == left;
+        bool none = Loot.RollStone(rng, new[] { 1 }, _ => true) == null;
+        Report(always && none, $"dernière gemme toujours tirée : {always}, aucune quand tout est possédé : {none}");
+        yield break;
+    }
+
+    // Chests favour the team's types (teamTypeWeight).
+    IEnumerator LootFavoursTeam()
+    {
+        var rng = new System.Random(4);
+        var types = new HashSet<int> { 4, 8 };
+        int mine = 0, rolls = 2000;
+        for (int n = 0; n < rolls; n++)
+            if (types.Contains(Loot.RollTyped(rng, types).type)) mine++;
+        float share = mine / (float)rolls, fair = 2f / SpecialItems.Crystals.Count;
+        Report(share > fair * 1.8f, $"{share:P0} des tirages pour les 2 types de l'équipe (au hasard : {fair:P0})");
+        yield break;
     }
 
     // ---------------------------------------------------------------- helpers

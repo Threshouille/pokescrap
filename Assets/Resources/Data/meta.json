@@ -1,5 +1,7 @@
 {
   "unlockAll": true,
+  "allItems": true,
+  "teraStab": 2,
   "devMode": true,
   "devStartingMoveCount": 4,
   "obstaclesInRuns": true,

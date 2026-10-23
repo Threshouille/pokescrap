@@ -71,6 +71,9 @@ public class EnemySpawner : MonoBehaviour
     int defeated;
     bool recorded;
     Recruitment recruitment;
+    Loot loot;
+    [Tooltip("Seconds the end of a stage waits for its chest to be opened (it is picked up anyway after)")]
+    public float chestWait = 15f;
     GUIStyle label, title, text;
 
     Stage Current => stages[CurrentStage];
@@ -78,7 +81,13 @@ public class EnemySpawner : MonoBehaviour
     public bool Night => CurrentStage % 2 == 1;
     SpriteRenderer nightShade;
 
-    void Awake() => recruitment = gameObject.AddComponent<Recruitment>();
+    void Awake()
+    {
+        recruitment = gameObject.AddComponent<Recruitment>();
+        loot = gameObject.AddComponent<Loot>();
+        // An opened chest lets the stage end soon after.
+        loot.ChestOpened += () => { if (phase == Phase.Cleared) phaseUntil = Mathf.Min(phaseUntil, Time.time + stagePause); };
+    }
 
     void OnEnable() => Combatant.AnyDied += OnDied;
     void OnDisable() => Combatant.AnyDied -= OnDied;
@@ -146,7 +155,11 @@ public class EnemySpawner : MonoBehaviour
 
             case Phase.Cleared:
                 if (Time.time < phaseUntil) break;
-                if (CurrentStage >= stages.Length - 1) phase = Phase.Won;
+                if (CurrentStage >= stages.Length - 1)
+                {
+                    loot.CollectAll();
+                    phase = Phase.Won;
+                }
                 else Enter(Phase.FadingOut, fadeTime);
                 break;
 
@@ -185,7 +198,8 @@ public class EnemySpawner : MonoBehaviour
             // The boss is down: its escort leaves with it (no experience, no recruit, not counted as defeated).
             foreach (var escort in GetComponentsInChildren<Combatant>())
                 if (escort.IsAlive) Destroy(escort.gameObject);
-            Enter(Phase.Cleared, stagePause);
+            if (boss != null) loot.BossDrop(boss.transform.position);
+            Clear();
             return;
         }
 
@@ -193,15 +207,24 @@ public class EnemySpawner : MonoBehaviour
         if (escortAlive > 0) return;
         if (CurrentWave >= Current.waves.Length)
         {
-            if (!bossStage) Enter(Phase.Cleared, stagePause);
+            if (!bossStage) Clear();
             return;
         }
         if (nextWaveAt <= 0f) nextWaveAt = Time.time + delayBetweenWaves;
         else if (Time.time >= nextWaveAt) SpawnNextWave();
     }
 
+    // The stage is won: a chest near the team, and a wait for it to be opened.
+    void Clear()
+    {
+        var leader = team != null ? team.Controlled : null;
+        if (leader != null) loot.SpawnChest((Vector2)leader.transform.position + Vector2.right * 2f);
+        Enter(Phase.Cleared, loot.ChestWaiting ? stagePause + chestWait : stagePause);
+    }
+
     void NextStage()
     {
+        loot.CollectAll(); // what was left on the ground
         CurrentStage++;
         // Leftovers of the previous fight.
         foreach (var zone in FindObjectsByType<Zone>()) Destroy(zone.gameObject);
@@ -308,6 +331,7 @@ public class EnemySpawner : MonoBehaviour
         combatant.damageFactor = damageFactor;
         combatant.isBoss = isBoss;
         combatant.maxHp = combatant.hp = combatant.maxHp * (isBoss ? bossHealthFactor : healthFactor);
+        if (!isBoss && !Run.Sandbox && rng.NextDouble() < SpecialItems.Loot.eliteChance) Loot.MakeElite(combatant);
         if (isBoss) go.AddComponent<BossAI>(); // numbered announcements instead of danger areas
         else
         {

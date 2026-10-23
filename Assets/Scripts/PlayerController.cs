@@ -81,7 +81,7 @@ public class PlayerController : MonoBehaviour
         aimArrow.gameObject.SetActive(false);
         gameObject.AddComponent<Progression>();
         gameObject.AddComponent<Evolution>();
-        gameObject.AddComponent<MegaEvolution>();
+        gameObject.AddComponent<Ultimates>();
         gameObject.AddComponent<TeamHud>();
         gameObject.AddComponent<PauseMenu>();
     }
@@ -135,6 +135,7 @@ public class PlayerController : MonoBehaviour
         member.animator.SetAnimSet(set);
         member.combatant = go.AddComponent<Combatant>();
         member.combatant.Init(pokemonId, Team.Player, SaveData.StartingMoves(pokemonId));
+        member.combatant.Special = SpecialItems.ActiveFor(pokemonId); // its ultimate for this run (Ultimates)
         member.combatant.Died += _ => OnKnockedOut(member);
         member.ai = go.AddComponent<AllyAI>();
         member.ai.leader = transform;
