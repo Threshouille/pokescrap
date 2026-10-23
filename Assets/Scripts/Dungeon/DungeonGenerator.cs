@@ -102,6 +102,8 @@ public class DungeonGenerator : MonoBehaviour
         open = new bool[size, size];
         cellDecor = new DungeonTileset[size * size];
         skyWall = new bool[size * size];
+        wallLook = plan.wallLook != null ? new bool[size * size] : null;
+        cellShade = plan.height != null ? new float[size * size] : null;
         var origin = Interior.min;
         var centreDecor = TilesetRoster.Get(CentreDecor);
         int PlanIndex(int x, int y) => x + box.x < plan.size && y + box.y < plan.size ? plan.Index(x + box.x, y + box.y) : -1;
@@ -153,6 +155,8 @@ public class DungeonGenerator : MonoBehaviour
                 }
                 cellDecor[g] = nearest[k];
                 open[gx, gy] = r == zone && (zone == IslandPlan.Centre || !plan.wall[PlanIndex(x, y)]);
+                if (r == zone && wallLook != null) wallLook[g] = plan.wallLook[PlanIndex(x, y)];
+                if (r == zone && cellShade != null) cellShade[g] = plan.Shade(PlanIndex(x, y));
             }
         var arrival = (islandArrival ?? plan.Arrival(zone)) - box.min;
         tileset = nearest[Mathf.Clamp(arrival.y, 0, n - 1) * n + Mathf.Clamp(arrival.x, 0, n - 1)] ?? tileset;
@@ -188,6 +192,8 @@ public class DungeonGenerator : MonoBehaviour
     int size;
     readonly Dictionary<(DungeonTileset, int, bool), Tile> tiles = new();
     DungeonTileset[] cellDecor; // per tile when the map mixes décors (the island); null: "tileset" everywhere
+    bool[] wallLook; // per tile: walkable but drawn as a wall, without collider (a ledge); may be null
+    float[] cellShade; // per tile: tint of its ground (relief), 1 = none; may be null
     bool[] skyWall; // island: sky tiles next to land, an invisible wall (nothing drawn, a collider)
     Tile invisibleWall;
 
@@ -208,6 +214,8 @@ public class DungeonGenerator : MonoBehaviour
         var rng = new System.Random(s != 0 ? s : System.Environment.TickCount);
         cellDecor = null;
         skyWall = null;
+        wallLook = null;
+        cellShade = null;
         if (island != null)
         {
             GenerateIsland(rng);
@@ -313,7 +321,8 @@ public class DungeonGenerator : MonoBehaviour
         for (int x = 0; x < size; x++)
             for (int y = 0; y < size; y++)
             {
-                bool isOpen = open[x, y];
+                bool isOpen = Looks(x, y);
+                bool solid = !open[x, y];
                 var decor = cellDecor != null ? cellDecor[y * size + x] : tileset;
                 if (decor == null)
                 {
@@ -327,16 +336,28 @@ public class DungeonGenerator : MonoBehaviour
                 }
                 int mask = 0;
                 for (int i = 0; i < Neighbours.Length; i++)
-                    if (IsOpen(x + Neighbours[i].x, y + Neighbours[i].y) == isOpen)
+                    if (Looks(x + Neighbours[i].x, y + Neighbours[i].y) == isOpen)
                         mask |= 1 << i;
                 int variation = rng.Next(8) == 0 ? rng.Next(1, 3) : 0;
                 int chunk = (isOpen ? decor.floor : decor.wall)[mask * 3 + variation];
                 (isOpen ? floorCells : wallCells).Add(new Vector3Int(x, y, 0));
-                (isOpen ? floorTiles : wallTiles).Add(GetTile(decor, chunk, !isOpen));
+                (isOpen ? floorTiles : wallTiles).Add(GetTile(decor, chunk, solid));
             }
         floorMap.SetTiles(floorCells.ToArray(), floorTiles.ToArray());
         wallMap.SetTiles(wallCells.ToArray(), wallTiles.ToArray());
+        // Relief: each level's ground tinted, darker at the foot of the cliffs.
+        if (cellShade != null)
+            foreach (var cell in floorCells)
+            {
+                float shade = cellShade[cell.y * size + cell.x];
+                if (shade <= 0f || Mathf.Approximately(shade, 1f)) continue;
+                floorMap.SetTileFlags(cell, TileFlags.None);
+                floorMap.SetColor(cell, new Color(shade, shade, shade, 1f));
+            }
     }
+
+    // How a tile is drawn: open ground, or a wall (also a ledge, walkable but drawn as its cliff).
+    bool Looks(int x, int y) => IsOpen(x, y) && (wallLook == null || !wallLook[y * size + x]);
 
     Tile InvisibleWall()
     {

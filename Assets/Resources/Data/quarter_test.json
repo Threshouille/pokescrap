@@ -1,5 +1,5 @@
 {
- "comment": "Test quarter of island (IslandQuarterTest.cs; sandbox room 5): a fan-shaped quarter, its point standing for the centre of the island (bottom left), its arc for the coast. seed: 0 = a new one each time (R or Select draws again). radius: tiles from the point to the coast; coastNoise / coastScale: how much the coast wavers and the size of its bays; sideNoise: tiles the two straight sides waver; voidMargin: sky around. River: from a spring sourceDistance tiles from the point (a pond of sourceRadius tiles) to the coast, along the middle of the quarter; riverWidth: tiles, at the spring then at the mouth (plus widthNoise); meanderAmplitude / meanderWavelength: tiles; wobble: share of the amplitude left to noise. bridges: how many, spread along the river (bridgeWidth tiles wide). left / right: the sub-biome on each side of the river (left when going downstream), its ROM décors (tilesets) and its colour on the mini-map. road: the main road from the portal to the previous quarter (left side, portalShare of the way from the point) over the middle bridge to the portal to the next one (bottom side): width in tiles, wander (tiles its bends stray), earth décor with stones of stoneDecor (stoneShare of its tiles, in loose groups); broken columns (obstacle 'column') every columnSpacing tiles along it, on both sides with pairChance, columnOffset tiles off its edge.",
+ "comment": "Test quarter of island (IslandQuarterTest.cs; sandbox room 5): a fan-shaped quarter, its point standing for the centre of the island (bottom left), its arc for the coast. seed: 0 = a new one each time (R or Select draws again). radius: tiles from the point to the coast; coastNoise / coastScale: how much the coast wavers and the size of its bays; sideNoise: tiles the two straight sides waver; voidMargin: sky around. River: from a spring sourceDistance tiles from the point (a pond of sourceRadius tiles) to the coast, along the middle of the quarter; riverWidth: tiles, at the spring then at the mouth (plus widthNoise); meanderAmplitude / meanderWavelength: tiles; wobble: share of the amplitude left to noise. bridges: how many, spread along the river (bridgeWidth tiles wide). left / right: the sub-biome on each side of the river (left when going downstream), its ROM décors (tilesets) and its colour on the mini-map. road: the main road from the portal to the previous quarter (left side, portalShare of the way from the point) over the middle bridge to the portal to the next one (bottom side): width in tiles, wander (tiles its bends stray), earth décor with stones of stoneDecor (stoneShare of its tiles, in loose groups); broken columns (obstacle 'column') every columnSpacing tiles along it, on both sides with pairChance, columnOffset tiles off its edge. relief: hills and plateaus (hills of hillRadius tiles, a second level on upperChance of the big ones) and a mountain of mountainLevels levels (mountainRadius tiles), kept clearance tiles from the river, the road and the portals; their edges are cliffs (walls drawn with rockDecors[k], C in the sandbox switches k), crossed by ramps (rampWidth tiles, rampDecor) only, plus ledges (one-way: jumping down, ledgeLength tiles) on a few southern cliffs; the mountain's ramps go round it to a cave at the top, a branch of the road leads to its foot. levelShade: tint of each level's ground; footShadow: tint of the first rows below a cliff.",
  "test": {
   "seed": 0,
   "themeName": "Nature luxuriante",
@@ -52,6 +52,38 @@
    ],
    "pairChance": 0.3,
    "columnOffset": 1.2
+  },
+  "relief": {
+   "hills": 6,
+   "hillRadius": [
+    5,
+    9
+   ],
+   "upperChance": 0.5,
+   "mountainRadius": 24,
+   "mountainLevels": 3,
+   "clearance": 3,
+   "rockDecors": [
+    49,
+    9
+   ],
+   "rampDecor": 35,
+   "rampWidth": 3,
+   "ledges": 4,
+   "ledgeLength": [
+    3,
+    6
+   ],
+   "levelShade": [
+    0.93,
+    0.96,
+    0.98,
+    1.0
+   ],
+   "footShadow": [
+    0.7,
+    0.85
+   ]
   }
  }
 }

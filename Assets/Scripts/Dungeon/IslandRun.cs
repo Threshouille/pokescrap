@@ -87,7 +87,9 @@ public class IslandRun : MonoBehaviour
             if (p.to == zone) AddExit(p.b, p.from, p.a);
         }
         foreach (var m in Plan.markers)
-            if (Plan.region[Plan.Index(m.x, m.y)] == zone) AddMarker(m);
+            if (Plan.region[Plan.Index(m.x, m.y)] == zone) AddMarker(m, "Portail (test)", new Color(1f, 0.85f, 0.3f));
+        foreach (var c in Plan.caves)
+            if (Plan.region[Plan.Index(c.x, c.y)] == zone) AddMarker(c, "Grotte (test)", new Color(0.35f, 0.2f, 0.45f));
         if (revealAll || SaveData.Settings.devMode)
             for (int y = bounds.yMin; y < bounds.yMax; y++)
                 for (int x = bounds.xMin; x < bounds.xMax; x++)
@@ -121,9 +123,9 @@ public class IslandRun : MonoBehaviour
     }
 
     // A landmark that looks like a passage end but leads nowhere (yet): the test quarter's portals.
-    void AddMarker(Vector2Int tile)
+    void AddMarker(Vector2Int tile, string name, Color colour)
     {
-        var go = new GameObject("Portail (test)");
+        var go = new GameObject(name);
         go.transform.position = Cell(tile);
         var outer = go.AddComponent<SpriteRenderer>();
         outer.sprite = Shapes.Square;
@@ -133,7 +135,7 @@ public class IslandRun : MonoBehaviour
         inner.transform.SetParent(go.transform, false);
         inner.transform.localScale = Vector3.one * 0.6f;
         inner.sprite = Shapes.Square;
-        inner.color = new Color(1f, 0.85f, 0.3f);
+        inner.color = colour;
         markers.Add(go);
     }
 
@@ -256,6 +258,9 @@ public class IslandRun : MonoBehaviour
         GUI.color = new Color(1f, 0.85f, 0.3f);
         foreach (var m in Plan.markers)
             if (revealed[Plan.Index(m.x, m.y)]) Dot(rect, scale, m - bounds.min, 3f * s);
+        GUI.color = new Color(0.75f, 0.5f, 1f);
+        foreach (var c in Plan.caves)
+            if (revealed[Plan.Index(c.x, c.y)]) Dot(rect, scale, c - bounds.min, 3f * s);
         if (team != null && team.Controlled != null)
         {
             GUI.color = Color.white;

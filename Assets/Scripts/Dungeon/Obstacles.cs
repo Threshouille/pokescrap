@@ -30,6 +30,10 @@ public class ObstacleDef
     public string decaysTo; // what it becomes by itself after decayTime seconds (a burning bridge burns out)
     public float decayTime;
     public RockSource[] romRocks = new RockSource[0]; // ROM rocks drawing it, one picked per tile (variants)
+    public int[] oneWay = new int[0]; // a ledge: (x, y), the only way across it, jumping down; any other way it blocks, and
+                                      // standing on it carries the Pokémon down (oneWay)
+    public bool hidden; // not drawn by the obstacles: the map draws it (a ledge looks like its cliff)
+    public bool OneWay => oneWay != null && oneWay.Length == 2;
     public bool ownRocks; // always drawn with its romRocks, never with the rock cut from the arena's décor (ruins' columns)
     public string spriteTint; // colour laid over its sprite (a cracked boulder is darker)
     public float bumpStun; // solid: seconds a Pokémon thrown against it (push, slide) is stunned
@@ -430,7 +434,7 @@ public class Obstacles : MonoBehaviour
 
     /// That obstacle would stop this Pokémon (null: no obstacle, nothing stops it).
     public static bool WouldBlock(ObstacleDef def, Combatant c) =>
-        def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
+        def != null && (def.solid || def.fall || def.OneWay) && (c == null || !CanPass(def, c.Stats));
 
     /// What a move of this type does to that obstacle on purpose (no paint, no special action), or null.
     public static ObstacleInteraction TurnedBy(int moveType, ObstacleDef on)
@@ -472,10 +476,25 @@ public class Obstacles : MonoBehaviour
     public static Vector2 Clamp(Combatant c, Vector2 position, Vector2 velocity)
     {
         if (Current == null || Current.count <= 0 || velocity == Vector2.zero) return velocity;
-        if (velocity.x != 0f && BlocksAt(position + new Vector2(Mathf.Sign(velocity.x) * EdgeLook, 0f), c)) velocity.x = 0f;
-        if (velocity.y != 0f && BlocksAt(position + new Vector2(0f, Mathf.Sign(velocity.y) * EdgeLook), c)) velocity.y = 0f;
+        if (velocity.x != 0f && Stops(c, position, new Vector2(Mathf.Sign(velocity.x), 0f))) velocity.x = 0f;
+        if (velocity.y != 0f && Stops(c, position, new Vector2(0f, Mathf.Sign(velocity.y)))) velocity.y = 0f;
         return velocity;
     }
+
+    // Walking that way stops at what lies ahead; a ledge only lets one in going its way (down).
+    static bool Stops(Combatant c, Vector2 position, Vector2 dir)
+    {
+        var ahead = At(position + dir * EdgeLook);
+        if (ahead != null && ahead.OneWay && ahead == At(position)) return false; // along the ledge it stands on
+        if (ahead != null && ahead.OneWay) return !(Mathf.RoundToInt(dir.x) == ahead.oneWay[0] && Mathf.RoundToInt(dir.y) == ahead.oneWay[1]);
+        return WouldBlock(ahead, c);
+    }
+
+    const float LedgeSpeed = 7f; // tiles/s: a Pokémon on a ledge is carried down it
+
+    /// On a ledge: the push that carries the Pokémon down it.
+    public static Vector2 LedgePush(Combatant c) =>
+        At(c.transform.position) is { } d && d.OneWay ? new Vector2(d.oneWay[0], d.oneWay[1]) * LedgeSpeed : Vector2.zero;
 
     /// That obstacle leaves this Pokémon alone (its type, or how it moves): no slowing, sliding or sinking.
     static bool Easy(ObstacleDef def, PokemonStats stats) =>
@@ -922,7 +941,7 @@ public class Obstacles : MonoBehaviour
         Sprite rock = def != null && sheet == null && def.romRocks.Length > 0
             ? (!def.ownRocks && grid != null && grid.tileset != null ? RockSprite(grid.tileset.romId) : null)
               ?? RockSprite(def.romRocks[(x * 7 + y * 13) % def.romRocks.Length].tileset) : null;
-        Sprite flat = def != null && sheet == null && rock == null && def.tileset < 0 ? FlatSprite(def) : null;
+        Sprite flat = def != null && !def.hidden && sheet == null && rock == null && def.tileset < 0 ? FlatSprite(def) : null;
         Show(baseTiles, i, rom != null ? rom.Tile(Mask(x, y, floorKind), (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0) : null, 0, 0f);
         float angle = def != null && def.Bridge && !SpansNorthSouth(x, y) ? 90f : 0f;
         Show(topTiles, i, sheet != null ? sheet.Frame(FrameAt(sheet)) : rock != null ? rock : flat, 1, angle, def?.spriteColor ?? Color.white);

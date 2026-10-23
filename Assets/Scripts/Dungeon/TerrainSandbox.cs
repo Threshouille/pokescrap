@@ -66,6 +66,7 @@ public class TerrainSandbox : MonoBehaviour
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
     int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: room gallery, 4: test island, 5: test quarter
+    int quarterSeed, quarterRock; // test quarter: kept to draw the same one again with another rock (C)
     IslandRun island; // test island
     RoomInstance shownRoom; // room gallery: the room on show
     int roomType; // room gallery: 0 any type, else RoomCatalog.Types[roomType - 1]
@@ -272,7 +273,11 @@ public class TerrainSandbox : MonoBehaviour
                 island.Built += PlaceStairs; // the way back, near where the team arrives in each zone
                 island.revealAll = true; // test island: the whole mini-map at once
             }
-            if (room == 5) island.Begin(IslandPlan.QuarterTestPlan());
+            if (room == 5)
+            {
+                island.Begin(IslandPlan.QuarterTestPlan(quarterSeed, quarterRock));
+                quarterSeed = 0; // R draws a new one
+            }
             else island.Begin(rng);
             PlaceStairs();
             return;
@@ -313,6 +318,13 @@ public class TerrainSandbox : MonoBehaviour
         var pad = Gamepad.current;
         var kb = Keyboard.current;
         if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame)) Switch(room);
+        // Test quarter: C or d-pad down draws the same quarter with the other rock for its cliffs.
+        if (room == 5 && ((kb != null && kb.cKey.wasPressedThisFrame) || (pad != null && pad.dpad.down.wasPressedThisFrame)))
+        {
+            quarterSeed = IslandPlan.LastQuarterSeed;
+            quarterRock++;
+            Switch(5);
+        }
         // Room gallery: N or d-pad up picks the type of room shown (any, then each type in turn).
         if (room == 3 && ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame)))
         {
@@ -329,7 +341,7 @@ public class TerrainSandbox : MonoBehaviour
         string line = room == 0 ? "Escaliers : jaune (en haut à droite) obstacles, violet (en bas à droite) mégas, vert (en bas à gauche) salles, orange (en bas) île, turquoise (en haut) quart d'île"
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : room == 4 ? $"Île de test : {(island?.Quarter >= 0 ? $"{island.Plan.themes[island.Quarter].name} (quartier {System.Array.IndexOf(island.Plan.order, island.Quarter) + 1}/4) — {island.Biome?.name}" : "hors des quartiers")}     R ou Select : nouvelle île     Escalier (à l'arrivée) : retour"
-            : room == 5 ? $"Quart d'île de test : {island?.Biome?.name ?? "—"}     R ou Select : nouveau tirage     Escalier (à l'arrivée) : retour"
+            : room == 5 ? $"Quart d'île de test : {island?.Biome?.name ?? "—"}     R ou Select : nouveau tirage     C ou croix bas : autre roche     Escalier (à l'arrivée) : retour"
             : room == 3 ? $"{shownRoom?.Describe() ?? "Aucune salle dans rooms.json"}     Type : {(roomType > 0 && roomType <= RoomCatalog.Types.Count ? RoomCatalog.Types[roomType - 1].name : "tous")} (N, croix haut)     R ou Select : autre salle     Escalier : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);

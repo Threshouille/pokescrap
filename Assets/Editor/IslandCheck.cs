@@ -109,6 +109,8 @@ public static class IslandCheck
         return $"{plan.passages.Count} passages, {(problems == 0 ? "OK" : $"{problems} PROBLÈME(S)")} ; " + string.Join(" ; ", parts);
     }
 
+    static Color32 Lighter(Color32 c, int level) => new((byte)Mathf.Min(255, c.r + 22 * level), (byte)Mathf.Min(255, c.g + 22 * level), (byte)Mathf.Min(255, c.b + 14 * level), 255);
+
     static Color32 Darker(Color32 c) => new((byte)(c.r * 0.35f), (byte)(c.g * 0.35f), (byte)(c.b * 0.35f), 255);
 
     static Color32 Obstacle(string key) => key switch
@@ -121,6 +123,7 @@ public static class IslandCheck
         "bridge" or "vine_bridge" => new Color32(150, 95, 40, 255),
         "rock" => new Color32(60, 45, 45, 255),
         "column" => new Color32(255, 255, 255, 255),
+        "ledge" => new Color32(230, 140, 60, 255),
         _ => new Color32(255, 0, 255, 255),
     };
 
@@ -200,11 +203,20 @@ public static class IslandCheck
                 px[i] = Hex(plan.biome[i]?.color);
                 if (plan.biome[i] == plan.themes[0].subbiomes[0]) left++; else right++;
                 if (plan.decor != null && plan.decor[i] > 0) px[i] = plan.decor[i] == 30 ? new Color32(120, 120, 120, 255) : new Color32(130, 85, 50, 255);
+                if (plan.height != null && plan.height[i] > 0 && !plan.wall[i] && (plan.decor == null || plan.decor[i] == 0))
+                    px[i] = Lighter(px[i], plan.height[i]);
+                if (plan.wall[i]) px[i] = new Color32(110, 70, 60, 255);
                 if (plan.obstacle[i] != null) px[i] = Obstacle(plan.obstacle[i]);
+                float shade = plan.Shade(i);
+                if (shade < 0.9f) px[i] = new Color32((byte)(px[i].r * shade), (byte)(px[i].g * shade), (byte)(px[i].b * shade), 255);
                 if (plan.obstacle[i] == "water") water++;
                 else if (plan.obstacle[i] != null) bridge++;
                 if (plan.Walkable(i)) { walkable++; if (!reached[i]) lost++; }
             }
+            foreach (var c in plan.caves)
+                for (int dx = -1; dx <= 1; dx++)
+                    for (int dy = -1; dy <= 1; dy++)
+                        px[plan.Index(c.x + dx, c.y + dy)] = new Color32(20, 10, 30, 255);
             foreach (var m in plan.markers)
                 for (int dx = -2; dx <= 2; dx++)
                     for (int dy = -2; dy <= 2; dy++)
