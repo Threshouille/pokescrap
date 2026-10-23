@@ -17,6 +17,22 @@ public static class SaveData
     }
 
     [Serializable]
+    class TypeLevel
+    {
+        public int type, level;
+    }
+
+    /// The special items a Pokémon carries (one slot per family) and the one active for a run.
+    [Serializable]
+    public class Loadout
+    {
+        public int pokemonId;
+        public string mega = ""; // mega stone key ("rayquaza": none needed)
+        public int z = -1, tera = -1; // types
+        public string active = ""; // "mega", "z", "tera" or ""
+    }
+
+    [Serializable]
     class File
     {
         public int version = Version;
@@ -24,6 +40,10 @@ public static class SaveData
         public int[] lastTeam = new int[0];
         public List<MoveChoice> startingMoves = new();
         public int runs, wins;
+        // Special items: mega stones owned (unique), Z crystals and Tera shards by type with their level.
+        public List<string> megaStones = new();
+        public List<TypeLevel> zCrystals = new(), teraShards = new();
+        public List<Loadout> loadouts = new();
     }
 
     [Serializable]
@@ -31,6 +51,8 @@ public static class SaveData
     {
         public int[] startingUnlocked = new int[0];
         public bool unlockAll; // tests: every playable Pokémon can be picked, whatever the save says
+        public bool allItems; // tests: every special item owned (level 1 at least), whatever the save says
+        public float teraStab = 2f; // Terastal: damage of a move of the Tera type when it was already one of the Pokémon's types
         public bool devMode; // tests: the dev characters of dev_characters.json are offered in the menu
         public bool obstaclesInRuns = true; // real arenas get the obstacles of their décor (arena_obstacles.json)
         public int devStartingMoveCount = 4; // starting moves of a dev character
@@ -84,7 +106,7 @@ public static class SaveData
         public float beautyPerSecond = 1f, beautyPerHit = 10f, beautyThreshold = 100f;
         public float evolutionCardChance = 0.5f; // an item or trade card replaces an upgrade, when the Pokémon can use one
         public float statTieMargin = 0.1f; // Attack and Defence within this share count as equal (Debugant)
-        // Mega evolution (MegaEvolution.cs): a gauge shared by the team, filled by knocking enemies out.
+        // Ultimates (Ultimates.cs: mega evolution, Z move, Terastal): a gauge shared by the team, filled by knocking enemies out.
         public float megaKillsToFill = 25f; // enemies knocked out to fill the gauge
         public float megaBossFill = 0.5f; // share of the gauge a boss gives
         public float megaTime = 50f; // seconds before the Pokémon goes back to its form
@@ -174,6 +196,51 @@ public static class SaveData
     {
         Data.startingMoves.RemoveAll(c => c.pokemonId == pokemonId);
         Data.startingMoves.Add(new MoveChoice { pokemonId = pokemonId, moves = moves });
+        Write();
+    }
+
+    // ---- Special items (SpecialItems.cs) ----
+
+    public static bool HasStone(string key) => Settings.allItems || Data.megaStones.Contains(key);
+    public static int ZLevel(int type) => LevelOf(Data.zCrystals, type);
+    public static int TeraLevel(int type) => LevelOf(Data.teraShards, type);
+
+    static int LevelOf(List<TypeLevel> list, int type)
+    {
+        int level = list.Find(t => t.type == type)?.level ?? 0;
+        return Settings.allItems ? Mathf.Max(1, level) : level;
+    }
+
+    /// A mega stone found: false when it was owned already (mega stones are unique).
+    public static bool AddStone(string key)
+    {
+        if (Data.megaStones.Contains(key)) return false;
+        Data.megaStones.Add(key);
+        Write();
+        return true;
+    }
+
+    /// A Z crystal or Tera shard found: its level now (1 the first time, up to 3 with duplicates).
+    public static int AddZ(int type) => AddLevel(Data.zCrystals, type);
+    public static int AddTera(int type) => AddLevel(Data.teraShards, type);
+
+    static int AddLevel(List<TypeLevel> list, int type)
+    {
+        var entry = list.Find(t => t.type == type);
+        if (entry == null) list.Add(entry = new TypeLevel { type = type });
+        entry.level = Mathf.Min(3, entry.level + 1);
+        Write();
+        return entry.level;
+    }
+
+    /// The items a Pokémon carries (a fresh, empty loadout when none was saved).
+    public static Loadout LoadoutOf(int pokemonId) =>
+        Data.loadouts.Find(l => l.pokemonId == pokemonId) ?? new Loadout { pokemonId = pokemonId };
+
+    public static void SetLoadout(Loadout loadout)
+    {
+        Data.loadouts.RemoveAll(l => l.pokemonId == loadout.pokemonId);
+        Data.loadouts.Add(loadout);
         Write();
     }
 

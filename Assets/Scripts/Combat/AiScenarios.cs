@@ -101,6 +101,15 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Refroidit la lave pour passer", Repair("lava", 3, "any"));
         yield return Scenario("Brûle le pont sous un ennemi au corps à corps", CutBridge());
         yield return Scenario("Marche sur le métal chargé sans s'en soucier", IgnoreMetal());
+        yield return Scenario("Objets : la capacité Z frappe et paralyse tous les ennemis visibles", ZMoveHits());
+        yield return Scenario("Objets : la capacité Z épargne les alliés (chaque cristal)", ZSparesAllies());
+        yield return Scenario("Élite : gèle une rivière pour rejoindre sa cible", EliteFreezesRiver());
+        yield return Scenario("Élite : brûle le pont sous un adversaire au corps à corps", EliteBurnsBridge());
+        yield return Scenario("Ultime ennemi : se téracristallise dans un type qui résiste", EnemyTera());
+        yield return Scenario("Ultime ennemi : capacité Z quand l'équipe est groupée", EnemyZ());
+        yield return Scenario("Objets : le Téracristal change le type", TeraChangesType());
+        yield return Scenario("Objets : une méga-gemme obtenue ne retombe plus", StonesStayUnique());
+        yield return Scenario("Objets : les types de l'équipe tombent plus souvent", LootFavoursTeam());
 
         Clear();
         Failures = results.FindAll(r => !r.passed).Count;
@@ -306,6 +315,248 @@ public class AiScenarios : MonoBehaviour
             if (Obstacles.At(ally.transform.position)?.key == "metal") onMetal++;
         }
         Report(onMetal > 0 && Distance(ally, leader) <= 3f, $"{onMetal} images sur le métal, arrivé en {Time.time - started:0.0} s");
+    }
+
+    // The controlled Pokémon carries an Electric Z crystal and knows an Electric move; its Z move must strike both
+    // opponents on screen, near and behind it, far harder than one hit of the move, and paralyse them.
+    IEnumerator ZMoveHits()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-4f, -3f), settle: false);
+        var move = FindMove(5, m => m.family == "projectile" && m.path != "arc");
+        if (move == null) { Report(false, "pas d'attaque Électrik"); yield break; }
+        var kept = (MoveDef[])leader.Moves.Clone();
+        var keptItem = leader.Special;
+        leader.LearnMove(1, move);
+        leader.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Z, type = 5, level = 1 };
+        var near = Enemy(BatchTeam[1], new Vector2(3f, 0f));
+        var far = Enemy(BatchTeam[1], new Vector2(-4f, 2.5f));
+        foreach (var foe in new[] { near, far }) foe.maxHp = foe.hp = 100000f;
+        yield return new WaitForFixedUpdate();
+        float one = leader.EstimateHit(move, near);
+        bool triggered = team.GetComponent<Ultimates>().Trigger(leader);
+        yield return new WaitForSeconds(SpecialItems.ZPose + 0.5f);
+        float a = near.maxHp - near.hp, b = far.maxHp - far.hp;
+        bool stuck = near.HasStatus("paralysis") && far.HasStatus("paralysis");
+        for (int i = 0; i < Combatant.MoveSlots; i++) leader.LearnMove(i, kept[i]);
+        leader.Special = keptItem;
+        Report(triggered && stuck && one > 0f && a >= one * 2.5f && b >= one * 2.5f,
+            $"{(triggered ? "lancée" : "refusée")} : {a:0} et {b:0} dégâts (un coup de {move.name} : ≈ {one:0}), paralysie {(stuck ? "sur les deux" : "manquante")}");
+    }
+
+    // An ally stands right by the opponent while each Z crystal in turn strikes it: the ally must lose no health, get
+    // no status, penalty or stun, stand on no terrain that acts on it, and still follow the controlled Pokémon.
+    IEnumerator ZSparesAllies()
+    {
+        var (leader, ally) = Place(Vector2.zero, new Vector2(2.4f, 0.6f), settle: false);
+        var keptItem = leader.Special;
+        bool keptDemo = Ultimates.DemoMoves;
+        Ultimates.DemoMoves = true; // Pikachu borrows a move of each type
+        var foe = Enemy(BatchTeam[1], new Vector2(3f, 0f));
+        foe.maxHp = foe.hp = 1000000f;
+        var ultimates = team.GetComponent<Ultimates>();
+        var faults = new List<string>();
+        foreach (var crystal in SpecialItems.Crystals)
+        {
+            ally.hp = ally.maxHp;
+            leader.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Z, type = crystal.type, level = 3 };
+            yield return new WaitForFixedUpdate();
+            if (!ultimates.Trigger(leader)) { faults.Add($"{crystal.name} refusé"); continue; }
+            yield return new WaitForSeconds(SpecialItems.ZPose + 0.6f);
+            var wrong = new List<string>();
+            if (ally.hp < ally.maxHp) wrong.Add("PV");
+            if (ally.Modifier("attack") < 0.999f || ally.Modifier("defense") < 0.999f || ally.Modifier("speed") < 0.999f) wrong.Add("malus");
+            foreach (var key in new[] { "poison", "paralysis", "burn", "sleep", "freeze", "confusion", "trap", "yawn", "leech-seed" })
+                if (ally.HasStatus(key)) wrong.Add(key);
+            if (ally.IsHurt) wrong.Add("étourdi");
+            if (Terrain.Affecting(ally) != null) wrong.Add($"terrain {Terrain.Affecting(ally).key}");
+            if (wrong.Count > 0) faults.Add($"{crystal.name} : {string.Join(", ", wrong)}");
+        }
+        // Then the ally still follows: the controlled Pokémon walks away.
+        leader.transform.position = Centre + new Vector2(-6f, 0f);
+        yield return new WaitForSeconds(4f);
+        float distance = Distance(ally, leader);
+        if (distance > 4f) faults.Add($"l'allié ne suit plus ({distance:0.0} cases)");
+        leader.Special = keptItem;
+        Ultimates.DemoMoves = keptDemo;
+        Report(faults.Count == 0, faults.Count == 0 ? $"{SpecialItems.Crystals.Count} cristaux, allié intact et toujours à {distance:0.0} case(s)" : string.Join(" ; ", faults));
+    }
+
+    // The controlled Pokémon (Pikachu, Électrik) carries a Water Tera shard: once Terastallized it is Water, and an
+    // Électrik move hits it twice as hard instead of half.
+    IEnumerator TeraChangesType()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-4f, -3f), settle: false);
+        var keptItem = leader.Special;
+        leader.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Tera, type = 3, level = 1 };
+        float before = TypeChart.Multiplier(5, leader.Stats.types, out _);
+        yield return new WaitForFixedUpdate();
+        bool triggered = team.GetComponent<Ultimates>().Trigger(leader);
+        yield return new WaitForSeconds(0.8f);
+        float after = TypeChart.Multiplier(5, leader.Stats.types, out _);
+        int tera = leader.TeraType;
+        leader.RevertTera();
+        leader.Special = keptItem;
+        Report(triggered && tera == 3 && after > before, $"type Téra {tera}, Électrik contre lui : ×{before} → ×{after}");
+    }
+
+    // With every stone owned but one, a boss's roll gives that one; with all owned, none.
+    IEnumerator StonesStayUnique()
+    {
+        var rng = new System.Random(3);
+        string left = SpecialItems.Stones[5].key;
+        bool always = true;
+        for (int n = 0; n < 50; n++)
+            always &= Loot.RollStone(rng, new[] { 1 }, key => key != left)?.stone == left;
+        bool none = Loot.RollStone(rng, new[] { 1 }, _ => true) == null;
+        Report(always && none, $"dernière gemme toujours tirée : {always}, aucune quand tout est possédé : {none}");
+        yield break;
+    }
+
+    // Chests favour the team's types (teamTypeWeight).
+    IEnumerator LootFavoursTeam()
+    {
+        var rng = new System.Random(4);
+        var types = new HashSet<int> { 4, 8 };
+        int mine = 0, rolls = 2000;
+        for (int n = 0; n < rolls; n++)
+            if (types.Contains(Loot.RollTyped(rng, types).type)) mine++;
+        float share = mine / (float)rolls, fair = 2f / SpecialItems.Crystals.Count;
+        Report(share > fair * 1.8f, $"{share:P0} des tirages pour les 2 types de l'équipe (au hasard : {fair:P0})");
+        yield break;
+    }
+
+    // ---------------------------------------------------------------- elites and enemy ultimates
+
+    const int Lokhlass = 131, OndeBoreale = 42, LanceFlamme = 53;
+
+    // A fighting elite (EnemyAI, ultimate) with these moves, too sturdy to fall during a scenario.
+    Combatant Elite(Vector2 offset, params int[] moves)
+    {
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var c = spawner != null ? spawner.SpawnFighter(Lokhlass, moves, Centre + offset, false, true, 5, 1000f) : null;
+        if (c != null) placed.Add(c);
+        return c;
+    }
+
+    // The team cannot fall during a scenario where an elite fights back.
+    static float[] Sturdy(params Combatant[] members)
+    {
+        var kept = new float[members.Length];
+        for (int i = 0; i < members.Length; i++)
+        {
+            kept[i] = members[i].maxHp;
+            members[i].maxHp = members[i].hp = 100000f;
+        }
+        return kept;
+    }
+
+    static void Restore(float[] kept, params Combatant[] members)
+    {
+        for (int i = 0; i < members.Length; i++) members[i].maxHp = members[i].hp = kept[i];
+    }
+
+    void River(int from, int to, bool bridge)
+    {
+        var grid = DungeonGenerator.Current;
+        var centre = grid.CellOf(Centre);
+        var inside = grid.Interior;
+        for (int x = centre.x + from; x <= centre.x + to; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+                Obstacles.Place(x, y, bridge && y == centre.y ? "bridge" : "water");
+    }
+
+    // A river from wall to wall between the elite and the controlled Pokémon, too far to be shot at from the bank;
+    // the elite only has Onde Boréale: it freezes the river to come across.
+    IEnumerator EliteFreezesRiver()
+    {
+        var (leader, ally) = Place(new Vector2(-11f, 0f), new Vector2(-11f, 2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        River(1, 3, false);
+        var elite = Elite(new Vector2(7f, 0f), OndeBoreale);
+        if (elite == null) { Restore(kept, leader, ally); Report(false, "pas d'élite (sprites de Lokhlass ?)"); yield break; }
+        float riverX = DungeonGenerator.Current.CentreOf(DungeonGenerator.Current.CellOf(Centre).x + 1, 0).x - 0.5f;
+        float started = Time.time;
+        while (Time.time - started < 25f && elite != null && elite.transform.position.x > riverX) yield return new WaitForFixedUpdate();
+        bool crossed = elite != null && elite.transform.position.x <= riverX;
+        Restore(kept, leader, ally);
+        Report(crossed, crossed ? $"de l'autre côté en {Time.time - started:0.0} s"
+            : $"toujours de son côté de la rivière (à {(elite != null ? elite.transform.position.x - riverX : 0f):0.0} case(s) de la rive)");
+    }
+
+    // The controlled Pokémon fights at close range and stands on a bridge; the elite only has Lance-Flamme: it burns
+    // the bridge under it.
+    IEnumerator EliteBurnsBridge()
+    {
+        var (leader, ally) = Place(new Vector2(2f, 0f), new Vector2(-10f, 8f), settle: false);
+        var kept = Sturdy(leader, ally);
+        var keptMoves = (MoveDef[])leader.Moves.Clone();
+        var hit = FindMove(1, m => m.family == "melee");
+        for (int i = 0; i < Combatant.MoveSlots; i++) leader.LearnMove(i, i == 0 ? hit : null); // fights at close range
+        River(1, 3, true);
+        var grid = DungeonGenerator.Current;
+        var cell = grid.CellOf(Centre + new Vector2(2f, 0f));
+        var elite = Elite(new Vector2(6.5f, 0f), LanceFlamme);
+        float started = Time.time;
+        bool burnt = false;
+        while (Time.time - started < 10f && !burnt)
+        {
+            yield return new WaitForFixedUpdate();
+            burnt = Obstacles.At(cell.x, cell.y)?.key != "bridge";
+        }
+        for (int i = 0; i < Combatant.MoveSlots; i++) leader.LearnMove(i, keptMoves[i]);
+        Restore(kept, leader, ally);
+        Report(elite != null && burnt, burnt ? $"pont en feu après {Time.time - started:0.0} s" : "le pont tient toujours");
+    }
+
+    // Pikachu (Électrik) and Bulbizarre face a hurt Lokhlass (Eau / Glace, weak to both): it Terastallizes into a type
+    // that takes their moves better.
+    IEnumerator EnemyTera()
+    {
+        var (leader, ally) = Place(new Vector2(-4f, 0f), new Vector2(-4f, 2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        var elite = Elite(new Vector2(4f, 0f), LanceFlamme);
+        if (elite == null) { Restore(kept, leader, ally); Report(false, "pas d'élite"); yield break; }
+        elite.hp = elite.maxHp * 0.4f;
+        var ultimate = elite.GetComponent<EnemyUltimate>();
+        float before = IncomingMultiplier(elite);
+        bool used = ultimate.Decide();
+        elite.hp = elite.maxHp * 0.1f;
+        bool again = ultimate.Decide(); // one item, one ultimate
+        yield return new WaitForSeconds(0.8f);
+        float after = IncomingMultiplier(elite);
+        int tera = elite.TeraType;
+        Restore(kept, leader, ally);
+        Report(used && !again && ultimate.LastUsed == "tera" && after < before - 0.15f,
+            $"{ultimate.LastUsed} : type {(tera >= 0 ? GameData.TypeName(tera) : "aucun")}, attaques de l'équipe ×{before:0.00} → ×{after:0.00}");
+    }
+
+    static float IncomingMultiplier(Combatant target)
+    {
+        float sum = 0f;
+        int n = 0;
+        foreach (var c in Combatant.All)
+            if (c != null && c.IsAlive && c.team != target.team)
+                foreach (var m in c.Moves)
+                    if (m != null && m.power > 0) { sum += TypeChart.Multiplier(m.type, target.Stats.types, out _); n++; }
+        return n > 0 ? sum / n : 1f;
+    }
+
+    // The two members stand close to a healthy elite carrying a Fire Z crystal: its Z move strikes them both, once,
+    // and takes at most zMaxShare of their health.
+    IEnumerator EnemyZ()
+    {
+        var (leader, ally) = Place(new Vector2(-2.5f, 0f), new Vector2(-2.5f, 1.5f), settle: false);
+        var elite = Elite(new Vector2(2f, 0f), LanceFlamme);
+        if (elite == null) { Report(false, "pas d'élite"); yield break; }
+        var ultimate = elite.GetComponent<EnemyUltimate>();
+        ultimate.Carry(SpecialItems.Family.Z, 2); // left alone, it would pick a Tera shard against this team
+        bool used = ultimate.Decide();
+        bool again = ultimate.Decide(); // one item, one ultimate
+        yield return new WaitForSeconds(SpecialItems.ZPose + 0.6f);
+        bool both = leader.hp < leader.maxHp && ally.hp < ally.maxHp;
+        bool capped = leader.hp >= leader.maxHp * (0.99f - SpecialItems.Enemy.zMaxShare) && ally.hp >= ally.maxHp * (0.99f - SpecialItems.Enemy.zMaxShare);
+        Report(used && !again && ultimate.LastUsed == "z" && both && capped,
+            $"{(used ? ultimate.LastUsed : "rien")}{(again ? " deux fois" : "")} : Pikachu {leader.hp:0}/{leader.maxHp:0}, allié {ally.hp:0}/{ally.maxHp:0}");
     }
 
     // ---------------------------------------------------------------- helpers

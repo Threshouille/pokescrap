@@ -28,7 +28,7 @@ public class TeamHud : MonoBehaviour
     PlayerController team;
     Progression progression;
     Evolution evolution;
-    MegaEvolution mega;
+    Ultimates mega;
     GUIStyle text;
 
     // Statics can outlive a play session in the editor.
@@ -40,7 +40,7 @@ public class TeamHud : MonoBehaviour
         team = GetComponent<PlayerController>();
         progression = GetComponent<Progression>();
         evolution = GetComponent<Evolution>();
-        mega = GetComponent<MegaEvolution>();
+        mega = GetComponent<Ultimates>();
     }
 
     static Texture2D PortraitOf(int pokemonId)
@@ -149,9 +149,13 @@ public class TeamHud : MonoBehaviour
             Label(bottom, left > 0f ? left.ToString("0.0") : "Esq.", TextAnchor.MiddleCenter);
         }
 
-        // Mega gauge, after the dodge: it rises as enemies fall; the time left while the Pokémon is a mega.
+        // Ultimate gauge, after the dodge: it rises as enemies fall; the time left of a mega or Terastal phase. Its
+        // name is the controlled Pokémon's ultimate (Méga, Z, Téra), in its type's colour for Z and Tera.
         if (mega != null)
         {
+            string kind = Ultimates.Label(combatant);
+            var e = combatant.Special;
+            Color full = e != null && e.family != SpecialItems.Family.Mega ? GameData.TypeColor(e.type) : MegaFull;
             var slot = new Rect(x + (Combatant.MoveSlots + 1) * (Slot + SlotGap) * s, portrait.yMax - Slot * s, Slot * s, Slot * s);
             var top = new Rect(slot.x, slot.y + s, slot.width, 9f * s);
             var bottom = new Rect(slot.x, slot.y + 10f * s, slot.width, 11f * s);
@@ -160,16 +164,24 @@ public class TeamHud : MonoBehaviour
             float timeLeft = mega.TimeLeft(combatant);
             if (timeLeft > 0f)
             {
-                Fill(inner, MegaFull);
-                Fill(new Rect(inner.x, inner.y, inner.width, inner.height * (1f - Mathf.Clamp01(timeLeft / SaveData.Settings.megaTime))), Shade);
+                Fill(inner, full);
+                Fill(new Rect(inner.x, inner.y, inner.width, inner.height * (1f - Mathf.Clamp01(timeLeft / mega.Length(combatant)))), Shade);
                 Label(bottom, timeLeft.ToString("0"), TextAnchor.MiddleCenter);
             }
             else
             {
                 Fill(inner, Recharging);
                 float h = inner.height * mega.Gauge;
-                Fill(new Rect(inner.x, inner.yMax - h, inner.width, h), mega.Full ? MegaFull : MegaFilling);
-                Label(bottom, mega.Ready ? "Méga !" : "Méga", TextAnchor.MiddleCenter);
+                Fill(new Rect(inner.x, inner.yMax - h, inner.width, h), mega.Full ? full : MegaFilling);
+                Label(bottom, kind == "" ? "—" : mega.Ready ? kind + " !" : kind, TextAnchor.MiddleCenter);
+            }
+            if (SpecialItems.Icon(SpecialItems.IconName(e)) is { } icon)
+            {
+                float side = 9f * s;
+                var t = icon.texture;
+                var tr = icon.textureRect;
+                GUI.DrawTextureWithTexCoords(new Rect(slot.xMax - side, slot.y - side * 0.6f, side, side), t,
+                    new Rect(tr.x / t.width, tr.y / t.height, tr.width / t.width, tr.height / t.height));
             }
             Label(top, UnityEngine.InputSystem.Gamepad.current != null ? "L3R3" : "F", TextAnchor.MiddleCenter);
         }

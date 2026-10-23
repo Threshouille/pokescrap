@@ -261,6 +261,12 @@ public static class GameData
             : a.basic != b.basic ? b.basic.CompareTo(a.basic) : string.CompareOrdinal(a.name, b.name));
     }
 
+    /// Every move the game can play, sorted by type.
+    public static IReadOnlyList<MoveDef> AllMoves
+    {
+        get { Load(); return allMoves; }
+    }
+
     /// Dev characters loaded from dev_characters.json (only with devMode in meta.json).
     public static IReadOnlyList<int> DevCharacters
     {
@@ -360,6 +366,13 @@ public static class GameData
     /// Forms this Pokémon can evolve into, whatever the condition. Only those with sprites in the project; forms
     /// without a condition of their own (Munja, which comes with Ninjask) are left out.
     static MegaDef[] megas;
+
+    /// A mega evolution by its id (megas.json), or null.
+    public static MegaDef Mega(int id)
+    {
+        Load();
+        return Array.Find(megas, m => m.id == id);
+    }
 
     /// The mega evolutions of this form that have their sprites.
     public static List<MegaDef> MegasOf(int pokemonId)

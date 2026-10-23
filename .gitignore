@@ -34,6 +34,8 @@ __pycache__/
 /Assets/Resources/ObstacleTiles/*/chunks.png
 /Assets/Resources/ObstacleTiles/*/tileset.json
 /Assets/Resources/ObstacleTiles/rock_*.png
+# Special item icons (PokeAPI, Nikostera): downloaded by Tools/pmd/import_items.py
+/Assets/Resources/Items/*.png
 /Assets/Data/*.json
 /Assets/Resources/Data/pokemon_rt.json
 /Assets/Resources/Data/levels_rt.bytes

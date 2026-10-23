@@ -8,6 +8,10 @@ using UnityEngine.InputSystem;
 /// Pokémon under the cursor (Cross picks, L1 / R1 or left / right filter by type, Circle or Triangle closes), Options
 /// starts once the team is full.
 /// Keyboard: arrows (left / right: type filter on the moves screen), Space, E (moves), Escape, Enter.
+/// Special items (SpecialItems): each portrait shows a notch per family that applies to it (M for a line with a mega,
+/// Z, T), filled when an item is in that slot and framed when it is the active one; Square (O) opens the items of the
+/// Pokémon under the cursor: up / down a family, left / right the items owned, Cross (Space) makes it the active one,
+/// Circle, Square or Escape (O) closes.
 public class TeamMenu : MonoBehaviour
 {
     const float ReferenceHeight = 360f;
@@ -34,6 +38,11 @@ public class TeamMenu : MonoBehaviour
     int filter = -1;
     readonly List<int> picked = new();
     int moveCursor;
+    // Special items screen: open for one Pokémon, one row per family that applies to it.
+    bool editingItems;
+    SaveData.Loadout loadout;
+    readonly List<SpecialItems.Family> itemRows = new();
+    int itemRow;
     Vector2Int heldDirection;
     float nextRepeat;
     GUIStyle text, title;
@@ -62,6 +71,15 @@ public class TeamMenu : MonoBehaviour
         bool triangle = (pad != null && pad.buttonNorth.wasPressedThisFrame) || (kb != null && kb.eKey.wasPressedThisFrame);
         bool circle = (pad != null && pad.buttonEast.wasPressedThisFrame) || (kb != null && kb.escapeKey.wasPressedThisFrame);
 
+        bool square = (pad != null && pad.buttonWest.wasPressedThisFrame) || (kb != null && kb.oKey.wasPressedThisFrame);
+        if (editingItems)
+        {
+            if (repeat && direction.y != 0) itemRow = Mathf.Clamp(itemRow + direction.y, 0, itemRows.Count - 1);
+            if (repeat && direction.x != 0) CycleItem(direction.x);
+            if (cross) ToggleActive();
+            if (circle || square) CloseItems();
+            return;
+        }
         if (editingMoves)
         {
             if (repeat && direction.y != 0) moveCursor = Mathf.Clamp(moveCursor + direction.y, 0, pool.Count - 1);
@@ -75,6 +93,11 @@ public class TeamMenu : MonoBehaviour
         if (triangle && SaveData.IsUnlocked(choices[cursor]))
         {
             OpenMoves(choices[cursor]);
+            return;
+        }
+        if (square && SaveData.IsUnlocked(choices[cursor]) && !GameData.IsDev(choices[cursor]))
+        {
+            OpenItems(choices[cursor]);
             return;
         }
 
@@ -162,6 +185,220 @@ public class TeamMenu : MonoBehaviour
         editingMoves = false;
     }
 
+    // ---- Special items ----
+
+    void OpenItems(int id)
+    {
+        editingItems = true;
+        loadout = SaveData.LoadoutOf(id);
+        itemRows.Clear();
+        if (SpecialItems.HasMegaLine(id)) itemRows.Add(SpecialItems.Family.Mega);
+        itemRows.Add(SpecialItems.Family.Z);
+        itemRows.Add(SpecialItems.Family.Tera);
+        itemRow = 0;
+    }
+
+    void CloseItems()
+    {
+        SaveData.SetLoadout(loadout);
+        editingItems = false;
+    }
+
+    // What a family's slot may hold for this Pokémon: "" (empty) then the items owned, in order.
+    List<string> Options(SpecialItems.Family family, int id)
+    {
+        var options = new List<string> { "" };
+        switch (family)
+        {
+            case SpecialItems.Family.Mega:
+                foreach (var m in SpecialItems.MegasOfLine(id))
+                {
+                    if (m.id == SpecialItems.RayquazaMega) { options.Add(SpecialItems.RayquazaKey); continue; }
+                    var stone = SpecialItems.StoneOf(m.id);
+                    if (stone != null && SaveData.HasStone(stone.key)) options.Add(stone.key);
+                }
+                break;
+            case SpecialItems.Family.Z:
+                foreach (var c in SpecialItems.Crystals) if (SaveData.ZLevel(c.type) > 0) options.Add(c.type.ToString());
+                break;
+            case SpecialItems.Family.Tera:
+                foreach (var t in SpecialItems.Shards) if (SaveData.TeraLevel(t.type) > 0) options.Add(t.type.ToString());
+                break;
+        }
+        return options;
+    }
+
+    string SlotValue(SpecialItems.Family family) => family switch
+    {
+        SpecialItems.Family.Mega => loadout.mega,
+        SpecialItems.Family.Z => loadout.z >= 0 ? loadout.z.ToString() : "",
+        _ => loadout.tera >= 0 ? loadout.tera.ToString() : "",
+    };
+
+    void CycleItem(int step)
+    {
+        var family = itemRows[itemRow];
+        var options = Options(family, loadout.pokemonId);
+        int i = Mathf.Max(0, options.IndexOf(SlotValue(family)));
+        string value = options[(i + step + options.Count) % options.Count];
+        switch (family)
+        {
+            case SpecialItems.Family.Mega: loadout.mega = value; break;
+            case SpecialItems.Family.Z: loadout.z = value == "" ? -1 : int.Parse(value); break;
+            default: loadout.tera = value == "" ? -1 : int.Parse(value); break;
+        }
+        if (value == "" && loadout.active == Key(family)) loadout.active = "";
+    }
+
+    // The row's family becomes the active one (or none again); an empty slot cannot be.
+    void ToggleActive()
+    {
+        var family = itemRows[itemRow];
+        if (SlotValue(family) == "") return;
+        loadout.active = loadout.active == Key(family) ? "" : Key(family);
+    }
+
+    static string Key(SpecialItems.Family family) => family switch
+    {
+        SpecialItems.Family.Mega => "mega",
+        SpecialItems.Family.Z => "z",
+        SpecialItems.Family.Tera => "tera",
+        _ => "",
+    };
+
+    static string FamilyName(SpecialItems.Family family) => family switch
+    {
+        SpecialItems.Family.Mega => "Méga-gemme",
+        SpecialItems.Family.Z => "Cristal Z",
+        _ => "Téra-Éclat",
+    };
+
+    string ItemName(SpecialItems.Family family, string value)
+    {
+        if (value == "") return "(vide)";
+        switch (family)
+        {
+            case SpecialItems.Family.Mega:
+                return value == SpecialItems.RayquazaKey ? "Aucune gemme (Draco Météor requis)" : SpecialItems.Stone(value)?.name ?? value;
+            case SpecialItems.Family.Z:
+                int z = int.Parse(value);
+                return $"{SpecialItems.Crystal(z)?.name} (niv. {SaveData.ZLevel(z)})";
+            default:
+                int t = int.Parse(value);
+                return $"{SpecialItems.Shard(t)?.name} (niv. {SaveData.TeraLevel(t)})";
+        }
+    }
+
+    // A warning under an item that would not work as things stand.
+    string Requirement(SpecialItems.Family family, string value, int id)
+    {
+        if (value == "") return "";
+        var moves = System.Array.ConvertAll(SaveData.StartingMoves(id), GameData.Move);
+        switch (family)
+        {
+            case SpecialItems.Family.Mega:
+                if (value == SpecialItems.RayquazaKey) return System.Array.Exists(moves, m => m != null && m.id == SpecialItems.RayquazaMove) ? "" : "Doit connaître Draco Météor";
+                var mega = GameData.Mega(SpecialItems.Stone(value)?.mega ?? 0);
+                return mega != null && mega.@base != id ? $"Utile une fois {GameData.Pokemon(mega.@base)?.name}" : "";
+            case SpecialItems.Family.Z:
+                int z = int.Parse(value);
+                return SpecialItems.KnowsMoveOfType(moves, z) ? "" : $"Doit connaître une attaque {GameData.TypeName(z)}";
+            default:
+                return "";
+        }
+    }
+
+    void DrawItems(int id, Rect panel, float s)
+    {
+        float pad = 6f * s, line = Line * s, width = panel.width - 2f * pad;
+        float y = panel.y + pad;
+        Label(new Rect(panel.x + pad, y, width, line), $"{GameData.Pokemon(id)?.name} : objets spéciaux", TextAnchor.MiddleLeft);
+        y += line + 4f * s;
+        for (int r = 0; r < itemRows.Count; r++)
+        {
+            var family = itemRows[r];
+            string value = SlotValue(family);
+            var row = new Rect(panel.x + pad, y, width, line * 3f);
+            if (r == itemRow) Fill(row, new Color(1f, 0.85f, 0.2f, 0.2f));
+            bool isActive = loadout.active == Key(family) && value != "";
+            Label(new Rect(row.x + 2f * s, y, width, line), (isActive ? "★ " : "") + FamilyName(family) + (isActive ? " (active)" : ""), TextAnchor.MiddleLeft);
+            float indent = 8f * s;
+            if (ItemIcon(family, value) is { } icon)
+            {
+                float side = 2f * line;
+                DrawIcon(new Rect(row.x + indent, y + line, side, side), icon);
+                indent += side + 4f * s;
+            }
+            Label(new Rect(row.x + indent, y + line, width - indent, line), $"‹ {ItemName(family, value)} ›", TextAnchor.MiddleLeft);
+            string need = Requirement(family, value, id);
+            if (need != "") Label(new Rect(row.x + indent, y + 2f * line, width - indent, line), need, TextAnchor.MiddleLeft);
+            y += line * 3f + 2f * s;
+        }
+        float infoY = panel.yMax - pad - 3f * line;
+        Fill(new Rect(panel.x + pad, infoY - 2f * s, width, s), new Color(1f, 1f, 1f, 0.2f));
+        string about = itemRows[itemRow] switch
+        {
+            SpecialItems.Family.Mega => "Méga-évolution le temps de la jauge.",
+            SpecialItems.Family.Z => "Capacité Z : la plus forte attaque du type, décuplée.",
+            _ => "Téracristal : prend le type de l'éclat un moment.",
+        };
+        Label(new Rect(panel.x + pad, infoY, width, line), about, TextAnchor.MiddleLeft);
+        Label(new Rect(panel.x + pad, infoY + line, width, line), "Un seul objet actif par partie.", TextAnchor.MiddleLeft);
+    }
+
+    static Sprite ItemIcon(SpecialItems.Family family, string value) =>
+        value == "" ? null : SpecialItems.Icon(SpecialItems.IconName(family, value, int.TryParse(value, out int type) ? type : -1));
+
+    // Draws an item's sprite in a rect; "tint" multiplies it (black: a silhouette).
+    static void DrawIcon(Rect rect, Sprite icon, Color? tint = null)
+    {
+        var t = icon.texture;
+        var r = icon.textureRect;
+        var previous = GUI.color;
+        if (tint.HasValue) GUI.color = tint.Value;
+        GUI.DrawTextureWithTexCoords(rect, t, new Rect(r.x / t.width, r.y / t.height, r.width / t.width, r.height / t.height));
+        GUI.color = previous;
+    }
+
+    // The notches of a portrait: one per family that applies to the Pokémon, the family's shape in black while its
+    // slot is empty, the item's icon once one is put there, framed when that item is the active one.
+    void DrawNotches(int id, Rect cell, float s)
+    {
+        if (!SaveData.IsUnlocked(id) || GameData.IsDev(id)) return;
+        var l = SaveData.LoadoutOf(id);
+        var families = new List<(SpecialItems.Family family, string letter, bool filled, bool active, Color colour, Sprite icon)>();
+        if (SpecialItems.HasMegaLine(id))
+            families.Add((SpecialItems.Family.Mega, "M", l.mega != "", l.active == "mega", new Color(0.85f, 0.45f, 1f), ItemIcon(SpecialItems.Family.Mega, l.mega)));
+        families.Add((SpecialItems.Family.Z, "Z", l.z >= 0, l.active == "z", l.z >= 0 ? GameData.TypeColor(l.z) : Color.gray,
+            l.z >= 0 ? ItemIcon(SpecialItems.Family.Z, l.z.ToString()) : null));
+        families.Add((SpecialItems.Family.Tera, "T", l.tera >= 0, l.active == "tera", l.tera >= 0 ? GameData.TypeColor(l.tera) : Color.gray,
+            l.tera >= 0 ? ItemIcon(SpecialItems.Family.Tera, l.tera.ToString()) : null));
+        float size = 10f * s;
+        for (int k = 0; k < families.Count; k++)
+        {
+            var (family, letter, filled, isActive, colour, icon) = families[k];
+            var r = new Rect(cell.xMax - (families.Count - k) * (size + s) - s, cell.yMax - size - s, size, size);
+            if (isActive) Fill(Grow(r, s), Color.white);
+            if (filled && icon != null)
+            {
+                Fill(r, new Color(0f, 0f, 0f, 0.55f));
+                DrawIcon(r, icon);
+                continue;
+            }
+            if (!filled && SpecialItems.Icon(SpecialItems.FamilyIcon(family)) is { } shape)
+            {
+                Fill(r, new Color(1f, 1f, 1f, 0.35f)); // light behind the black shape
+                DrawIcon(r, shape, new Color(0f, 0f, 0f, 0.85f));
+                continue;
+            }
+            // Icons missing (setup not run): the letter, as before.
+            Fill(r, filled ? colour : new Color(0f, 0f, 0f, 0.6f));
+            text.fontSize = Mathf.RoundToInt(5f * s);
+            Label(r, letter, TextAnchor.MiddleCenter);
+            text.fontSize = Mathf.RoundToInt(8f * s);
+        }
+    }
+
     Texture2D PortraitOf(int id)
     {
         if (!portraits.TryGetValue(id, out var texture))
@@ -216,13 +453,15 @@ public class TeamMenu : MonoBehaviour
             if (!SaveData.IsUnlocked(id)) Label(rect, "?", TextAnchor.MiddleCenter);
             int slot = team.IndexOf(id);
             if (slot >= 0) Label(new Rect(rect.x + 2f * s, rect.y, rect.width, 10f * s), (slot + 1).ToString(), TextAnchor.UpperLeft);
+            DrawNotches(id, rect, s);
         }
 
         // Details of the Pokémon under the cursor.
         float px = left + (gridWidth + 16f) * s;
         var panel = new Rect(px, top, panelWidth * s, PanelHeight * s);
         Fill(panel, Frame);
-        if (editingMoves) DrawMoves(choices[cursor], panel, s);
+        if (editingItems) DrawItems(choices[cursor], panel, s);
+        else if (editingMoves) DrawMoves(choices[cursor], panel, s);
         else if (choices.Count > 0) DrawDetails(choices[cursor], panel, s);
 
         // Team and help.
@@ -232,9 +471,11 @@ public class TeamMenu : MonoBehaviour
             Fill(rect, Frame);
             if (i < team.Count && PortraitOf(team[i]) is { } picture) GUI.DrawTexture(rect, picture);
         }
-        string help = editingMoves
+        string help = editingItems
+            ? "Haut / bas : famille     Gauche / droite : objet     Croix ou Espace : objet actif     Rond, Carré, Échap ou O : valider"
+            : editingMoves
             ? $"Haut / bas : parcourir     Croix ou Espace : choisir ({picked.Count}/{MoveCount})     Rond, Triangle ou Échap : valider"
-            : "Croix directionnelle : déplacer     Croix ou Espace : ajouter / retirer     Rond ou Échap : retirer le dernier     Triangle ou E : attaques     "
+            : "Croix directionnelle : déplacer     Croix ou Espace : ajouter / retirer     Rond ou Échap : retirer le dernier     Triangle ou E : attaques     Carré ou O : objets     "
               + (team.Count > 0 ? "Options ou Entrée : lancer la partie" + (SaveData.Settings.devMode ? "     Select ou T : terrain de test" : "") : $"(choisir 1 à {teamSize} Pokémon)");
         Label(new Rect(0, by + 38f * s, Screen.width, 12f * s), help, TextAnchor.MiddleCenter);
         Label(new Rect(0, by + 52f * s, Screen.width, 12f * s),

@@ -64,8 +64,8 @@ public static class RoleTactics
 
         Combatant patient = null; // wounded ally that is out of reach
         float wanted = float.MaxValue; // shortest reach among the ready moves worth walking for
-        // An ally first undoes the walkway an opponent fighting at close range stands on or is about to cross.
-        if (canAttack && self.team == Team.Player && ObstacleTactics.Cut(self, out var cut, out var cutFoe))
+        // An ally (or an elite) first undoes the walkway an opponent fighting at close range stands on or is about to cross.
+        if (canAttack && (self.team == Team.Player || self.IsElite) && ObstacleTactics.Cut(self, out var cut, out var cutFoe))
         {
             decision.foe = cutFoe;
             return Use(decision, cut.slot, cut.aim, cut.distance);

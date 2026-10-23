@@ -1,0 +1,524 @@
+{
+ "comment": "Special items (SpecialItems.cs): mega stones (one per mega of megas.json with sprites; 'mega' = its id there), Z crystals and Tera shards (one per type, ROM type ids; no Fairy, absent from the generation 4 chart). Names to check against the French games. rayquaza: Rayquaza mega evolves without a stone when it knows that move (Dragon Ascent is not in the ROM: Draco Meteor stands in). levels: what each level (1 to 3) of a Z crystal or Tera shard gives: zPower multiplies the move's power, zScale its size (radius, range, effect), teraTime the seconds of the Terastal phase. A Z move takes zPose seconds of pose first (still and unharmed). loot: bossMega chance that a boss drops a mega stone not owned yet (compatible with the team first), else bossOther chance of a Z crystal or Tera shard; a chest at the end of a stage gives one Z crystal or Tera shard; eliteChance: share of the enemies that are elites (tougher, golden, eliteHealth × health), eliteDrop: chance an elite drops one; teamTypeWeight: how much more likely an item of a type of the team is.",
+ "megaStones": [
+  {
+   "key": "stone_20061",
+   "name": "Dracaufite X",
+   "mega": 20061,
+   "icon": "charizardite-x"
+  },
+  {
+   "key": "stone_20651",
+   "name": "Alakazamite",
+   "mega": 20651,
+   "icon": "alakazite"
+  },
+  {
+   "key": "stone_20941",
+   "name": "Ectoplasmite",
+   "mega": 20941,
+   "icon": "gengarite"
+  },
+  {
+   "key": "stone_21151",
+   "name": "Kangourexite",
+   "mega": 21151,
+   "icon": "kangaskhanite"
+  },
+  {
+   "key": "stone_21421",
+   "name": "Ptéraïte",
+   "mega": 21421,
+   "icon": "aerodactylite"
+  },
+  {
+   "key": "stone_21502",
+   "name": "Mewtwoïte Y",
+   "mega": 21502,
+   "icon": "mewtwonite-y"
+  },
+  {
+   "key": "stone_22081",
+   "name": "Steelixite",
+   "mega": 22081,
+   "icon": "steelixite"
+  },
+  {
+   "key": "stone_22271",
+   "name": "Airmurite",
+   "mega": 22271,
+   "icon": "skarmorite"
+  },
+  {
+   "key": "stone_22291",
+   "name": "Démolossite",
+   "mega": 22291,
+   "icon": "houndoominite"
+  },
+  {
+   "key": "stone_22481",
+   "name": "Tyranocivite",
+   "mega": 22481,
+   "icon": "tyranitarite"
+  },
+  {
+   "key": "stone_22821",
+   "name": "Gardevoirite",
+   "mega": 22821,
+   "icon": "gardevoirite"
+  },
+  {
+   "key": "stone_23021",
+   "name": "Ténéfixite",
+   "mega": 23021,
+   "icon": "sablenite"
+  },
+  {
+   "key": "stone_23031",
+   "name": "Mysdibulite",
+   "mega": 23031,
+   "icon": "mawilite"
+  },
+  {
+   "key": "stone_23081",
+   "name": "Charminite",
+   "mega": 23081,
+   "icon": "medichamite"
+  },
+  {
+   "key": "stone_23101",
+   "name": "Élecsprintite",
+   "mega": 23101,
+   "icon": "manectite"
+  },
+  {
+   "key": "stone_23231",
+   "name": "Caméruptite",
+   "mega": 23231,
+   "icon": "cameruptite"
+  },
+  {
+   "key": "stone_23341",
+   "name": "Altarite",
+   "mega": 23341,
+   "icon": "altarianite"
+  },
+  {
+   "key": "stone_23541",
+   "name": "Branettite",
+   "mega": 23541,
+   "icon": "banettite"
+  },
+  {
+   "key": "stone_23591",
+   "name": "Absolite",
+   "mega": 23591,
+   "icon": "absolite"
+  },
+  {
+   "key": "stone_23621",
+   "name": "Oniglalite",
+   "mega": 23621,
+   "icon": "glalitite"
+  },
+  {
+   "key": "stone_23801",
+   "name": "Latiasite",
+   "mega": 23801,
+   "icon": "latiasite"
+  },
+  {
+   "key": "stone_23811",
+   "name": "Latiosite",
+   "mega": 23811,
+   "icon": "latiosite"
+  },
+  {
+   "key": "stone_24281",
+   "name": "Lockpinite",
+   "mega": 24281,
+   "icon": "lopunnite"
+  },
+  {
+   "key": "stone_24481",
+   "name": "Lucarite",
+   "mega": 24481,
+   "icon": "lucarionite"
+  },
+  {
+   "key": "stone_24751",
+   "name": "Gallamite",
+   "mega": 24751,
+   "icon": "galladite"
+  },
+  {
+   "key": "stone_24912",
+   "name": "Darkraïte",
+   "mega": 24912,
+   "icon": "darkranite"
+  }
+ ],
+ "zCrystals": [
+  {
+   "type": 1,
+   "name": "Normalium Z",
+   "move": "Turbo-Charge Bulldozer",
+   "hit": {
+    "effect": "charge_impact",
+    "bonus": 1.25,
+    "stun": 1.2
+   },
+   "icon": "normalium-z--bag"
+  },
+  {
+   "type": 2,
+   "name": "Pyrozium Z",
+   "move": "Pyro-Explosion Cataclysmique",
+   "hit": {
+    "effect": "roue_de_feu_impact",
+    "status": "burn",
+    "statusDuration": 6,
+    "terrain": "embers"
+   },
+   "icon": "firium-z--bag"
+  },
+  {
+   "type": 3,
+   "name": "Hydrozium Z",
+   "move": "Super Tourbillon Abyssal",
+   "hit": {
+    "effect": "vibraqua_impact",
+    "knockback": 3,
+    "terrain": "water"
+   },
+   "icon": "waterium-z--bag"
+  },
+  {
+   "type": 4,
+   "name": "Herbizium Z",
+   "move": "Pétalexplosion",
+   "hit": {
+    "effect": "fouet_lianes_impact",
+    "status": "leech-seed",
+    "statusDuration": 8,
+    "drain": 0.3,
+    "terrain": "brambles"
+   },
+   "icon": "grassium-z--bag"
+  },
+  {
+   "type": 5,
+   "name": "Électrozium Z",
+   "move": "Fulguro-Lance Gigavolt",
+   "hit": {
+    "effect": "eclair_impact",
+    "status": "paralysis",
+    "statusDuration": 4,
+    "terrain": "electric"
+   },
+   "icon": "electrium-z--bag"
+  },
+  {
+   "type": 6,
+   "name": "Glacium Z",
+   "move": "Laser Cryogénique",
+   "hit": {
+    "effect": "vent_glace_impact",
+    "status": "freeze",
+    "statusDuration": 3,
+    "terrain": "ice"
+   },
+   "icon": "icium-z--bag"
+  },
+  {
+   "type": 7,
+   "name": "Combazium Z",
+   "move": "Combo Hyper-Furie",
+   "hit": {
+    "effect": "mach_punch_impact",
+    "knockback": 2.5,
+    "stun": 0.8,
+    "modStat": "defense",
+    "modValue": 0.7,
+    "modDuration": 10
+   },
+   "icon": "fightinium-z--bag"
+  },
+  {
+   "type": 8,
+   "name": "Toxizium Z",
+   "move": "Déluge Causti-Toxique",
+   "hit": {
+    "effect": "poudre_toxik_impact",
+    "status": "poison",
+    "statusDuration": 10,
+    "terrain": "toxic"
+   },
+   "icon": "poisonium-z--bag"
+  },
+  {
+   "type": 9,
+   "name": "Terrazium Z",
+   "move": "Éruption Géo-Sismique",
+   "hit": {
+    "effect": "ampleur_impact",
+    "stun": 2,
+    "terrain": "mud"
+   },
+   "icon": "groundium-z--bag"
+  },
+  {
+   "type": 10,
+   "name": "Aérozium Z",
+   "move": "Piqué Supersonique",
+   "hit": {
+    "effect": "tornade_impact",
+    "knockback": 4,
+    "modStat": "speed",
+    "modValue": 0.6,
+    "modDuration": 8
+   },
+   "icon": "flyinium-z--bag"
+  },
+  {
+   "type": 11,
+   "name": "Psychézium Z",
+   "move": "Psycho-Pulsion Magistrale",
+   "hit": {
+    "effect": "choc_mental_impact",
+    "status": "confusion",
+    "statusDuration": 6
+   },
+   "icon": "psychium-z--bag"
+  },
+  {
+   "type": 12,
+   "name": "Insectozium Z",
+   "move": "Cocon Fatal",
+   "hit": {
+    "effect": "dard_nuee_impact",
+    "drain": 0.25,
+    "modStat": "attack",
+    "modValue": 0.7,
+    "modDuration": 10
+   },
+   "icon": "buginium-z--bag"
+  },
+  {
+   "type": 13,
+   "name": "Rocazium Z",
+   "move": "Apocalypse Gigalithique",
+   "hit": {
+    "effect": "jet_pierres_impact",
+    "stun": 2,
+    "modStat": "speed",
+    "modValue": 0.7,
+    "modDuration": 8
+   },
+   "icon": "rockium-z--bag"
+  },
+  {
+   "type": 14,
+   "name": "Spectrozium Z",
+   "move": "Appel de l'Ombre Éternelle",
+   "hit": {
+    "effect": "ombre_portee_impact",
+    "status": "trap",
+    "statusDuration": 4,
+    "modStat": "defense",
+    "modValue": 0.7,
+    "modDuration": 10
+   },
+   "icon": "ghostium-z--bag"
+  },
+  {
+   "type": 15,
+   "name": "Dracozium Z",
+   "move": "Chaos Draconique",
+   "hit": {
+    "effect": "draco_rage_impact",
+    "bonus": 1.3,
+    "modStat": "defense",
+    "modValue": 0.8,
+    "modDuration": 10
+   },
+   "icon": "dragonium-z--bag"
+  },
+  {
+   "type": 16,
+   "name": "Ténébrozium Z",
+   "move": "Trou Noir des Ombres",
+   "hit": {
+    "effect": "morsure_impact",
+    "stun": 1,
+    "modStat": "attack",
+    "modValue": 0.6,
+    "modDuration": 10
+   },
+   "icon": "darkinium-z--bag"
+  },
+  {
+   "type": 17,
+   "name": "Métalozium Z",
+   "move": "Vrille Maximum",
+   "hit": {
+    "effect": "pisto_poing_impact",
+    "knockback": 2,
+    "teamModStat": "defense",
+    "teamModValue": 1.5,
+    "teamModDuration": 10
+   },
+   "icon": "steelium-z--bag"
+  }
+ ],
+ "teraShards": [
+  {
+   "type": 1,
+   "name": "Téra-Éclat Normal",
+   "icon": "normal_tera_shard"
+  },
+  {
+   "type": 2,
+   "name": "Téra-Éclat Feu",
+   "icon": "fire_tera_shard"
+  },
+  {
+   "type": 3,
+   "name": "Téra-Éclat Eau",
+   "icon": "water_tera_shard"
+  },
+  {
+   "type": 4,
+   "name": "Téra-Éclat Plante",
+   "icon": "grass_tera_shard"
+  },
+  {
+   "type": 5,
+   "name": "Téra-Éclat Électrik",
+   "icon": "electric_tera_shard"
+  },
+  {
+   "type": 6,
+   "name": "Téra-Éclat Glace",
+   "icon": "ice_tera_shard"
+  },
+  {
+   "type": 7,
+   "name": "Téra-Éclat Combat",
+   "icon": "fighting_tera_shard"
+  },
+  {
+   "type": 8,
+   "name": "Téra-Éclat Poison",
+   "icon": "poison_tera_shard"
+  },
+  {
+   "type": 9,
+   "name": "Téra-Éclat Sol",
+   "icon": "ground_tera_shard"
+  },
+  {
+   "type": 10,
+   "name": "Téra-Éclat Vol",
+   "icon": "flying_tera_shard"
+  },
+  {
+   "type": 11,
+   "name": "Téra-Éclat Psy",
+   "icon": "psychic_tera_shard"
+  },
+  {
+   "type": 12,
+   "name": "Téra-Éclat Insecte",
+   "icon": "bug_tera_shard"
+  },
+  {
+   "type": 13,
+   "name": "Téra-Éclat Roche",
+   "icon": "rock_tera_shard"
+  },
+  {
+   "type": 14,
+   "name": "Téra-Éclat Spectre",
+   "icon": "ghost_tera_shard"
+  },
+  {
+   "type": 15,
+   "name": "Téra-Éclat Dragon",
+   "icon": "dragon_tera_shard"
+  },
+  {
+   "type": 16,
+   "name": "Téra-Éclat Ténèbres",
+   "icon": "dark_tera_shard"
+  },
+  {
+   "type": 17,
+   "name": "Téra-Éclat Acier",
+   "icon": "steel_tera_shard"
+  }
+ ],
+ "rayquaza": {
+  "mega": 23841,
+  "move": 538,
+  "icon": "key-stone"
+ },
+ "levels": {
+  "zPower": [
+   3.0,
+   3.5,
+   4.0
+  ],
+  "zScale": [
+   1.6,
+   1.8,
+   2.0
+  ],
+  "teraTime": [
+   40,
+   50,
+   60
+  ]
+ },
+ "zPose": 0.8,
+ "loot": {
+  "bossMega": 1.0,
+  "bossOther": 0.6,
+  "eliteChance": 0.033,
+  "eliteDrop": 0.5,
+  "eliteHealth": 2.0,
+  "teamTypeWeight": 3.0
+ },
+ "dev": [
+  {
+   "pokemon": 9001,
+   "family": "z",
+   "type": 2
+  },
+  {
+   "pokemon": 9002,
+   "family": "tera",
+   "type": 14
+  }
+ ],
+ "zFlash": "evolution_onde",
+ "_comment_z": "Capacité Z : frappe tous les ennemis visibles à l'écran (dégâts de la plus forte attaque du type × zPower × bonus), puis l'effet du cristal (hit) : status/statusDuration, modStat/modValue/modDuration (malus), stun, knockback (cases de poussée depuis le lanceur, négatif = attire), drain (soin de l'équipe), terrain posé sous chaque cible (rayon × zScale), teamModStat/teamModValue/teamModDuration (bonus à toute l'équipe), effect (planche jouée sur chaque cible). dev : objet imposé aux persos de dev (niveau 1).",
+ "_comment_icons": "icon : image Assets/Resources/Items/<icon>.png, téléchargée par Tools/pmd/import_items.py (méga-gemmes, cristaux Z, Rayquaza : PokeAPI/sprites ; Téra-Éclats : Nikostera, CC BY-NC-SA 4.0) ; crédits dans CREDITS_ITEMS.md. familyIcons : icône de chaque famille, en silhouette noire sur une encoche vide du menu.",
+ "familyIcons": {
+  "mega": "gengarite",
+  "z": "normalium-z--bag",
+  "tera": "normal_tera_shard"
+ },
+ "enemy": {
+  "startDelay": 4,
+  "checkEvery": 0.5,
+  "teraHealth": 0.75,
+  "teraMinGain": 0.2,
+  "zMinTargets": 2,
+  "zRange": 8,
+  "zKillShare": 0.6,
+  "level": 1,
+  "zMaxShare": 0.4
+ },
+ "_comment_enemy": "enemy : ultimes des élites et des boss (EnemyUltimate). Chacun porte un seul objet, donc un seul ultime, une seule fois, choisi quand il examine le combat pour la première fois d'après l'équipe du joueur : un Téra-Éclat si un type réduit d'au moins teraMinGain le multiplicateur moyen de leurs attaques contre lui (utilisé quand ses PV tombent sous teraHealth), sinon le cristal Z de sa plus forte attaque (utilisé quand au moins zMinTargets adversaires sont à moins de zRange cases, ou qu'un seul perdrait zKillShare de ses PV restants ; au plus zMaxShare des PV max de chaque cible ; son terrain n'agit jamais sur l'équipe du lanceur). startDelay : secondes avant le premier examen, checkEvery : entre deux ; level : niveau de l'objet."
+}
