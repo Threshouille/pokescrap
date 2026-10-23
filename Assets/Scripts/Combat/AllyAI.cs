@@ -6,7 +6,8 @@ using UnityEngine;
 /// and waits at the edge when there is none. When the leader falls back (walks away from it beyond allyFollowBreak),
 /// it drops the fight and follows; hurt (under allyRetreatHealth), it keeps close to the leader and only fights
 /// opponents that come near, until it is back above allyRetreatRecover (meta.json). Cut off from the leader by water,
-/// lava or void, it changes them with its moves to make a way (ObstacleTactics.Repair).
+/// lava or void, it changes them with its moves to make a way (ObstacleTactics.Repair). While a team-mate is knocked
+/// out, it either guards it (draws the opponents near it away) or brings it back (TeamRescue).
 /// It walks around walls and harmful zones, dodges announced attacks and incoming shots, and a melee ally dodges
 /// forward to catch up with its target.
 [RequireComponent(typeof(Rigidbody2D), typeof(PmdAnimator), typeof(Combatant))]
@@ -33,6 +34,10 @@ public class AllyAI : MonoBehaviour
 
     readonly Navigator navigator = new();
     readonly Navigator repairNavigator = new(); // way to the spot a repair is made from (the main one keeps the leader)
+    readonly Navigator rescueNavigator = new(); // way to a knocked-out team-mate or to the guard's spot
+    PlayerController team;
+    Combatant leaderCombatant;
+    Transform leaderSeenAs;
     ObstacleTactics.Plan repair;
     bool hasRepair;
     float nextRepair;
@@ -56,6 +61,8 @@ public class AllyAI : MonoBehaviour
         leash = SaveData.Settings.allyLeash;
         aggroRange = SaveData.Settings.allyAggroRange;
     }
+
+    void Start() => team = FindAnyObjectByType<PlayerController>();
 
     void FixedUpdate()
     {
@@ -85,6 +92,8 @@ public class AllyAI : MonoBehaviour
             Steer(RoleTactics.EscapeStep(grid, position, escape), escape);
             return;
         }
+
+        if (TryRescue(position, grid)) return;
 
         var settings = SaveData.Settings;
         Vector2 toLeader = (Vector2)leader.position - position;
@@ -152,6 +161,50 @@ public class AllyAI : MonoBehaviour
             return true;
         }
         Steer(repairNavigator.Direction(position, repair.stand, combatant, avoid: true), repair.stand - position);
+        return true;
+    }
+
+    // A team-mate is knocked out: guards it or brings it back (TeamRescue).
+    bool TryRescue(Vector2 position, DungeonGenerator grid)
+    {
+        if (leaderSeenAs != leader)
+        {
+            leaderSeenAs = leader;
+            leaderCombatant = leader != null ? leader.GetComponent<Combatant>() : null;
+        }
+        float radius = team != null ? team.reviveRadius : 1f;
+        var job = TeamRescue.JobOf(combatant, leaderCombatant, radius, out var downed, out var threat);
+        if (job == TeamRescue.Job.None) return false;
+
+        if (job == TeamRescue.Job.Revive)
+        {
+            Vector2 toBody = (Vector2)downed.transform.position - position;
+            // On it: stays, and only hits what is in reach from there.
+            if (toBody.magnitude <= radius * 0.6f)
+            {
+                var hold = RoleTactics.Decide(combatant, navigator, aggroRange);
+                if (hold.slot >= 0 && hold.foe != null && combatant.Moves[hold.slot].lunge <= 0f
+                    && Act(hold.slot, hold.aim, hold.distance)) return true;
+                Steer(Vector2.zero, hold.foe != null ? (Vector2)hold.foe.transform.position - position : toBody);
+                return true;
+            }
+            Vector2 way = rescueNavigator.Direction(position, downed.transform.position, combatant, avoid: true);
+            if (way != Vector2.zero && !rescueNavigator.SafePath && Dangerous(position + way.normalized * EdgeLook)) way = Vector2.zero;
+            Steer(way, toBody);
+            return true;
+        }
+
+        // Guard: fights the opponent nearest to the knocked-out one and draws it (and its group) away.
+        TargetChoice.Taunt(combatant);
+        var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, threat);
+        if (decision.slot >= 0 && Act(decision.slot, decision.aim, decision.distance)) return true;
+        bool ready = false;
+        for (int i = 0; i < Combatant.MoveSlots; i++)
+            if (combatant.Moves[i] != null && combatant.Moves[i].power > 0 && combatant.CooldownLeft(i) <= 0f) ready = true;
+        Vector2 spot = TeamRescue.GuardSpot(combatant, downed, threat, ready);
+        Vector2 toSpot = spot - position;
+        Vector2 step = toSpot.magnitude > 0.4f ? rescueNavigator.Direction(position, spot, combatant, avoid: true) : Vector2.zero;
+        Steer(step, (Vector2)threat.transform.position - position);
         return true;
     }
 

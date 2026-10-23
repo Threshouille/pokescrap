@@ -87,11 +87,12 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 23 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 27 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
-  brûler un pont sous un ennemi, marcher sur du métal chargé) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
+  brûler un pont sous un ennemi, marcher sur du métal chargé, objets et ultimes, élites, réanimer un K.O., l'éloigner
+  des ennemis, soigner sans se mettre en danger) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
   Sans ouvrir Unity : `python3 Tools/setup.py --ai-scenarios` (Unity fermé ; résultats dans `Logs/ai_scenarios.log`,
   code de sortie = nombre d'échecs). Scénarios : `Assets/Scripts/Combat/AiScenarios.cs`.
 
@@ -120,7 +121,10 @@ la gèle pour venir, avec pont il le brûle sous un Pokémon qui se bat au corps
 mène à la **salle du boss** : Mewtwo. Comme tout Pokémon, un élite ou un boss porte un seul objet (Téra-Éclat ou
 cristal Z, choisi d'après ton équipe), donc un seul ultime, une seule fois ; le terrain d'une capacité Z n'agit jamais
 sur l'équipe de son lanceur. Les deux
-reviennent quelques secondes après un K.O. (`eliteRoom` / `bossRoom` dans `terrain_sandbox.json`). Les rivières vont d'un mur à l'autre, les ponts sont
+reviennent quelques secondes après un K.O. (`eliteRoom` / `bossRoom` dans `terrain_sandbox.json`). L'**escalier vert** (à
+droite) mène aux **démos de secours** : six cas réels (réanimation par un allié, garde qui éloigne les ennemis ou le
+boss, soin d'un coéquipier, pas de soin risqué) qui s'enchaînent tout seuls en boucle, à regarder sans jouer ; le
+bandeau dit quoi observer et le rôle pris par l'allié, ↑/↓ change de cas, bouger le Pokémon reprend la main. Les rivières vont d'un mur à l'autre, les ponts sont
 droits ; l'eau et la lave ne se touchent jamais. L'eau, la lave, le vide et la glace
 reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
 ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et murs de glace ont leurs planches Claude Design
@@ -230,6 +234,15 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 23/10/2026 — Secours et soins des alliés (Robin, branche `fix/ia-reanimation`)
+- Quand un membre de l'équipe est K.O., le plus apte à encaisser et finir les ennemis (PV, défenses, dégâts, corps à
+  corps) **éloigne** les ennemis proches de lui (il les attire : provocation) pendant que l'autre va le **réanimer** ;
+  si tu te mets toi-même sur le K.O., l'allié garde. Les alliés peuvent désormais réanimer (même règle : rester dessus).
+- **Soins** : un Pokémon qui a un soin va soigner un coéquipier presque K.O. (sous 40 %) même s'il n'est pas soutien,
+  mais jamais vers une zone dangereuse ni, s'il est lui-même blessé, à côté d'un ennemi.
+- Réglages `allyGuardRadius`, `allyLureDistance`, `allyHealLow`, `allyHealSafeHealth`, `allyHealSafeGap`,
+  `aiTargetTaunt` dans `meta.json`.
 
 ### 23/10/2026 — Objets spéciaux : méga-gemmes, cristaux Z, Téra-Éclats (Robin, branche `feature/objets`)
 - **Objets** (`Assets/Resources/Data/items.json`, `SpecialItems`) : 26 méga-gemmes (Rayquaza n'en a pas besoin : il
