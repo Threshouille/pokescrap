@@ -18,7 +18,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerController))]
 public class Ultimates : MonoBehaviour
 {
-    const float TeraPose = 0.6f;
+    public const float TeraPose = 0.6f;
 
     PlayerController team;
     Progression progression;
@@ -108,7 +108,7 @@ public class Ultimates : MonoBehaviour
 
     /// The move a Z crystal of that type powers up: the strongest damaging one of the type the member knows.
     /// A dev character, which knows few of its moves, takes the strongest of all those it could learn.
-    static MoveDef BaseMoveFor(Combatant member, int type)
+    public static MoveDef BaseMoveFor(Combatant member, int type)
     {
         IEnumerable<MoveDef> moves = GameData.IsDev(member.OriginId) ? GameData.MovePool(member.OriginId) : member.Moves;
         var best = moves.Where(m => m != null && SpecialItems.KnowsMoveOfType(new[] { m }, type)).OrderByDescending(m => m.power).FirstOrDefault();
@@ -119,8 +119,9 @@ public class Ultimates : MonoBehaviour
     /// A Z move waits for an opponent in view (not in the test arena, often empty: it strikes the air there).
     static bool FoesInView(Combatant member) => Run.Sandbox || VisibleFoes(member).Count > 0;
 
-    /// The opponents a Z move strikes: alive and within the camera's view, nearest first.
-    public static List<Combatant> VisibleFoes(Combatant member)
+    /// The opponents a Z move strikes: alive and within the camera's view (and within "range" tiles when > 0),
+    /// nearest first.
+    public static List<Combatant> VisibleFoes(Combatant member, float range = 0f)
     {
         var cam = Camera.main;
         var result = new List<Combatant>();
@@ -131,7 +132,9 @@ public class Ultimates : MonoBehaviour
         {
             if (other == null || !other.IsAlive || other.team == member.team) continue;
             Vector2 d = (Vector2)other.transform.position - c;
-            if (Mathf.Abs(d.x) <= w && Mathf.Abs(d.y) <= h) result.Add(other);
+            if (Mathf.Abs(d.x) > w || Mathf.Abs(d.y) > h) continue;
+            if (range > 0f && Vector2.Distance(other.transform.position, member.transform.position) > range) continue;
+            result.Add(other);
         }
         Vector2 from = member.transform.position;
         result.Sort((a, b) => Vector2.Distance(from, a.transform.position).CompareTo(Vector2.Distance(from, b.transform.position)));
@@ -285,20 +288,28 @@ public class Ultimates : MonoBehaviour
     const float ZCascade = 0.06f; // seconds between two opponents struck
     const float ZPushTime = 0.5f; // seconds a Z push lasts (ZHit.knockback: tiles)
 
-    System.Collections.IEnumerator StrikeZ(Combatant member, MoveDef move, int type, int level)
+    /// The Z strike itself (the player's, or an enemy's: EnemyUltimate, with a range, and no more than maxShare of each
+    /// target's maximum health when > 0).
+    public static System.Collections.IEnumerator StrikeZ(Combatant member, MoveDef move, int type, int level, float range = 0f, float maxShare = 0f)
     {
         var hit = SpecialItems.Crystal(type)?.hit ?? new SpecialItems.ZHit();
         float scale = SpecialItems.ZScale(level);
         Color colour = GameData.TypeColor(type);
         var flash = EffectPlayer.Spawn(SpecialItems.ZFlash, member.transform.position, Vector2.right, null, 0f, 8f * scale);
         if (flash != null) flash.GetComponent<SpriteRenderer>().color = colour;
-        foreach (var foe in VisibleFoes(member))
+        foreach (var foe in VisibleFoes(member, range))
         {
             if (foe == null || !foe.IsAlive) continue;
             Vector2 at = foe.transform.position;
             var sheet = EffectLibrary.Get(hit.effect) != null ? hit.effect : move.impactEffect;
             EffectPlayer.Spawn(sheet, at, Vector2.right, null, 0f, 1.5f * scale);
-            if (member != null && foe.TakeHit(member.DamageOf(move), move, out float dealt))
+            float raw = member != null ? member.DamageOf(move) : 0f;
+            if (maxShare > 0f && member != null)
+            {
+                float estimate = member.EstimateHit(move, foe);
+                if (estimate > foe.maxHp * maxShare) raw *= foe.maxHp * maxShare / estimate;
+            }
+            if (member != null && foe.TakeHit(raw, move, out float dealt))
             {
                 foe.ApplyEffects(move, true, member);
                 member.HitLanded(move, dealt);
@@ -333,7 +344,7 @@ public class Ultimates : MonoBehaviour
 
     // ---- Shared ----
 
-    static void Aura(Combatant member, float time, Color colour)
+    public static void Aura(Combatant member, float time, Color colour)
     {
         var aura = EffectPlayer.Spawn("evolution_aura", member.transform.position + Vector3.up * Evolution.AuraHeight,
             Vector2.right, member.transform, time);

@@ -23,6 +23,15 @@ public static class SpecialItems
     }
 
     /// An item given for good to a dev character (devMode), at level 1.
+    [Serializable]
+    public class EnemySettings
+    {
+        public int zMinTargets = 2, level = 1;
+        public float startDelay = 4f, checkEvery = 0.5f, teraHealth = 0.75f, teraMinGain = 0.2f, zRange = 8f, zKillShare = 0.6f, zMaxShare = 0.4f;
+    }
+
+    [Serializable] public class FamilyIcons { public string mega, z, tera; }
+
     [Serializable] public class DevItem { public int pokemon, type = -1; public string family; }
     [Serializable] public class TeraShard { public int type; public string name, icon; }
     [Serializable] public class Rayquaza { public int mega, move; public string icon; }
@@ -45,6 +54,8 @@ public static class SpecialItems
         public float zPose = 0.8f;
         public LootSettings loot = new();
         public DevItem[] dev = new DevItem[0];
+        public FamilyIcons familyIcons = new();
+        public EnemySettings enemy = new();
         public string zFlash = "evolution_onde";
     }
 
@@ -82,6 +93,7 @@ public static class SpecialItems
     public static IReadOnlyList<ZCrystal> Crystals => Data.zCrystals;
     public static IReadOnlyList<TeraShard> Shards => Data.teraShards;
     public static LootSettings Loot => Data.loot;
+    public static EnemySettings Enemy => Data.enemy;
     public static float ZPose => Data.zPose;
     public static string ZFlash => Data.zFlash;
     public static int RayquazaMega => Data.rayquaza.mega;
@@ -158,6 +170,15 @@ public static class SpecialItems
         Family.Mega => stone == RayquazaKey ? Data.rayquaza.icon : Stone(stone)?.icon,
         Family.Z => Crystal(type)?.icon,
         Family.Tera => Shard(type)?.icon,
+        _ => null,
+    };
+
+    /// Icon standing for a whole family (an empty notch of the menu shows it as a black silhouette).
+    public static string FamilyIcon(Family family) => family switch
+    {
+        Family.Mega => Data.familyIcons.mega,
+        Family.Z => Data.familyIcons.z,
+        Family.Tera => Data.familyIcons.tera,
         _ => null,
     };
 

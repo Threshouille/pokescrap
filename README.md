@@ -87,7 +87,7 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 19 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 23 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
@@ -114,7 +114,13 @@ aimantées. Six **cibles d'entraînement** (ennemis immobiles qui n'attaquent pa
 `dummies` dans `terrain_sandbox.json`) servent à essayer attaques, capacités Z et obstacles. L'**escalier orange** (en
 haut à gauche du terrain de test) mène à la **démo des capacités Z** : huit cibles résistantes en cercle, **↑/↓** (ou
 **1/2**) choisit le cristal porté par le Pokémon joué, **F** ou **L3 + R3** lance (sans attaque du type, il emprunte la
-plus forte du jeu) ; le nom et l'effet du cristal s'affichent en haut. Les rivières vont d'un mur à l'autre, les ponts sont
+plus forte du jeu) ; le nom et l'effet du cristal s'affichent en haut. L'**escalier jaune** (en bas à gauche) mène à la
+**salle de l'élite** : un Lokhlass d'élite derrière une rivière (**R** / **Select** : avec ou sans pont) ; sans pont il
+la gèle pour venir, avec pont il le brûle sous un Pokémon qui se bat au corps à corps. L'**escalier rouge** (en bas)
+mène à la **salle du boss** : Mewtwo. Comme tout Pokémon, un élite ou un boss porte un seul objet (Téra-Éclat ou
+cristal Z, choisi d'après ton équipe), donc un seul ultime, une seule fois ; le terrain d'une capacité Z n'agit jamais
+sur l'équipe de son lanceur. Les deux
+reviennent quelques secondes après un K.O. (`eliteRoom` / `bossRoom` dans `terrain_sandbox.json`). Les rivières vont d'un mur à l'autre, les ponts sont
 droits ; l'eau et la lave ne se touchent jamais. L'eau, la lave, le vide et la glace
 reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
 ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et murs de glace ont leurs planches Claude Design

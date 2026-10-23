@@ -503,5 +503,22 @@
  ],
  "zFlash": "evolution_onde",
  "_comment_z": "Capacité Z : frappe tous les ennemis visibles à l'écran (dégâts de la plus forte attaque du type × zPower × bonus), puis l'effet du cristal (hit) : status/statusDuration, modStat/modValue/modDuration (malus), stun, knockback (cases de poussée depuis le lanceur, négatif = attire), drain (soin de l'équipe), terrain posé sous chaque cible (rayon × zScale), teamModStat/teamModValue/teamModDuration (bonus à toute l'équipe), effect (planche jouée sur chaque cible). dev : objet imposé aux persos de dev (niveau 1).",
- "_comment_icons": "icon : image Assets/Resources/Items/<icon>.png, téléchargée par Tools/pmd/import_items.py (méga-gemmes, cristaux Z, Rayquaza : PokeAPI/sprites ; Téra-Éclats : Nikostera, CC BY-NC-SA 4.0) ; crédits dans CREDITS_ITEMS.md."
+ "_comment_icons": "icon : image Assets/Resources/Items/<icon>.png, téléchargée par Tools/pmd/import_items.py (méga-gemmes, cristaux Z, Rayquaza : PokeAPI/sprites ; Téra-Éclats : Nikostera, CC BY-NC-SA 4.0) ; crédits dans CREDITS_ITEMS.md. familyIcons : icône de chaque famille, en silhouette noire sur une encoche vide du menu.",
+ "familyIcons": {
+  "mega": "gengarite",
+  "z": "normalium-z--bag",
+  "tera": "normal_tera_shard"
+ },
+ "enemy": {
+  "startDelay": 4,
+  "checkEvery": 0.5,
+  "teraHealth": 0.75,
+  "teraMinGain": 0.2,
+  "zMinTargets": 2,
+  "zRange": 8,
+  "zKillShare": 0.6,
+  "level": 1,
+  "zMaxShare": 0.4
+ },
+ "_comment_enemy": "enemy : ultimes des élites et des boss (EnemyUltimate). Chacun porte un seul objet, donc un seul ultime, une seule fois, choisi quand il examine le combat pour la première fois d'après l'équipe du joueur : un Téra-Éclat si un type réduit d'au moins teraMinGain le multiplicateur moyen de leurs attaques contre lui (utilisé quand ses PV tombent sous teraHealth), sinon le cristal Z de sa plus forte attaque (utilisé quand au moins zMinTargets adversaires sont à moins de zRange cases, ou qu'un seul perdrait zKillShare de ses PV restants ; au plus zMaxShare des PV max de chaque cible ; son terrain n'agit jamais sur l'équipe du lanceur). startDelay : secondes avant le premier examen, checkEvery : entre deux ; level : niveau de l'objet."
 }

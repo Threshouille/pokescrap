@@ -310,7 +310,27 @@ public class EnemySpawner : MonoBehaviour
 
     Combatant Spawn(PmdAnimSet set, Vector3 position, bool isBoss, string role = null)
     {
-        var go = new GameObject(GameData.Pokemon(set.pokemonId)?.name ?? "Enemy");
+        // Bosses keep their fixed moves; other enemies draw theirs from what they learn by level.
+        var combatant = Build(set.pokemonId, set, position, isBoss,
+            isBoss ? null : GameData.RandomMoves(set.pokemonId, SaveData.Settings.enemyMoveCount, rng, role),
+            Current.enemyLevel, isBoss ? bossHealthFactor : healthFactor);
+        if (!isBoss && !Run.Sandbox && rng.NextDouble() < SpecialItems.Loot.eliteChance) Loot.MakeElite(combatant);
+        return combatant;
+    }
+
+    /// A fighting enemy for the test arena's rooms (TerrainSandbox): moves given by id, an elite when asked.
+    public Combatant SpawnFighter(int pokemonId, int[] moveIds, Vector3 position, bool isBoss, bool elite, int level, float health)
+    {
+        var set = PokemonRoster.Get(pokemonId);
+        if (set == null) return null;
+        var combatant = Build(pokemonId, set, position, isBoss, moveIds, level, health);
+        if (elite) Loot.MakeElite(combatant);
+        return combatant;
+    }
+
+    Combatant Build(int pokemonId, PmdAnimSet set, Vector3 position, bool isBoss, int[] moveIds, int enemyLevel, float health)
+    {
+        var go = new GameObject(GameData.Pokemon(pokemonId)?.name ?? "Enemy");
         go.transform.SetParent(transform, false);
         go.transform.position = position;
         if (isBoss) go.transform.localScale = Vector3.one * bossScale;
@@ -324,15 +344,17 @@ public class EnemySpawner : MonoBehaviour
 
         go.AddComponent<PmdAnimator>().SetAnimSet(set);
         var combatant = go.AddComponent<Combatant>();
-        // Bosses keep their fixed moves; other enemies draw theirs from what they learn by level.
-        combatant.Init(set.pokemonId, Team.Enemy, isBoss ? null : GameData.RandomMoves(set.pokemonId, SaveData.Settings.enemyMoveCount, rng, role));
-        for (int level = 2; level <= Current.enemyLevel; level++)
-            combatant.ApplyGrowth(LevelData.Growth(set.pokemonId, level), level);
+        combatant.Init(pokemonId, Team.Enemy, moveIds);
+        for (int level = 2; level <= enemyLevel; level++)
+            combatant.ApplyGrowth(LevelData.Growth(pokemonId, level), level);
         combatant.damageFactor = damageFactor;
         combatant.isBoss = isBoss;
-        combatant.maxHp = combatant.hp = combatant.maxHp * (isBoss ? bossHealthFactor : healthFactor);
-        if (!isBoss && !Run.Sandbox && rng.NextDouble() < SpecialItems.Loot.eliteChance) Loot.MakeElite(combatant);
-        if (isBoss) go.AddComponent<BossAI>(); // numbered announcements instead of danger areas
+        combatant.maxHp = combatant.hp = combatant.maxHp * health;
+        if (isBoss)
+        {
+            go.AddComponent<BossAI>(); // numbered announcements instead of danger areas
+            go.AddComponent<EnemyUltimate>();
+        }
         else
         {
             go.AddComponent<EnemyAI>();

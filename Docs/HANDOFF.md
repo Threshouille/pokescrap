@@ -73,8 +73,8 @@ d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : b
 ## Objets spéciaux (branche `feature/objets`, 23/10/2026, Robin)
 
 Faits : `items.json`, collection et équipement dans la sauvegarde, encoches et écran des objets au menu, ultimes (méga
-avec gemme, capacité Z, Téracristal) sur la jauge commune, butin (boss, coffre de fin d'étape, élites). Banc 19/19 (5
-scénarios d'objets). À faire : tester en jeu ; icônes d'objets faites (`import_items.py`, PokeAPI + Nikostera) ; effets Z et Téra à chercher en ligne
+avec gemme, capacité Z, Téracristal) sur la jauge commune, butin (boss, coffre de fin d'étape, élites). Banc 23/23 (5
+scénarios d'objets, 4 d'élites et d'ultimes ennemis). Ultimes ennemis (`EnemyUltimate`) et élites qui modifient le terrain : faits. À faire : tester en jeu ; icônes d'objets faites (`import_items.py`, PokeAPI + Nikostera) ; effets Z et Téra à chercher en ligne
 plutôt que chez Claude Design (demande de Robin) ; vérifier les noms français des objets ; observé sur le banc : une
 attaque de projectile touche un ennemi immobile du banc à de nombreuses reprises (1 035 dégâts pour ≈ 33 estimés par
 coup), à vérifier en jeu.

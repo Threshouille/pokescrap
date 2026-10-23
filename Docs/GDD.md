@@ -69,6 +69,10 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   flaque ; Acier : bonus de défense à l'équipe ; détail dans `items.json`). Persos de dev : Dev Mew a un cristal Z Feu,
   Dev Métamorph un Téra-Éclat Spectre. Téracristal : le Pokémon prend le type de l'éclat pendant 40 à 60 s selon le niveau (défense,
   terrains, immunités ; attaques de ce type renforcées).
+- Ultimes ennemis (décidé le 23/10/2026, Robin) : comme tout Pokémon, un élite ou un boss porte un seul objet, donc un
+  seul ultime, une seule fois ; l'objet est choisi d'après l'équipe du joueur : Téracristal défensif quand ils sont blessés et qu'un type encaisse mieux les attaques
+  de l'équipe, capacité Z quand l'équipe est groupée ou qu'une cible est presque K.O. (bandeau d'alerte pendant la pose,
+  dégâts plafonnés). Le terrain d'une capacité Z n'agit jamais sur l'équipe de son lanceur. Les élites modifient aussi le terrain comme les alliés (gèlent une rivière, brûlent un pont).
 - Obtention (à affiner) : boss (méga-gemme non possédée, compatible avec l'équipe en priorité), coffre de fin d'étape
   (Z ou Téra pondérés vers les types de l'équipe), rare ennemi d'élite ; plus tard défis, quêtes, îlots, boutique.
 

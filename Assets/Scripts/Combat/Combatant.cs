@@ -55,6 +55,9 @@ public class Combatant : MonoBehaviour
     public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil && !IsEvolving;
     /// True during the evolution animation: the Pokémon stands still and nothing hurts it.
     public bool IsEvolving => Time.time < evolvingUntil;
+
+    /// An elite enemy (Loot.MakeElite): it handles obstacles like an ally (ObstacleTactics).
+    public bool IsElite => GetComponent<EliteMark>() != null;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
     public bool IsDodging => Time.time < dodgeUntil;

@@ -349,39 +349,50 @@ public class TeamMenu : MonoBehaviour
     static Sprite ItemIcon(SpecialItems.Family family, string value) =>
         value == "" ? null : SpecialItems.Icon(SpecialItems.IconName(family, value, int.TryParse(value, out int type) ? type : -1));
 
-    // Draws an item's sprite in a rect, keeping its proportions.
-    static void DrawIcon(Rect rect, Sprite icon)
+    // Draws an item's sprite in a rect; "tint" multiplies it (black: a silhouette).
+    static void DrawIcon(Rect rect, Sprite icon, Color? tint = null)
     {
         var t = icon.texture;
         var r = icon.textureRect;
+        var previous = GUI.color;
+        if (tint.HasValue) GUI.color = tint.Value;
         GUI.DrawTextureWithTexCoords(rect, t, new Rect(r.x / t.width, r.y / t.height, r.width / t.width, r.height / t.height));
+        GUI.color = previous;
     }
 
-    // The notches of a portrait: one per family that applies to the Pokémon, filled when its slot holds an item,
-    // framed when that item is the active one.
+    // The notches of a portrait: one per family that applies to the Pokémon, the family's shape in black while its
+    // slot is empty, the item's icon once one is put there, framed when that item is the active one.
     void DrawNotches(int id, Rect cell, float s)
     {
         if (!SaveData.IsUnlocked(id) || GameData.IsDev(id)) return;
         var l = SaveData.LoadoutOf(id);
-        var families = new List<(string letter, bool filled, bool active, Color colour, Sprite icon)>();
+        var families = new List<(SpecialItems.Family family, string letter, bool filled, bool active, Color colour, Sprite icon)>();
         if (SpecialItems.HasMegaLine(id))
-            families.Add(("M", l.mega != "", l.active == "mega", new Color(0.85f, 0.45f, 1f), ItemIcon(SpecialItems.Family.Mega, l.mega)));
-        families.Add(("Z", l.z >= 0, l.active == "z", l.z >= 0 ? GameData.TypeColor(l.z) : Color.gray,
+            families.Add((SpecialItems.Family.Mega, "M", l.mega != "", l.active == "mega", new Color(0.85f, 0.45f, 1f), ItemIcon(SpecialItems.Family.Mega, l.mega)));
+        families.Add((SpecialItems.Family.Z, "Z", l.z >= 0, l.active == "z", l.z >= 0 ? GameData.TypeColor(l.z) : Color.gray,
             l.z >= 0 ? ItemIcon(SpecialItems.Family.Z, l.z.ToString()) : null));
-        families.Add(("T", l.tera >= 0, l.active == "tera", l.tera >= 0 ? GameData.TypeColor(l.tera) : Color.gray,
+        families.Add((SpecialItems.Family.Tera, "T", l.tera >= 0, l.active == "tera", l.tera >= 0 ? GameData.TypeColor(l.tera) : Color.gray,
             l.tera >= 0 ? ItemIcon(SpecialItems.Family.Tera, l.tera.ToString()) : null));
-        float size = 9f * s;
+        float size = 10f * s;
         for (int k = 0; k < families.Count; k++)
         {
-            var (letter, filled, isActive, colour, icon) = families[k];
+            var (family, letter, filled, isActive, colour, icon) = families[k];
             var r = new Rect(cell.xMax - (families.Count - k) * (size + s) - s, cell.yMax - size - s, size, size);
             if (isActive) Fill(Grow(r, s), Color.white);
-            Fill(r, filled ? (icon != null ? new Color(0f, 0f, 0f, 0.6f) : colour) : new Color(0f, 0f, 0f, 0.6f));
             if (filled && icon != null)
             {
+                Fill(r, new Color(0f, 0f, 0f, 0.55f));
                 DrawIcon(r, icon);
                 continue;
             }
+            if (!filled && SpecialItems.Icon(SpecialItems.FamilyIcon(family)) is { } shape)
+            {
+                Fill(r, new Color(1f, 1f, 1f, 0.35f)); // light behind the black shape
+                DrawIcon(r, shape, new Color(0f, 0f, 0f, 0.85f));
+                continue;
+            }
+            // Icons missing (setup not run): the letter, as before.
+            Fill(r, filled ? colour : new Color(0f, 0f, 0f, 0.6f));
             text.fontSize = Mathf.RoundToInt(5f * s);
             Label(r, letter, TextAnchor.MiddleCenter);
             text.fontSize = Mathf.RoundToInt(8f * s);

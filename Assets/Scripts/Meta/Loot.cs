@@ -208,10 +208,12 @@ public class Loot : MonoBehaviour
         _ => SpecialItems.Shard(item.type)?.name + (level > 0 ? $" (niv. {level})" : ""),
     };
 
-    /// Turns a freshly spawned enemy into an elite: tougher, a golden ring under it, a chance of a drop.
+    /// Turns a freshly spawned enemy into an elite: tougher, a golden ring under it, an ultimate (EnemyUltimate), it
+    /// changes obstacles like the allies do (cuts walkways, makes a way: EnemyAI), a chance of a drop.
     public static void MakeElite(Combatant c)
     {
         c.gameObject.AddComponent<EliteMark>();
+        c.gameObject.AddComponent<EnemyUltimate>();
         c.maxHp *= SpecialItems.Loot.eliteHealth;
         c.hp = c.maxHp;
         var ring = new GameObject("Aura d'élite").AddComponent<SpriteRenderer>();

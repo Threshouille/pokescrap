@@ -17,6 +17,9 @@ using UnityEngine.InputSystem;
 /// tiles, which come back a few seconds after being knocked out, to try moves, Z moves and obstacles on.
 /// A fourth room shows the Z moves: sturdy dummies in a ring, the controlled Pokémon carries the Z crystal picked with
 /// ↑/↓ (1/2) and borrows the strongest move of its type when it knows none (Ultimates.DemoMoves).
+/// Two more rooms are real fights, with the opponent back a few seconds after a knock-out: an elite beyond a river
+/// (with a bridge or not, R / Select: it freezes the river to come, burns the bridge under a close fighter, uses
+/// its ultimate), and a legendary boss whose ultimate (Terastal phase or Z move) depends on the fight.
 public class TerrainSandbox : MonoBehaviour
 {
     const float AttackAnimTime = 0.4f;
@@ -37,7 +40,19 @@ public class TerrainSandbox : MonoBehaviour
 
     [Serializable] class SandboxFile { public bool enemyWaves = true; public Emitter[] emitters; public int galleryColumns = 9; public float gallerySpacing = 3f;
         public int[] dummies = new int[0]; public int dummyCount = 6, dummyLevel = 5; public float dummyRespawn = 4f, dummyHealth = 3f, dummyMinDistance = 4f;
-        public int zDemoCount = 8; public float zDemoRadius = 4.5f, zDemoHealth = 30f, zDemoRespawn = 2f; }
+        public int zDemoCount = 8; public float zDemoRadius = 4.5f, zDemoHealth = 30f, zDemoRespawn = 2f;
+        public Fighter eliteRoom = new(), bossRoom = new(); }
+
+    /// The opponent of the elite or boss room: a real fight (its AI, its moves, its ultimate).
+    [Serializable]
+    class Fighter
+    {
+        public int pokemon;
+        public int[] moves = new int[0];
+        public int level = 8;
+        public float health = 3f, respawn = 6f;
+        public float[] offset = new float[2];
+    }
 
     [Serializable] class Mega { public int id; public string name; }
     [Serializable] class MegaFile { public Mega[] megas; }
@@ -67,9 +82,15 @@ public class TerrainSandbox : MonoBehaviour
     static readonly Vector2 BaseStairs = new(12f, 12f), ObstacleStairs = new(-12f, -12f); // from the arena centre, in tiles
     static readonly Vector2 GalleryStairs = new(12f, -12f), GalleryBackStairs = new(-12f, 12f);
     static readonly Vector2 ZDemoStairs = new(-12f, 12f), ZDemoBackStairs = new(12f, 12f);
+    static readonly Vector2 EliteStairs = new(-12f, -12f), EliteBackStairs = new(-12f, 12f);
+    static readonly Vector2 BossStairs = new(0f, -12f), BossBackStairs = new(0f, 12f);
+    const int RiverFrom = 3, RiverTo = 5; // elite room: columns of the river, from the arrival point
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
-    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: Z demo
+    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: Z demo, 4: elite room, 5: boss room
+    Combatant fighter; // the elite or the boss of rooms 4 and 5
+    float fighterBack; // when it comes back once knocked out
+    bool bridge; // elite room: the river has a bridge (R / Select switches)
     class Dummy
     {
         public Combatant combatant;
@@ -255,6 +276,45 @@ public class TerrainSandbox : MonoBehaviour
         }
     }
 
+    // ---- Elite and boss rooms: a real fight ----
+
+    // A river from wall to wall between the arrival point and the elite, with a bridge in the middle or not.
+    void BuildRiver(DungeonGenerator arena)
+    {
+        if (Obstacles.Current == null) return;
+        var centre = arena.CellOf(Centre(arena));
+        var inside = arena.Interior;
+        for (int x = centre.x + RiverFrom; x <= centre.x + RiverTo; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+                Obstacles.Place(x, y, bridge && Mathf.Abs(y - centre.y) <= 0 ? "bridge" : "water");
+    }
+
+    void SpawnFighter()
+    {
+        var spawner = GetComponent<EnemySpawner>();
+        var arena = DungeonGenerator.Current;
+        var f = room == 4 ? Settings().eliteRoom : Settings().bossRoom;
+        if (spawner == null || arena == null || f.pokemon <= 0) return;
+        fighter = spawner.SpawnFighter(f.pokemon, f.moves.Length > 0 ? f.moves : null, Centre(arena) + Vec(f.offset),
+            isBoss: room == 5, elite: room == 4, f.level, f.health);
+        if (fighter != null && room == 5) fighter.gameObject.AddComponent<HealthBar>(); // no boss bar in the test arena
+        fighterBack = 0f;
+    }
+
+    void UpdateFighter()
+    {
+        if ((room != 4 && room != 5) || pendingRoom >= 0 || (fighter != null && fighter.IsAlive)) return;
+        var f = room == 4 ? Settings().eliteRoom : Settings().bossRoom;
+        if (fighterBack <= 0f)
+        {
+            fighterBack = Time.time + f.respawn;
+            return;
+        }
+        if (Time.time < fighterBack) return;
+        if (fighter != null) Destroy(fighter.gameObject);
+        SpawnFighter();
+    }
+
     // ---- Z demo room: the controlled Pokémon carries the chosen Z crystal ----
 
     void UpdateZDemo()
@@ -310,8 +370,10 @@ public class TerrainSandbox : MonoBehaviour
             AddStairs(arena, BaseStairs, 1, "Escalier vers la salle des obstacles", new Color(0.95f, 0.8f, 0.3f));
             AddStairs(arena, GalleryStairs, 2, "Escalier vers la galerie des mégas", new Color(0.85f, 0.5f, 1f));
             AddStairs(arena, ZDemoStairs, 3, "Escalier vers la démo des capacités Z", new Color(1f, 0.55f, 0.2f));
+            AddStairs(arena, EliteStairs, 4, "Escalier vers la salle de l'élite", new Color(1f, 0.85f, 0.25f));
+            AddStairs(arena, BossStairs, 5, "Escalier vers la salle du boss", new Color(0.9f, 0.2f, 0.2f));
         }
-        else AddStairs(arena, room switch { 1 => ObstacleStairs, 3 => ZDemoBackStairs, _ => GalleryBackStairs }, 0,
+        else AddStairs(arena, room switch { 1 => ObstacleStairs, 3 => ZDemoBackStairs, 4 => EliteBackStairs, 5 => BossBackStairs, _ => GalleryBackStairs }, 0,
             "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
     }
@@ -359,6 +421,9 @@ public class TerrainSandbox : MonoBehaviour
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         ClearEmitters();
         ClearDummies();
+        if (fighter != null) Destroy(fighter.gameObject);
+        fighter = null;
+        fighterBack = 0f;
         arena.Generate(); // also clears terrain and obstacles, and moves the team object to the centre
         drawn = new List<string>();
         if (room == 1 && Obstacles.Current != null)
@@ -374,6 +439,8 @@ public class TerrainSandbox : MonoBehaviour
             SpawnZDemo();
             Ultimates.DemoMoves = true;
         }
+        if (room == 4) BuildRiver(arena);
+        if (room == 4 || room == 5) SpawnFighter();
         if (room == 2) SpawnGallery();
         PlaceStairs();
         if (team != null) team.PrepareForNextArena(team.transform.position, 0f);
@@ -388,10 +455,14 @@ public class TerrainSandbox : MonoBehaviour
             fadeInUntil = Time.unscaledTime + FadeTime;
         }
         if (room == 3 && pendingRoom < 0) UpdateZDemo(); // input: read each frame
-        if (room != 1 || pendingRoom >= 0) return;
+        if ((room != 1 && room != 4) || pendingRoom >= 0) return;
         var pad = Gamepad.current;
         var kb = Keyboard.current;
-        if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame)) Switch(1);
+        if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame))
+        {
+            if (room == 4) bridge = !bridge;
+            Switch(room);
+        }
     }
 
     string ZDemoLine()
@@ -410,6 +481,9 @@ public class TerrainSandbox : MonoBehaviour
         label.fontSize = Mathf.RoundToInt(8f * s);
         string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas     Escalier orange (en haut à gauche) : démo des capacités Z"
             : room == 3 ? ZDemoLine()
+            : room == 4 ? $"Salle de l'élite : rivière {(bridge ? "avec un pont (en mêlée sur le pont, l'élite le brûle)" : "sans pont (l'élite la gèle pour venir)")}     R ou Select : {(bridge ? "sans" : "avec")} pont     Escalier (en haut à gauche) : retour"
+            : room == 5 ? $"Salle du boss : {fighter?.Stats?.name ?? "boss"} {(fighter != null ? $"{Mathf.CeilToInt(fighter.hp)}/{Mathf.CeilToInt(fighter.maxHp)} PV" : "(revient bientôt)")} : téracristal ou capacité Z selon la situation     Escalier (en haut) : retour"
+
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     Cibles immobiles (reviennent après un K.O.)     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);
@@ -496,6 +570,7 @@ public class TerrainSandbox : MonoBehaviour
         }
         UpdateGallery(walker);
         UpdateDummies();
+        UpdateFighter();
         foreach (var e in emitters)
         {
             if (e.animator != null && e.idleAt > 0f && Time.time >= e.idleAt)

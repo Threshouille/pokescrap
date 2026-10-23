@@ -103,7 +103,7 @@ public class Terrain : MonoBehaviour
 
     public static Terrain Current { get; private set; }
 
-    struct Pending { public float at; public int cell; public TerrainDef from, to; public float duration; public Combatant owner; }
+    struct Pending { public float at; public int cell; public TerrainDef from, to; public float duration; public Combatant owner; public bool spare; }
 
     DungeonGenerator grid;
     int size;
@@ -460,7 +460,7 @@ public class Terrain : MonoBehaviour
                 int n = ny * size + nx;
                 if (!seen.Add(n) || Live(n) != from || queued.Contains(n)) continue;
                 float duration = r.duration > 0f ? r.duration : (r.keepDuration ? until[n] - Time.time : lasts) * (r.keepDuration ? r.durationMul : 1f);
-                pending.Add(new Pending { at = Time.time + (steps + 1) * r.spreadDelay, cell = n, from = from, to = to, duration = duration, owner = caster });
+                pending.Add(new Pending { at = Time.time + (steps + 1) * r.spreadDelay, cell = n, from = from, to = to, duration = duration, owner = caster, spare = painting });
                 queued.Add(n);
                 frontier.Enqueue((nx, ny, steps + 1));
             }
@@ -659,7 +659,12 @@ public class Terrain : MonoBehaviour
             if (Time.time < p.at) continue;
             pending.RemoveAt(k--);
             queued.Remove(p.cell);
-            if (Live(p.cell) == p.from) Set(p.cell, p.to, p.duration, p.owner); // unless something else got there first
+            if (Live(p.cell) == p.from) // unless something else got there first
+            {
+                painting = p.spare; // a spread started by a Z move spares its team too
+                Set(p.cell, p.to, p.duration, p.owner);
+                painting = false;
+            }
         }
         if (active <= 0) return;
         foreach (var c in Combatant.All)
