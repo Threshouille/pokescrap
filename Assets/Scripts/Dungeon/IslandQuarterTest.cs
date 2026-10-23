@@ -39,7 +39,19 @@ public partial class IslandPlan
         public int rampDecor = 35, rampWidth = 3, ledges = 4;
         public int[] ledgeLength = { 3, 6 };
         public float[] levelShade = { 0.93f, 0.96f, 0.98f, 1f }, footShadow = { 0.7f, 0.85f };
+        public Cave cave = new();
     }
+
+    /// The mountain's top level as a cave under a roof (see DungeonGenerator: the roof fades while the controlled
+    /// Pokémon is under it).
+    [Serializable]
+    public class Cave
+    {
+        public int decor = 9, pillars = 4, roofDecor = 49;
+        public float shade = 0.8f, mouthShade = 0.5f, roofAlpha = 0.15f, fadeTime = 0.25f;
+    }
+
+    [NonSerialized] float[] shadeOverride; // per tile: a tint of its own (the cave), 0 = none
 
     /// The test quarter's relief settings (tints), kept for the drawing.
     [NonSerialized] public Relief relief;
@@ -403,13 +415,15 @@ public partial class IslandPlan
                 float d = Vector2.Distance(p, mountain);
                 if (d < nearest) { nearest = d; toRoad = Mathf.Atan2(p.y - mountain.y, p.x - mountain.x); }
             }
+            Vector2Int mouth = new(-1, -1);
             for (int level = 1; level <= r.mountainLevels; level++)
             {
                 var ramp = Ramp(mountain, big * 1.3f, level, toRoad + (level - 1) * 150f * Mathf.Deg2Rad);
                 if (level == 1) foot = ramp;
+                if (level == r.mountainLevels) mouth = ramp;
             }
-            var top = Vector2Int.FloorToInt(mountain);
-            caves.Add(top);
+            caves.Add(Vector2Int.FloorToInt(mountain));
+            Hollow(r, rng, mountain, big, mouth, cliff, ramps);
         }
         foreach (var (centre, radius) in hills)
         {
@@ -428,7 +442,7 @@ public partial class IslandPlan
             {
                 int i = Index(x, y), below = Index(x, y - 1), above = Index(x, y + 1);
                 bool fits = cliff[i] && !ramps[i] && height[below] < height[i] && !cliff[below] && obstacle[below] == null
-                    && region[below] == 0 && height[above] == height[i] && !cliff[above];
+                    && region[below] == 0 && height[above] == height[i] && !cliff[above] && (roof == null || !roof[i]);
                 if (fits) { run ??= new List<int>(); run.Add(i); }
                 else { if (run != null && run.Count >= r.ledgeLength[0]) runs.Add(run); run = null; }
             }
@@ -451,10 +465,10 @@ public partial class IslandPlan
 
         for (int i = 0; i < n; i++)
         {
-            if (ramps[i]) { decor[i] = r.rampDecor; continue; }
+            if (ramps[i]) { if (decor[i] == 0) decor[i] = r.rampDecor; continue; }
             if (!cliff[i]) continue;
             wall[i] = true;
-            decor[i] = rockDecor;
+            if (decor[i] == 0) decor[i] = rockDecor;
         }
 
         // A branch of the road to the mountain's first ramp.
@@ -480,9 +494,47 @@ public partial class IslandPlan
         }
     }
 
+    // The mountain's top level hollowed into a cave: its floor and its ring of cliff under a roof, the last ramp its
+    // mouth, a few rock pillars inside.
+    void Hollow(Relief r, System.Random rng, Vector2 centre, float radius, Vector2Int mouth, bool[] cliff, bool[] ramps)
+    {
+        var c = r.cave;
+        int top = r.mountainLevels, n = size * size;
+        roof = new bool[n];
+        roofDecor = c.roofDecor;
+        shadeOverride = new float[n];
+        var inside = new List<int>();
+        Stamp(centre, radius, i =>
+        {
+            if (height[i] != top) return;
+            if (ramps[i]) { decor[i] = c.decor; shadeOverride[i] = c.mouthShade; return; } // the mouth, open to the sky
+            roof[i] = true;
+            if (cliff[i]) return; // the cave's wall: the cliff ring (rock outside), under the roof too
+            decor[i] = c.decor;
+            shadeOverride[i] = c.shade;
+            inside.Add(i);
+        });
+        // Pillars: single rocks inside, off the walls and the mouth.
+        var mouthAt = new Vector2(mouth.x + 0.5f, mouth.y + 0.5f);
+        for (int k = 0, tries = 0; k < c.pillars && tries < 200 && inside.Count > 0; tries++)
+        {
+            int i = inside[rng.Next(inside.Count)];
+            var p = new Vector2(i % size + 0.5f, i / size + 0.5f);
+            if (Vector2.Distance(p, mouthAt) < 4f) continue;
+            bool clear = true;
+            Stamp(p, 2.2f, j => { if (cliff[j] || wall[j]) clear = false; });
+            if (!clear) continue;
+            wall[i] = true;
+            cliff[i] = true;
+            decor[i] = c.decor;
+            k++;
+        }
+    }
+
     /// Tint of a tile's ground: lighter higher up, darker at the foot of a cliff (1: none).
     public float Shade(int i)
     {
+        if (shadeOverride != null && shadeOverride[i] > 0f) return shadeOverride[i];
         if (relief == null || height == null) return 1f;
         var shades = relief.levelShade;
         float shade = shades.Length > 0 ? shades[Mathf.Min(height[i], shades.Length - 1)] : 1f;

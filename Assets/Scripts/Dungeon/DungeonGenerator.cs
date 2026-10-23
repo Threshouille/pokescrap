@@ -163,6 +163,7 @@ public class DungeonGenerator : MonoBehaviour
         tiles.Clear();
         spawn = origin + arrival;
         Draw(rng);
+        if (plan.roof != null) DrawRoof(plan, box, n);
         Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
         Climate.Clear();
@@ -193,6 +194,13 @@ public class DungeonGenerator : MonoBehaviour
     readonly Dictionary<(DungeonTileset, int, bool), Tile> tiles = new();
     DungeonTileset[] cellDecor; // per tile when the map mixes décors (the island); null: "tileset" everywhere
     bool[] wallLook; // per tile: walkable but drawn as a wall, without collider (a ledge); may be null
+    // A roof over some tiles (a cave in a mountain), drawn above the Pokémon; it fades while the controlled Pokémon is
+    // under it, so that the inside shows.
+    const int RoofOrder = 9; // over the Pokémon (1), under the health bars (10)
+    Tilemap roofMap;
+    bool[] roofed;
+    float roofAlpha = 1f, roofSeeThrough = 0.15f, roofFade = 0.25f;
+    PlayerController team;
     float[] cellShade; // per tile: tint of its ground (relief), 1 = none; may be null
     bool[] skyWall; // island: sky tiles next to land, an invisible wall (nothing drawn, a collider)
     Tile invisibleWall;
@@ -216,6 +224,8 @@ public class DungeonGenerator : MonoBehaviour
         skyWall = null;
         wallLook = null;
         cellShade = null;
+        roofed = null;
+        if (roofMap != null) roofMap.ClearAllTiles();
         if (island != null)
         {
             GenerateIsland(rng);
@@ -354,6 +364,64 @@ public class DungeonGenerator : MonoBehaviour
                 floorMap.SetTileFlags(cell, TileFlags.None);
                 floorMap.SetColor(cell, new Color(shade, shade, shade, 1f));
             }
+    }
+
+    // The roof: the walls of its décor over every roofed tile (its own edges where the roof ends), one tile layer.
+    void DrawRoof(IslandPlan plan, RectInt box, int n)
+    {
+        var decor = TilesetRoster.Get(plan.roofDecor);
+        if (decor == null) return;
+        if (roofMap == null)
+        {
+            var go = new GameObject("Toit");
+            go.transform.SetParent(floorMap.transform.parent, false);
+            go.transform.localPosition = floorMap.transform.localPosition;
+            roofMap = go.AddComponent<Tilemap>();
+            roofMap.tileAnchor = floorMap.tileAnchor;
+            go.AddComponent<TilemapRenderer>().sortingOrder = RoofOrder;
+        }
+        roofed = new bool[size * size];
+        var origin = Interior.min;
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                int px = x + box.x, py = y + box.y;
+                if (px < plan.size && py < plan.size && plan.roof[plan.Index(px, py)]) roofed[(y + origin.y) * size + x + origin.x] = true;
+            }
+        var cells = new List<Vector3Int>();
+        var roofTiles = new List<TileBase>();
+        for (int x = 0; x < size; x++)
+            for (int y = 0; y < size; y++)
+            {
+                if (!roofed[y * size + x]) continue;
+                int mask = 0;
+                for (int i = 0; i < Neighbours.Length; i++)
+                    if (Roofed(x + Neighbours[i].x, y + Neighbours[i].y)) mask |= 1 << i;
+                cells.Add(new Vector3Int(x, y, 0));
+                roofTiles.Add(GetTile(decor, decor.wall[mask * 3], false));
+            }
+        roofMap.SetTiles(cells.ToArray(), roofTiles.ToArray());
+        var cave = plan.relief?.cave;
+        if (cave != null) { roofSeeThrough = cave.roofAlpha; roofFade = Mathf.Max(0.01f, cave.fadeTime); }
+        roofAlpha = 1f;
+        roofMap.color = Color.white;
+    }
+
+    bool Roofed(int x, int y) => roofed != null && x >= 0 && y >= 0 && x < size && y < size && roofed[y * size + x];
+
+    void Update()
+    {
+        if (roofed == null || roofMap == null) return;
+        if (team == null) team = FindAnyObjectByType<PlayerController>();
+        var leader = team != null ? team.Controlled : null;
+        bool under = false;
+        if (leader != null)
+        {
+            var cell = CellOf(leader.transform.position);
+            under = Roofed(cell.x, cell.y);
+        }
+        roofAlpha = Mathf.MoveTowards(roofAlpha, under ? roofSeeThrough : 1f, Time.deltaTime / roofFade);
+        roofMap.color = new Color(1f, 1f, 1f, roofAlpha);
     }
 
     // How a tile is drawn: open ground, or a wall (also a ledge, walkable but drawn as its cliff).

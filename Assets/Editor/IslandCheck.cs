@@ -205,6 +205,7 @@ public static class IslandCheck
                 if (plan.decor != null && plan.decor[i] > 0) px[i] = plan.decor[i] == 30 ? new Color32(120, 120, 120, 255) : new Color32(130, 85, 50, 255);
                 if (plan.height != null && plan.height[i] > 0 && !plan.wall[i] && (plan.decor == null || plan.decor[i] == 0))
                     px[i] = Lighter(px[i], plan.height[i]);
+                if (plan.roof != null && plan.roof[i]) px[i] = new Color32(90, 50, 110, 255);
                 if (plan.wall[i]) px[i] = new Color32(110, 70, 60, 255);
                 if (plan.obstacle[i] != null) px[i] = Obstacle(plan.obstacle[i]);
                 float shade = plan.Shade(i);

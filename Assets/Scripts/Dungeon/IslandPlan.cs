@@ -56,6 +56,8 @@ public partial class IslandPlan
     public readonly List<Vector2Int> caves = new(); // cave mouths (test quarter's mountain top), leading nowhere yet
     public int[] height; // per tile: level of the ground (0 = plain, 1, 2... on hills), may be null
     public bool[] wallLook; // per tile: walkable but drawn as a wall (a ledge looks like its cliff), may be null
+    public bool[] roof; // per tile: under a roof that hides it until the controlled Pokémon goes under (a cave), may be null
+    public int roofDecor; // ROM décor whose walls draw the roof
     public readonly Theme[] themes = new Theme[4]; // per quarter
     public readonly int[] order = new int[4]; // quarters in the order they open (clockwise)
     public Vector2Int start; // where the team lands, on the first quarter's coast

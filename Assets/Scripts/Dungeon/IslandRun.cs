@@ -88,8 +88,7 @@ public class IslandRun : MonoBehaviour
         }
         foreach (var m in Plan.markers)
             if (Plan.region[Plan.Index(m.x, m.y)] == zone) AddMarker(m, "Portail (test)", new Color(1f, 0.85f, 0.3f));
-        foreach (var c in Plan.caves)
-            if (Plan.region[Plan.Index(c.x, c.y)] == zone) AddMarker(c, "Grotte (test)", new Color(0.35f, 0.2f, 0.45f));
+
         if (revealAll || SaveData.Settings.devMode)
             for (int y = bounds.yMin; y < bounds.yMax; y++)
                 for (int x = bounds.xMin; x < bounds.xMax; x++)
@@ -224,6 +223,7 @@ public class IslandRun : MonoBehaviour
             case null: break;
             default: return new Color32(150, 100, 50, 255); // bridges, ice, quicksand, rock
         }
+        if (Plan.roof != null && Plan.roof[i]) return new Color32(70, 40, 90, 255); // a cave
         if (Plan.decor != null && Plan.decor[i] > 0) return new Color32(150, 110, 70, 255); // a road
         return ColorUtility.TryParseHtmlString(Plan.biome[i]?.color ?? "", out var c) ? (Color32)c : new Color32(170, 170, 160, 255);
     }
