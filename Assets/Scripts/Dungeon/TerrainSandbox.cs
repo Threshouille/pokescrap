@@ -19,7 +19,8 @@ using UnityEngine.InputSystem;
 /// ↑/↓ (1/2) and borrows the strongest move of its type when it knows none (Ultimates.DemoMoves).
 /// Two more rooms are real fights, with the opponent back a few seconds after a knock-out: an elite beyond a river
 /// (with a bridge or not, R / Select: it freezes the river to come, burns the bridge under a close fighter, uses
-/// its ultimate), and a legendary boss whose ultimate (Terastal phase or Z move) depends on the fight.
+/// its ultimate), and a legendary boss whose ultimate (Terastal phase or Z move) depends on the fight. The green stairs
+/// lead to the rescue and heal demos (RescueDemos).
 public class TerrainSandbox : MonoBehaviour
 {
     const float AttackAnimTime = 0.4f;
@@ -84,10 +85,11 @@ public class TerrainSandbox : MonoBehaviour
     static readonly Vector2 ZDemoStairs = new(-12f, 12f), ZDemoBackStairs = new(12f, 12f);
     static readonly Vector2 EliteStairs = new(-12f, -12f), EliteBackStairs = new(-12f, 12f);
     static readonly Vector2 BossStairs = new(0f, -12f), BossBackStairs = new(0f, 12f);
+    static readonly Vector2 RescueStairs = new(12f, 0f), RescueBackStairs = new(-12f, 0f);
     const int RiverFrom = 3, RiverTo = 5; // elite room: columns of the river, from the arrival point
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
-    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: Z demo, 4: elite room, 5: boss room
+    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: Z demo, 4: elite room, 5: boss room, 6: rescue demos
     Combatant fighter; // the elite or the boss of rooms 4 and 5
     float fighterBack; // when it comes back once knocked out
     bool bridge; // elite room: the river has a bridge (R / Select switches)
@@ -372,8 +374,9 @@ public class TerrainSandbox : MonoBehaviour
             AddStairs(arena, ZDemoStairs, 3, "Escalier vers la démo des capacités Z", new Color(1f, 0.55f, 0.2f));
             AddStairs(arena, EliteStairs, 4, "Escalier vers la salle de l'élite", new Color(1f, 0.85f, 0.25f));
             AddStairs(arena, BossStairs, 5, "Escalier vers la salle du boss", new Color(0.9f, 0.2f, 0.2f));
+            AddStairs(arena, RescueStairs, 6, "Escalier vers les démos de secours", new Color(0.3f, 0.9f, 0.5f));
         }
-        else AddStairs(arena, room switch { 1 => ObstacleStairs, 3 => ZDemoBackStairs, 4 => EliteBackStairs, 5 => BossBackStairs, _ => GalleryBackStairs }, 0,
+        else AddStairs(arena, room switch { 1 => ObstacleStairs, 3 => ZDemoBackStairs, 4 => EliteBackStairs, 5 => BossBackStairs, 6 => RescueBackStairs, _ => GalleryBackStairs }, 0,
             "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
     }
@@ -441,6 +444,9 @@ public class TerrainSandbox : MonoBehaviour
         }
         if (room == 4) BuildRiver(arena);
         if (room == 4 || room == 5) SpawnFighter();
+        var demos = GetComponent<RescueDemos>();
+        if (room == 6 && demos == null) gameObject.AddComponent<RescueDemos>();
+        if (room != 6 && demos != null) Destroy(demos);
         if (room == 2) SpawnGallery();
         PlaceStairs();
         if (team != null) team.PrepareForNextArena(team.transform.position, 0f);
@@ -479,8 +485,9 @@ public class TerrainSandbox : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas     Escalier orange (en haut à gauche) : démo des capacités Z"
+        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas     Escalier orange (en haut à gauche) : démo des capacités Z     Escalier vert (à droite) : démos de secours"
             : room == 3 ? ZDemoLine()
+            : room == 6 ? (GetComponent<RescueDemos>() is { } rescue ? rescue.Line() : "Démos de secours")
             : room == 4 ? $"Salle de l'élite : rivière {(bridge ? "avec un pont (en mêlée sur le pont, l'élite le brûle)" : "sans pont (l'élite la gèle pour venir)")}     R ou Select : {(bridge ? "sans" : "avec")} pont     Escalier (en haut à gauche) : retour"
             : room == 5 ? $"Salle du boss : {fighter?.Stats?.name ?? "boss"} {(fighter != null ? $"{Mathf.CeilToInt(fighter.hp)}/{Mathf.CeilToInt(fighter.maxHp)} PV" : "(revient bientôt)")} : téracristal ou capacité Z selon la situation     Escalier (en haut) : retour"
 

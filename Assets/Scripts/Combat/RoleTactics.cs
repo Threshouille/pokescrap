@@ -13,7 +13,7 @@ public static class RoleTactics
     const float SupportMax = 7f, SupportRetreat = 4f; // support: same idea, farther away
     const float SelfDefence = 1.5f; // ranged and support only use their melee moves on an opponent this close
     const float RegroupDistance = 5f; // support: comes back when its nearest ally is farther than this
-    const float HealThreshold = 0.7f; // heals allies under this share of their health
+    const float HealThreshold = 0.7f; // heals allies under this share of their health (in reach; a support walks to them)
     const float BuffRange = 6f; // bonuses are used when an opponent is within this distance
     // A hurt Pokémon may fall back to a terrain that helps it (Terrain.Refuge): under RefugeEnter of its health,
     // with no opponent within RefugeSafe tiles, a refuge within RefugeSearch tiles. It stays at most RefugeTime
@@ -41,6 +41,27 @@ public static class RoleTactics
 
     /// "target": opponent to fight (an enemy group's shared target); the nearest one within aggroRange when null.
     /// "canAttack" false: only where to stand (an enemy between two attacks).
+    // The point within a heal's reach of the patient nearest to the healer.
+    static Vector2 HealSpot(Vector2 from, Combatant patient, float range)
+    {
+        Vector2 at = patient.transform.position;
+        Vector2 back = from - at;
+        float keep = range * 0.8f;
+        return back.magnitude <= keep ? from : at + back.normalized * keep;
+    }
+
+    /// Whether "self" can walk to heal "patient" without putting itself at risk: the spot it would heal from is not
+    /// in a harmful zone or terrain, and, when it is hurt itself, no opponent stands near that spot.
+    public static bool SafeToHeal(Combatant self, Combatant patient, float range)
+    {
+        var s = SaveData.Settings;
+        Vector2 spot = HealSpot(self.transform.position, patient, range);
+        if (Zone.Inside(spot, self.team, ZoneMargin) || Terrain.Hazard(spot, self)) return false;
+        if (self.maxHp <= 0f || self.hp >= self.maxHp * s.allyHealSafeHealth) return true;
+        Team opponents = self.team == Team.Player ? Team.Enemy : Team.Player;
+        return Combatant.Nearest(opponents, spot, s.allyHealSafeGap) == null;
+    }
+
     public static Decision Decide(Combatant self, Navigator navigator, float aggroRange, Combatant target = null, bool canAttack = true)
     {
         var decision = new Decision { slot = -1 };
@@ -63,6 +84,7 @@ public static class RoleTactics
         Vector2 retreat = tooClose ? Away(self, grid, position, toFoe) : Vector2.zero;
 
         Combatant patient = null; // wounded ally that is out of reach
+        float healRange = 0f;
         float wanted = float.MaxValue; // shortest reach among the ready moves worth walking for
         // An ally (or an elite) first undoes the walkway an opponent fighting at close range stands on or is about to cross.
         if (canAttack && (self.team == Team.Player || self.IsElite) && ObstacleTactics.Cut(self, out var cut, out var cutFoe))
@@ -99,7 +121,14 @@ public static class RoleTactics
                     if (wounded == null) continue;
                     Vector2 toWounded = (Vector2)wounded.transform.position - position;
                     if (toWounded.magnitude <= move.range) return Use(decision, slot, toWounded == Vector2.zero ? Vector2.right : toWounded, toWounded.magnitude);
-                    if (support) patient = wounded;
+                    // A support walks to anyone it can heal; the others only to a team-mate low on health. Never
+                    // into danger, nor next to an opponent while hurt itself.
+                    bool low = wounded.hp < wounded.maxHp * SaveData.Settings.allyHealLow;
+                    if ((support || low) && SafeToHeal(self, wounded, move.range))
+                    {
+                        patient = wounded;
+                        healRange = move.range;
+                    }
                     continue;
                 }
 
@@ -167,6 +196,16 @@ public static class RoleTactics
             return decision;
         }
 
+        // A team-mate to heal out of reach: walks to where the heal reaches it (unless it has to back off first).
+        if (patient != null && retreat == Vector2.zero)
+        {
+            decision.engaged = true;
+            decision.move = navigator.Direction(position, HealSpot(position, patient, healRange), self, avoid: true);
+            decision.look = (Vector2)patient.transform.position - position;
+            decision.move = Separate(self, grid, position, decision.move);
+            return decision;
+        }
+
         // Nothing to use right now: where to stand.
         if (melee)
         {
@@ -184,16 +223,12 @@ public static class RoleTactics
             decision.engaged = true;
             decision.move = retreat;
         }
-        else if (support && patient != null)
-        {
-            decision.engaged = true;
-            decision.move = navigator.Direction(position, patient.transform.position, self);
-            decision.look = decision.move;
-        }
         else
         {
             var friend = support ? Combatant.Nearest(self.team, position, float.MaxValue, self) : null;
-            if (friend != null && Vector2.Distance(friend.transform.position, position) > RegroupDistance)
+            // Hurt, it does not regroup with a team-mate surrounded by opponents.
+            if (friend != null && Vector2.Distance(friend.transform.position, position) > RegroupDistance
+                && SafeToHeal(self, friend, RegroupDistance))
             {
                 decision.engaged = true;
                 decision.move = navigator.Direction(position, friend.transform.position, self);

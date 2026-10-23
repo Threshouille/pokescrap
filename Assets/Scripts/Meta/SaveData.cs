@@ -82,6 +82,7 @@ public static class SaveData
         public float aiTargetThreat = 1f; // when it is close to a team-mate its moves hit hard (more when that one is hurt)
         public float aiTargetFocus = 0.5f; // per team-mate already after it
         public float aiTargetKeep = 1f; // for the current target, so that the AI does not switch back and forth
+        public float aiTargetTaunt = 3f; // for a team member guarding a knocked-out team-mate (TeamRescue): it draws the opponents near it
         // Allies (AllyAI.cs).
         public float allyAggroRange = 9f; // opponents farther than this are ignored
         public float allyLeash = 9f; // beyond this distance from the leader, an ally drops the fight and comes back
@@ -89,6 +90,12 @@ public static class SaveData
         public float allyLeaderRetreatSpeed = 1.5f; // tiles per second away from the ally that count as walking away
         public float allyRetreatHealth = 0.3f, allyRetreatRecover = 0.5f; // hurt: keeps close to the leader until healed
         public float allyCautiousAggro = 4f; // opponents a hurt ally still fights
+        // Rescue (TeamRescue.cs): opponents this close to a knocked-out team member are drawn away from it by a guard.
+        public float allyGuardRadius = 6f;
+        public float allyLureDistance = 3f; // ranged guard: how far beyond the opponent it stands, to lead it away
+        // Heals (RoleTactics): a Pokémon that is not a support walks to heal a team-mate under allyHealLow of its health;
+        // nobody walks to heal when under allyHealSafeHealth with an opponent within allyHealSafeGap tiles of where it would stand.
+        public float allyHealLow = 0.4f, allyHealSafeHealth = 0.5f, allyHealSafeGap = 3f;
         // Type matchups: multipliers replacing the chart's ×2 / ×0.5 / ×0, clamped once the defender's types are combined.
         public float superEffective = 1.5f, notVeryEffective = 0.6f, noEffect = 0.25f;
         public float typeFactorMin = 0.2f, typeFactorMax = 2f;

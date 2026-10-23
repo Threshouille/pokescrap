@@ -7,16 +7,41 @@ using UnityEngine;
 /// - efficacy: the AI's best type multiplier against it (a Grass Pokémon prefers the Water one);
 /// - threat: it is next to a team-mate its own moves hit hard (the Water Pokémon facing our Fire one);
 /// - focus: team-mates already after it (the team closes in on the same opponent);
-/// - distance: farther costs a little; keep: the current target is kept unless another is clearly better.
+/// - distance: farther costs a little; keep: the current target is kept unless another is clearly better;
+/// - taunt: a team member guarding a knocked-out team-mate draws the opponents near it (TeamRescue).
 public static class TargetChoice
 {
     const float ThreatReach = 5f; // tiles: an opponent this close to a team-mate threatens it
 
+    const float TauntTime = 0.5f; // seconds a taunt lasts once the guard stops renewing it
+
     // Opponent each AI went after last (for the focus score).
     static readonly Dictionary<Combatant, Combatant> chosen = new();
+    static readonly Dictionary<Combatant, float> taunts = new(); // guards, and until when they draw opponents
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => chosen.Clear();
+    static void ResetStatics()
+    {
+        chosen.Clear();
+        taunts.Clear();
+    }
+
+    /// "guard" draws its opponents for a moment (renewed while it keeps guarding).
+    public static void Taunt(Combatant guard)
+    {
+        if (guard != null) taunts[guard] = Time.time + TauntTime;
+    }
+
+    /// The guard of "team" drawing opponents within "range" of "from" (TeamRescue), or null: the boss follows it too.
+    public static Combatant Taunter(Team team, Vector2 from, float range)
+    {
+        foreach (var (guard, until) in taunts)
+            if (guard != null && guard.team == team && guard.IsAlive && Time.time < until
+                && Vector2.Distance(guard.transform.position, from) <= range) return guard;
+        return null;
+    }
+
+    static bool Taunting(Combatant c) => c != null && taunts.TryGetValue(c, out float until) && Time.time < until;
 
     /// Remembers what "self" is fighting, for its team-mates' focus.
     public static void Note(Combatant self, Combatant foe)
@@ -56,6 +81,7 @@ public static class TargetChoice
             score += s.aiTargetThreat * Threat(foe, self.team);
             score += s.aiTargetFocus * Focus(foe, self);
             if (foe == current) score += s.aiTargetKeep;
+            if (Taunting(foe)) score += s.aiTargetTaunt;
             if (score > bestScore)
             {
                 best = foe;

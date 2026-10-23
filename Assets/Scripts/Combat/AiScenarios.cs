@@ -111,6 +111,13 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Objets : une méga-gemme obtenue ne retombe plus", StonesStayUnique());
         yield return Scenario("Objets : les types de l'équipe tombent plus souvent", LootFavoursTeam());
 
+        // Rescue: a third member joins (last, so that the scenarios above keep a team of two).
+        if (team.Count < 3) third = team.AddMember(Salameche, team.Controlled.transform.position + Vector3.left);
+        yield return Scenario("Secours : un allié réanime le Pokémon K.O.", AllyRevives());
+        yield return Scenario("Secours : le plus apte éloigne l'ennemi du Pokémon K.O.", GuardDrawsAway());
+        yield return Scenario("Soins : soigne un coéquipier presque K.O.", HealsLowMate());
+        yield return Scenario("Soins : blessé, ne va pas soigner au milieu des ennemis", NoRiskyHeal());
+
         Clear();
         Failures = results.FindAll(r => !r.passed).Count;
         Debug.Log($"AISCENARIO DONE {results.Count - Failures}/{results.Count}");
@@ -557,6 +564,98 @@ public class AiScenarios : MonoBehaviour
         bool capped = leader.hp >= leader.maxHp * (0.99f - SpecialItems.Enemy.zMaxShare) && ally.hp >= ally.maxHp * (0.99f - SpecialItems.Enemy.zMaxShare);
         Report(used && !again && ultimate.LastUsed == "z" && both && capped,
             $"{(used ? ultimate.LastUsed : "rien")}{(again ? " deux fois" : "")} : Pikachu {leader.hp:0}/{leader.maxHp:0}, allié {ally.hp:0}/{ally.maxHp:0}");
+    }
+
+    // ---------------------------------------------------------------- rescue and heals
+
+    const int Salameche = 4, Rattata = 19, Soin = 117;
+    Combatant third; // third team member, added for the rescue scenarios
+
+    static void KnockOut(Combatant c) => c.TakeFixedDamage(c.hp + 1f);
+
+    // The third member is knocked out far from the controlled Pokémon, nobody around: the ally walks to it and stands
+    // on it until it is back.
+    IEnumerator AllyRevives()
+    {
+        var (leader, ally) = Place(new Vector2(-8f, 0f), new Vector2(-3f, 2f), settle: false);
+        Teleport(third, Centre + new Vector2(4f, -1f));
+        yield return new WaitForFixedUpdate();
+        KnockOut(third);
+        float started = Time.time;
+        while (Time.time - started < 12f && !third.IsAlive) yield return new WaitForFixedUpdate();
+        Report(third.IsAlive, third.IsAlive ? $"réanimé en {Time.time - started:0.0} s" : $"toujours K.O. (allié à {Distance(ally, third):0.0} case(s))");
+    }
+
+    // The controlled Pokémon stands on the knocked-out member to revive it, a fighting enemy right there: the ally
+    // (the guard) draws it away while the revive goes on.
+    IEnumerator GuardDrawsAway()
+    {
+        var (leader, ally) = Place(Vector2.zero, new Vector2(-3f, -2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        Teleport(third, Centre);
+        yield return new WaitForFixedUpdate();
+        KnockOut(third);
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var foe = spawner != null ? spawner.SpawnFighter(Rattata, null, Centre + new Vector2(2.5f, 1f), false, false, 3, 1000f) : null;
+        if (foe == null) { Restore(kept, leader, ally); Report(false, "pas d'ennemi (Rattata ?)"); yield break; }
+        placed.Add(foe);
+        float started = Time.time, sum = 0f;
+        int samples = 0;
+        bool onGuard = false;
+        while (Time.time - started < 6f)
+        {
+            yield return new WaitForFixedUpdate();
+            if (Time.time - started < 2f) continue; // the time for the guard to step in
+            sum += Vector2.Distance(foe.transform.position, Centre);
+            samples++;
+            onGuard |= TargetChoice.Current(foe) == ally;
+        }
+        float average = samples > 0 ? sum / samples : 0f;
+        bool back = third.IsAlive;
+        Restore(kept, leader, ally);
+        Report(average >= 2.5f && back && onGuard,
+            $"ennemi en moyenne à {average:0.0} case(s) du K.O., {(onGuard ? "attiré par l'allié" : "jamais attiré par l'allié")}, {(back ? "réanimé" : "toujours K.O.")}");
+    }
+
+    // The controlled Pokémon is low on health, out of reach of the ally's heal (Soin), nobody around: the ally walks
+    // over and heals it.
+    IEnumerator HealsLowMate()
+    {
+        var (leader, ally) = Place(new Vector2(6f, 0f), new Vector2(-4f, 0f), settle: false);
+        var keptMoves = (MoveDef[])ally.Moves.Clone();
+        for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, i == 0 ? GameData.Move(Soin) : null);
+        leader.hp = leader.maxHp * 0.3f;
+        float before = leader.hp;
+        float started = Time.time;
+        while (Time.time - started < 8f && leader.hp <= before) yield return new WaitForFixedUpdate();
+        bool healed = leader.hp > before;
+        for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, keptMoves[i]);
+        leader.hp = leader.maxHp;
+        Report(healed, healed ? $"soigné après {Time.time - started:0.0} s" : $"pas soigné (allié à {Distance(ally, leader):0.0} case(s))");
+    }
+
+    // Same, but the controlled Pokémon stands among two opponents and the ally is hurt itself: it keeps its distance.
+    IEnumerator NoRiskyHeal()
+    {
+        var (leader, ally) = Place(new Vector2(5f, 0f), new Vector2(-3f, 0f), settle: false);
+        var keptMoves = (MoveDef[])ally.Moves.Clone();
+        for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, i == 0 ? GameData.Move(Soin) : null);
+        Enemy(BatchTeam[1], new Vector2(3f, 1f));
+        Enemy(BatchTeam[1], new Vector2(3f, -1f));
+        leader.hp = leader.maxHp * 0.3f;
+        ally.hp = ally.maxHp * 0.4f;
+        float closest = float.MaxValue, started = Time.time;
+        while (Time.time - started < 5f)
+        {
+            yield return new WaitForFixedUpdate();
+            foreach (var c in placed)
+                if (c != null) closest = Mathf.Min(closest, Distance(ally, c));
+        }
+        for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, keptMoves[i]);
+        leader.hp = leader.maxHp;
+        ally.hp = ally.maxHp;
+        float gap = SaveData.Settings.allyHealSafeGap;
+        Report(closest >= gap, $"au plus près à {closest:0.0} case(s) des ennemis (minimum {gap:0.0})");
     }
 
     // ---------------------------------------------------------------- helpers
