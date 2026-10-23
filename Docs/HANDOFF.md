@@ -1,13 +1,13 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 17/10/2026 (types, chiffres de dégâts, évolution manuelle faits ; **suite : reprendre les autres attaques au cas par cas**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
+Dernière mise à jour : 24/10/2026 (**suite : composition du quart d'île, voir la section ci-dessous**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
 
 ## Méthode de travail avec Owen
 
 - Owen écrit en français ; réponses courtes, économie de tokens (voir `CLAUDE.md`).
 - **Avant toute nouvelle tâche, présenter un plan détaillé et attendre son accord** (Pokémon, attaques, valeurs, comportements, ce qui est provisoire, questions ouvertes). Ne pas coder dans le même tour. Signaler explicitement tout écart au plan validé.
 - Il aime être contredit quand c'est justifié : donner un avis argumenté, pas seulement exécuter.
-- Après chaque tâche : tester dans Unity (unityMCP), mettre à jour GDD / ROADMAP / CLAUDE.md, committer ; dépôt public GitHub sans contenu de la ROM (voir `README.md` et `.gitignore`). Une branche par tâche (depuis `main` à jour, poussée sur `origin`), fusionnée dans `main` une fois validée en jeu.
+- Après chaque tâche : tester dans Unity (unityMCP), mettre à jour GDD / ROADMAP / CLAUDE.md, committer ; dépôt public GitHub sans contenu de la ROM (voir `README.md` et `.gitignore`). Une branche `feature/<nom>` par tâche, depuis `dev` à jour (convention de Robin, l'autre développeur ; pseudo GitHub WinstonBlewUp), poussée sur `origin`, fusionnée dans `dev` une fois validée en jeu par Owen. Ne pas toucher à `main`.
 - Effets visuels : je rédige un prompt pour Claude Design (contraintes : pixel art strict, 24 px = 1 case, une ligne d'images orientée vers la droite, `effects.json`), Owen dépose l'archive `.zip` à la racine, je l'extrais dans `Design/effects_vN/`, je contrôle (tailles, alpha 0/255, ≤ 6 couleurs), je fusionne dans `Assets/Resources/Effects/`.
 
 ## Où en est le projet
@@ -34,6 +34,48 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 - **Étapes** : décor 1 (cristaux roses, ennemis niv. 1), décor 20 (sable, niv. 5), décor 12 (volcan, boss niv. 10).
 - **Commandes clavier** (19/10/2026) : ZQSD / flèches déplacement, U / I / O / P attaques 1 à 4 (mêmes touches en AZERTY et QWERTY ; un bouton de souris maintenu vise le curseur), Ctrl gauche esquive, Tab changer de Pokémon ; au menu des attaques, ← / → changent le filtre de type. Le HUD affiche U I O P sans manette branchée.
 - **Commandes manette** : stick gauche déplacement, stick droit visée, R1/R2/L1/L2 attaques, croix gauche/droite changer de Pokémon ; écran d'amélioration : croix ou stick + ✕, ○ pour revenir de l'écran de remplacement ; fin de partie : ✕ rejouer, ○ menu.
+
+## Session en cours : composition du quart d'île (branche `feature/quart-ile`, 23-24/10/2026)
+
+Branche partie de `feature/salles` (Robin : salles, île flottante ; Owen : zones séparées), **ni l'une ni l'autre
+fusionnées dans `dev`**. But : composer un quartier de l'île principale avec les assets de DM. Salle de test : escalier
+turquoise du terrain de test (salle 5) ; R / Select : nouveau tirage. Code : `Assets/Scripts/Dungeon/IslandQuarterTest.cs`
+(génération), `IslandPlan.cs` (données par case), `DungeonGenerator.GenerateIsland` / `Draw` (rendu), `IslandRun.cs`
+(décor, marqueurs, mini-carte) ; réglages `Assets/Resources/Data/quarter_test.json`. Détails techniques dans `CLAUDE.md`
+(paragraphes « Quart d'île de test », « Cartes de l'histoire », « Éléments de décor »).
+
+Fait et validé par Owen : quart en éventail sans murs, rivière large et sinueuse (pointe = centre de l'île → côte),
+jungle (décor 44) et prairie fleurie (décor 5) de part et d'autre, 3 ponts ; route principale (terre du décor 35 +
+pierres clairsemées du décor 30) entre deux portails (marqueurs inertes) par le pont du milieu, colonnes brisées
+(obstacle `column`, rocher du décor 46) ; relief vu de 3/4 : paroi sud de 2 cases par palier, rebord fin ailleurs,
+escaliers de 3 colonnes, montagne en lacets, rebords à sens unique (validés), grotte au sommet sous un toit qui
+s'efface (validée, sol du décor 9).
+
+Fait, **jugé « brouillon » par Owen (24/10, capture en jeu)** — à reprendre en priorité :
+1. **Falaises incohérentes** : les morceaux tirés des cartes 224 (P01P01A, terre rose + escaliers) et 26 (D09P11A,
+   roche + entrée de grotte) sont posés case par case selon un rôle (`IslandPlan.CliffRole` : top / middle / bottom,
+   extrémités, rim, escaliers, entrée), mais les formes de plateaux sont trop irrégulières (blobs bruités) et il manque
+   des morceaux : coins extérieurs et intérieurs, côtés est / ouest et dos (nord) du plateau (le « rim » réutilise un
+   morceau de paroi, d'où l'effet « tuiles dans tous les sens »). Pistes : plateaux aux contours plus réguliers (segments
+   droits, marches d'au moins 2-3 cases), jeu de morceaux complet par style pris dans une même carte (repérer dans
+   `Rom/refs/maps/` les vrais coins et côtés ; la carte 224 a des coins à ses blocs de terrasse), ou découper un bloc
+   entier de falaise de la carte comme un seul « modèle » posé tel quel. Outils : `Tools/pmd/render_maps.py`
+   (toutes les cartes rendues, `Rom/refs/maps/sheet.png`), `Data/cliff_styles.json` + `Tools/pmd/extract_cliffs.py`.
+2. **Éléments de décor sur des cases sombres** : cause trouvée, pas corrigée. L'obstacle invisible `blocker` (sous les
+   arbres, rochers, gros buissons) a `hidden` (pas de sprite) mais `Obstacles` peint quand même sa couleur `#406030`
+   dans sa texture à plat (`Obstacles.cs` vers la ligne 908 : `pixels[i] = Draw(i) ? default : kind[i].tint`) : ne rien
+   peindre pour un obstacle `hidden`.
+3. **Éléments ratés à retirer de `Data/map_props.json`** : les gros buissons ronds fleuris du Mont Céleste
+   (`meadow_bloom_bush_877`, `_879`, groupe `meadow_bloom_bush`) et la haie qui ressemble à un haut d'arbre mal coupé
+   (`meadow_bush_905`, peut-être aussi `meadow_bush_130`). Planche des candidats : `Rom/refs/props/nature_board.png`
+   (numéros = `candidates.json`, généré par `Tools/pmd/find_map_props.py`) ; Owen peut choisir par numéro.
+4. Restent à faire ensuite : arbres transparents quand un Pokémon passe derrière ; plus de variété d'arbres (ceux de
+   la couche du dessous des cartes, à détourer : le sol autour s'efface par remplissage, le contour est sombre) ;
+   teintes de palier (`levelShade`, `footShadow`) qui font des carrés sombres, à adoucir ; tester en jeu le blocage et le
+   tri en profondeur autour du décor (tri par l'axe Y, réglage global de `Renderer2D.asset`, à surveiller ailleurs).
+
+Abandonné : la refonte visuelle organique (branche `feature/refonte-visuelle`, non fusionnée, gardée pour mémoire :
+shader de sol, vitrine, assets Claude Design) — Owen préfère les assets de DM en cases carrées.
 
 ## Prochaine session : attaques au cas par cas
 
