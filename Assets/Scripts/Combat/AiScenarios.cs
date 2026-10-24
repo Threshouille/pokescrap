@@ -634,7 +634,7 @@ public class AiScenarios : MonoBehaviour
     {
         var arena = DungeonGenerator.Current;
         MoveDef shot = null;
-        for (int type = 0; type < 18 && shot == null; type++)
+        for (int type = 1; type < 18 && shot == null; type++) // a typed move (type 0 is "Aucun")
             shot = FindMove(type, m => m.family == "projectile" && (string.IsNullOrEmpty(m.path) || m.path == "straight") && m.count <= 1 && m.burst <= 1
                 && m.castTime <= 0f && string.IsNullOrEmpty(m.status));
         if (shot == null) { Report(false, "pas d'attaque à distance simple"); yield break; }
@@ -645,10 +645,11 @@ public class AiScenarios : MonoBehaviour
             // 0: the ally above (level 1), the opponent below; 1: the other way round.
             float side = phase == 0 ? 1f : -1f;
             arena.TestCliff(row);
-            var (_, ally) = Place(new Vector2(-6f, 3.5f * side), new Vector2(0f, 3.5f * side));
+            // 5 tiles apart, well within the shot's reach: the ally stays put and only the cliff decides.
+            var (_, ally) = Place(new Vector2(-6f, 2.5f * side), new Vector2(0f, 2.5f * side));
             var kept = (MoveDef[])ally.Moves.Clone();
             for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, i == 0 ? shot : null);
-            var foe = Enemy(BatchTeam[1], new Vector2(0f, -3.5f * side));
+            var foe = Enemy(BatchTeam[1], new Vector2(0f, -2.5f * side));
             foe.maxHp = foe.hp = 100000f;
             yield return new WaitForSeconds(6f);
             hits[phase] = foe.hp < foe.maxHp;

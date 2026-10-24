@@ -40,8 +40,9 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 dev (objets spéciaux, ultimes ennemis, secours et soins) fusionné dans la branche d'Owen ; salles de dev renumérotées
 6 à 9 dans le terrain de test (démo Z, élite, boss, secours). Corrigé : sur le quart d'île, les alliés ne refaisaient
 pas un pont (chemin partiel à la limite de l'A* = cible « atteignable ») ; un allié qui ne se rapproche plus cherche
-maintenant une réparation. Banc en batch : 38/39 ; le seul échec, « Hauteur », échoue aussi sur la version poussée
-par Owen (`e5de12e`, 24/25 en batch) : à regarder par Owen (en batch, le tir ne touche ni d'en haut ni d'en bas).
+maintenant une réparation. Banc en batch : 39/39. « Hauteur » échouait aussi sur la version poussée par Owen
+(`e5de12e`) : ennemi à 7 cases, la portée exacte de Puis. Cachée, donc hors de portée au moindre décalage ; ramené à
+5 cases et une attaque typée.
 
 ## Session en cours : composition du quart d'île (branche `feature/quart-ile`, 23-24/10/2026)
 
