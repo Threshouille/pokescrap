@@ -110,7 +110,7 @@ public class Terrain : MonoBehaviour
 
     public static Terrain Current { get; private set; }
 
-    struct Pending { public float at; public int cell; public TerrainDef from, to; public float duration; public Combatant owner; }
+    struct Pending { public float at; public int cell; public TerrainDef from, to; public float duration; public Combatant owner; public bool spare; }
 
     DungeonGenerator grid;
     int size;
@@ -119,6 +119,8 @@ public class Terrain : MonoBehaviour
     Combatant[] owner; // who left the terrain on each tile (spared by it); null for nobody
     Team[] ownerTeam; // its team, kept even once the owner is gone; owned[i] false: the tile has no owner
     bool[] owned;
+    bool[] spareTeam; // the owner's team is not even slowed there (a Z move's terrain)
+    bool painting; // set while PaintArea paints a terrain that spares the caster's team
     int active;
     bool dirty;
     // Tiles holding terrain, or cleared since the last frame: LateUpdate looks at them only (a level is a large map).
@@ -242,6 +244,7 @@ public class Terrain : MonoBehaviour
         owner = new Combatant[size * size];
         ownerTeam = new Team[size * size];
         owned = new bool[size * size];
+        spareTeam = new bool[size * size];
         if (tiles != null)
             foreach (var tile in tiles)
                 if (tile != null) tile.enabled = false;
@@ -326,11 +329,14 @@ public class Terrain : MonoBehaviour
     }
 
     /// Paints a terrain directly, without a move (the dev sandbox's emitters): a disc of that radius.
-    public static void PaintArea(string key, Vector2 centre, float radius, float duration, Combatant caster = null)
+    /// spareTeam: the caster's team-mates are left alone there, even by a slippery or slowing terrain (Z moves).
+    public static void PaintArea(string key, Vector2 centre, float radius, float duration, Combatant caster = null, bool spareTeam = false)
     {
         var def = Def(key);
         if (Current == null || def == null) return;
+        Current.painting = spareTeam && caster != null;
         Current.Paint(def, duration, centre, centre, radius, caster);
+        Current.painting = false;
     }
 
     /// Paints a terrain on the given tiles (a whole obstacle: electrified water), whatever lies there.
@@ -465,7 +471,7 @@ public class Terrain : MonoBehaviour
                 int n = ny * size + nx;
                 if (!seen.Add(n) || Live(n) != from || queued.Contains(n)) continue;
                 float duration = r.duration > 0f ? r.duration : (r.keepDuration ? until[n] - Time.time : lasts) * (r.keepDuration ? r.durationMul : 1f);
-                pending.Add(new Pending { at = Time.time + (steps + 1) * r.spreadDelay, cell = n, from = from, to = to, duration = duration, owner = caster });
+                pending.Add(new Pending { at = Time.time + (steps + 1) * r.spreadDelay, cell = n, from = from, to = to, duration = duration, owner = caster, spare = painting });
                 queued.Add(n);
                 frontier.Enqueue((nx, ny, steps + 1));
             }
@@ -480,6 +486,7 @@ public class Terrain : MonoBehaviour
             until[i] = 0f;
             owner[i] = null;
             owned[i] = false;
+            spareTeam[i] = false;
         }
         else
         {
@@ -487,6 +494,7 @@ public class Terrain : MonoBehaviour
             owner[i] = by;
             owned[i] = by != null;
             if (by != null) ownerTeam[i] = by.team;
+            spareTeam[i] = painting && by != null;
             until[i] = Time.time + duration;
             length[i] = duration;
             active++;
@@ -515,7 +523,9 @@ public class Terrain : MonoBehaviour
     {
         var def = KindAt(x, y);
         if (def == null || c == null) return def;
-        return (def.sparesOwner && owner[y * size + x] == c) || Immune(c, def) ? null : def;
+        int i = y * size + x;
+        if (spareTeam[i] && owned[i] && ownerTeam[i] == c.team) return null;
+        return (def.sparesOwner && owner[i] == c) || Immune(c, def) ? null : def;
     }
 
     /// The tile's terrain acts on this Pokémon and its attack (status, damage, stun) hits it: it is not on the
@@ -661,7 +671,12 @@ public class Terrain : MonoBehaviour
             if (Time.time < p.at) continue;
             pending.RemoveAt(k--);
             queued.Remove(p.cell);
-            if (Live(p.cell) == p.from) Set(p.cell, p.to, p.duration, p.owner); // unless something else got there first
+            if (Live(p.cell) == p.from) // unless something else got there first
+            {
+                painting = p.spare; // a spread started by a Z move spares its team too
+                Set(p.cell, p.to, p.duration, p.owner);
+                painting = false;
+            }
         }
         if (active <= 0) return;
         foreach (var c in Combatant.All)

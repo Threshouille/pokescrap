@@ -74,6 +74,7 @@ Le HUD affiche les touches du clavier quand aucune manette n'est branchée.
 Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false` pour une version de jeu) :
 
 - `unlockAll` : tous les Pokémon jouables sont débloqués.
+- `allItems` : tous les objets spéciaux sont possédés (niveau 1 au moins), quoi que dise la sauvegarde.
 - `devMode` : trois **persos de dev** (Dev Mew, Dev Métamorph, Dev Porygon) apparaissent en tête du menu. Ils
   peuvent prendre n'importe quelle attaque du jeu (`devStartingMoveCount` au départ, 4 par défaut), n'ont pas de
   type et ne sont jamais recrutés, sauvegardés ni ennemis. Définis dans `Assets/Resources/Data/dev_characters.json`.
@@ -86,12 +87,13 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 24 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 38 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
   brûler un pont sous un ennemi, marcher sur du métal chargé, puis les obstacles dans des salles du catalogue, l'absence
-  de gel sur un grand niveau et sur l'île) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
+  de gel sur un grand niveau et sur l'île, la hauteur des tirs, objets et ultimes, élites, réanimer un K.O., l'éloigner
+  des ennemis, soigner sans se mettre en danger) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
   Sans ouvrir Unity : `python3 Tools/setup.py --ai-scenarios` (Unity fermé ; résultats dans `Logs/ai_scenarios.log`,
   code de sortie = nombre d'échecs). Scénarios : `Assets/Scripts/Combat/AiScenarios.cs`.
 
@@ -189,7 +191,20 @@ Depuis le terrain de test, l'**escalier en haut à droite** mène à la **salle 
 gauche ramène). Chaque visite tire 2 ou 3 obstacles au hasard (**R** ou **Select** : nouveau tirage) : vide avec
 ponts (d'un mur à l'autre), ravin (sur une partie de la salle), gouffre, rivière, rivière glacée, lac, lac de lave,
 lac de glace, île entourée de vide ou d'eau, murs de glace, rochers, pylônes électriques, plaques de métal avec bornes
-aimantées. Les rivières vont d'un mur à l'autre, les ponts sont
+aimantées. Six **cibles d'entraînement** (ennemis immobiles qui n'attaquent pas, revenant 4 s après un K.O. ;
+`dummies` dans `terrain_sandbox.json`) servent à essayer attaques, capacités Z et obstacles. L'**escalier orange foncé**
+(en haut à gauche du terrain de test) mène à la **démo des capacités Z** : huit cibles résistantes en cercle, **↑/↓** (ou
+**1/2**) choisit le cristal porté par le Pokémon joué, **F** ou **L3 + R3** lance (sans attaque du type, il emprunte la
+plus forte du jeu) ; le nom et l'effet du cristal s'affichent en haut. L'**escalier doré** (à gauche) mène à la
+**salle de l'élite** : un Lokhlass d'élite derrière une rivière (**R** / **Select** : avec ou sans pont) ; sans pont il
+la gèle pour venir, avec pont il le brûle sous un Pokémon qui se bat au corps à corps. L'**escalier rouge** (en haut,
+à droite du turquoise) mène à la **salle du boss** : Mewtwo. Comme tout Pokémon, un élite ou un boss porte un seul objet (Téra-Éclat ou
+cristal Z, choisi d'après ton équipe), donc un seul ultime, une seule fois ; le terrain d'une capacité Z n'agit jamais
+sur l'équipe de son lanceur. Les deux
+reviennent quelques secondes après un K.O. (`eliteRoom` / `bossRoom` dans `terrain_sandbox.json`). L'**escalier bleu** (à
+droite) mène aux **démos de secours** : six cas réels (réanimation par un allié, garde qui éloigne les ennemis ou le
+boss, soin d'un coéquipier, pas de soin risqué) qui s'enchaînent tout seuls en boucle, à regarder sans jouer ; le
+bandeau dit quoi observer et le rôle pris par l'allié, ↑/↓ change de cas, bouger le Pokémon reprend la main. Les rivières vont d'un mur à l'autre, les ponts sont
 droits ; l'eau et la lave ne se touchent jamais. L'eau, la lave, le vide et la glace
 reprennent les décors de la ROM (extraits par `Tools/setup.py` dans `Assets/Resources/ObstacleTiles`, non versionnés) ;
 ponts (intact, en feu, brûlé, de lianes), végétation, roche refroidie et murs de glace ont leurs planches Claude Design
@@ -299,6 +314,43 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 23/10/2026 — Secours et soins des alliés (Robin, branche `fix/ia-reanimation`)
+- Quand un membre de l'équipe est K.O., le plus apte à encaisser et finir les ennemis (PV, défenses, dégâts, corps à
+  corps) **éloigne** les ennemis proches de lui (il les attire : provocation) pendant que l'autre va le **réanimer** ;
+  si tu te mets toi-même sur le K.O., l'allié garde. Les alliés peuvent désormais réanimer (même règle : rester dessus).
+- **Soins** : un Pokémon qui a un soin va soigner un coéquipier presque K.O. (sous 40 %) même s'il n'est pas soutien,
+  mais jamais vers une zone dangereuse ni, s'il est lui-même blessé, à côté d'un ennemi.
+- Réglages `allyGuardRadius`, `allyLureDistance`, `allyHealLow`, `allyHealSafeHealth`, `allyHealSafeGap`,
+  `aiTargetTaunt` dans `meta.json`.
+
+### 23/10/2026 — Objets spéciaux : méga-gemmes, cristaux Z, Téra-Éclats (Robin, branche `feature/objets`)
+- **Objets** (`Assets/Resources/Data/items.json`, `SpecialItems`) : 26 méga-gemmes (Rayquaza n'en a pas besoin : il
+  méga-évolue s'il connaît Draco Météor, Draco Ascension n'étant pas dans la ROM), 17 cristaux Z et 17 Téra-Éclats (un
+  par type, sans Fée). Noms français à vérifier.
+- **Collection** (sauvegarde) : méga-gemmes uniques et permanentes ; cristaux Z et Téra-Éclats permanents, chaque doublon
+  fait monter leur niveau (1 à 3 : puissance de la capacité Z, durée du Téracristal).
+- **Menu d'équipe** : sous chaque portrait, une encoche par famille possible pour ce Pokémon (M seulement si sa lignée a
+  une méga, Z, T), pleine si un objet y est rangé, encadrée si c'est l'objet actif ; **Carré** ou **O** ouvre ses objets
+  (haut / bas : famille, gauche / droite : objet possédé, Croix ou Espace : objet actif, un seul par partie ; avertit si
+  l'objet ne servira pas tel quel : attaque du type requise, forme à atteindre).
+- **Ultimes** (`Ultimates`, remplace `MegaEvolution`) : la jauge commune (K.O.) et L3 + R3 / F déclenchent l'ultime de
+  l'objet actif du Pokémon joué : méga-évolution (avec la gemme de sa lignée), **capacité Z** (pose, puis chaque ennemi visible à
+  l'écran est frappé, du plus proche au plus loin : dégâts de sa plus forte attaque du type × 3 à 4 selon le niveau, et
+  un effet propre au type : paralysie pour Électrik, brûlure et braises pour Feu, poussée et flaque pour Eau, etc. ;
+  seulement si un ennemi est en vue) ou **Téracristal** (le type de l'éclat pendant 40 à 60 s, reflet cristallin,
+  attaques de ce type renforcées). Case du HUD : Méga / Z / Téra. Persos de dev (`dev` dans `items.json`) : Dev Mew
+  porte un cristal Z Feu, Dev Métamorph un Téra-Éclat Spectre.
+- **Butin** (`Loot`) : un boss lâche une méga-gemme encore jamais obtenue (compatible avec l'équipe d'abord), sinon
+  parfois un cristal ou un éclat ; un **coffre** apparaît en fin d'étape ; des **élites** (≈ 1 ennemi sur 30, anneau doré,
+  plus résistants) en lâchent parfois. Objets à ramasser en marchant dessus (ramassés d'office en fin d'étape), types de
+  l'équipe plus fréquents. Rien dans le terrain de test.
+- **Icônes d'objets** (au sol, écran des objets, encoches, case d'ultime du HUD) : méga-gemmes et cristaux Z de
+  PokeAPI/sprites, Téra-Éclats en pixel art de Marcie (Niko's Tera, CC BY-NC-SA 4.0), téléchargés par
+  `python3 -I Tools/pmd/import_items.py .` (appelé par `setup.py`) dans `Assets/Resources/Items/` (non versionné,
+  crédits dans `CREDITS_ITEMS.md`). Sans icône, l'objet reste un losange coloré.
+- La capacité Z se lance aussi sans ennemi en vue dans le terrain de test ; ailleurs, un message dit qu'il n'y a
+  personne à frapper.
 
 ### 22/10/2026 — Île flottante, étapes 1 à 3 (Robin, branche `feature/salles`)
 - Nouvelle structure de run (GDD « L'île flottante ») : 4 quartiers à thème autour d'une zone centrale, sous-biomes par

@@ -55,6 +55,9 @@ public class Combatant : MonoBehaviour
     public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil && !IsEvolving;
     /// True during the evolution animation: the Pokémon stands still and nothing hurts it.
     public bool IsEvolving => Time.time < evolvingUntil;
+
+    /// An elite enemy (Loot.MakeElite): it handles obstacles like an ally (ObstacleTactics).
+    public bool IsElite => GetComponent<EliteMark>() != null;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
     public bool IsDodging => Time.time < dodgeUntil;
@@ -358,6 +361,46 @@ public class Combatant : MonoBehaviour
         moveSpeed /= megaSpeedMul;
         Stats = beforeMega;
         Mega = null;
+    }
+
+    /// The special item this Pokémon brings into the run (its ultimate: Ultimates), or null.
+    public SpecialItems.Equipped Special { get; set; }
+
+    /// The Terastal type, -1 when not Terastallized.
+    public int TeraType { get; private set; } = -1;
+    PokemonStats beforeTera;
+
+    /// Terastal phase: the Pokémon takes that type alone (defence, terrains, immunities); its moves of that type hit
+    /// harder (DamageOf). RevertTera gives its types back.
+    public void Terastallize(int type)
+    {
+        if (TeraType >= 0 || Stats == null) return;
+        beforeTera = Stats;
+        var form = Stats.Clone();
+        form.types = new[] { type };
+        Stats = form;
+        TeraType = type;
+    }
+
+    public void RevertTera()
+    {
+        if (TeraType < 0) return;
+        Stats = beforeTera;
+        TeraType = -1;
+    }
+
+    /// Uses a move that is in none of its slots (a Z move): it borrows the first slot for the cast, whose own move
+    /// and recharge are put back right after.
+    public bool UseExtraMove(MoveDef move, Vector2 direction, float distance = -1f)
+    {
+        var kept = Moves[0];
+        float ready = readyAt[0];
+        Moves[0] = move;
+        readyAt[0] = 0f;
+        bool used = TryUseMove(0, direction, distance);
+        Moves[0] = kept;
+        readyAt[0] = ready;
+        return used;
     }
 
     /// Moves this Pokémon could learn now: those of its first form, plus those of the forms it evolved into,
@@ -1142,7 +1185,11 @@ public class Combatant : MonoBehaviour
         float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
         float burn = move.category == "physical" ? StatusProduct(def => def.physicalAttackMul) : 1f;
         float scale = (move.damageScale > 0f ? move.damageScale : 1f) * EnemyBasic(move, SaveData.Settings.enemyBasicDamageMul);
-        float stab = Stats?.types != null && System.Array.IndexOf(Stats.types, move.type) >= 0 ? SaveData.Settings.stab : 1f;
+        // Same-type bonus: its own types; Terastallized, the Tera type too, and more when it was already one of them.
+        var own = TeraType >= 0 && beforeTera != null ? beforeTera.types : Stats?.types;
+        bool native = own != null && System.Array.IndexOf(own, move.type) >= 0;
+        float stab = TeraType == move.type ? (native ? SaveData.Settings.teraStab : SaveData.Settings.stab)
+            : native ? SaveData.Settings.stab : 1f;
         return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab;
     }
 
@@ -1266,6 +1313,9 @@ public class Combatant : MonoBehaviour
         }
 
         var tint = StatusTint();
+        // Terastallized: a crystal sheen of its Tera type that comes and goes.
+        if (TeraType >= 0)
+            tint = Color.Lerp(tint, Color.Lerp(Color.white, GameData.TypeColor(TeraType), 0.55f), 0.35f + 0.25f * Mathf.Sin(Time.time * 4f));
         if (spriteRenderer != null)
             spriteRenderer.color = IsEvolving ? Color.white
                 : Time.time < flashUntil ? new Color(1f, 0.4f, 0.4f)

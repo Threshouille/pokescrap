@@ -37,7 +37,8 @@ OBSTACLE_TILES = ROOT / "Assets/Resources/ObstacleTiles"
 CLIFFS = ROOT / "Assets/Resources/Cliffs"
 MAP_PROPS = ROOT / "Assets/Resources/MapProps"
 # Folders whose content comes from the ROM (only their .meta files are versioned).
-GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, MAP_PROPS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data"]
+GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, MAP_PROPS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data",
+             ROOT / "Assets/Resources/Items"]
 # ScriptableObjects rebuilt by Unity: a placeholder keeps their GUID until the Build menus fill them.
 PLACEHOLDERS = {ANIMSETS: "Assets/Scripts/Pmd/PmdAnimSet.cs", TILESETS: "Assets/Scripts/Dungeon/DungeonTileset.cs"}
 
@@ -112,6 +113,12 @@ def restore_megas(force):
     """Mega evolutions: PMD-style sprites downloaded from PMDCollab SpriteCollab (not in the ROM)."""
     step("Mega evolutions (PMDCollab SpriteCollab, needs internet)")
     run(python(), "-I", PMD / "import_megas.py", ROOT, *(["--force"] if force else []))
+
+
+def restore_items(force):
+    """Special item icons: PokeAPI/sprites and Nikostera (not in the ROM)."""
+    step("Special item icons (PokeAPI, Nikostera, needs internet)")
+    run(python(), "-I", PMD / "import_items.py", ROOT, *(["--force"] if force else []))
 
 
 def restore_tilesets():
@@ -283,6 +290,7 @@ def main():
     extract(args.force)
     restore_pokemon()
     restore_megas(args.force)
+    restore_items(args.force)
     restore_tilesets()
     restore_obstacle_tiles()
     restore_cliffs()

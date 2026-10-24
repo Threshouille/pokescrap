@@ -22,9 +22,9 @@ public class PlayerController : MonoBehaviour
     static readonly Vector3[] StartOffsets = { Vector3.zero, new(-1.2f, -0.8f, 0f), new(1.2f, -0.8f, 0f) };
 
     public int teamSize = 3;
-    [Tooltip("Seconds the controlled Pokémon must stay on a knocked-out ally to bring it back")]
+    [Tooltip("Seconds a living team member must stay on a knocked-out one to bring it back")]
     public float reviveTime = 3f;
-    [Tooltip("How close the controlled Pokémon must be to the knocked-out ally, in tiles")]
+    [Tooltip("How close the living team member must be to the knocked-out one, in tiles")]
     public float reviveRadius = 1f;
     [Tooltip("Share of its max HP a revived Pokémon comes back with")]
     public float reviveHealthShare = 0.5f;
@@ -54,6 +54,9 @@ public class PlayerController : MonoBehaviour
     readonly List<Member> members = new();
     int current;
     Vector2 move;
+
+    /// Set by a scripted demo (RescueDemos): the controlled Pokémon walks this way unless the player moves it.
+    public Vector2? ScriptedMove { get; set; }
     Vector2 facing = Vector2.down;
     float attackUntil;
     string attackAnim = "Attack";
@@ -81,7 +84,7 @@ public class PlayerController : MonoBehaviour
         aimArrow.gameObject.SetActive(false);
         gameObject.AddComponent<Progression>();
         gameObject.AddComponent<Evolution>();
-        gameObject.AddComponent<MegaEvolution>();
+        gameObject.AddComponent<Ultimates>();
         gameObject.AddComponent<TeamHud>();
         gameObject.AddComponent<PauseMenu>();
     }
@@ -135,6 +138,7 @@ public class PlayerController : MonoBehaviour
         member.animator.SetAnimSet(set);
         member.combatant = go.AddComponent<Combatant>();
         member.combatant.Init(pokemonId, Team.Player, SaveData.StartingMoves(pokemonId));
+        member.combatant.Special = SpecialItems.ActiveFor(pokemonId); // its ultimate for this run (Ultimates)
         member.combatant.Died += _ => OnKnockedOut(member);
         member.ai = go.AddComponent<AllyAI>();
         member.ai.leader = transform;
@@ -225,7 +229,9 @@ public class PlayerController : MonoBehaviour
         if (Time.timeScale == 0f) return; // paused by the upgrade screen
 
         var member = Current;
-        move = member.combatant.CanMove ? ReadMove() : Vector2.zero; // asleep, frozen or trapped
+        Vector2 input = ReadMove();
+        move = !member.combatant.CanMove ? Vector2.zero // asleep, frozen or trapped
+            : input != Vector2.zero || !ScriptedMove.HasValue ? input : ScriptedMove.Value;
         Vector2 aim = ReadAim();
         if (aim != Vector2.zero) facing = aim;
         else if (move != Vector2.zero) facing = move.normalized;
@@ -327,14 +333,17 @@ public class PlayerController : MonoBehaviour
         SetControlled(current);
     }
 
-    // The gauge fills while the controlled Pokémon stays on a knocked-out ally, and drains twice as fast otherwise.
+    // The gauge fills while a living team member (the controlled one, or an ally: TeamRescue) stays on a knocked-out
+    // one, and drains twice as fast otherwise.
     void UpdateRevives()
     {
-        Vector2 position = Current.go.transform.position;
         foreach (var member in members)
         {
             if (member.combatant.IsAlive) continue;
-            bool near = Vector2.Distance(position, member.go.transform.position) <= reviveRadius;
+            bool near = false;
+            foreach (var other in members)
+                if (other.combatant.IsAlive && Vector2.Distance(other.go.transform.position, member.go.transform.position) <= reviveRadius)
+                    near = true;
             member.reviveProgress = near
                 ? member.reviveProgress + Time.fixedDeltaTime
                 : Mathf.Max(0f, member.reviveProgress - 2f * Time.fixedDeltaTime);

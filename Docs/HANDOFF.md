@@ -153,6 +153,15 @@ glace 88, 111, 137, 139, 140 ; eau 4, 39, 52, 96, 113, 126 ; forêt 5, 10, 35, 4
 désert 17, 19, 20, 85, 133 ; électrique 14 (Plaines Elek), 127 (Registeel) ; néant 26, 55 (Faille Spatiale, liquide
 noir), 59, 99 ; ruines 28, 29, 30, 45/46 (Tour du Temps) ; labyrinthe 102 (Grotte Labyrinthe).
 
+## Objets spéciaux (branche `feature/objets`, 23/10/2026, Robin)
+
+Faits : `items.json`, collection et équipement dans la sauvegarde, encoches et écran des objets au menu, ultimes (méga
+avec gemme, capacité Z, Téracristal) sur la jauge commune, butin (boss, coffre de fin d'étape, élites). Banc 23/23 (5
+scénarios d'objets, 4 d'élites et d'ultimes ennemis). Ultimes ennemis (`EnemyUltimate`) et élites qui modifient le terrain : faits. À faire : tester en jeu ; icônes d'objets faites (`import_items.py`, PokeAPI + Nikostera) ; effets Z et Téra à chercher en ligne
+plutôt que chez Claude Design (demande de Robin) ; vérifier les noms français des objets ; observé sur le banc : une
+attaque de projectile touche un ennemi immobile du banc à de nombreuses reprises (1 035 dégâts pour ≈ 33 estimés par
+coup), à vérifier en jeu.
+
 ## En attente
 
 - **Icônes de bonus/malus** (`status_attack_up`… six fichiers) : prompt donné plus tôt, archive pas encore reçue ; flèches colorées provisoires.
