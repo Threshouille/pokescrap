@@ -462,7 +462,8 @@ public class PlayerController : MonoBehaviour
     {
         var pad = Gamepad.current;
         var kb = Keyboard.current;
-        return (pad != null && pad.buttonSouth.wasPressedThisFrame) || (kb != null && kb.leftCtrlKey.wasPressedThisFrame);
+        return (pad != null && pad.buttonSouth.wasPressedThisFrame)
+               || (kb != null && (kb.leftCtrlKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)); // Ctrl or Space
     }
 
     static int ReadSwitch()

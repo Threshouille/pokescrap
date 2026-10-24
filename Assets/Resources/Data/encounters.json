@@ -1,5 +1,5 @@
 {
- "comment": "Rencontres (Encounters.cs) : ce qui apparaît à chaque vague d'une étape, à la place des vagues écrites à la main (encountersInRuns dans meta.json). Une vague a un budget de menace (budget : start + perStage × étape + perWave × vague, au plus maxGroups rencontres) ; on tire des rencontres par catégorie (weight, minStage) jusqu'à l'épuiser (la première passe toujours). Coût d'une rencontre : somme, par membre, du cost de sa catégorie × cost de son rang. Lots (categories) : solitaire (un Pokémon fort, commun à épique), équipe (trois complémentaires, commun à épique), meute (4 à 6 fois le même Pokémon, niveau bas, commun à rare), gang (trois solitaires, chacun avec un objet et son ultime, rare à épique, à partir de l'étape 3). Champs : size (nombre de membres), levelBonus (niveaux de plus que l'étape), health (× PV), moves (attaques en plus de enemyMoveCount), depthBonus (stades d'évolution de plus que maxDepthByStage), roles (rôle imposé à chaque membre, dans l'ordre), synergy (le 2e membre est choisi pour se combiner avec le 1er : synergies), sameSpeciesChance (meute : même espèce, sinon même type), rarities (rangs permis, poids renormalisés), items (chaque membre porte un objet, quel que soit son rang). Rangs (rarities) : weight par étape (la dernière valeur vaut pour la suite), level, moves, health, cost, strong (attaques prises parmi les plus puissantes), item (porte un objet et a un ultime : EnemyUltimate), color (anneau sous le Pokémon, aucun pour le commun), repairs (change les obstacles pour atteindre sa cible, comme les élites). Réservoir de Pokémon : sprites, au moins 2 attaques, recrutables (recruitRate > 0), hors exclude (légendaires et fabuleux), stade d'évolution au plus maxDepthByStage[étape], et d'un type du décor (decors : n° de décor de la ROM → types ; sans entrée ou avec moins de minPool Pokémon : tous les types). Combinaisons (combos) : un lot 'lot' tiré vient avec un lot 'with' (chance), aux rangs 'rarities' (sinon ceux du lot), dans le même groupe (même endroit, même cible) ; un seul accompagnement par lot ; le coût s'ajoute.",
+ "comment": "Rencontres (Encounters.cs) : ce qui apparaît à chaque vague d'une étape, à la place des vagues écrites à la main (encountersInRuns dans meta.json). Une vague a un budget de menace (budget : start + perStage × étape + perWave × vague, au plus maxGroups rencontres) ; on tire des rencontres par catégorie (weight, minStage) jusqu'à l'épuiser (la première passe toujours). Coût d'une rencontre : somme, par membre, du cost de sa catégorie × cost de son rang. Lots (categories) : solitaire (un Pokémon fort, commun à épique), équipe (trois complémentaires, commun à épique), meute (4 à 6 fois le même Pokémon, niveau bas, commun à rare), gang (trois solitaires, chacun avec un objet et son ultime, rare à épique, à partir de l'étape 3). Champs : size (nombre de membres), levelBonus (niveaux de plus que l'étape), health (× PV), moves (attaques en plus de enemyMoveCount), depthBonus (stades d'évolution de plus que maxDepthByStage), roles (rôle imposé à chaque membre, dans l'ordre), synergy (le 2e membre est choisi pour se combiner avec le 1er : synergies), sameSpeciesChance (meute : même espèce, sinon même type), rarities (rangs permis, poids renormalisés), items (chaque membre porte un objet, quel que soit son rang). Rangs (rarities) : weight par étape (la dernière valeur vaut pour la suite), level, moves, health, cost, strong (attaques prises parmi les plus puissantes), item (porte un objet et a un ultime : EnemyUltimate), color (anneau sous le Pokémon, aucun pour le commun), repairs (change les obstacles pour atteindre sa cible, comme les élites). Réservoir de Pokémon : sprites, au moins 2 attaques, recrutables (recruitRate > 0), hors exclude (légendaires et fabuleux), stade d'évolution au plus maxDepthByStage[étape], et d'un type du décor (decors : n° de décor de la ROM → types ; sans entrée ou avec moins de minPool Pokémon : tous les types). Combinaisons (combos) : un lot 'lot' tiré vient avec un lot 'with' (chance), aux rangs 'rarities' (sinon ceux du lot), dans le même groupe (même endroit, même cible) ; un seul accompagnement par lot ; le coût s'ajoute. Élites (elites) : au plus un par étape, avec la probabilité chanceByStage[étape] (dernière valeur pour la suite), pendant une vague tirée au hasard et en plus de son budget ; lot tiré dans 'lots' (champion : un Pokémon très fort, plus évolué, objet et méga si possible ; escouade d'élite : trois complémentaires, rares ou épiques, seul le chef porte l'objet). Ces lots ont un poids 0 dans les vagues ordinaires. Champs : elite (anneau doré, butin garanti : à la chute du champion, quand toute l'escouade est tombée ; change le terrain comme les alliés), leaderItem (seul le premier membre porte l'objet), scale (taille du sprite), preferMega (porte la méga-gemme de sa lignée quand elle existe).",
  "budget": {
   "start": 5,
   "perStage": 2.5,
@@ -87,6 +87,53 @@
     "rare",
     "epic"
    ]
+  },
+  {
+   "key": "champion",
+   "name": "Champion",
+   "weight": 0,
+   "size": [
+    1,
+    1
+   ],
+   "cost": 0,
+   "levelBonus": 5,
+   "health": 6,
+   "moves": 2,
+   "depthBonus": 2,
+   "rarities": [
+    "epic"
+   ],
+   "items": true,
+   "elite": true,
+   "scale": 1.25,
+   "preferMega": true
+  },
+  {
+   "key": "squad",
+   "name": "Escouade d'élite",
+   "weight": 0,
+   "size": [
+    3,
+    3
+   ],
+   "cost": 0,
+   "levelBonus": 3,
+   "health": 2.5,
+   "moves": 1,
+   "depthBonus": 1,
+   "roles": [
+    "melee",
+    "ranged",
+    "support"
+   ],
+   "synergy": true,
+   "rarities": [
+    "rare",
+    "epic"
+   ],
+   "leaderItem": true,
+   "elite": true
   }
  ],
  "rarities": [
@@ -314,5 +361,23 @@
    "rarities": [],
    "comment": "une meute et une équipe"
   }
- ]
+ ],
+ "elites": {
+  "chanceByStage": [
+   0.15,
+   0.3,
+   0.45,
+   0.6
+  ],
+  "lots": [
+   {
+    "lot": "champion",
+    "weight": 1
+   },
+   {
+    "lot": "squad",
+    "weight": 1
+   }
+  ]
+ }
 }

@@ -126,6 +126,9 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Rencontres : zones peuplées typiques par étape", TypicalZones());
         yield return Scenario("Rencontres : une meute vient parfois avec un solitaire rare ou épique", PackWithLeader());
         yield return Scenario("Groupe : pas d'à-coups dans une meute de 6 et son chef", CrowdStaysSteady());
+        yield return Scenario("Élite : un champion très fort, plus grand, avec objet et butin garanti", ChampionStands());
+        yield return Scenario("Élite : une escouade de 3, seul le chef porte l'objet, butin quand tous tombent", SquadLoot());
+        yield return Scenario("Élite : au plus un par étape, plus souvent en avançant", EliteOdds());
         yield return Scenario("Eau : poussé dedans, un Pokémon qui ne nage pas revient, un nageur y reste", PushedIntoWater());
         yield return Scenario("Ultime ennemi : Téra pour se déplacer sur la lave qui l'entoure", EnemyTeraForWater());
         yield return Scenario("Rencontres : une équipe a ses rôles et des types qui se combinent", TeamHasRoles());
@@ -945,6 +948,92 @@ public class AiScenarios : MonoBehaviour
         bool walkerOut = !Obstacles.BlocksAt(walker.transform.position, walker) && Obstacles.At(walker.transform.position) == null;
         bool swimmerIn = Obstacles.At(swimmer.transform.position)?.key == "water";
         Report(walkerOut && swimmerIn, $"Bulbizarre {(walkerOut ? "revenu sur la berge" : "resté dans l'eau")}, Tentacool {(swimmerIn ? "dans l'eau" : "sur la berge")}");
+    }
+
+    // The champion: one Pokémon, golden ring, bigger, much tougher than the same Pokémon as a solitaire, with an item;
+    // its knock-out leaves an item on the ground.
+    IEnumerator ChampionStands()
+    {
+        var (leader, ally) = Place(new Vector2(-8f, 0f), new Vector2(-8f, 2f), settle: false);
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var champion = Encounters.CategoryOf("champion");
+        var e = champion != null ? Encounters.Make(new System.Random(12), champion, 1, -1) : null;
+        if (spawner == null || e == null) { Report(false, "pas de champion"); yield break; }
+        var solo = Encounters.CategoryOf("solo");
+        var spawned = spawner.SpawnEncounter(e, Centre + new Vector2(4f, 0f), 5);
+        placed.AddRange(spawned);
+        var c = spawned.Count == 1 ? spawned[0] : null;
+        yield return new WaitForFixedUpdate();
+        bool marked = c != null && c.GetComponent<EliteMark>() is { sureLoot: true } && c.transform.Find("Aura d'élite") != null;
+        bool item = c != null && c.GetComponent<EnemyUltimate>() != null;
+        bool big = c != null && c.transform.localScale.x > 1.1f;
+        float ratio = solo != null ? e.members[0].health / solo.health : 0f;
+        string name = c != null ? c.Stats.name : null; // the champion is gone once knocked out
+        Loot.DropsInSandbox = true;
+        if (c != null) c.TakeFixedDamage(c.hp + 1f);
+        yield return new WaitForFixedUpdate();
+        Loot.DropsInSandbox = false;
+        bool dropped = System.Array.Exists(FindObjectsByType<Transform>(), t => t.name.StartsWith("Objet :"));
+        ClearDrops();
+        Report(name != null && marked && item && big && ratio >= 2f && dropped,
+            $"{name ?? "rien"} : {(marked ? "anneau doré" : "sans marque")}, {(item ? "objet" : "sans objet")}, "
+            + $"{(big ? "plus grand" : "taille normale")}, PV ×{ratio:0.0} d'un solitaire, {(dropped ? "objet au sol après le K.O." : "rien au sol")}");
+    }
+
+    // The squad: three, rare or épique, elites; only its leader carries an item; nothing drops until the last one falls.
+    IEnumerator SquadLoot()
+    {
+        Place(new Vector2(-8f, 0f), new Vector2(-8f, 2f), settle: false);
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var squad = Encounters.CategoryOf("squad");
+        var e = squad != null ? Encounters.Make(new System.Random(13), squad, 2, -1) : null;
+        if (spawner == null || e == null) { Report(false, "pas d'escouade"); yield break; }
+        var spawned = spawner.SpawnEncounter(e, Centre + new Vector2(5f, 0f), 5);
+        placed.AddRange(spawned);
+        yield return new WaitForFixedUpdate();
+        int items = spawned.FindAll(c => c.GetComponent<EnemyUltimate>() != null).Count;
+        bool ranks = e.members.TrueForAll(m => m.rarity.key == "rare" || m.rarity.key == "epic");
+        bool elites = spawned.TrueForAll(c => c.GetComponent<EliteMark>() is { sureLoot: true, squad: not null });
+        bool Dropped() => System.Array.Exists(FindObjectsByType<Transform>(), t => t.name.StartsWith("Objet :"));
+        bool early = false;
+        Loot.DropsInSandbox = true;
+        for (int i = 0; i < spawned.Count; i++)
+        {
+            spawned[i].TakeFixedDamage(spawned[i].hp + 1f);
+            yield return new WaitForFixedUpdate();
+            if (i < spawned.Count - 1 && Dropped()) early = true;
+        }
+        Loot.DropsInSandbox = false;
+        bool last = Dropped();
+        ClearDrops();
+        Report(spawned.Count == 3 && items == 1 && ranks && elites && !early && last,
+            $"{spawned.Count} membres, {items} objet(s), {(ranks ? "rares ou épiques" : "rangs faux")}, {(elites ? "tous élites" : "marques manquantes")}, "
+            + $"{(early ? "butin trop tôt" : "rien avant la fin")}, {(last ? "butin au dernier" : "pas de butin")}");
+    }
+
+    // The items left on the ground by a scenario (they would be picked up later and fill the save).
+    static void ClearDrops()
+    {
+        foreach (var t in FindObjectsByType<Transform>())
+            if (t != null && t.name.StartsWith("Objet :")) Destroy(t.gameObject);
+    }
+
+    // Elite odds: the chance of a stage with an elite rises with the stage, and an elite lot is a champion or a squad.
+    IEnumerator EliteOdds()
+    {
+        float first = Encounters.EliteChance(0), fourth = Encounters.EliteChance(3);
+        var rng = new System.Random(14);
+        int champions = 0, squads = 0;
+        for (int k = 0; k < 200; k++)
+        {
+            var e = Encounters.Elite(rng, 2, -1);
+            if (e == null) continue;
+            if (e.category.key == "champion") champions++;
+            if (e.category.key == "squad") squads++;
+        }
+        Report(fourth > first && champions > 40 && squads > 40,
+            $"élite par étape : {first:P0} à l'étape 1, {fourth:P0} à l'étape 4 ; {champions} champions et {squads} escouades sur 200");
+        yield break;
     }
 
     // Typical populated zones: whole waves at each stage, every lot following its rules; the log shows one zone per

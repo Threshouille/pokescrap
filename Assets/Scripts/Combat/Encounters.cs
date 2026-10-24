@@ -26,6 +26,8 @@ public static class Encounters
         public string[] roles = new string[0];
         public string[] rarities = new string[0]; // ranks allowed (all when empty)
         public bool synergy, items;
+        public bool elite, leaderItem, preferMega; // an elite lot: golden ring, sure loot; only the leader's item; mega stone
+        public float scale = 1f; // sprite size
     }
 
     [Serializable]
@@ -66,6 +68,29 @@ public static class Encounters
         public Synergy[] synergies = new Synergy[0];
         public int[] exclude = new int[0];
         public Combo[] combos = new Combo[0];
+        public Elites elites = new();
+    }
+
+    [Serializable] class EliteLot { public string lot; public float weight = 1f; }
+    [Serializable] class Elites { public float[] chanceByStage = { 0f }; public EliteLot[] lots = new EliteLot[0]; }
+
+    /// Chance that a stage has an elite lot (champion, squad), at most one.
+    public static float EliteChance(int stage)
+    {
+        var c = Data.elites.chanceByStage;
+        return c.Length == 0 ? 0f : c[Mathf.Clamp(stage, 0, c.Length - 1)];
+    }
+
+    /// An elite lot (champion or squad, by weight), or null when none fits.
+    public static Encounter Elite(System.Random rng, int stage, int decor)
+    {
+        var lots = Data.elites.lots.Where(l => CategoryOf(l.lot) != null && l.weight > 0f).ToList();
+        if (lots.Count == 0) return null;
+        double roll = rng.NextDouble() * lots.Sum(l => l.weight);
+        var pick = lots[^1];
+        foreach (var l in lots)
+            if ((roll -= l.weight) < 0) { pick = l; break; }
+        return Make(rng, CategoryOf(pick.lot), stage, decor);
     }
 
     /// One Pokémon of an encounter, as it will be spawned.
@@ -197,7 +222,7 @@ public static class Encounters
                 levelBonus = category.levelBonus + rarity.level,
                 moveCount = Mathf.Clamp(SaveData.Settings.enemyMoveCount + category.moves + rarity.moves, 1, Combatant.MoveSlots),
                 health = category.health * rarity.health,
-                item = rarity.item || category.items,
+                item = category.leaderItem ? i == 0 : rarity.item || category.items,
                 lot = category,
             };
             e.members.Add(m);

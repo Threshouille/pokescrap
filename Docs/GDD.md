@@ -193,6 +193,12 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   équipe et solitaire, meute et équipe ; probabilités dans `encounters.json`).
 - Téra ennemi cohérent avec l'environnement : le type choisi aide aussi à se déplacer parmi les obstacles autour (Eau ou
   Vol sur un lac, Spectre entre les rochers…) ; utilisé dès le début du combat quand c'est pour le terrain.
+- **Élites** (étape 2, 24/10/2026) : au plus un par étape, plus souvent en avançant (15 % à l'étape 1, 60 % à
+  l'étape 4), pendant une vague, en plus de son budget, annoncé par un bandeau. **Champion** : un Pokémon très fort
+  (plus évolué, +5 niveaux, PV × 6, 4 attaques puissantes, objet et méga si possible, plus grand). **Escouade
+  d'élite** : trois complémentaires, rares ou épiques, seul le chef porte un objet. Anneau doré, butin garanti (à la
+  chute du champion, quand toute l'escouade est tombée) ; ils modifient le terrain comme les alliés. Les élites tirés
+  au hasard parmi les ennemis ordinaires disparaissent des rencontres.
 - À faire plus tard : un usage plus stratégique des méga-évolutions par l'ennemi.
 - Chaque ennemi a un **rang** (commun, peu commun, rare, épique), plus fréquent en avançant : niveaux, PV et attaques en
   plus, attaques prises parmi les plus puissantes, objet et ultime pour les épiques ; anneau de couleur sous lui.

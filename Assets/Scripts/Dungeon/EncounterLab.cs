@@ -5,8 +5,8 @@ using UnityEngine;
 
 /// Room of the test arena (TerrainSandbox.EncounterRoom, white stairs) to watch how the encounters (Encounters)
 /// fight in an obstacle room: one lot at a time (solitaire, meute, équipe, gang in turn), a combination (a lot and
-/// the one that comes with it, combos), then a populated zone (a
-/// whole wave of several lots spread over the room), drawn for a stage that goes up every few rounds, against the team on autopilot (PlayerController.AutoPilot: nobody plays). A round ends when
+/// the one that comes with it, combos), the elites (champion, squad), then a populated zone (a
+/// whole wave of several lots spread over the room), drawn for a stage that goes up every few rounds, against the team: played by the player, or on autopilot to watch (PlayerController.AutoPilot; V or d-pad up switches, "watch" in the settings for the start). A round ends when
 /// the encounter is down, the controlled Pokémon is low, or after roundTime seconds; the room is then drawn again with
 /// other obstacles. The team is much tougher while here; R / Select skips to the next round. The solitaire is a
 /// Pokémon whose line has a mega evolution, carrying its stone; the gang's three members carry an item each.
@@ -17,11 +17,13 @@ public class EncounterLab : MonoBehaviour
     {
         public float roundTime = 45f, teamHealth = 4f, distance = 8f;
         public int stageEvery = 3;
+        public bool watch; // starts in watch mode (autopilot) rather than played
     }
 
     [Serializable] class SandboxFile { public Settings encounterLab = new(); }
 
     Settings settings;
+    bool watching; // the team on autopilot; otherwise the player plays (V / d-pad up switches)
     PlayerController team;
     EnemySpawner spawner;
     TerrainSandbox sandbox;
@@ -29,7 +31,7 @@ public class EncounterLab : MonoBehaviour
     readonly List<Combatant> spawned = new();
     readonly Dictionary<Combatant, float> keptHealth = new();
     // The lots in turn, then a populated zone (a whole wave of the stage).
-    static readonly string[] Modes = { "solo", "pack", "team", "gang", "combo", "zone" };
+    static readonly string[] Modes = { "solo", "pack", "team", "gang", "combo", "champion", "squad", "zone" };
     const int ZoneWave = 2; // the wave whose budget a populated zone uses
     readonly List<Encounters.Encounter> lots = new();
     int round, stage;
@@ -48,7 +50,8 @@ public class EncounterLab : MonoBehaviour
 
     void Start()
     {
-        if (team != null) team.AutoPilot = true;
+        watching = settings.watch;
+        if (team != null) team.AutoPilot = watching;
         if (round == 0) Round(); // unless the room's Rebuilt event already started the first one
     }
 
@@ -140,7 +143,20 @@ public class EncounterLab : MonoBehaviour
         lots.Add(e);
         Vector3 spot = arena.RandomOpenPosition(rng, settings.distance, team.transform.position);
         spawned.AddRange(spawner.SpawnEncounter(e, spot, level));
+        if (e.category.elite) spawner.AnnounceElite(e);
         if (mega && spawned.Count > 0 && spawned[0].GetComponent<EnemyUltimate>() is { } ultimate) ultimate.preferMega = true;
+    }
+
+    void Update()
+    {
+        if (team == null || Time.timeScale == 0f) return;
+        var pad = UnityEngine.InputSystem.Gamepad.current;
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if ((kb != null && kb.vKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame))
+        {
+            watching = !watching;
+            team.AutoPilot = watching;
+        }
     }
 
     void FixedUpdate()
@@ -161,6 +177,7 @@ public class EncounterLab : MonoBehaviour
             : lots.Count == 1 ? lots[0].Describe() : $"Zone peuplée ({lots.Count} lots) : " + string.Join("  |  ", lots.Select(l => l.Describe()));
         string room = obstacles != null && obstacles.Count > 0 ? string.Join(", ", obstacles) : "sans obstacle";
         return $"Observation {round} (étape {stage + 1}) : {what}     Salle : {room}     fin dans {Mathf.Max(0f, endsAt - Time.time):0} s"
+               + $"     {(watching ? "Tu regardes (pilote automatique)" : "Tu joues")} — V ou croix haut : {(watching ? "jouer" : "regarder")}"
                + "     R ou Select : suivante     Escalier : retour";
     }
 }
