@@ -42,6 +42,8 @@ public class AllyAI : MonoBehaviour
     bool hasRepair;
     float nextRepair;
     const float RepairInterval = 0.5f;
+    Vector2 repairGoal; // where the repair plan leads (the leader, or an opponent out of reach)
+    readonly Progress towardFoe = new(); // stops getting closer to its opponent: maybe something to repair
     Rigidbody2D body;
     PmdAnimator animator;
     Combatant combatant;
@@ -120,13 +122,21 @@ public class AllyAI : MonoBehaviour
             Vector2 toGoal = goal - position;
             float near = goal == (Vector2)leader.position ? followDistance : 0.3f;
             Vector2 follow = toGoal.magnitude > near ? navigator.Direction(position, goal, combatant, avoid: true) : Vector2.zero;
-            if (follow == Vector2.zero && toGoal.magnitude > near && !navigator.Reachable && TryRepair(position)) return;
+            if (follow == Vector2.zero && toGoal.magnitude > near && !navigator.Reachable && TryRepair(position, leader.position)) return;
             follow = RoleTactics.Separate(combatant, grid, position, follow); // spread out around the leader
             // No safe way: waits at the edge rather than stepping into danger.
             if (follow != Vector2.zero && !navigator.SafePath && Dangerous(position + follow.normalized * EdgeLook)) follow = Vector2.zero;
             Steer(follow, toLeader);
             return;
         }
+        // Its opponent out of reach across water, lava or void (nothing to use from here): makes a way to it when one
+        // of its moves can (the team on autopilot in the encounter lab crosses a burnt bridge this way).
+        if (decision.slot < 0 && decision.foe != null)
+        {
+            Vector2 foeAt = decision.foe.transform.position;
+            if ((!navigator.Reachable || towardFoe.Stuck(Vector2.Distance(position, foeAt))) && TryRepair(position, foeAt)) return;
+        }
+        else towardFoe.Reset();
         if (TryPursue(decision, position, grid)) return;
         Steer(decision.move, decision.look);
     }
@@ -141,12 +151,14 @@ public class AllyAI : MonoBehaviour
         return true;
     }
 
-    // No way to the leader: walks to where a move makes one (freezes the river...), then uses it.
-    bool TryRepair(Vector2 position)
+    // No way to the goal (the leader, or an opponent): walks to where a move makes one (freezes the river...), then
+    // uses it.
+    bool TryRepair(Vector2 position, Vector2 goal)
     {
-        if (Time.time >= nextRepair)
+        if (Time.time >= nextRepair || Vector2.Distance(goal, repairGoal) > 2f)
         {
-            hasRepair = ObstacleTactics.Repair(combatant, leader.position, out repair);
+            repairGoal = goal;
+            hasRepair = ObstacleTactics.Repair(combatant, goal, out repair);
             nextRepair = Time.time + RepairInterval;
         }
         if (!hasRepair) return false;
@@ -267,12 +279,12 @@ public class AllyAI : MonoBehaviour
         }
         else if (direction != Vector2.zero)
         {
-            animator.direction = PmdAnimator.DirectionIndex(direction);
+            animator.Face(direction);
             animator.Play("Walk");
         }
         else
         {
-            if (lookAt != Vector2.zero) animator.direction = PmdAnimator.DirectionIndex(lookAt);
+            animator.Face(lookAt);
             animator.Play("Idle");
         }
     }

@@ -145,7 +145,7 @@ public class TeamHud : MonoBehaviour
                 float total = SaveData.Settings.dodgeCooldown;
                 Fill(new Rect(slot.x, slot.y, slot.width, slot.height * (total > 0f ? Mathf.Clamp01(left / total) : 0f)), Shade);
             }
-            Label(top, "X", TextAnchor.MiddleCenter);
+            Label(top, UnityEngine.InputSystem.Gamepad.current != null ? "X" : "Ctrl", TextAnchor.MiddleCenter); // ✕ on a pad
             Label(bottom, left > 0f ? left.ToString("0.0") : "Esq.", TextAnchor.MiddleCenter);
         }
 

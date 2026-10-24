@@ -55,6 +55,7 @@ public static class SaveData
         public float teraStab = 2f; // Terastal: damage of a move of the Tera type when it was already one of the Pokémon's types
         public bool devMode; // tests: the dev characters of dev_characters.json are offered in the menu
         public bool obstaclesInRuns = true; // real arenas get the obstacles of their décor (arena_obstacles.json)
+        public bool encountersInRuns = true; // waves drawn from encounters.json (Encounters) rather than the stages' hand-written ones
         public int devStartingMoveCount = 4; // starting moves of a dev character
         public float recruitMultiplier = 1f;
         public float recruitMessageTime = 3f;

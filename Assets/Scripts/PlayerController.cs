@@ -55,6 +55,18 @@ public class PlayerController : MonoBehaviour
     int current;
     Vector2 move;
 
+    /// Watch mode (EncounterLab): the controlled Pokémon is played by its AllyAI like the others; no input is read.
+    public bool AutoPilot
+    {
+        get => autoPilot;
+        set
+        {
+            autoPilot = value;
+            if (members.Count > 0) SetControlled(current);
+        }
+    }
+    bool autoPilot;
+
     /// Set by a scripted demo (RescueDemos): the controlled Pokémon walks this way unless the player moves it.
     public Vector2? ScriptedMove { get; set; }
     Vector2 facing = Vector2.down;
@@ -164,7 +176,7 @@ public class PlayerController : MonoBehaviour
         move = Vector2.zero;
         foreach (var m in members)
         {
-            m.ai.enabled = m != Current && m.combatant.IsAlive;
+            m.ai.enabled = (m != Current || autoPilot) && m.combatant.IsAlive;
             m.combatant.LiveAim = Vector2.zero; // the AI aims for itself
             m.combatant.AimTarget = null;
         }
@@ -227,6 +239,11 @@ public class PlayerController : MonoBehaviour
         if (gameOver) { ShowTargetRing(null); return; } // EnemySpawner draws the end screen and handles what comes next
 
         if (Time.timeScale == 0f) return; // paused by the upgrade screen
+        if (autoPilot)
+        {
+            ShowTargetRing(null);
+            return;
+        }
 
         var member = Current;
         Vector2 input = ReadMove();
@@ -289,7 +306,7 @@ public class PlayerController : MonoBehaviour
     {
         if (gameOver || members.Count == 0) return;
         UpdateRevives();
-        if (Current.combatant.IsDashing) return; // a melee dash drives the body
+        if (autoPilot || Current.combatant.IsDashing) return; // its AllyAI drives it; a melee dash drives the body
         Current.combatant.Drive(Current.combatant.Steer(move) * Current.combatant.CurrentSpeed);
     }
 
@@ -337,7 +354,7 @@ public class PlayerController : MonoBehaviour
                 member.reviveProgress = 0f;
                 member.combatant.Revive(reviveHealthShare);
                 member.animator.Play("Idle");
-                member.ai.enabled = member != Current;
+                member.ai.enabled = member != Current || autoPilot;
             }
             ShowGauge(member);
         }
@@ -445,7 +462,8 @@ public class PlayerController : MonoBehaviour
     {
         var pad = Gamepad.current;
         var kb = Keyboard.current;
-        return (pad != null && pad.buttonSouth.wasPressedThisFrame) || (kb != null && kb.leftCtrlKey.wasPressedThisFrame);
+        return (pad != null && pad.buttonSouth.wasPressedThisFrame)
+               || (kb != null && (kb.leftCtrlKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)); // Ctrl or Space
     }
 
     static int ReadSwitch()

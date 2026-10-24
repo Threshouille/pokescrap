@@ -407,6 +407,13 @@ public class Obstacles : MonoBehaviour
     /// This Pokémon cannot be on that tile: a solid one, or one it would fall into.
     public static bool Blocks(int x, int y, Combatant c) => WouldBlock(At(x, y), c);
 
+    /// Whether the tile would stop a Pokémon of these stats (a Terastallized form looked at before it changes).
+    public static bool BlocksStats(int x, int y, PokemonStats stats)
+    {
+        var def = At(x, y);
+        return def != null && (def.solid || def.fall) && !CanPass(def, stats);
+    }
+
     /// That obstacle would stop this Pokémon (null: no obstacle, nothing stops it).
     public static bool WouldBlock(ObstacleDef def, Combatant c) =>
         def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
@@ -704,7 +711,11 @@ public class Obstacles : MonoBehaviour
                 Set(i % size, i / size, back);
             }
         if (count <= 0) return;
-        foreach (var c in Combatant.All)
+        // A copy: a knock-out in a fall (or anything a hit sets off) may change the list, and the error that followed
+        // skipped the fall checks of everyone after it in the list.
+        scan.Clear();
+        scan.AddRange(Combatant.All);
+        foreach (var c in scan)
         {
             if (c == null || !c.IsAlive) continue;
             Meet(c);
@@ -715,11 +726,39 @@ public class Obstacles : MonoBehaviour
             if (!BlocksAt(position, c))
             {
                 lastSafe[c] = position; // where it comes back after a fall
+                WatchSwim(c, position);
                 continue;
             }
             if (fellAt.TryGetValue(c, out float at) && Time.time < at + FallCooldown) continue;
             Fall(c, At(position));
         }
+    }
+
+    static readonly List<Combatant> scan = new();
+    readonly Dictionary<Combatant, float> onLiquidSince = new();
+    const float SwimReport = 1.5f; // seconds on water, lava or void before the log says why it does not fall
+
+    // Diagnostic (pokémon seen staying in the water): a Pokémon that stays on water, lava or void without falling is
+    // logged once with what lets it (types, ROM movement type, Tera, mega), as "OBSTACLE SWIM".
+    void WatchSwim(Combatant c, Vector2 position)
+    {
+        var def = At(position);
+        if (def == null || !def.fall)
+        {
+            onLiquidSince.Remove(c);
+            return;
+        }
+        if (!onLiquidSince.TryGetValue(c, out float since))
+        {
+            onLiquidSince[c] = Time.time;
+            return;
+        }
+        if (since < 0f || Time.time - since < SwimReport) return;
+        onLiquidSince[c] = -1f; // once per stay
+        var s = c.Stats;
+        Debug.Log($"OBSTACLE SWIM {s?.name} ({c.team}) sur {def.key} : types {string.Join("/", s?.types ?? new int[0])}, "
+                  + $"déplacement ROM {s?.movementType}, Téra {c.TeraType}, méga {(c.Mega != null ? c.Mega.name : "non")}, "
+                  + $"passe par {(Array.IndexOf(def.passTypes, s?.movementType ?? -1) >= 0 ? "son déplacement" : "son type")}");
     }
 
     readonly Dictionary<Combatant, float> tollAt = new();

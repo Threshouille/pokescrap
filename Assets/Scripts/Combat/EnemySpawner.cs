@@ -114,6 +114,9 @@ public class EnemySpawner : MonoBehaviour
 
     void BeginStage()
     {
+        // At most one elite lot (champion or squad) per stage, during a wave drawn now.
+        eliteWave = Current.waves != null && Current.waves.Length > 0 && rng.NextDouble() < Encounters.EliteChance(CurrentStage)
+            ? rng.Next(Current.waves.Length) : -1;
         CurrentWave = 0;
         nextWaveAt = 0f;
         boss = null;
@@ -246,6 +249,23 @@ public class EnemySpawner : MonoBehaviour
     {
         nextWaveAt = 0f;
         if (Current.waves == null || CurrentWave >= Current.waves.Length) return;
+        // Encounters drawn for the décor and the stage (the stage's waves only give their number).
+        if (SaveData.Settings.encountersInRuns)
+        {
+            int decor = generator.tileset != null ? generator.tileset.romId : -1;
+            var encounters = Encounters.Wave(rng, CurrentStage, CurrentWave, decor);
+            if (CurrentWave == eliteWave && !Run.Sandbox && Encounters.Elite(rng, CurrentStage, decor) is { } elite)
+            {
+                encounters.Add(elite);
+                AnnounceElite(elite);
+            }
+            if (encounters.Count > 0)
+            {
+                foreach (var e in encounters) SpawnEncounter(e, SpawnPoint(), Current.enemyLevel);
+                CurrentWave++;
+                return;
+            }
+        }
         var sets = new List<PmdAnimSet>();
         foreach (var entry in Current.waves[CurrentWave].enemies)
             for (int i = 0; i < entry.count; i++)
@@ -291,6 +311,54 @@ public class EnemySpawner : MonoBehaviour
             combatant.GetComponent<EnemyAI>().group = group;
             group.members.Add(combatant);
         }
+    }
+
+    /// An encounter appears around "centre", as one group sharing its target; each member at its rank (level,
+    /// health, moves, item) on top of "level".
+    public List<Combatant> SpawnEncounter(Encounters.Encounter e, Vector3 centre, int level)
+    {
+        var group = new EnemyGroup();
+        var spawned = new List<Combatant>();
+        for (int i = 0; i < e.members.Count; i++)
+        {
+            var m = e.members[i];
+            var set = PokemonRoster.Get(m.pokemonId);
+            if (set == null) continue;
+            // In rings around the first one: a pack with its leader can be seven.
+            float angle = i * 2.4f, radius = i == 0 ? 0f : 1.1f + 0.35f * (i / 6);
+            Vector3 spot = centre + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            // A blocked spot: the nearest free one around, rather than on top of the first member.
+            for (int k = 1; k < 12 && (!generator.WalkableAt(spot, 0.3f) || Obstacles.BlocksAt(spot, null)); k++)
+                spot = centre + new Vector3(Mathf.Cos(angle + k * 0.9f), Mathf.Sin(angle + k * 0.9f)) * (radius + 0.4f * k);
+            if (!generator.WalkableAt(spot, 0.3f) || Obstacles.BlocksAt(spot, null)) spot = centre;
+            var moves = GameData.RandomMoves(m.pokemonId, m.moveCount, rng, m.role, m.rarity.strong);
+            var c = Build(m.pokemonId, set, spot, false, moves, Mathf.Max(1, level + m.levelBonus), healthFactor * m.health);
+            RarityMark.Put(c, m.rarity);
+            if (m.item) c.gameObject.AddComponent<EnemyUltimate>().preferMega = m.lot != null && m.lot.preferMega;
+            if (m.lot != null && m.lot.elite)
+            {
+                // An elite lot (champion, squad): golden ring, sure loot (the squad's once all of it is down), bigger.
+                var mark = Loot.Mark(c);
+                mark.sureLoot = true;
+                if (e.members.Count > 1) mark.squad = group;
+                if (m.lot.scale != 1f) c.transform.localScale = Vector3.one * m.lot.scale;
+            }
+            c.GetComponent<EnemyAI>().group = group;
+            group.members.Add(c);
+            spawned.Add(c);
+        }
+        return spawned;
+    }
+
+    int eliteWave = -1; // the wave of this stage with an elite lot, or -1
+
+    /// The banner when an elite lot arrives.
+    public void AnnounceElite(Encounters.Encounter elite)
+    {
+        var progression = team != null ? team.GetComponent<Progression>() : null;
+        if (progression == null || elite.members.Count == 0) return;
+        string leader = GameData.Pokemon(elite.members[0].pokemonId)?.name;
+        progression.Announce(elite.members.Count == 1 ? $"Un champion apparaît : {leader} !" : $"Une escouade d'élite approche, menée par {leader} !");
     }
 
     PmdAnimSet SupportCandidate()

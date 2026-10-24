@@ -31,6 +31,34 @@ public class PmdAnimator : MonoBehaviour
 
     public bool Has(string name) => animSet != null && animSet.Get(name) != null;
 
+    const float FaceHold = 0.15f; // seconds a new walking direction must last before the sprite turns to it
+    int pendingDirection = -1;
+    float pendingSince;
+
+    /// Turns toward a walking or looking direction, but only once it has lasted FaceHold seconds: an AI nudged left
+    /// and right in a crowd no longer seems to spin on itself. Attacks still set "direction" at once.
+    public void Face(Vector2 toward)
+    {
+        if (toward == Vector2.zero) return;
+        int index = DirectionIndex(toward);
+        if (index == direction)
+        {
+            pendingDirection = -1;
+            return;
+        }
+        if (index != pendingDirection)
+        {
+            pendingDirection = index;
+            pendingSince = Time.time;
+            return;
+        }
+        if (Time.time - pendingSince >= FaceHold)
+        {
+            direction = index;
+            pendingDirection = -1;
+        }
+    }
+
     /// Sprite sheet row for a direction: 0 = down, then counter-clockwise in 45° steps.
     public static int DirectionIndex(Vector2 direction)
     {

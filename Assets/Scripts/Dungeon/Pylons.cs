@@ -200,7 +200,7 @@ public class Pylons : MonoBehaviour
             }
             p.wasActive = active;
             if (!active) continue;
-            foreach (var c in Combatant.All)
+            foreach (var c in new List<Combatant>(Combatant.All)) // a copy: the damage may knock one out
             {
                 if (c == null || !c.IsAlive || p.hit.Contains(c) || Immune(c)) continue;
                 if (DistanceToSegment(c.transform.position, p.from, p.to) > s.width) continue;

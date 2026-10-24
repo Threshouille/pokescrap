@@ -49,10 +49,18 @@ public class Loot : MonoBehaviour
     void OnEnable() => Combatant.AnyDied += OnDied;
     void OnDisable() => Combatant.AnyDied -= OnDied;
 
+    /// The test bench lets elites drop their loot in the test arena (nothing drops there otherwise).
+    public static bool DropsInSandbox;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => DropsInSandbox = false;
+
     void OnDied(Combatant c)
     {
-        if (Run.Sandbox || c.team != Team.Enemy || c.GetComponent<EliteMark>() == null) return;
-        if (rng.NextDouble() < SpecialItems.Loot.eliteDrop) Place(RollTyped(rng, TeamTypes()), c.transform.position);
+        var mark = c.GetComponent<EliteMark>();
+        if ((Run.Sandbox && !DropsInSandbox) || c.team != Team.Enemy || mark == null) return;
+        if (mark.squad != null && mark.squad.members.Exists(m => m != null && m != c && m.IsAlive)) return; // others still up
+        if (mark.sureLoot || rng.NextDouble() < SpecialItems.Loot.eliteDrop) Place(RollTyped(rng, TeamTypes()), c.transform.position);
     }
 
     // ---- Rolls (pure: tests call them) ----
@@ -212,10 +220,16 @@ public class Loot : MonoBehaviour
     /// changes obstacles like the allies do (cuts walkways, makes a way: EnemyAI), a chance of a drop.
     public static void MakeElite(Combatant c)
     {
-        c.gameObject.AddComponent<EliteMark>();
+        Mark(c);
         c.gameObject.AddComponent<EnemyUltimate>();
         c.maxHp *= SpecialItems.Loot.eliteHealth;
         c.hp = c.maxHp;
+    }
+
+    /// The elite mark and its golden ring alone (an elite lot sets its own health and item).
+    public static EliteMark Mark(Combatant c)
+    {
+        var mark = c.gameObject.AddComponent<EliteMark>();
         var ring = new GameObject("Aura d'élite").AddComponent<SpriteRenderer>();
         ring.transform.SetParent(c.transform, false);
         ring.transform.localPosition = new Vector3(0f, -0.3f, 0f);
@@ -223,5 +237,6 @@ public class Loot : MonoBehaviour
         ring.sprite = Shapes.Ring;
         ring.color = new Color(1f, 0.82f, 0.25f, 0.9f);
         ring.sortingOrder = 0;
+        return mark;
     }
 }

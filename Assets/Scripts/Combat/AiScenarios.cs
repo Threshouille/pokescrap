@@ -98,6 +98,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Gèle une rivière pour rejoindre le Pokémon joué", Repair("water", 6, "path"));
         yield return Scenario("Fait pousser des nénuphars pour traverser", Repair("water", 4, "lily"));
         yield return Scenario("Refait un pont brûlé avec des lianes", Repair("burnt_bridge", 4, "vine"));
+        yield return Scenario("Refait le pont pour atteindre un ennemi", RepairTowardFoe());
         yield return Scenario("Refroidit la lave pour passer", Repair("lava", 3, "any"));
         yield return Scenario("Brûle le pont sous un ennemi au corps à corps", CutBridge());
         yield return Scenario("Marche sur le métal chargé sans s'en soucier", IgnoreMetal());
@@ -107,6 +108,8 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Élite : brûle le pont sous un adversaire au corps à corps", EliteBurnsBridge());
         yield return Scenario("Ultime ennemi : se téracristallise dans un type qui résiste", EnemyTera());
         yield return Scenario("Ultime ennemi : capacité Z quand l'équipe est groupée", EnemyZ());
+        yield return Scenario("Ultime ennemi : méga-évolue quand un adversaire approche", EnemyMega());
+        yield return Scenario("Ultime ennemi : Téra Spectre pour traverser un mur de rochers", EnemyTeraCrosses());
         yield return Scenario("Objets : le Téracristal change le type", TeraChangesType());
         yield return Scenario("Objets : une méga-gemme obtenue ne retombe plus", StonesStayUnique());
         yield return Scenario("Objets : les types de l'équipe tombent plus souvent", LootFavoursTeam());
@@ -117,6 +120,21 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Secours : le plus apte éloigne l'ennemi du Pokémon K.O.", GuardDrawsAway());
         yield return Scenario("Soins : soigne un coéquipier presque K.O.", HealsLowMate());
         yield return Scenario("Soins : blessé, ne va pas soigner au milieu des ennemis", NoRiskyHeal());
+        yield return Scenario("Rencontres : le budget de chaque vague est respecté", EncounterBudget());
+        yield return Scenario("Rencontres : une meute compte 4 à 6 fois le même Pokémon", PackIsKin());
+        yield return Scenario("Rencontres : un gang de 3, rares ou épiques, chacun avec un objet", GangCarriesItems());
+        yield return Scenario("Rencontres : zones peuplées typiques par étape", TypicalZones());
+        yield return Scenario("Rencontres : une meute vient parfois avec un solitaire rare ou épique", PackWithLeader());
+        yield return Scenario("Groupe : pas d'à-coups dans une meute de 6 et son chef", CrowdStaysSteady());
+        yield return Scenario("Élite : un champion très fort, plus grand, avec objet et butin garanti", ChampionStands());
+        yield return Scenario("Élite : une escouade de 3, seul le chef porte l'objet, butin quand tous tombent", SquadLoot());
+        yield return Scenario("Élite : au plus un par étape, plus souvent en avançant", EliteOdds());
+        yield return Scenario("Eau : poussé dedans, un Pokémon qui ne nage pas revient, un nageur y reste", PushedIntoWater());
+        yield return Scenario("Ultime ennemi : Téra pour se déplacer sur la lave qui l'entoure", EnemyTeraForWater());
+        yield return Scenario("Rencontres : une équipe a ses rôles et des types qui se combinent", TeamHasRoles());
+        yield return Scenario("Rencontres : les rangs montent avec l'étape", RanksRise());
+        yield return Scenario("Rencontres : les Pokémon vont avec le décor", FitsDecor());
+        yield return Scenario("Rencontres : apparition avec rang, anneau et objet", EncounterSpawns());
 
         Clear();
         Failures = results.FindAll(r => !r.passed).Count;
@@ -537,6 +555,83 @@ public class AiScenarios : MonoBehaviour
             $"{ultimate.LastUsed} : type {(tera >= 0 ? GameData.TypeName(tera) : "aucun")}, attaques de l'équipe ×{before:0.00} → ×{after:0.00}");
     }
 
+    // An enemy whose line has a mega (sprites included) carries its stone: once the team is near, it mega evolves,
+    // takes the mega's form and sprites.
+    IEnumerator EnemyMega()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, 0f), new Vector2(-3f, 2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        MegaDef mega = null;
+        foreach (var st in SpecialItems.Stones)
+        {
+            var m = GameData.Mega(st.mega);
+            if (m != null && PokemonRoster.Has(m.id) && PokemonRoster.Has(m.@base)) { mega = m; break; }
+        }
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var foe = mega != null && spawner != null ? spawner.SpawnFighter(mega.@base, null, Centre + new Vector2(2f, 0f), false, false, 5, 1000f) : null;
+        if (foe == null) { Restore(kept, leader, ally); Report(false, "pas de Pokémon à méga"); yield break; }
+        placed.Add(foe);
+        var ultimate = foe.gameObject.AddComponent<EnemyUltimate>();
+        ultimate.Carry(SpecialItems.Family.Mega, -1, mega);
+        bool used = ultimate.Decide();
+        yield return new WaitForSeconds(0.5f);
+        bool form = foe.Mega == mega && foe.Stats.name == mega.name;
+        Restore(kept, leader, ally);
+        Report(used && ultimate.LastUsed == "mega" && form, $"{(used ? ultimate.LastUsed : "rien")} : {foe.Stats.name}");
+    }
+
+    // A wall of rocks from wall to wall between an elite and the team: only a Spectre goes through. It picks the
+    // Spectre shard, Terastallizes as soon as the wall stops it, and walks through.
+    IEnumerator EnemyTeraCrosses()
+    {
+        var (leader, ally) = Place(new Vector2(-6f, 0f), new Vector2(-6f, 2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        var grid = DungeonGenerator.Current;
+        var centre = grid.CellOf(Centre);
+        var inside = grid.Interior;
+        for (int y = inside.yMin; y < inside.yMax; y++) Obstacles.Place(centre.x + 1, y, "boulder");
+        var elite = Elite(new Vector2(5f, 0f), LanceFlamme);
+        if (elite == null) { Restore(kept, leader, ally); Report(false, "pas d'élite"); yield break; }
+        var ultimate = elite.GetComponent<EnemyUltimate>();
+        ultimate.ChooseItem();
+        string picked = ultimate.Item == SpecialItems.Family.Tera ? GameData.TypeName(ultimate.ItemType) : ultimate.Item.ToString();
+        bool used = ultimate.Decide();
+        float wall = grid.CentreOf(centre.x + 1, centre.y).x - 0.5f;
+        float started = Time.time;
+        while (Time.time - started < 12f && elite != null && elite.transform.position.x > wall) yield return new WaitForFixedUpdate();
+        bool through = elite != null && elite.transform.position.x <= wall;
+        Restore(kept, leader, ally);
+        Report(used && elite.TeraType == 14 && through,
+            $"objet : {picked}, {(used ? "téracristallisé" : "pas utilisé")}, {(through ? "a traversé le mur" : "bloqué derrière le mur")}");
+    }
+
+    // Lava all around an elite (Lokhlass swims, but lava stops it), the team on dry land in clear sight: it picks a
+    // Tera shard that gets about the lava (Feu, Vol or Spectre) and uses it once the team is near.
+    IEnumerator EnemyTeraForWater()
+    {
+        var (leader, ally) = Place(new Vector2(-2.5f, 0f), new Vector2(-2.5f, 2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        var grid = DungeonGenerator.Current;
+        var c = grid.CellOf(Centre + new Vector2(4f, 0f));
+        for (int x = c.x - 6; x <= c.x + 6; x++)
+            for (int y = c.y - 6; y <= c.y + 6; y++)
+            {
+                int d = Mathf.Max(Mathf.Abs(x - c.x), Mathf.Abs(y - c.y));
+                if (d >= 2 && d <= 5 && !(y == c.y && x < c.x)) Obstacles.Place(x, y, "lava"); // a way out to the team
+            }
+        var elite = Elite(new Vector2(4f, 0f), LanceFlamme);
+        if (elite == null) { Restore(kept, leader, ally); Report(false, "pas d'élite"); yield break; }
+        var ultimate = elite.GetComponent<EnemyUltimate>();
+        ultimate.ChooseItem();
+        int type = ultimate.Item == SpecialItems.Family.Tera ? ultimate.ItemType : -1;
+        bool walksOnWater = type == 2 || type == 10 || type == 14; // over the lava
+        bool used = ultimate.Decide();
+        yield return new WaitForSeconds(0.8f);
+        Restore(kept, leader, ally);
+        Report(walksOnWater && ultimate.TeraForTerrain && used && elite.TeraType == type,
+            $"objet : {(type >= 0 ? "Téra " + GameData.TypeName(type) : ultimate.Item.ToString())}, {(ultimate.TeraForTerrain ? "pour le terrain" : "pour la défense")}, {(used ? "utilisé" : "pas utilisé")}");
+    }
+
     static float IncomingMultiplier(Combatant target)
     {
         float sum = 0f;
@@ -656,6 +751,407 @@ public class AiScenarios : MonoBehaviour
         ally.hp = ally.maxHp;
         float gap = SaveData.Settings.allyHealSafeGap;
         Report(closest >= gap, $"au plus près à {closest:0.0} case(s) des ennemis (minimum {gap:0.0})");
+    }
+
+    // The team on one side of a river (a burnt bridge in the middle), an opponent on the other: the ally, with only a
+    // Grass move that hits at close range (a shot would just fly across the river), makes the vine bridge to go and
+    // fight it.
+    IEnumerator RepairTowardFoe()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, 2f), new Vector2(-3f, 0f));
+        var grid = DungeonGenerator.Current;
+        var centre = grid.CellOf(Centre);
+        var inside = grid.Interior;
+        for (int x = centre.x + 1; x <= centre.x + 3; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+                Obstacles.Place(x, y, Mathf.Abs(y - centre.y) <= 1 ? "burnt_bridge" : "water");
+        var move = FindMove(4, m => m.family == "melee" && m.lunge <= 0f);
+        if (move == null) { Report(false, "pas d'attaque Plante au corps à corps"); yield break; }
+        var kept = (MoveDef[])ally.Moves.Clone();
+        for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, i == 0 ? move : null);
+        var foe = Enemy(BatchTeam[1], new Vector2(5.5f, 0f));
+        foe.maxHp = foe.hp = 100000f;
+        float bank = grid.CentreOf(centre.x + 3, centre.y).x + 0.5f;
+        float started = Time.time;
+        while (Time.time - started < 15f && ally.transform.position.x < bank) yield return new WaitForFixedUpdate();
+        bool crossed = ally.transform.position.x >= bank;
+        for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, kept[i]);
+        Report(crossed, crossed ? $"{move.name} : de l'autre côté en {Time.time - started:0.0} s" : $"{move.name} : resté de son côté");
+    }
+
+    // ---------------------------------------------------------------- encounters
+
+    const int Volcano = 12; // décor of the third stage: Feu, Roche, Sol, Poison in encounters.json
+
+    // Many waves at each stage: one encounter, or several whose costs fit in the budget, never more than maxGroups.
+    IEnumerator EncounterBudget()
+    {
+        var rng = new System.Random(1);
+        int waves = 0, over = 0, most = 0;
+        for (int stage = 0; stage < 4; stage++)
+            for (int wave = 0; wave < 3; wave++)
+                for (int k = 0; k < 40; k++)
+                {
+                    var list = Encounters.Wave(rng, stage, wave, Volcano);
+                    waves++;
+                    most = Mathf.Max(most, list.Count);
+                    float cost = 0f;
+                    foreach (var e in list) cost += e.cost;
+                    if (list.Count == 0 || (list.Count > 1 && cost > Encounters.BudgetOf(stage, wave) + 0.01f)) over++;
+                }
+        Report(over == 0 && most <= 3, $"{waves} vagues, {over} hors budget ou vides, jusqu'à {most} rencontres par vague");
+        yield break;
+    }
+
+    // Packs: four to six of one Pokémon, at a low level, never épique.
+    IEnumerator PackIsKin()
+    {
+        var rng = new System.Random(2);
+        var pack = Encounters.CategoryOf("pack");
+        int packs = 0, wrong = 0;
+        for (int k = 0; k < 100 && pack != null; k++)
+        {
+            var e = Encounters.Make(rng, pack, 3, Volcano);
+            if (e == null) continue;
+            packs++;
+            bool species = e.members.TrueForAll(m => m.pokemonId == e.members[0].pokemonId);
+            bool size = e.members.Count >= 4 && e.members.Count <= 6;
+            bool low = e.members.TrueForAll(m => m.levelBonus < 2 && m.rarity.key != "epic");
+            if (!species || !size || !low) wrong++;
+        }
+        Report(packs > 0 && wrong == 0, $"{packs} meutes de 4 à 6 d'une seule espèce, niveau bas, jamais épiques ; {wrong} hors règle");
+        yield break;
+    }
+
+    // Gangs: three strong Pokémon, rare or épique, each carrying an item (three ultimates).
+    IEnumerator GangCarriesItems()
+    {
+        var rng = new System.Random(7);
+        var gang = Encounters.CategoryOf("gang");
+        int gangs = 0, wrong = 0;
+        for (int k = 0; k < 100 && gang != null; k++)
+        {
+            var e = Encounters.Make(rng, gang, 2, Volcano);
+            if (e == null) continue;
+            gangs++;
+            bool rule = e.members.Count == 3 && e.members.TrueForAll(m => m.item && (m.rarity.key == "rare" || m.rarity.key == "epic"));
+            if (!rule) wrong++;
+        }
+        Report(gangs > 0 && wrong == 0, $"{gangs} gangs de 3, rares ou épiques, chacun avec un objet ; {wrong} hors règle");
+        yield break;
+    }
+
+    // Combos: about the chance of encounters.json, a pack comes with a solitaire, always rare or épique, in its group.
+    IEnumerator PackWithLeader()
+    {
+        var rng = new System.Random(9);
+        var pack = Encounters.CategoryOf("pack");
+        Encounters.Combo combo = null;
+        foreach (var c in Encounters.Combos)
+            if (c.lot == "pack" && c.with == "solo") combo = c;
+        if (pack == null || combo == null) { Report(false, "pas de combinaison meute + solitaire"); yield break; }
+        int packs = 0, led = 0, wrong = 0;
+        for (int k = 0; k < 400; k++)
+        {
+            var e = Encounters.Make(rng, pack, 2, Volcano);
+            if (e == null) continue;
+            packs++;
+            int before = e.members.Count;
+            Encounters.Accompany(rng, e, 2, Volcano);
+            if (e.with == null) continue;
+            if (e.with.key == "solo")
+            {
+                led++;
+                var leader = e.members[before];
+                if (System.Array.IndexOf(combo.rarities, leader.rarity.key) < 0) wrong++;
+            }
+        }
+        float share = packs > 0 ? (float)led / packs : 0f;
+        Report(packs > 0 && wrong == 0 && Mathf.Abs(share - combo.chance) < 0.1f,
+            $"{led} meutes menées sur {packs} ({share:P0}, attendu {combo.chance:P0}), {wrong} chef hors rang");
+        yield break;
+    }
+
+    // A pack of six and its leader, all on top of each other near the team: none of them should flip its facing or
+    // turn back several times a second (it looked like spinning on the spot).
+    IEnumerator CrowdStaysSteady()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, 0f), new Vector2(-3f, 2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var pack = Encounters.CategoryOf("pack");
+        var e = pack != null ? Encounters.Make(new System.Random(10), pack, 1, -1) : null;
+        Encounters.Combo combo = null;
+        foreach (var c in Encounters.Combos)
+            if (c.lot == "pack" && c.with == "solo") combo = c;
+        if (spawner == null || e == null) { Restore(kept, leader, ally); Report(false, "pas de meute"); yield break; }
+        while (e.members.Count < 6) e.members.Add(e.members[0]);
+        if (combo != null) Encounters.Join(new System.Random(11), e, combo, 1, -1);
+        var crowd = spawner.SpawnEncounter(e, Centre + new Vector2(3f, 0f), 3);
+        placed.AddRange(crowd);
+        foreach (var c in crowd)
+        {
+            c.maxHp = c.hp = 100000f;
+            Teleport(c, Centre + new Vector2(3f, 0f)); // all on the same spot
+        }
+        var turns = new int[crowd.Count];
+        var reversals = new int[crowd.Count];
+        var lastDir = new int[crowd.Count];
+        var lastVel = new Vector2[crowd.Count];
+        for (int i = 0; i < crowd.Count; i++) lastDir[i] = crowd[i].GetComponent<PmdAnimator>().direction;
+        float started = Time.time, length = 5f;
+        while (Time.time - started < length)
+        {
+            yield return new WaitForFixedUpdate();
+            for (int i = 0; i < crowd.Count; i++)
+            {
+                var c = crowd[i];
+                if (c == null || !c.IsAlive) continue;
+                int dir = c.GetComponent<PmdAnimator>().direction;
+                if (dir != lastDir[i]) turns[i]++;
+                lastDir[i] = dir;
+                var v = c.GetComponent<Rigidbody2D>().linearVelocity;
+                if (v.magnitude > 0.5f && lastVel[i].magnitude > 0.5f && Vector2.Dot(v.normalized, lastVel[i].normalized) < -0.3f) reversals[i]++;
+                lastVel[i] = v;
+            }
+        }
+        Restore(kept, leader, ally);
+        float worstTurns = 0f, worstBack = 0f;
+        for (int i = 0; i < crowd.Count; i++)
+        {
+            worstTurns = Mathf.Max(worstTurns, turns[i] / length);
+            worstBack = Mathf.Max(worstBack, reversals[i] / length);
+        }
+        Report(worstTurns <= 3f && worstBack <= 1.5f,
+            $"{crowd.Count} Pokémon : au pire {worstTurns:0.0} changements d'orientation et {worstBack:0.0} demi-tours par seconde");
+    }
+
+    // A lake; Bulbizarre (walks) and Tentacool (swims) are pushed into it: the first falls and is back on the bank,
+    // the second may stay in the water.
+    IEnumerator PushedIntoWater()
+    {
+        Place(new Vector2(-8f, 0f), new Vector2(-8f, 2f), settle: false);
+        var grid = DungeonGenerator.Current;
+        var c = grid.CellOf(Centre);
+        for (int x = c.x + 1; x <= c.x + 6; x++)
+            for (int y = c.y - 4; y <= c.y + 4; y++)
+                Obstacles.Place(x, y, "water");
+        var walker = Enemy(1, new Vector2(0f, 1f));
+        var swimmer = Enemy(72, new Vector2(0f, -1f)); // Tentacool
+        yield return new WaitForFixedUpdate();
+        foreach (var e in new[] { walker, swimmer })
+        {
+            e.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Dynamic; // the bench's enemies stand still: let the push move them
+            e.Knockback(Vector2.right * 3f / 0.4f, 0.4f);
+        }
+        yield return new WaitForSeconds(1.5f);
+        bool walkerOut = !Obstacles.BlocksAt(walker.transform.position, walker) && Obstacles.At(walker.transform.position) == null;
+        bool swimmerIn = Obstacles.At(swimmer.transform.position)?.key == "water";
+        Report(walkerOut && swimmerIn, $"Bulbizarre {(walkerOut ? "revenu sur la berge" : "resté dans l'eau")}, Tentacool {(swimmerIn ? "dans l'eau" : "sur la berge")}");
+    }
+
+    // The champion: one Pokémon, golden ring, bigger, much tougher than the same Pokémon as a solitaire, with an item;
+    // its knock-out leaves an item on the ground.
+    IEnumerator ChampionStands()
+    {
+        var (leader, ally) = Place(new Vector2(-8f, 0f), new Vector2(-8f, 2f), settle: false);
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var champion = Encounters.CategoryOf("champion");
+        var e = champion != null ? Encounters.Make(new System.Random(12), champion, 1, -1) : null;
+        if (spawner == null || e == null) { Report(false, "pas de champion"); yield break; }
+        var solo = Encounters.CategoryOf("solo");
+        var spawned = spawner.SpawnEncounter(e, Centre + new Vector2(4f, 0f), 5);
+        placed.AddRange(spawned);
+        var c = spawned.Count == 1 ? spawned[0] : null;
+        yield return new WaitForFixedUpdate();
+        bool marked = c != null && c.GetComponent<EliteMark>() is { sureLoot: true } && c.transform.Find("Aura d'élite") != null;
+        bool item = c != null && c.GetComponent<EnemyUltimate>() != null;
+        bool big = c != null && c.transform.localScale.x > 1.1f;
+        float ratio = solo != null ? e.members[0].health / solo.health : 0f;
+        string name = c != null ? c.Stats.name : null; // the champion is gone once knocked out
+        Loot.DropsInSandbox = true;
+        if (c != null) c.TakeFixedDamage(c.hp + 1f);
+        yield return new WaitForFixedUpdate();
+        Loot.DropsInSandbox = false;
+        bool dropped = System.Array.Exists(FindObjectsByType<Transform>(), t => t.name.StartsWith("Objet :"));
+        ClearDrops();
+        Report(name != null && marked && item && big && ratio >= 2f && dropped,
+            $"{name ?? "rien"} : {(marked ? "anneau doré" : "sans marque")}, {(item ? "objet" : "sans objet")}, "
+            + $"{(big ? "plus grand" : "taille normale")}, PV ×{ratio:0.0} d'un solitaire, {(dropped ? "objet au sol après le K.O." : "rien au sol")}");
+    }
+
+    // The squad: three, rare or épique, elites; only its leader carries an item; nothing drops until the last one falls.
+    IEnumerator SquadLoot()
+    {
+        Place(new Vector2(-8f, 0f), new Vector2(-8f, 2f), settle: false);
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var squad = Encounters.CategoryOf("squad");
+        var e = squad != null ? Encounters.Make(new System.Random(13), squad, 2, -1) : null;
+        if (spawner == null || e == null) { Report(false, "pas d'escouade"); yield break; }
+        var spawned = spawner.SpawnEncounter(e, Centre + new Vector2(5f, 0f), 5);
+        placed.AddRange(spawned);
+        yield return new WaitForFixedUpdate();
+        int items = spawned.FindAll(c => c.GetComponent<EnemyUltimate>() != null).Count;
+        bool ranks = e.members.TrueForAll(m => m.rarity.key == "rare" || m.rarity.key == "epic");
+        bool elites = spawned.TrueForAll(c => c.GetComponent<EliteMark>() is { sureLoot: true, squad: not null });
+        bool Dropped() => System.Array.Exists(FindObjectsByType<Transform>(), t => t.name.StartsWith("Objet :"));
+        bool early = false;
+        Loot.DropsInSandbox = true;
+        for (int i = 0; i < spawned.Count; i++)
+        {
+            spawned[i].TakeFixedDamage(spawned[i].hp + 1f);
+            yield return new WaitForFixedUpdate();
+            if (i < spawned.Count - 1 && Dropped()) early = true;
+        }
+        Loot.DropsInSandbox = false;
+        bool last = Dropped();
+        ClearDrops();
+        Report(spawned.Count == 3 && items == 1 && ranks && elites && !early && last,
+            $"{spawned.Count} membres, {items} objet(s), {(ranks ? "rares ou épiques" : "rangs faux")}, {(elites ? "tous élites" : "marques manquantes")}, "
+            + $"{(early ? "butin trop tôt" : "rien avant la fin")}, {(last ? "butin au dernier" : "pas de butin")}");
+    }
+
+    // The items left on the ground by a scenario (they would be picked up later and fill the save).
+    static void ClearDrops()
+    {
+        foreach (var t in FindObjectsByType<Transform>())
+            if (t != null && t.name.StartsWith("Objet :")) Destroy(t.gameObject);
+    }
+
+    // Elite odds: the chance of a stage with an elite rises with the stage, and an elite lot is a champion or a squad.
+    IEnumerator EliteOdds()
+    {
+        float first = Encounters.EliteChance(0), fourth = Encounters.EliteChance(3);
+        var rng = new System.Random(14);
+        int champions = 0, squads = 0;
+        for (int k = 0; k < 200; k++)
+        {
+            var e = Encounters.Elite(rng, 2, -1);
+            if (e == null) continue;
+            if (e.category.key == "champion") champions++;
+            if (e.category.key == "squad") squads++;
+        }
+        Report(fourth > first && champions > 40 && squads > 40,
+            $"élite par étape : {first:P0} à l'étape 1, {fourth:P0} à l'étape 4 ; {champions} champions et {squads} escouades sur 200");
+        yield break;
+    }
+
+    // Typical populated zones: whole waves at each stage, every lot following its rules; the log shows one zone per
+    // stage and how often each lot appears.
+    IEnumerator TypicalZones()
+    {
+        var rng = new System.Random(8);
+        int wrong = 0;
+        var lines = new List<string>();
+        for (int stage = 0; stage < 4; stage++)
+        {
+            var count = new Dictionary<string, int>();
+            int pokemon = 0, items = 0, zones = 50;
+            for (int k = 0; k < zones; k++)
+            {
+                var wave = Encounters.Wave(rng, stage, 2, Volcano);
+                if (k == 0) Debug.Log($"AIZONE étape {stage + 1} : " + string.Join("  |  ", wave.ConvertAll(e => e.Describe())));
+                foreach (var e in wave)
+                {
+                    count[e.category.name] = count.TryGetValue(e.category.name, out int n) ? n + 1 : 1;
+                    pokemon += e.members.Count;
+                    items += e.members.FindAll(m => m.item).Count;
+                    if (e.category.key == "gang" && stage < e.category.minStage) wrong++;
+                    // Each member against its own lot (a pack's rare or épique leader is a solitaire).
+                    if (!e.members.TrueForAll(m => m.lot.rarities.Length == 0 || System.Array.IndexOf(m.lot.rarities, m.rarity.key) >= 0)) wrong++;
+                }
+            }
+            lines.Add($"étape {stage + 1} : {(float)pokemon / zones:0.0} Pokémon, {(float)items / zones:0.0} objets, "
+                      + string.Join(" ", System.Linq.Enumerable.Select(count, kv => $"{kv.Key} {kv.Value}")));
+        }
+        Report(wrong == 0, string.Join(" ; ", lines) + (wrong > 0 ? $" ; {wrong} lots hors règle" : ""));
+        yield break;
+    }
+
+    // Teams: a support most of the time, and a second member whose type combines with the first one's more often
+    // than chance would give.
+    IEnumerator TeamHasRoles()
+    {
+        var rng = new System.Random(3);
+        var teamCategory = Encounters.CategoryOf("team");
+        int teams = 0, support = 0, combine = 0, randomCombine = 0;
+        var pool = Encounters.Pool(1, -1);
+        for (int k = 0; k < 100 && teamCategory != null; k++)
+        {
+            var e = Encounters.Make(rng, teamCategory, 1, -1);
+            if (e == null || e.members.Count < 2) continue;
+            teams++;
+            if (e.members.Exists(m => m.role == "support")) support++;
+            if (Encounters.Combines(e.members[0].pokemonId, e.members[1].pokemonId)) combine++;
+            if (Encounters.Combines(e.members[0].pokemonId, pool[rng.Next(pool.Count)])) randomCombine++;
+        }
+        Report(teams > 0 && support >= teams * 0.6f && combine > randomCombine,
+            $"{teams} équipes : {support} avec un soutien, {combine} paires qui se combinent (au hasard : {randomCombine})");
+        yield break;
+    }
+
+    // Ranks: rare and épique members are more frequent at the fourth stage than at the first.
+    IEnumerator RanksRise()
+    {
+        var rng = new System.Random(4);
+        float Share(int stage)
+        {
+            int high = 0, n = 2000;
+            for (int k = 0; k < n; k++)
+            {
+                var r = Encounters.PickRarity(rng, stage);
+                if (r.key == "rare" || r.key == "epic") high++;
+            }
+            return (float)high / n;
+        }
+        float first = Share(0), fourth = Share(3);
+        Report(fourth > first * 2f, $"rare ou épique : {first:P0} à l'étape 1, {fourth:P0} à l'étape 4");
+        yield break;
+    }
+
+    // On the volcano, every Pokémon drawn has a Feu, Roche, Sol or Poison type.
+    IEnumerator FitsDecor()
+    {
+        var rng = new System.Random(5);
+        int members = 0, off = 0;
+        var allowed = new[] { 2, 13, 9, 8 };
+        for (int k = 0; k < 60; k++)
+            foreach (var e in Encounters.Wave(rng, 1, 1, Volcano))
+                foreach (var m in e.members)
+                {
+                    members++;
+                    if (!System.Array.Exists(GameData.Pokemon(m.pokemonId).types, t => System.Array.IndexOf(allowed, t) >= 0)) off++;
+                }
+        Report(members > 0 && off == 0, $"{members} Pokémon tirés sur le volcan, {off} d'un autre type");
+        yield break;
+    }
+
+    // An épique team appears: three fighters in one group, each with its rank mark, its ring, and an ultimate.
+    IEnumerator EncounterSpawns()
+    {
+        Place(new Vector2(-8f, 0f), new Vector2(-8f, 2f), settle: false);
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var teamCategory = Encounters.CategoryOf("team");
+        Encounters.Rarity epic = null;
+        foreach (var r in Encounters.Rarities)
+            if (r.key == "epic") epic = r;
+        var e = teamCategory != null ? Encounters.Make(new System.Random(6), teamCategory, 3, -1) : null;
+        if (spawner == null || e == null || epic == null) { Report(false, "pas de rencontre ou de rang épique"); yield break; }
+        foreach (var m in e.members)
+        {
+            m.rarity = epic;
+            m.item = true;
+        }
+        var spawned = spawner.SpawnEncounter(e, Centre + new Vector2(5f, 0f), 5);
+        placed.AddRange(spawned);
+        foreach (var c in spawned) c.maxHp = c.hp = 100000f;
+        yield return new WaitForFixedUpdate();
+        int marked = spawned.FindAll(c => c.GetComponent<RarityMark>() != null && c.transform.Find("Rang") != null).Count;
+        int ultimates = spawned.FindAll(c => c.GetComponent<EnemyUltimate>() != null).Count;
+        var group = spawned.Count > 0 ? spawned[0].GetComponent<EnemyAI>().group : null;
+        bool together = group != null && spawned.TrueForAll(c => c.GetComponent<EnemyAI>().group == group);
+        Report(spawned.Count == e.members.Count && marked == spawned.Count && ultimates == spawned.Count && together,
+            $"{spawned.Count} apparus sur {e.members.Count}, {marked} avec leur anneau, {ultimates} avec un ultime, {(together ? "un seul groupe" : "groupes séparés")}");
     }
 
     // ---------------------------------------------------------------- helpers
