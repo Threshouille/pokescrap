@@ -6,7 +6,7 @@ using UnityEngine;
 /// Room of the test arena (TerrainSandbox.EncounterRoom, white stairs) to watch how the encounters (Encounters)
 /// fight in an obstacle room: one lot at a time (solitaire, meute, équipe, gang in turn), a combination (a lot and
 /// the one that comes with it, combos), the elites (champion, squad), then a populated zone (a
-/// whole wave of several lots spread over the room), drawn for a stage that goes up every few rounds, against the team: played by the player, or on autopilot to watch (PlayerController.AutoPilot; V or d-pad up switches, "watch" in the settings for the start). A round ends when
+/// whole wave of several lots spread over the room), drawn for a stage that goes up every few rounds, against the team: played by the player, or on autopilot to watch (PlayerController.AutoPilot; V or ○ switches, "watch" in the settings for the start). A round ends when
 /// the encounter is down, the controlled Pokémon is low, or after roundTime seconds; the room is then drawn again with
 /// other obstacles. The team is much tougher while here; R / Select skips to the next round. The solitaire is a
 /// Pokémon whose line has a mega evolution, carrying its stone; the gang's three members carry an item each.
@@ -23,7 +23,7 @@ public class EncounterLab : MonoBehaviour
     [Serializable] class SandboxFile { public Settings encounterLab = new(); }
 
     Settings settings;
-    bool watching; // the team on autopilot; otherwise the player plays (V / d-pad up switches)
+    bool watching; // the team on autopilot; otherwise the player plays (V / ○ switches)
     PlayerController team;
     EnemySpawner spawner;
     TerrainSandbox sandbox;
@@ -152,7 +152,7 @@ public class EncounterLab : MonoBehaviour
         if (team == null || Time.timeScale == 0f) return;
         var pad = UnityEngine.InputSystem.Gamepad.current;
         var kb = UnityEngine.InputSystem.Keyboard.current;
-        if ((kb != null && kb.vKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame))
+        if ((kb != null && kb.vKey.wasPressedThisFrame) || (pad != null && pad.buttonEast.wasPressedThisFrame))
         {
             watching = !watching;
             team.AutoPilot = watching;
@@ -177,7 +177,7 @@ public class EncounterLab : MonoBehaviour
             : lots.Count == 1 ? lots[0].Describe() : $"Zone peuplée ({lots.Count} lots) : " + string.Join("  |  ", lots.Select(l => l.Describe()));
         string room = obstacles != null && obstacles.Count > 0 ? string.Join(", ", obstacles) : "sans obstacle";
         return $"Observation {round} (étape {stage + 1}) : {what}     Salle : {room}     fin dans {Mathf.Max(0f, endsAt - Time.time):0} s"
-               + $"     {(watching ? "Tu regardes (pilote automatique)" : "Tu joues")} — V ou croix haut : {(watching ? "jouer" : "regarder")}"
+               + $"     {(watching ? "Tu regardes (pilote automatique)" : "Tu joues")} — V ou ○ : {(watching ? "jouer" : "regarder")}"
                + "     R ou Select : suivante     Escalier : retour";
     }
 }

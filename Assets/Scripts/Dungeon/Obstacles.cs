@@ -432,6 +432,23 @@ public class Obstacles : MonoBehaviour
     public static ObstacleDef Result(ObstacleInteraction it) =>
         !string.IsNullOrEmpty(it.becomes) ? Def(it.becomes) : !string.IsNullOrEmpty(it.leaves) ? Def(it.leaves) : null;
 
+    /// Turns every tile of obstacle "from" into "to" for "duration" seconds (an orb freezing the room's water). Returns
+    /// how many tiles changed.
+    public static int ChangeAll(string from, string to, float duration)
+    {
+        var a = Def(from);
+        var b = Def(to);
+        if (Current == null || Current.kind == null || a == null || b == null) return 0;
+        int changed = 0;
+        for (int i = 0; i < Current.kind.Length; i++)
+            if (Current.kind[i] == a)
+            {
+                Current.Set(i % Current.size, i / Current.size, b, duration);
+                changed++;
+            }
+        return changed;
+    }
+
     /// Lays an obstacle on a tile by hand (the AI test bench); key null or empty clears it.
     public static void Place(int x, int y, string key)
     {

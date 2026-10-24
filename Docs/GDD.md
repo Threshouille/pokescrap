@@ -206,6 +206,18 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Suite : 2) élites (champion solitaire ou escouade), 3) comportements de groupe (rôles, encerclement, combos de
   terrain, obstacles), 4) intégration et équilibrage.
 
+### Objets de partie (décidé le 24/10/2026, Robin ; étape 1 faite sur `feature/sac`)
+- Distincts des objets spéciaux (méga-gemmes, cristaux Z, Téra-Éclats). Deux familles : **consommables** (baies,
+  graines, orbes) dans un **sac partagé** par l'équipe, et **objets tenus** (un par Pokémon, passifs ; étape 2).
+- Rien ne se garde d'une partie à l'autre (esprit roguelike).
+- Commandes : 1 à 4 au clavier ; à la manette, croix haut / bas pour choisir et □ pour utiliser.
+- Étape 1 (faite) : 4 emplacements, piles de 9 ; Baie Oran / Sitrus (soin), Ceriz / Pêcha / Fraive (statuts),
+  Graine Explo (dégâts en zone), Dodo (sommeil), Rappel (relève un K.O.), Vive (vitesse), Orbe Pétrif (fige les
+  ennemis visibles), Orbe Gel (gèle l'eau de la salle) ; lâchés par les ennemis selon leur rang (élites : toujours) et
+  dans le coffre de fin d'étape ; les alliés s'en servent (soin sous 35 % des PV, statut, K.O.).
+- Suite : 2) objets tenus (Bandeau Choix, Restes, Ballon, Bottes de Magma…) et cartes de choix, objets tenus des
+  ennemis ; 3) icônes tirées de la ROM ; 4) boutique Kecleon et monnaie.
+
 ### Boss
 - Chaque boss est un Pokémon légendaire (Groudon en premier), avec 4 attaques toujours les mêmes, pour que le joueur apprenne ses schémas.
 - Mort du boss : ses gardes disparaissent sans rapporter d'expérience ni de recrue (17/10/2026).

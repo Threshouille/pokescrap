@@ -85,6 +85,8 @@ public class AiScenarios : MonoBehaviour
         results.Clear();
         var sandbox = FindAnyObjectByType<TerrainSandbox>();
         if (sandbox != null) sandbox.Quiet();
+        var teamBag = team.GetComponent<Bag>();
+        if (teamBag != null) teamBag.Clear(); // the test arena's starting bag would change the other scenarios (a Reviver Seed...)
         if (team.Count < 2) team.AddMember(BatchTeam[1], team.Controlled.transform.position + Vector3.right);
 
         yield return Scenario("Ne suit pas le Pokémon joué dans le danger", NoFollowIntoDanger());
@@ -129,6 +131,10 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Élite : un champion très fort, plus grand, avec objet et butin garanti", ChampionStands());
         yield return Scenario("Élite : une escouade de 3, seul le chef porte l'objet, butin quand tous tombent", SquadLoot());
         yield return Scenario("Élite : au plus un par étape, plus souvent en avançant", EliteOdds());
+        yield return Scenario("Sac : Baie Oran, Graine Explo, Orbe Gel", BagEffects());
+        yield return Scenario("Sac : un allié blessé mange une baie du sac", AllyEatsBerry());
+        yield return Scenario("Sac : 4 emplacements, piles de 9, plein ensuite", BagCapacity());
+        yield return Scenario("Sac : un élite lâche un objet, ramassé en marchant dessus", EliteDropsConsumable());
         yield return Scenario("Eau : poussé dedans, un Pokémon qui ne nage pas revient, un nageur y reste", PushedIntoWater());
         yield return Scenario("Ultime ennemi : Téra pour se déplacer sur la lave qui l'entoure", EnemyTeraForWater());
         yield return Scenario("Rencontres : une équipe a ses rôles et des types qui se combinent", TeamHasRoles());
@@ -1015,7 +1021,7 @@ public class AiScenarios : MonoBehaviour
     static void ClearDrops()
     {
         foreach (var t in FindObjectsByType<Transform>())
-            if (t != null && t.name.StartsWith("Objet :")) Destroy(t.gameObject);
+            if (t != null && (t.name.StartsWith("Objet :") || t.name.StartsWith("Consommable :"))) Destroy(t.gameObject);
     }
 
     // Elite odds: the chance of a stage with an elite rises with the stage, and an elite lot is a champion or a squad.
@@ -1034,6 +1040,87 @@ public class AiScenarios : MonoBehaviour
         Report(fourth > first && champions > 40 && squads > 40,
             $"élite par étape : {first:P0} à l'étape 1, {fourth:P0} à l'étape 4 ; {champions} champions et {squads} escouades sur 200");
         yield break;
+    }
+
+    // The bag's effects: an Oran Berry heals the controlled Pokémon, a Blast Seed hurts the opponent it is thrown at,
+    // a Freeze Orb freezes the room's water.
+    IEnumerator BagEffects()
+    {
+        var (leader, _) = Place(new Vector2(-3f, 0f), new Vector2(-3f, 3f), settle: false);
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        bag.Add("oran");
+        bag.Add("blast");
+        bag.Add("freeze");
+        var grid = DungeonGenerator.Current;
+        var c = grid.CellOf(Centre + new Vector2(0f, -5f));
+        for (int x = c.x - 3; x <= c.x + 3; x++) Obstacles.Place(x, c.y, "water");
+        var foe = Enemy(BatchTeam[1], new Vector2(0f, 0f));
+        foe.maxHp = foe.hp = 1000f;
+        leader.hp = leader.maxHp * 0.5f;
+        float hp = leader.hp;
+        bool healed = bag.Use(bag.Find(i => i.key == "oran"), leader) && leader.hp > hp;
+        bool hurt = bag.Use(bag.Find(i => i.key == "blast"), leader) && foe.hp < foe.maxHp;
+        bool frozen = bag.Use(bag.Find(i => i.key == "freeze"), leader) && Obstacles.At(c.x, c.y)?.key == "frozen";
+        bool spent = bag.Count("oran") + bag.Count("blast") + bag.Count("freeze") == 0;
+        leader.hp = leader.maxHp;
+        Report(healed && hurt && frozen && spent, $"soin {(healed ? "oui" : "non")}, explosion {(hurt ? "oui" : "non")}, eau gelée {(frozen ? "oui" : "non")}, {(spent ? "objets dépensés" : "objets restants")}");
+        yield break;
+    }
+
+    // An ally under the healing threshold eats an Oran Berry from the shared bag on its own.
+    IEnumerator AllyEatsBerry()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, 0f), new Vector2(-1f, 2f), settle: false);
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        bag.Add("oran", 2);
+        ally.hp = ally.maxHp * 0.2f;
+        float hp = ally.hp;
+        yield return new WaitForSeconds(1.5f);
+        bool ate = ally.hp > hp && bag.Count("oran") == 1;
+        ally.hp = ally.maxHp;
+        Report(ate, $"{(ate ? "baie mangée" : "pas de baie")} : PV {hp:0} → {ally.hp:0}, il reste {bag.Count("oran")} baie(s)");
+    }
+
+    // Capacity: one consumable stacks up to 9 in its slot; four kinds fill the four slots; a fifth kind does not fit.
+    IEnumerator BagCapacity()
+    {
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        bag.Add("oran", 12);
+        bool stack = bag.Count("oran") == 9;
+        bool fourth = bag.Add("blast") && bag.Add("sleep") && bag.Add("quick");
+        bool fifth = bag.Add("petrify");
+        bool more = bag.Add("oran"); // its stack is full and no slot is free
+        bag.Clear();
+        Report(stack && fourth && !fifth && !more, $"pile de {(stack ? 9 : 0)}, 4 sortes {(fourth ? "rangées" : "refusées")}, 5e sorte {(fifth ? "acceptée" : "refusée")}");
+        yield break;
+    }
+
+    // An elite always drops a consumable; the controlled Pokémon walks onto it and it goes into the bag.
+    IEnumerator EliteDropsConsumable()
+    {
+        var (leader, _) = Place(new Vector2(-3f, 0f), new Vector2(-6f, 3f), settle: false);
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        var foe = Enemy(BatchTeam[1], new Vector2(0f, 0f));
+        Loot.Mark(foe);
+        foe.TakeFixedDamage(foe.hp + 1f);
+        yield return new WaitForFixedUpdate();
+        Transform drop = null;
+        foreach (var t in FindObjectsByType<Transform>())
+            if (t != null && t.name.StartsWith("Consommable :")) drop = t;
+        bool dropped = drop != null;
+        string what = dropped ? drop.name : "rien au sol"; // read now: picked up, it is gone
+        if (dropped) Teleport(leader, drop.position);
+        yield return new WaitForSeconds(0.3f);
+        int held = 0;
+        foreach (var s in bag.Contents)
+            if (s != null) held += s.count;
+        ClearDrops();
+        bag.Clear();
+        Report(dropped && held == 1, $"{what}, {held} objet(s) dans le sac");
     }
 
     // Typical populated zones: whole waves at each stage, every lot following its rules; the log shows one zone per

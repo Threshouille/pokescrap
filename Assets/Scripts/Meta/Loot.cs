@@ -19,6 +19,8 @@ public class Loot : MonoBehaviour
         public SpecialItems.Family family;
         public string stone; // mega stone key
         public int type = -1; // Z crystal or Tera shard
+        public string consumable; // a consumable of the bag (BagItems key) instead of a special item
+        public bool inBag; // the consumable already went into the bag when picked up
     }
 
     class Drop
@@ -57,10 +59,22 @@ public class Loot : MonoBehaviour
 
     void OnDied(Combatant c)
     {
+        DropConsumable(c);
         var mark = c.GetComponent<EliteMark>();
         if ((Run.Sandbox && !DropsInSandbox) || c.team != Team.Enemy || mark == null) return;
         if (mark.squad != null && mark.squad.members.Exists(m => m != null && m != c && m.IsAlive)) return; // others still up
         if (mark.sureLoot || rng.NextDouble() < SpecialItems.Loot.eliteDrop) Place(RollTyped(rng, TeamTypes()), c.transform.position);
+    }
+
+    // A knocked-out enemy may leave a consumable of the bag, the more likely the higher its rank (always for an
+    // elite); in the test arena too, to try the bag.
+    void DropConsumable(Combatant c)
+    {
+        if (c.team != Team.Enemy || c.isBoss) return;
+        string rank = c.GetComponent<EliteMark>() != null ? "elite" : c.GetComponent<RarityMark>()?.Rarity?.key ?? "common";
+        if (rng.NextDouble() >= BagItems.DropChance(rank)) return;
+        var item = BagItems.Roll(rng);
+        if (item != null) Place(new Item { consumable = item.key }, (Vector2)c.transform.position + Random.insideUnitCircle * 0.3f);
     }
 
     // ---- Rolls (pure: tests call them) ----
@@ -137,13 +151,19 @@ public class Loot : MonoBehaviour
 
     void Place(Item item, Vector2 at)
     {
-        var go = new GameObject($"Objet : {Describe(item, 0)}");
+        var go = new GameObject($"{(item.consumable != null ? "Consommable" : "Objet")} : {Describe(item, 0)}");
         go.transform.position = at;
         var r = go.AddComponent<SpriteRenderer>();
         r.sortingOrder = 2;
-        var icon = SpecialItems.Icon(SpecialItems.IconName(item.family, item.stone, item.type));
+        var bagItem = item.consumable != null ? BagItems.Get(item.consumable) : null;
+        var icon = bagItem != null ? SpecialItems.Icon(bagItem.icon) : SpecialItems.Icon(SpecialItems.IconName(item.family, item.stone, item.type));
         float size = icon != null ? IconSize : SquareSize;
         if (icon != null) r.sprite = icon;
+        else if (bagItem != null)
+        {
+            r.sprite = Shapes.Circle; // a coloured ball until the ROM's item icons are in
+            r.color = bagItem.Colour;
+        }
         else
         {
             go.transform.rotation = Quaternion.Euler(0f, 0f, 45f);
@@ -163,7 +183,7 @@ public class Loot : MonoBehaviour
             var d = drops[i];
             if (d.go == null) { drops.RemoveAt(i); continue; }
             d.go.transform.localScale = Vector3.one * d.size * (1f + 0.1f * Mathf.Sin(Time.time * 4f));
-            if (walker != null && Vector2.Distance(walker.transform.position, d.go.transform.position) <= PickReach) Take(i);
+            if (walker != null && Vector2.Distance(walker.transform.position, d.go.transform.position) <= PickReach && Fits(d.item)) Take(i);
         }
         if (chest != null && walker != null && Vector2.Distance(walker.transform.position, chest.transform.position) <= ChestReach)
             OpenChest();
@@ -175,6 +195,8 @@ public class Loot : MonoBehaviour
         Destroy(chest);
         chest = null;
         Place(RollTyped(rng, TeamTypes()), at + Vector2.up * 0.8f);
+        for (int k = 0; k < BagItems.ChestCount; k++)
+            if (BagItems.Roll(rng) is { } item) Place(new Item { consumable = item.key }, at + new Vector2(0.8f * (k + 1), 0.3f));
         ChestOpened?.Invoke();
     }
 
@@ -197,8 +219,34 @@ public class Loot : MonoBehaviour
         while (drops.Count > 0) Take(drops.Count - 1);
     }
 
+    // A consumable is picked up only when the bag has room for it (it stays on the ground otherwise).
+    bool Fits(Item item)
+    {
+        if (item.consumable == null) return true;
+        var bag = team != null ? team.GetComponent<Bag>() : null;
+        if (bag == null) return false;
+        if (bag.Add(item.consumable))
+        {
+            item.inBag = true; // Grant only says so
+            return true;
+        }
+        if (Time.time >= fullSaidAt) { progression?.Announce("Sac plein"); fullSaidAt = Time.time + 3f; }
+        return false;
+    }
+
+    float fullSaidAt;
+
     void Grant(Item item)
     {
+        if (item.consumable != null)
+        {
+            var bagItem = BagItems.Get(item.consumable);
+            if (bagItem == null) return;
+            var bag = team != null ? team.GetComponent<Bag>() : null;
+            if (!item.inBag && (bag == null || !bag.Add(bagItem.key))) return; // picked up at the end of a stage: no room, lost
+            progression?.Announce($"{bagItem.name} ramassée !");
+            return;
+        }
         int level = 0;
         switch (item.family)
         {
@@ -209,7 +257,7 @@ public class Loot : MonoBehaviour
         progression?.Announce($"{Describe(item, level)} obtenu !");
     }
 
-    static string Describe(Item item, int level) => item.family switch
+    static string Describe(Item item, int level) => item.consumable != null ? BagItems.Get(item.consumable)?.name ?? "Objet" : item.family switch
     {
         SpecialItems.Family.Mega => SpecialItems.Stone(item.stone)?.name ?? "Méga-gemme",
         SpecialItems.Family.Z => SpecialItems.Crystal(item.type)?.name + (level > 0 ? $" (niv. {level})" : ""),

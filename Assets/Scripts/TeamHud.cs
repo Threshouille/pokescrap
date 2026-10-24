@@ -69,6 +69,7 @@ public class TeamHud : MonoBehaviour
         // Allies, in d-pad order: the left one is reached with d-pad left, the right one with d-pad right.
         var leftAlly = team.Neighbour(-1);
         var rightAlly = team.Neighbour(1);
+        DrawBag(s);
         DrawAlly(leftAlly, 0, portrait, s);
         if (rightAlly != leftAlly) DrawAlly(rightAlly, 1, portrait, s);
 
@@ -221,6 +222,36 @@ public class TeamHud : MonoBehaviour
     }
 
     static string Short(string name) => name.Length <= 4 ? name : name.Substring(0, 4);
+
+    // The team's bag, bottom right: one square per slot, the consumable's colour and letter, how many; the key to use
+    // it above (1 to 4), or the pad's selection framed.
+    void DrawBag(float s)
+    {
+        if (bag == null) bag = team.GetComponent<Bag>();
+        if (bag == null) return;
+        var slots = bag.Contents;
+        bool pad = UnityEngine.InputSystem.Gamepad.current != null;
+        float size = Slot * s, gap = SlotGap * s;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            var r = new Rect(Screen.width - Margin * s - (slots.Count - i) * (size + gap), Screen.height - Margin * s - size, size, size);
+            if (pad && i == bag.Selected) Fill(Grow(r, s), Color.white);
+            Fill(r, Frame);
+            var slot = slots[i];
+            if (slot != null)
+            {
+                var inner = Grow(r, -2f * s);
+                Fill(inner, slot.item.Colour);
+                Label(inner, slot.item.letter, TextAnchor.MiddleCenter);
+                Label(new Rect(r.x, r.yMax - 9f * s, r.width - s, 9f * s), $"{slot.count}", TextAnchor.MiddleRight);
+            }
+            if (!pad) Label(new Rect(r.x, r.y - 9f * s, r.width, 9f * s), $"{i + 1}", TextAnchor.MiddleCenter);
+        }
+        if (pad) Label(new Rect(Screen.width - Margin * s - slots.Count * (size + gap), Screen.height - Margin * s - size - 10f * s, slots.Count * (size + gap), 9f * s),
+            "□ : objet", TextAnchor.MiddleCenter);
+    }
+
+    Bag bag;
 
     static Rect Grow(Rect rect, float amount) =>
         new(rect.x - amount, rect.y - amount, rect.width + 2f * amount, rect.height + 2f * amount);

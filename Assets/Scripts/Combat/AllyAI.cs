@@ -95,6 +95,7 @@ public class AllyAI : MonoBehaviour
             return;
         }
 
+        TryBag(); // instant: a berry when low, a cure, a Reviver Seed
         if (TryRescue(position, grid)) return;
 
         var settings = SaveData.Settings;
@@ -174,6 +175,25 @@ public class AllyAI : MonoBehaviour
         }
         Steer(repairNavigator.Direction(position, repair.stand, combatant, avoid: true), repair.stand - position);
         return true;
+    }
+
+    float nextBagAt;
+    Bag bag;
+
+    // The team's bag (Bag): a heal under healBelow of its health, a berry against a status it has, a Reviver Seed
+    // when a team-mate is down; at most once every "cooldown" seconds.
+    void TryBag()
+    {
+        if (Time.time < nextBagAt) return;
+        if (bag == null && team != null) bag = team.GetComponent<Bag>();
+        if (bag == null) return;
+        var ai = BagItems.AiSettings;
+        int slot = -1;
+        if (combatant.hp < combatant.maxHp * ai.healBelow) slot = bag.Find(i => i.effect == "heal");
+        if (slot < 0) slot = bag.Find(i => i.effect == "cure" && combatant.HasStatus(i.status));
+        if (slot < 0 && TeamRescue.Downed(combatant) != null) slot = bag.Find(i => i.effect == "revive");
+        if (slot >= 0 && bag.Use(slot, combatant)) nextBagAt = Time.time + ai.cooldown;
+        else nextBagAt = Time.time + 0.5f;
     }
 
     // A team-mate is knocked out: guards it or brings it back (TeamRescue).
