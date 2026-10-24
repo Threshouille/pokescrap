@@ -21,6 +21,8 @@ public class Loot : MonoBehaviour
         public int type = -1; // Z crystal or Tera shard
         public string consumable; // a consumable of the bag (BagItems key) instead of a special item
         public bool inBag; // the consumable already went into the bag when picked up
+        public string held; // a held item (HeldItems key): the controlled Pokémon takes it
+        public int heldTier; // its tier (1 to 3), 0 for an untiered one
     }
 
     class Drop
@@ -28,6 +30,7 @@ public class Loot : MonoBehaviour
         public Item item;
         public GameObject go;
         public float size;
+        public Combatant notFor; // the Pokémon that just let it go: not picked up again until it steps off
     }
 
     const float IconSize = 0.8f, SquareSize = 0.45f; // tiles: an item's icon, or the coloured square without one
@@ -60,6 +63,8 @@ public class Loot : MonoBehaviour
     void OnDied(Combatant c)
     {
         DropConsumable(c);
+        if (c.team == Team.Enemy && c.Held != null)
+            Place(new Item { held = c.Held.key, heldTier = c.Held.tier }, (Vector2)c.transform.position + Random.insideUnitCircle * 0.3f);
         var mark = c.GetComponent<EliteMark>();
         if ((Run.Sandbox && !DropsInSandbox) || c.team != Team.Enemy || mark == null) return;
         if (mark.squad != null && mark.squad.members.Exists(m => m != null && m != c && m.IsAlive)) return; // others still up
@@ -75,6 +80,23 @@ public class Loot : MonoBehaviour
         if (rng.NextDouble() >= BagItems.DropChance(rank)) return;
         var item = BagItems.Roll(rng);
         if (item != null) Place(new Item { consumable = item.key }, (Vector2)c.transform.position + Random.insideUnitCircle * 0.3f);
+    }
+
+    /// Lays a special item on the ground (the test arena's showcase): a mega stone (key), or a Z crystal / Tera shard
+    /// of that type. Picked up like any drop.
+    public void PlaceSpecial(SpecialItems.Family family, string stone, int type, Vector2 at) =>
+        Place(new Item { family = family, stone = stone, type = type }, at);
+
+    /// Lays a held item on the ground (the test arena's showcase).
+    public void PlaceHeld(string key, Vector2 at, int tier = 0) =>
+        Place(new Item { held = key, heldTier = HeldItems.Get(key) is { tiered: true } ? Mathf.Max(1, tier) : 0 }, at);
+
+    /// Removes what lies on the ground (the test arena, when a room is drawn again).
+    public void ClearGround()
+    {
+        foreach (var d in drops)
+            if (d.go != null) Destroy(d.go);
+        drops.Clear();
     }
 
     // ---- Rolls (pure: tests call them) ----
@@ -151,12 +173,14 @@ public class Loot : MonoBehaviour
 
     void Place(Item item, Vector2 at)
     {
-        var go = new GameObject($"{(item.consumable != null ? "Consommable" : "Objet")} : {Describe(item, 0)}");
+        var go = new GameObject($"{(item.consumable != null ? "Consommable" : item.held != null ? "Objet tenu" : "Objet")} : {Describe(item, 0)}");
         go.transform.position = at;
         var r = go.AddComponent<SpriteRenderer>();
         r.sortingOrder = 2;
         var bagItem = item.consumable != null ? BagItems.Get(item.consumable) : null;
-        var icon = bagItem != null ? SpecialItems.Icon(bagItem.icon) : SpecialItems.Icon(SpecialItems.IconName(item.family, item.stone, item.type));
+        var heldItem = item.held != null ? HeldItems.Get(item.held) : null;
+        var icon = bagItem != null ? SpecialItems.Icon(bagItem.icon) : heldItem != null ? SpecialItems.Icon(heldItem.icon)
+            : SpecialItems.Icon(SpecialItems.IconName(item.family, item.stone, item.type));
         float size = icon != null ? IconSize : SquareSize;
         if (icon != null) r.sprite = icon;
         else if (bagItem != null)
@@ -164,11 +188,27 @@ public class Loot : MonoBehaviour
             r.sprite = Shapes.Circle; // a coloured ball until the ROM's item icons are in
             r.color = bagItem.Colour;
         }
+        else if (heldItem != null)
+        {
+            r.sprite = Shapes.Square; // a coloured square, upright, for a held item
+            r.color = heldItem.Colour;
+        }
         else
         {
             go.transform.rotation = Quaternion.Euler(0f, 0f, 45f);
             r.sprite = Shapes.Square;
             r.color = item.family == SpecialItems.Family.Mega ? new Color(0.85f, 0.45f, 1f) : GameData.TypeColor(item.type);
+        }
+        if (heldItem != null && HeldItems.TierOf(item.heldTier) is { } tier)
+        {
+            // Its tier: a thin ring of the tier's colour under it (bronze, silver, gold), like the enemies' ranks.
+            var ring = new GameObject("Tier").AddComponent<SpriteRenderer>();
+            ring.transform.SetParent(go.transform, false);
+            ring.transform.localPosition = new Vector3(0f, -0.35f, 0f);
+            ring.transform.localScale = new Vector3(1.3f, 0.55f, 1f);
+            ring.sprite = Shapes.Ring;
+            ring.color = tier.Colour;
+            ring.sortingOrder = 0; // ground marks: under the item, never the Pokémon's order
         }
         go.transform.localScale = Vector3.one * size;
         drops.Add(new Drop { item = item, go = go, size = size });
@@ -183,7 +223,9 @@ public class Loot : MonoBehaviour
             var d = drops[i];
             if (d.go == null) { drops.RemoveAt(i); continue; }
             d.go.transform.localScale = Vector3.one * d.size * (1f + 0.1f * Mathf.Sin(Time.time * 4f));
-            if (walker != null && Vector2.Distance(walker.transform.position, d.go.transform.position) <= PickReach && Fits(d.item)) Take(i);
+            bool near = walker != null && Vector2.Distance(walker.transform.position, d.go.transform.position) <= PickReach;
+            if (d.notFor != null && (d.notFor != walker || !near)) d.notFor = null; // it stepped off
+            if (near && d.notFor == null && Fits(d.item)) Take(i);
         }
         if (chest != null && walker != null && Vector2.Distance(walker.transform.position, chest.transform.position) <= ChestReach)
             OpenChest();
@@ -195,6 +237,8 @@ public class Loot : MonoBehaviour
         Destroy(chest);
         chest = null;
         Place(RollTyped(rng, TeamTypes()), at + Vector2.up * 0.8f);
+        if (rng.NextDouble() < HeldItems.ChestChance && HeldItems.Roll(rng) is { } held)
+            Place(new Item { held = held.key, heldTier = held.tiered ? HeldItems.ChestTier(rng) : 0 }, at + new Vector2(-0.8f, 0.3f));
         for (int k = 0; k < BagItems.ChestCount; k++)
             if (BagItems.Roll(rng) is { } item) Place(new Item { consumable = item.key }, at + new Vector2(0.8f * (k + 1), 0.3f));
         ChestOpened?.Invoke();
@@ -238,6 +282,23 @@ public class Loot : MonoBehaviour
 
     void Grant(Item item)
     {
+        if (item.held != null)
+        {
+            // The controlled Pokémon takes it; what it held drops at its feet (to give it to another member).
+            var taker = team != null ? team.Controlled : null;
+            var found = HeldItems.AtTier(HeldItems.Get(item.held), item.heldTier);
+            if (taker == null || found == null) return;
+            // The same item gains a tier (or keeps the higher one); another one replaces it, the old one drops.
+            var now = HeldItems.Merge(taker.Held, found, out var dropped);
+            taker.Hold(now);
+            if (dropped != null)
+            {
+                Place(new Item { held = dropped.key, heldTier = dropped.tier }, (Vector2)taker.transform.position + Vector2.down * 0.6f);
+                drops[^1].notFor = taker;
+            }
+            progression?.Announce($"{taker.Stats.name} tient {now.FullName}{(dropped != null ? $" (lâche {dropped.FullName})" : "")}");
+            return;
+        }
         if (item.consumable != null)
         {
             var bagItem = BagItems.Get(item.consumable);
@@ -245,6 +306,11 @@ public class Loot : MonoBehaviour
             var bag = team != null ? team.GetComponent<Bag>() : null;
             if (!item.inBag && (bag == null || !bag.Add(bagItem.key))) return; // picked up at the end of a stage: no room, lost
             progression?.Announce($"{bagItem.name} ramassée !");
+            return;
+        }
+        if (Run.Sandbox) // the test arena's showcase: shown, not written into the save
+        {
+            progression?.Announce($"{Describe(item, 0)} (terrain de test : non enregistré)");
             return;
         }
         int level = 0;
@@ -257,7 +323,8 @@ public class Loot : MonoBehaviour
         progression?.Announce($"{Describe(item, level)} obtenu !");
     }
 
-    static string Describe(Item item, int level) => item.consumable != null ? BagItems.Get(item.consumable)?.name ?? "Objet" : item.family switch
+    static string Describe(Item item, int level) => item.consumable != null ? BagItems.Get(item.consumable)?.name ?? "Objet"
+        : item.held != null ? HeldItems.AtTier(HeldItems.Get(item.held), item.heldTier)?.FullName ?? "Objet tenu" : item.family switch
     {
         SpecialItems.Family.Mega => SpecialItems.Stone(item.stone)?.name ?? "Méga-gemme",
         SpecialItems.Family.Z => SpecialItems.Crystal(item.type)?.name + (level > 0 ? $" (niv. {level})" : ""),

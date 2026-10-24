@@ -128,7 +128,7 @@ public class Bag : MonoBehaviour
                 Burst("evolution_onde", centre, item.Colour, item.radius * 2f);
                 foreach (var foe in Foes(user, centre, item.radius))
                 {
-                    foe.TakeFixedDamage(foe.maxHp * item.value);
+                    foe.TakeFixedDamage(foe.maxHp * (foe.isBoss && item.bossValue >= 0f ? item.bossValue : item.value));
                     Vector2 away = (Vector2)foe.transform.position - centre;
                     if (away != Vector2.zero) foe.Knockback(away.normalized * 2f / 0.4f, 0.4f);
                 }
@@ -146,11 +146,16 @@ public class Bag : MonoBehaviour
                 return true;
             case "stun":
                 Burst("evolution_onde", at, item.Colour, 10f);
-                foreach (var foe in Ultimates.VisibleFoes(user)) foe.Stun(item.duration);
+                foreach (var foe in Ultimates.VisibleFoes(user))
+                {
+                    foe.Stun(item.duration); // a boss is not frozen...
+                    if (foe.isBoss && item.bossSlow > 0f) foe.AddModifier("speed", item.bossSlow, item.duration); // ...but slowed
+                }
                 return true;
             case "freeze":
+                if (Obstacles.ChangeAll("water", "frozen", item.duration) == 0) return false; // no water: kept
                 Burst("evolution_onde", at, item.Colour, 10f);
-                return Obstacles.ChangeAll("water", "frozen", item.duration) > 0;
+                return true;
             default:
                 return false;
         }

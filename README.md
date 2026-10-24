@@ -88,7 +88,7 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 49 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 55 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
@@ -242,6 +242,14 @@ obstacles retombent sur des cases de couleur.
   **croix haut / bas** puis **□**. Les ennemis en lâchent selon leur rang (un élite toujours), le coffre de fin d'étape
   aussi ; on les ramasse en marchant dessus (« Sac plein » sinon). Les alliés mangent une baie quand ils sont bas,
   guérissent leur statut et relèvent un K.O. avec une Graine Rappel. Données : `bag_items.json`.
+- **Objets tenus** (un par Pokémon, `held_items.json`) : Bandeau / Lunettes / Mouchoir Choix, Restes, Orbe Vie, Grelot
+  Coque, Casque Brut, Ceinture Force, Ballon (flotte sur l'eau, le vide et la lave jusqu'au premier coup), Bottes de
+  Magma, Cape Sable. Les ennemis rares et plus en tiennent parfois un et le lâchent ; ton Pokémon le prend en marchant
+  dessus (l'ancien tombe à ses pieds) ; affiché à côté de son nom. Terrain de test : tous posés en rangée sous le
+  point d'arrivée. **Tiers I, II, III** (anneau bronze, argent ou or) pour les objets à effet chiffré : selon le rang
+  de l'ennemi qui le lâche ; ramasser le même objet du même tier le monte d'un tier.
+- Sprites des objets de partie : ceux de Donjon Mystère (PMDCollab RawAsset), téléchargés avec les autres icônes par
+  `python3 -I Tools/pmd/import_items.py .` (appelé par `setup.py`).
 - Terrain de test : le sac commence avec quelques objets ; salle des rencontres : **○** (ou V) bascule jouer / regarder.
 
 ### 24/10/2026 — Rencontres, étape 1 (Robin, branche `feature/rencontres`)

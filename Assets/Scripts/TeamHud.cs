@@ -76,7 +76,7 @@ public class TeamHud : MonoBehaviour
         // Name and health bar.
         float x = portrait.xMax + Gap * s;
         string evolve = evolution != null && evolution.ReadyForm(combatant) != null ? "   Triangle : évoluer" : "";
-        Label(new Rect(x, portrait.y - 12f * s, BarWidth * 2f * s, 10f * s), $"{combatant.Stats.name}   Niv. {combatant.level}{evolve}", TextAnchor.MiddleLeft);
+        Label(new Rect(x, portrait.y - 12f * s, BarWidth * 2f * s, 10f * s), $"{combatant.Stats.name}   Niv. {combatant.level}{evolve}{(combatant.Held != null ? "   — " + combatant.Held.FullName : "")}", TextAnchor.MiddleLeft);
         if (progression != null)
         {
             // Thin experience bar between the name and the health bar.
@@ -223,7 +223,7 @@ public class TeamHud : MonoBehaviour
 
     static string Short(string name) => name.Length <= 4 ? name : name.Substring(0, 4);
 
-    // The team's bag, bottom right: one square per slot, the consumable's colour and letter, how many; the key to use
+    // The team's bag, bottom right: one square per slot, the consumable's sprite (else its colour and letter), how many; the key to use
     // it above (1 to 4), or the pad's selection framed.
     void DrawBag(float s)
     {
@@ -241,8 +241,18 @@ public class TeamHud : MonoBehaviour
             if (slot != null)
             {
                 var inner = Grow(r, -2f * s);
-                Fill(inner, slot.item.Colour);
-                Label(inner, slot.item.letter, TextAnchor.MiddleCenter);
+                var icon = SpecialItems.Icon(slot.item.icon);
+                if (icon != null)
+                {
+                    var t = icon.texture;
+                    var tr = icon.textureRect;
+                    GUI.DrawTextureWithTexCoords(inner, t, new Rect(tr.x / t.width, tr.y / t.height, tr.width / t.width, tr.height / t.height));
+                }
+                else // no sprite (setup not run): its colour and letter
+                {
+                    Fill(inner, slot.item.Colour);
+                    Label(inner, slot.item.letter, TextAnchor.MiddleCenter);
+                }
                 Label(new Rect(r.x, r.yMax - 9f * s, r.width - s, 9f * s), $"{slot.count}", TextAnchor.MiddleRight);
             }
             if (!pad) Label(new Rect(r.x, r.y - 9f * s, r.width, 9f * s), $"{i + 1}", TextAnchor.MiddleCenter);

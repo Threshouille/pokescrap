@@ -7,6 +7,8 @@ The list is Assets/Resources/Data/items.json (field "icon" of each item). Source
   (bag icons of the main series games, © Nintendo / Game Freak / The Pokémon Company);
 - Tera shards: Niko's Tera (Cobblemon addon), https://github.com/Nxkorasu/Nikostera, sprites by Marcie
   (CC BY-NC-SA 4.0).
+- the run's items (bag_items.json, held_items.json, icons named "pmd_<sprite>"): the Mystery Dungeon item sprites of
+  PMDCollab's RawAsset, https://github.com/PMDCollab/RawAsset (folder Item; © Nintendo / Chunsoft / The Pokémon Company).
 Writes Assets/Resources/Items/<icon>.png (ignored by Git, like the other assets that are not ours) and
 CREDITS_ITEMS.md. Offline once every file is there: only missing files are fetched, unless --force.
 """
@@ -17,6 +19,7 @@ import urllib.request
 from pathlib import Path
 
 POKEAPI = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items"
+RAWASSET = "https://raw.githubusercontent.com/PMDCollab/RawAsset/HEAD/Item"
 NIKOSTERA = "https://raw.githubusercontent.com/Nxkorasu/Nikostera/HEAD/resource_pack/assets/nikostera/textures/item"
 
 CREDITS = """# Crédits des icônes d'objets
@@ -25,6 +28,8 @@ Téléchargées par `Tools/pmd/import_items.py` dans `Assets/Resources/Items/` (
 
 - **Méga-gemmes, cristaux Z, Gemme Sésame** : icônes des jeux de la série principale, © Nintendo / Creatures /
   Game Freak / The Pokémon Company, via [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
+- **Objets de partie** (baies, graines, orbes, objets tenus) : sprites de Pokémon Donjon Mystère (© Nintendo /
+  Chunsoft / The Pokémon Company), via [PMDCollab RawAsset](https://github.com/PMDCollab/RawAsset) (dossier `Item`).
 - **Téra-Éclats** : sprites de Marcie pour [Niko's Tera](https://github.com/Nxkorasu/Nikostera) (addon Cobblemon),
   licence [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) : citer l'auteur, pas d'usage
   commercial, partage dans les mêmes conditions.
@@ -50,6 +55,10 @@ def main():
     wanted = [(s["icon"], [POKEAPI, POKEAPI + "/gen9"]) for s in items["megaStones"] + items["zCrystals"]]
     wanted.append((items["rayquaza"]["icon"], [POKEAPI]))
     wanted += [(t["icon"], [NIKOSTERA]) for t in items["teraShards"]]
+    # The run's items: Mystery Dungeon sprites, saved under their "pmd_" name.
+    for name in ("bag_items.json", "held_items.json"):
+        data = json.loads((root / "Assets/Resources/Data" / name).read_text(encoding="utf-8"))
+        wanted += [(i["icon"], ["pmd:" + RAWASSET]) for i in data["items"] if i.get("icon", "").startswith("pmd_")]
     out = root / "Assets/Resources/Items"
     out.mkdir(parents=True, exist_ok=True)
     fetched = missing = 0
@@ -57,7 +66,8 @@ def main():
         target = out / f"{icon}.png"
         if target.exists() and not force:
             continue
-        data = next((d for d in (fetch(f"{s}/{icon}.png") for s in sources) if d), None)
+        urls = [f"{s[4:]}/{icon[4:]}.None.png" if s.startswith("pmd:") else f"{s}/{icon}.png" for s in sources]
+        data = next((d for d in (fetch(u) for u in urls) if d), None)
         if data is None:
             print(f"introuvable : {icon}")
             missing += 1

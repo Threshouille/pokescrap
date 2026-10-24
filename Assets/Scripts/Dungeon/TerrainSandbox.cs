@@ -126,6 +126,24 @@ public class TerrainSandbox : MonoBehaviour
     {
         SpawnEmitters();
         PlaceStairs();
+        if (DungeonGenerator.Current != null) PlaceShowcase(DungeonGenerator.Current);
+    }
+
+    // Every held item in a row below the arrival point, to try them, and a row of special items below (room 0).
+    void PlaceShowcase(DungeonGenerator arena)
+    {
+        var loot = GetComponent<Loot>();
+        if (loot == null) return;
+        for (int k = 0; k < HeldItems.All.Count; k++)
+            loot.PlaceHeld(HeldItems.All[k].key, Centre(arena) + new Vector2((k - (HeldItems.All.Count - 1) / 2f) * 1.4f, -7f), HeldItems.ShowcaseTier);
+        // A second row: a few special items (mega stones, Z crystals, Tera shards), to see them.
+        var specials = new List<(SpecialItems.Family family, string stone, int type)>();
+        for (int k = 0; k < SpecialItems.Stones.Count && k < 3; k++) specials.Add((SpecialItems.Family.Mega, SpecialItems.Stones[k].key, -1));
+        foreach (int type in new[] { 2, 3, 5, 14 }) specials.Add((SpecialItems.Family.Z, null, type));
+        foreach (int type in new[] { 2, 3, 5, 14 }) specials.Add((SpecialItems.Family.Tera, null, type));
+        for (int k = 0; k < specials.Count; k++)
+            loot.PlaceSpecial(specials[k].family, specials[k].stone, specials[k].type,
+                Centre(arena) + new Vector2((k - (specials.Count - 1) / 2f) * 1.4f, -9f));
     }
 
     static Vector2 Centre(DungeonGenerator arena) => arena.CentreOf(arena.Size / 2, arena.Size / 2);
@@ -443,7 +461,10 @@ public class TerrainSandbox : MonoBehaviour
             var asset = Resources.Load<TextAsset>("Data/obstacle_room");
             if (asset != null) drawn = Obstacles.Current.Generate(JsonUtility.FromJson<Obstacles.Room>(asset.text), rng, KeptClear(arena));
         }
+        var loot = GetComponent<Loot>();
+        if (loot != null) loot.ClearGround();
         if (room == 0) SpawnEmitters();
+        if (room == 0) PlaceShowcase(arena);
         if (room == 1) SpawnDummies();
         RestoreItems();
         if (room == 3)

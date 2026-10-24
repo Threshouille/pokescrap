@@ -1,5 +1,5 @@
 {
- "comment": "Objets du sac (Bag.cs, BagItems.cs ; GDD « Objets de partie ») : consommables ramassés en partie, dans un sac partagé par l'équipe (slots emplacements, piles de stack au plus), perdus à la fin de la partie. Commandes : 1 à 4 au clavier, croix haut / bas pour choisir et □ pour utiliser à la manette. Champs : key, name, letter (lettre affichée en attendant les icônes), color, effect (heal : soigne value × PV max ; cure : guérit 'status' ; blast : value × PV max de dégâts aux ennemis à moins de radius cases du point visé, poussée ; sleep : endort les ennemis à moins de radius pendant duration ; revive : relève un membre K.O. à value de ses PV ; boost : 'stat' × value pendant duration ; stun : fige les ennemis visibles duration secondes ; freeze : gèle toute l'eau de la salle pendant duration), weight (fréquence dans les lâchers). drops : chance qu'un ennemi lâche un objet selon son rang (byRank, clés de encounters.json ; 'elite' pour les élites), chest : objets en plus dans le coffre de fin d'étape. sandboxStart : contenu du sac dans le terrain de test. ai : un allié utilise un soin sous healBelow de ses PV, guérit un statut, relève un K.O. ; au plus une fois toutes les cooldown secondes.",
+ "comment": "Objets du sac (Bag.cs, BagItems.cs ; GDD « Objets de partie ») : consommables ramassés en partie, dans un sac partagé par l'équipe (slots emplacements, piles de stack au plus), perdus à la fin de la partie. Commandes : 1 à 4 au clavier, croix haut / bas pour choisir et □ pour utiliser à la manette. Champs : key, name, letter (lettre affichée en attendant les icônes), color, effect (heal : soigne value × PV max ; cure : guérit 'status' ; blast : value × PV max de dégâts aux ennemis à moins de radius cases du point visé, poussée ; sleep : endort les ennemis à moins de radius pendant duration ; revive : relève un membre K.O. à value de ses PV ; boost : 'stat' × value pendant duration ; stun : fige les ennemis visibles duration secondes ; freeze : gèle toute l'eau de la salle pendant duration), weight (fréquence dans les lâchers). drops : chance qu'un ennemi lâche un objet selon son rang (byRank, clés de encounters.json ; 'elite' pour les élites), chest : objets en plus dans le coffre de fin d'étape. sandboxStart : contenu du sac dans le terrain de test. ai : un allié utilise un soin sous healBelow de ses PV, guérit un statut, relève un K.O. ; au plus une fois toutes les cooldown secondes. icon : sprite de Donjon Mystère (PMDCollab RawAsset, dossier Item) téléchargé par Tools/pmd/import_items.py dans Assets/Resources/Items/<icon>.png ; letter / color servent tant qu'il manque. bossValue : part des PV max d'un boss (Graine Explo) ; bossSlow : un boss, insensible au gel, est ralenti à cette vitesse pendant duration (Orbe Pétrif). Un objet qui ne ferait rien n'est pas dépensé (Orbe Gel sans eau).",
  "slots": 4,
  "stack": 9,
  "items": [
@@ -10,7 +10,8 @@
    "color": "#4a8fe0",
    "effect": "heal",
    "value": 0.3,
-   "weight": 6
+   "weight": 6,
+   "icon": "pmd_Berry_Oran"
   },
   {
    "key": "sitrus",
@@ -19,7 +20,8 @@
    "color": "#f2d34a",
    "effect": "heal",
    "value": 0.5,
-   "weight": 3
+   "weight": 3,
+   "icon": "pmd_Berry_Sitrus"
   },
   {
    "key": "cheri",
@@ -28,7 +30,8 @@
    "color": "#e84a4a",
    "effect": "cure",
    "status": "paralysis",
-   "weight": 2
+   "weight": 2,
+   "icon": "pmd_Fruit_Red"
   },
   {
    "key": "pecha",
@@ -37,7 +40,8 @@
    "color": "#f2a0c0",
    "effect": "cure",
    "status": "poison",
-   "weight": 2
+   "weight": 2,
+   "icon": "pmd_Fruit_Pink"
   },
   {
    "key": "rawst",
@@ -46,7 +50,8 @@
    "color": "#7ad0e0",
    "effect": "cure",
    "status": "burn",
-   "weight": 2
+   "weight": 2,
+   "icon": "pmd_Fruit_LightBlue"
   },
   {
    "key": "blast",
@@ -56,7 +61,9 @@
    "effect": "blast",
    "value": 0.25,
    "radius": 2,
-   "weight": 3
+   "weight": 3,
+   "icon": "pmd_Seed_Red",
+   "bossValue": 0.05
   },
   {
    "key": "sleep",
@@ -66,7 +73,8 @@
    "effect": "sleep",
    "radius": 3,
    "duration": 4,
-   "weight": 2
+   "weight": 2,
+   "icon": "pmd_Seed_DarkBlue"
   },
   {
    "key": "reviver",
@@ -75,7 +83,8 @@
    "color": "#7ad07a",
    "effect": "revive",
    "value": 0.5,
-   "weight": 1
+   "weight": 1,
+   "icon": "pmd_Seed_Green"
   },
   {
    "key": "quick",
@@ -86,7 +95,8 @@
    "stat": "speed",
    "value": 1.5,
    "duration": 10,
-   "weight": 2
+   "weight": 2,
+   "icon": "pmd_Seed_Yellow"
   },
   {
    "key": "petrify",
@@ -95,7 +105,9 @@
    "color": "#9a9a9a",
    "effect": "stun",
    "duration": 3,
-   "weight": 1
+   "weight": 1,
+   "icon": "pmd_Orb_White",
+   "bossSlow": 0.5
   },
   {
    "key": "freeze",
@@ -104,7 +116,8 @@
    "color": "#bfe8ff",
    "effect": "freeze",
    "duration": 15,
-   "weight": 1
+   "weight": 1,
+   "icon": "pmd_Orb_LightBlue"
   }
  ],
  "drops": {

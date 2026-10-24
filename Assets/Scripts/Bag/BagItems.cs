@@ -12,6 +12,7 @@ public static class BagItems
     {
         public string key, name, letter, color, effect, status, stat, icon;
         public float value, radius, duration, weight = 1f;
+        public float bossValue = -1f, bossSlow; // a boss: its share of a Blast Seed; the Petrify Orb slows it instead
 
         public Color Colour => ColorUtility.TryParseHtmlString(color, out var c) ? c : Color.white;
     }

@@ -334,6 +334,9 @@ public class EnemySpawner : MonoBehaviour
             var moves = GameData.RandomMoves(m.pokemonId, m.moveCount, rng, m.role, m.rarity.strong);
             var c = Build(m.pokemonId, set, spot, false, moves, Mathf.Max(1, level + m.levelBonus), healthFactor * m.health);
             RarityMark.Put(c, m.rarity);
+            // The higher ranks (and elites) may hold an item, which acts for them and drops when they fall.
+            string rank = m.lot != null && m.lot.elite ? "elite" : m.rarity.key;
+            if (rng.NextDouble() < HeldItems.EnemyChance(rank)) c.Hold(HeldItems.AtTier(HeldItems.Roll(rng), HeldItems.EnemyTier(rank, rng)));
             if (m.item) c.gameObject.AddComponent<EnemyUltimate>().preferMega = m.lot != null && m.lot.preferMega;
             if (m.lot != null && m.lot.elite)
             {

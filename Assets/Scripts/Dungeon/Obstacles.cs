@@ -416,7 +416,7 @@ public class Obstacles : MonoBehaviour
 
     /// That obstacle would stop this Pokémon (null: no obstacle, nothing stops it).
     public static bool WouldBlock(ObstacleDef def, Combatant c) =>
-        def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
+        def != null && (def.solid || def.fall) && (c == null || (!CanPass(def, c.Stats) && !HeldItems.Crosses(c, def.key)));
 
     /// What a move of this type does to that obstacle on purpose (no paint, no special action), or null.
     public static ObstacleInteraction TurnedBy(int moveType, ObstacleDef on)

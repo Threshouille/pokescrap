@@ -34,6 +34,33 @@ public class Combatant : MonoBehaviour
     public float atk, spAtk, def, spDef;
     // Multipliers changed by upgrades.
     public float attackMul = 1f, specialAttackMul = 1f, cooldownMul = 1f;
+
+    /// The held item (HeldItems), or null.
+    public HeldItems.Item Held { get; private set; }
+    float nextRegenAt, lastHurtAt = -10f;
+    int attackCount, recoiledAttack = -1; // moves used, and the one a Life Orb last took its toll for
+
+    /// Holds that item (null: none): the old one's stat changes are taken back, the new one's applied. Returns the old one.
+    public HeldItems.Item Hold(HeldItems.Item item)
+    {
+        var old = Held;
+        if (old != null)
+        {
+            attackMul /= old.attackMul;
+            specialAttackMul /= old.specialAttackMul;
+            cooldownMul /= old.cooldownMul;
+            moveSpeed /= old.speedMul;
+        }
+        Held = item;
+        if (item != null)
+        {
+            attackMul *= item.attackMul;
+            specialAttackMul *= item.specialAttackMul;
+            cooldownMul *= item.cooldownMul;
+            moveSpeed *= item.speedMul;
+        }
+        return old;
+    }
     public float projectileSizeMul = 1f, projectileSpeedMul = 1f, meleeAreaMul = 1f;
 
     public PokemonStats Stats { get; private set; }
@@ -609,6 +636,15 @@ public class Combatant : MonoBehaviour
     /// Called on the attacker when one of its moves lands: drain, recoil and bonuses it gives itself.
     public void HitLanded(MoveDef move, float dealt)
     {
+        if (Held != null && dealt > 0f)
+        {
+            if (Held.drainShare > 0f) Heal(dealt * Held.drainShare); // a Shell Bell
+            if (Held.recoilShare > 0f && IsAlive && recoiledAttack != attackCount) // a Life Orb: once per attack, not per hit
+            {
+                recoiledAttack = attackCount;
+                TakeFixedDamage(maxHp * Held.recoilShare);
+            }
+        }
         if (dealt > 0f && move.drain > 0f)
             MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
         if (!string.IsNullOrEmpty(move.selfModStat) && (move.selfStatChance <= 0f || UnityEngine.Random.value <= move.selfStatChance))
@@ -628,6 +664,7 @@ public class Combatant : MonoBehaviour
     {
         var move = Moves[slot];
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
+        attackCount++; // a new attack (a Life Orb takes its toll once per attack)
 
         if (move.family == "heal")
         {
@@ -847,6 +884,7 @@ public class Combatant : MonoBehaviour
                 if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
+                HeldItems.OnContact(this, target); // a Rocky Helmet
             }
         }
         if (move.chainBonus > 0f && hit.Count > 0)
@@ -1031,6 +1069,14 @@ public class Combatant : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
+        {
+            nextRegenAt = Time.time + 1f;
+            // Leftovers that only work out of a fight: no opponent within 8 tiles, no hit taken for 3 s.
+            bool calm = !Held.regenOutOfFight || (Time.time - lastHurtAt >= 3f
+                && Nearest(team == Team.Player ? Team.Enemy : Team.Player, transform.position, 8f) == null);
+            if (hp < maxHp && calm) Heal(maxHp * Held.regenShare);
+        }
         if (!UpdateStatuses()) { castMove = null; return; }
 
         // Little jump in place while casting a move with a hop.
@@ -1069,6 +1115,7 @@ public class Combatant : MonoBehaviour
                 target.Stun(StunOf(delayedMove));
                 target.ApplyEffects(delayedMove, false, this);
                 HitLanded(delayedMove, dealt);
+                HeldItems.OnContact(this, target);
             }
             delayedTargets.Clear();
             delayedMove = null;
@@ -1208,6 +1255,7 @@ public class Combatant : MonoBehaviour
                     target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
+                HeldItems.OnContact(this, target);
             }
         }
         return count;
@@ -1225,7 +1273,8 @@ public class Combatant : MonoBehaviour
         bool native = own != null && System.Array.IndexOf(own, move.type) >= 0;
         float stab = TeraType == move.type ? (native ? SaveData.Settings.teraStab : SaveData.Settings.stab)
             : native ? SaveData.Settings.stab : 1f;
-        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab;
+        float held = Held != null ? Held.damageMul : 1f; // an Orbe Vie
+        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab * held;
     }
 
     /// The damage a hit of this move would roughly deal to "target" (types, defence; weather and terrain aside),
@@ -1255,6 +1304,12 @@ public class Combatant : MonoBehaviour
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
+        lastHurtAt = Time.time;
+        if (Held != null && Held.popOnHit && IsAlive) // a Balloon bursts at the first blow
+        {
+            Hold(null);
+            EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+        }
         Hurt?.Invoke(this);
         return true;
     }
@@ -1283,6 +1338,13 @@ public class Combatant : MonoBehaviour
 
     void LoseHp(float amount)
     {
+        // A Focus Sash: a blow that would knock it out leaves it 1 HP, once, and the sash is gone.
+        if (Held != null && Held.sash && hp > 1f && hp - amount <= 0f)
+        {
+            amount = hp - 1f;
+            Hold(null);
+            EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+        }
         hp = Mathf.Max(0f, hp - amount);
         flashUntil = Time.time + HitFlashTime;
         if (IsAlive) return;
