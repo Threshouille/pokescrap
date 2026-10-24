@@ -35,6 +35,14 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 - **Commandes clavier** (19/10/2026) : ZQSD / flèches déplacement, U / I / O / P attaques 1 à 4 (mêmes touches en AZERTY et QWERTY ; un bouton de souris maintenu vise le curseur), Ctrl gauche esquive, Tab changer de Pokémon ; au menu des attaques, ← / → changent le filtre de type. Le HUD affiche U I O P sans manette branchée.
 - **Commandes manette** : stick gauche déplacement, stick droit visée, R1/R2/L1/L2 attaques, croix gauche/droite changer de Pokémon ; écran d'amélioration : croix ou stick + ✕, ○ pour revenir de l'écran de remplacement ; fin de partie : ✕ rejouer, ○ menu.
 
+## Fusion de dev dans `feature/quart-ile` (24/10/2026, Robin)
+
+dev (objets spéciaux, ultimes ennemis, secours et soins) fusionné dans la branche d'Owen ; salles de dev renumérotées
+6 à 9 dans le terrain de test (démo Z, élite, boss, secours). Corrigé : sur le quart d'île, les alliés ne refaisaient
+pas un pont (chemin partiel à la limite de l'A* = cible « atteignable ») ; un allié qui ne se rapproche plus cherche
+maintenant une réparation. Banc en batch : 38/39 ; le seul échec, « Hauteur », échoue aussi sur la version poussée
+par Owen (`e5de12e`, 24/25 en batch) : à regarder par Owen (en batch, le tir ne touche ni d'en haut ni d'en bas).
+
 ## Session en cours : composition du quart d'île (branche `feature/quart-ile`, 23-24/10/2026)
 
 Branche partie de `feature/salles` (Robin : salles, île flottante ; Owen : zones séparées), **ni l'une ni l'autre

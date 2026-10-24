@@ -52,6 +52,10 @@ public class AllyAI : MonoBehaviour
     bool cautious; // low on health: stays by the leader
     Vector2 lastLeader, leaderVelocity; // the leader's smoothed velocity, to tell when it falls back
     bool leaderSeen;
+    // On a large map the path search stops at its limit and gives a partial path, so a river with no way across
+    // still looks "reachable": an ally that stops getting closer for StuckTime seconds looks for a repair anyway.
+    const float StuckTime = 1.5f, StuckProgress = 0.3f;
+    float stuckSince = -1f, stuckDistance;
 
     void Awake()
     {
@@ -120,7 +124,8 @@ public class AllyAI : MonoBehaviour
             Vector2 toGoal = goal - position;
             float near = goal == (Vector2)leader.position ? followDistance : 0.3f;
             Vector2 follow = toGoal.magnitude > near ? navigator.Direction(position, goal, combatant, avoid: true) : Vector2.zero;
-            if (follow == Vector2.zero && toGoal.magnitude > near && !navigator.Reachable && TryRepair(position)) return;
+            bool cutOff = follow == Vector2.zero && !navigator.Reachable;
+            if (toGoal.magnitude > near && (cutOff || Stuck(toGoal.magnitude, near)) && TryRepair(position)) return;
             follow = RoleTactics.Separate(combatant, grid, position, follow); // spread out around the leader
             // No safe way: waits at the edge rather than stepping into danger.
             if (follow != Vector2.zero && !navigator.SafePath && Dangerous(position + follow.normalized * EdgeLook)) follow = Vector2.zero;
@@ -206,6 +211,23 @@ public class AllyAI : MonoBehaviour
         Vector2 step = toSpot.magnitude > 0.4f ? rescueNavigator.Direction(position, spot, combatant, avoid: true) : Vector2.zero;
         Steer(step, (Vector2)threat.transform.position - position);
         return true;
+    }
+
+    // Following without getting closer for StuckTime seconds (distance to the goal down by less than StuckProgress).
+    bool Stuck(float distance, float near)
+    {
+        if (distance <= near + 0.5f)
+        {
+            stuckSince = -1f;
+            return false;
+        }
+        if (stuckSince < 0f || distance < stuckDistance - StuckProgress)
+        {
+            stuckSince = Time.time;
+            stuckDistance = distance;
+            return false;
+        }
+        return Time.time - stuckSince >= StuckTime;
     }
 
     /// True when standing there would hurt this ally: a harmful zone, terrain or electric arc.

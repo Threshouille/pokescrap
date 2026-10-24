@@ -98,6 +98,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Gèle une rivière pour rejoindre le Pokémon joué", Repair("water", 6, "path"));
         yield return Scenario("Fait pousser des nénuphars pour traverser", Repair("water", 4, "lily"));
         yield return Scenario("Refait un pont brûlé avec des lianes", Repair("burnt_bridge", 4, "vine"));
+        yield return Scenario("Grande carte : refait le pont même sans chemin complet", LargeMap(Repair("burnt_bridge", 4, "vine")));
         yield return Scenario("Refroidit la lave pour passer", Repair("lava", 3, "any"));
         yield return Scenario("Brûle le pont sous un ennemi au corps à corps", CutBridge());
         yield return Scenario("Marche sur le métal chargé sans s'en soucier", IgnoreMetal());
@@ -125,7 +126,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Objets : les types de l'équipe tombent plus souvent", LootFavoursTeam());
 
         // Rescue: a third member joins (last, so that the scenarios above keep a team of two).
-        if (team.Count < 3) third = team.AddMember(Salameche, team.Controlled.transform.position + Vector3.left);
+        if (team.Count < 3) team.AddMember(Salameche, team.Controlled.transform.position + Vector3.left);
         yield return Scenario("Secours : un allié réanime le Pokémon K.O.", AllyRevives());
         yield return Scenario("Secours : le plus apte éloigne l'ennemi du Pokémon K.O.", GuardDrawsAway());
         yield return Scenario("Soins : soigne un coéquipier presque K.O.", HealsLowMate());
@@ -940,11 +941,21 @@ public class AiScenarios : MonoBehaviour
 
     static void KnockOut(Combatant c) => c.TakeFixedDamage(c.hp + 1f);
 
+    // The team member that is neither the controlled one nor "ally" (the team has three for these scenarios).
+    Combatant Third(Combatant leader, Combatant ally)
+    {
+        foreach (var m in team.Members)
+            if (m != null && m != leader && m != ally) return m;
+        return null;
+    }
+
     // The third member is knocked out far from the controlled Pokémon, nobody around: the ally walks to it and stands
     // on it until it is back.
     IEnumerator AllyRevives()
     {
         var (leader, ally) = Place(new Vector2(-8f, 0f), new Vector2(-3f, 2f), settle: false);
+        third = Third(leader, ally);
+        if (third == null) { Report(false, "pas de troisième membre"); yield break; }
         Teleport(third, Centre + new Vector2(4f, -1f));
         yield return new WaitForFixedUpdate();
         KnockOut(third);
@@ -958,6 +969,8 @@ public class AiScenarios : MonoBehaviour
     IEnumerator GuardDrawsAway()
     {
         var (leader, ally) = Place(Vector2.zero, new Vector2(-3f, -2f), settle: false);
+        third = Third(leader, ally);
+        if (third == null) { Report(false, "pas de troisième membre"); yield break; }
         var kept = Sturdy(leader, ally);
         Teleport(third, Centre);
         yield return new WaitForFixedUpdate();
@@ -1023,6 +1036,21 @@ public class AiScenarios : MonoBehaviour
         ally.hp = ally.maxHp;
         float gap = SaveData.Settings.allyHealSafeGap;
         Report(closest >= gap, $"au plus près à {closest:0.0} case(s) des ennemis (minimum {gap:0.0})");
+    }
+
+    // The same scenario as on a large map (the island): the path search stops after a few tiles and gives a partial
+    // path, so the far bank never looks out of reach; the ally must still notice it is stuck and repair.
+    IEnumerator LargeMap(IEnumerator body)
+    {
+        Navigator.Limit = 60;
+        try
+        {
+            while (body.MoveNext()) yield return body.Current;
+        }
+        finally
+        {
+            Navigator.ResetLimit();
+        }
     }
 
     // ---------------------------------------------------------------- helpers

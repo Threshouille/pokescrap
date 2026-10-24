@@ -13,6 +13,13 @@ public class Navigator
     const float HazardCost = 25f; // extra cost of a tile inside a hostile zone, in tiles of detour
     const float Diagonal = 1.41421356f;
     const int MaxExpanded = 4000; // tiles a search may look at (a level is a large map): beyond, a partial path
+    /// Search limit in use (MaxExpanded; the test bench lowers it to play a large map on a small arena).
+    public static int Limit = MaxExpanded;
+
+    public static void ResetLimit() => Limit = MaxExpanded;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => ResetLimit();
     // Tiles all the searches of one frame may look at together (several AIs chasing across an island): beyond, a
     // search waits for the next frame and the AI keeps to its current path.
     const int FrameBudget = 4000;
@@ -151,7 +158,7 @@ public class Navigator
         Visit(startNode, 0f, -1, Heuristic(start, goal));
         int expanded = 0, closest = startNode;
         float closestLeft = Heuristic(start, goal);
-        while (heap.Count > 0 && expanded < MaxExpanded)
+        while (heap.Count > 0 && expanded < Limit)
         {
             int node = Pop();
             if (closed[node]) continue;
