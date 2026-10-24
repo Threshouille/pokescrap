@@ -32,7 +32,23 @@ public partial class IslandPlan
     public class Props
     {
         public float clearance = 3f, blockSpacing = 2.5f;
-        public SubBiomeProps[] bySubBiome = new SubBiomeProps[0];
+        public SubBiomeProps[] bySubBiome = new SubBiomeProps[0]; // the sparse ground cover, outside the patches
+        public Patch[] patches = new Patch[0];
+    }
+
+    /// Patches of a sub-biome with decor of their own: "scatter" (groups at their density: a flower field, a fern
+    /// thicket, scree) or "forest" (a solid mass of trees, crossed by `paths` paths from its edge to a clearing in its
+    /// middle). count: patches per sub-biome; radius in tiles.
+    [Serializable]
+    public class Patch
+    {
+        public string subBiome, kind = "scatter";
+        public int[] count = { 1, 2 };
+        public float[] radius = { 5f, 9f };
+        public PropGroup[] groups = new PropGroup[0];
+        public string[] trees = new string[0];
+        public float treeSpacing = 2.2f, pathWidth = 2f, clearing = 3f;
+        public int paths = 2;
     }
 
     [Serializable]
@@ -72,6 +88,10 @@ public partial class IslandPlan
         public float faceShade = 0.12f; // a face's rows darker by that much each, towards its foot
         public string hillStyle = "meadow", mountainStyle = "rock"; // cliff_styles.json: how their cliffs are drawn
         public int[] ledgeLength = { 3, 6 };
+        // Shapes of the levels: rectangles on a grid of `grid` tiles, the main one terraceWidth × terraceHeight of the
+        // radius (half sizes), terraceExtras more around it.
+        public int grid = 3, terraceExtras = 2;
+        public float[] terraceWidth = { 0.75f, 0.95f }, terraceHeight = { 0.5f, 0.7f };
         public float[] levelShade = { 0.93f, 0.96f, 0.98f, 1f }, footShadow = { 0.7f, 0.85f };
         public Cave cave = new();
     }
@@ -397,16 +417,89 @@ public partial class IslandPlan
             if (radius > (r.hillRadius[0] + r.hillRadius[1]) / 2f && rng.NextDouble() < r.upperChance) shapes.Add((c, radius * 0.5f, 2));
             k++;
         }
+        // Levels with straight edges: each a few rectangles on a grid of r.grid tiles around its centre (so that every
+        // stretch of edge and every step is at least that long), shrunk until clear of what the relief keeps away from.
+        int grid = Mathf.Max(1, r.grid);
         foreach (var (centre, radius, level) in shapes)
         {
-            float phase = (float)rng.NextDouble() * 6.3f, phase2 = (float)rng.NextDouble() * 6.3f;
-            Stamp(centre, radius * 1.25f, i =>
+            var origin = Vector2Int.FloorToInt(centre);
+            int Snap(float v) => Mathf.RoundToInt(v / grid) * grid;
+            var rects = new List<RectInt>();
+            float halfWidth = radius * Mathf.Lerp(r.terraceWidth[0], r.terraceWidth[1], (float)rng.NextDouble());
+            float halfHeight = radius * Mathf.Lerp(r.terraceHeight[0], r.terraceHeight[1], (float)rng.NextDouble());
+            rects.Add(new RectInt(Snap(-halfWidth), Snap(-halfHeight), Snap(2 * halfWidth), Snap(2 * halfHeight)));
+            for (int k = 0; k < r.terraceExtras; k++)
             {
-                var p = new Vector2(i % size + 0.5f, i / size + 0.5f) - centre;
-                float a = Mathf.Atan2(p.y, p.x);
-                float edge = radius * (1f + 0.12f * Mathf.Sin(3f * a + phase) + 0.07f * Mathf.Sin(5f * a + phase2));
-                if (p.magnitude < edge && dist[i] >= r.clearance && dist[i] != int.MaxValue) height[i] = Mathf.Max(height[i], level);
-            });
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f, d = radius * 0.55f;
+                float w = radius * Mathf.Lerp(0.3f, 0.5f, (float)rng.NextDouble()), h = radius * Mathf.Lerp(0.25f, 0.45f, (float)rng.NextDouble());
+                var c = new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * d;
+                rects.Add(new RectInt(Snap(c.x - w), Snap(c.y - h), Snap(2 * w), Snap(2 * h)));
+            }
+            foreach (var rect0 in rects)
+            {
+                var rect = rect0;
+                bool Fits(RectInt q)
+                {
+                    for (int y = q.yMin; y < q.yMax; y++)
+                        for (int x = q.xMin; x < q.xMax; x++)
+                        {
+                            int gx = origin.x + x, gy = origin.y + y;
+                            if (!InMap(gx, gy)) return false;
+                            int i = Index(gx, gy);
+                            if (dist[i] == int.MaxValue || dist[i] < r.clearance) return false;
+                        }
+                    return true;
+                }
+                while (rect.width >= 2 * grid && rect.height >= 2 * grid && !Fits(rect))
+                    rect = new RectInt(rect.xMin + grid, rect.yMin + grid, rect.width - 2 * grid, rect.height - 2 * grid);
+                if (rect.width < 2 * grid || rect.height < 2 * grid) continue;
+                for (int y = rect.yMin; y < rect.yMax; y++)
+                    for (int x = rect.xMin; x < rect.xMax; x++)
+                    {
+                        int i = Index(origin.x + x, origin.y + y);
+                        height[i] = Mathf.Max(height[i], level);
+                    }
+            }
+        }
+        // Notches narrower than two grids filled (across rows, then columns): they would break a face into stubs.
+        for (int level = 1; level <= Mathf.Max(2, r.mountainLevels); level++)
+            for (int pass = 0; pass < 2; pass++)
+                for (int line = 0; line < size; line++)
+                {
+                    int last = -1; // the last tile of the level met along the line
+                    for (int k = 0; k < size; k++)
+                    {
+                        int i = pass == 0 ? Index(k, line) : Index(line, k);
+                        if (height[i] < level) continue;
+                        if (last >= 0 && k - last - 1 > 0 && k - last - 1 < 2 * grid)
+                        {
+                            bool fits = true;
+                            for (int m = last + 1; m < k && fits; m++)
+                            {
+                                int j = pass == 0 ? Index(m, line) : Index(line, m);
+                                fits = dist[j] != int.MaxValue && dist[j] >= r.clearance;
+                            }
+                            if (fits)
+                                for (int m = last + 1; m < k; m++) height[pass == 0 ? Index(m, line) : Index(line, m)] = level;
+                        }
+                        last = k;
+                    }
+                }
+        // Each level well inside the one below: a grid's width on the back and the sides, two in front (its face and
+        // room to walk at its foot).
+        for (int level = 2; level <= Mathf.Max(2, r.mountainLevels); level++)
+        {
+            var keep = (int[])height.Clone();
+            for (int i = 0; i < n; i++)
+            {
+                if (keep[i] < level) continue;
+                int x0 = i % size, y0 = i / size;
+                bool inside = true;
+                for (int y = y0 - 2 * grid; y <= y0 + grid && inside; y++)
+                    for (int x = x0 - grid; x <= x0 + grid && inside; x++)
+                        inside = InMap(x, y) && keep[Index(x, y)] >= level - 1;
+                if (!inside) height[i] = level - 1;
+            }
         }
 
         // Cliffs, as seen in 3/4 view: the side of each level facing the camera (south) is a face faceRows tiles tall
@@ -597,9 +690,12 @@ public partial class IslandPlan
         faceLen = new int[n];
         cut = new sbyte[n];
         cutPart = new sbyte[n];
+        for (int i = 0; i < n; i++) if (region[i] == 0) faceRow[i] = face[i]; // read by EdgeRole below
         for (int i = 0; i < n; i++)
         {
-            bool drawn = cliff[i] || obstacle[i] == "ledge" || (ramps[i] && face[i] > 0);
+            // Also the inner corners of a level's edge (walkable, the corner of its lip drawn).
+            bool inner = height[i] > 0 && face[i] == 0 && !ramps[i] && EdgeRole(i) != null;
+            bool drawn = cliff[i] || obstacle[i] == "ledge" || (ramps[i] && face[i] > 0) || inner;
             if (!drawn || region[i] != 0) continue;
             bool onMountain = hasMountain && Vector2.Distance(new Vector2(i % size + 0.5f, i / size + 0.5f), mountain) < mountainReach;
             cliffStyle[i] = (byte)(onMountain ? 2 : 1);
@@ -619,6 +715,9 @@ public partial class IslandPlan
             }
             else if (decor[i] == rockDecor) decor[i] = 0;
         }
+        // The ground at the foot of a face, in its shadow (drawn in the face's style).
+        for (int i = 0; i < n - size; i++)
+            if (cliffStyle[i] == 0 && region[i] == 0 && AtFoot(i)) cliffStyle[i] = cliffStyle[i + size];
 
         // A branch of the road to the foot of the mountain's first stairs.
         if (foot.x >= 0)
@@ -659,8 +758,10 @@ public partial class IslandPlan
             if (height[i] != top) return;
             if (face[i] > 0)
             {
-                // The summit's face stays outside; the stairs cut into it are the cave's mouth, dark.
+                // The summit's face stays outside; the stairs cut into it are the cave's mouth, dark. Its top row
+                // (the edge of the summit, above the rock) goes under the roof, which thus comes down to the rock.
                 if (ramps[i]) { decor[i] = c.decor; shadeOverride[i] = c.mouthShade; }
+                else if (face[i] == 1 && faceOf[i] == top) roof[i] = true;
                 return;
             }
             roof[i] = true;
@@ -769,13 +870,11 @@ public partial class IslandPlan
             }
         }
         var blockers = new List<Vector2>();
-        foreach (var sub in t.props.bySubBiome)
+        // Scatters the groups over these tiles at their density.
+        void Scatter(List<int> tiles, PropGroup[] wanted)
         {
-            var tiles = new List<int>();
-            for (int i = 0; i < n; i++)
-                if (region[i] == 0 && biome[i] != null && biome[i].key == sub.subBiome && dist[i] >= 1) tiles.Add(i);
-            if (tiles.Count == 0) continue;
-            foreach (var g in sub.groups)
+            if (tiles.Count == 0) return;
+            foreach (var g in wanted)
             {
                 if (!groups.TryGetValue(g.group, out var choices)) continue;
                 int count = Mathf.RoundToInt(tiles.Count * g.per100 / 100f);
@@ -797,6 +896,142 @@ public partial class IslandPlan
                     k++;
                 }
             }
+        }
+
+        var inPatch = new bool[n];
+        foreach (var patch in t.props.patches)
+        {
+            var own = new List<int>();
+            for (int i = 0; i < n; i++)
+                if (region[i] == 0 && biome[i] != null && biome[i].key == patch.subBiome && dist[i] >= 2) own.Add(i);
+            if (own.Count == 0) continue;
+            int wanted = rng.Next(patch.count[0], patch.count[Mathf.Min(1, patch.count.Length - 1)] + 1);
+            for (int made = 0, tries = 0; made < wanted && tries < 200; tries++)
+            {
+                int c = own[rng.Next(own.Count)];
+                float radius = Mathf.Lerp(patch.radius[0], patch.radius[Mathf.Min(1, patch.radius.Length - 1)], (float)rng.NextDouble());
+                if (dist[c] < radius * 0.6f || inPatch[c]) continue;
+                var centre = new Vector2(c % size + 0.5f, c / size + 0.5f);
+                string key = biome[c].key;
+                float phase = (float)rng.NextDouble() * 6.3f, phase2 = (float)rng.NextDouble() * 6.3f;
+                var tiles = new List<int>();
+                Stamp(centre, radius * 1.4f, i =>
+                {
+                    var p = new Vector2(i % size + 0.5f, i / size + 0.5f) - centre;
+                    float a = Mathf.Atan2(p.y, p.x);
+                    float edge = radius * (1f + 0.25f * Mathf.Sin(3f * a + phase) + 0.15f * Mathf.Sin(5f * a + phase2));
+                    if (p.magnitude < edge && region[i] == 0 && biome[i] != null && biome[i].key == key && dist[i] >= 2 && !inPatch[i] && obstacle[i] == null)
+                        tiles.Add(i);
+                });
+                if (tiles.Count < radius * radius) continue; // mostly cut off by the road, the river...
+                bool done = patch.kind == "forest" ? Forest(patch, centre, tiles) : true;
+                if (!done) continue;
+                foreach (int i in tiles) inPatch[i] = true;
+                if (patch.kind != "forest") Scatter(tiles, patch.groups);
+                made++;
+            }
+        }
+
+        // A solid mass of trees on these tiles (invisible blockers under their crowns), crossed by paths from its edge
+        // to a clearing in its middle; given up (false) if it would cut off any ground reached before.
+        bool Forest(Patch patch, Vector2 centre, List<int> tiles)
+        {
+            var trees = new List<MapProp>();
+            foreach (var g in patch.trees) if (groups.TryGetValue(g, out var list)) trees.AddRange(list);
+            if (trees.Count == 0) return false;
+            var inside = new HashSet<int>(tiles);
+            var open = new HashSet<int>(); // paths and clearing
+            Stamp(centre, patch.clearing, i => { if (inside.Contains(i)) open.Add(i); });
+            // Path ends: tiles of its edge beside ground reached from the landing, spread around it.
+            var before = ReachWithout(new bool[n], new bool[n]);
+            var edges = new List<int>();
+            foreach (int i in tiles)
+                foreach (var d in Around4)
+                {
+                    int x = i % size + d.x, y = i / size + d.y;
+                    if (InMap(x, y) && !inside.Contains(Index(x, y)) && before[Index(x, y)]) { edges.Add(i); break; }
+                }
+            if (edges.Count == 0) return false;
+            var ends = new List<int>();
+            float firstAngle = (float)rng.NextDouble() * 360f;
+            for (int k = 0; k < patch.paths; k++)
+            {
+                float want = firstAngle + k * 360f / patch.paths;
+                int best = -1;
+                float bestGap = float.MaxValue;
+                foreach (int i in edges)
+                {
+                    float a = Mathf.Atan2(i / size + 0.5f - centre.y, i % size + 0.5f - centre.x) * Mathf.Rad2Deg;
+                    float gap = Mathf.Abs(Mathf.DeltaAngle(a, want));
+                    if (gap < bestGap) { bestGap = gap; best = i; }
+                }
+                if (best >= 0 && !ends.Contains(best)) ends.Add(best);
+            }
+            foreach (int e in ends)
+            {
+                var from = new Vector2(e % size + 0.5f, e / size + 0.5f);
+                var dir = (centre - from).normalized;
+                var side = new Vector2(-dir.y, dir.x);
+                var points = new List<Vector2> { from, Vector2.Lerp(from, centre, 0.5f) + side * ((float)rng.NextDouble() * 2f - 1f) * 2.5f, centre };
+                foreach (var p in Smooth(points))
+                    Stamp(p, patch.pathWidth / 2f, i => { if (inside.Contains(i)) open.Add(i); });
+            }
+            // Trees on a jittered grid, off the paths; each blocks its trunk and what its crown hides above it.
+            var feet = new List<Vector2>();
+            float step = patch.treeSpacing;
+            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+            foreach (int i in tiles)
+            {
+                minX = Mathf.Min(minX, i % size); maxX = Mathf.Max(maxX, i % size + 1);
+                minY = Mathf.Min(minY, i / size); maxY = Mathf.Max(maxY, i / size + 1);
+            }
+            for (float y = minY + step / 2f; y < maxY; y += step)
+                for (float x = minX + step / 2f; x < maxX; x += step)
+                {
+                    var foot = new Vector2(x, y) + new Vector2((float)rng.NextDouble() - 0.5f, (float)rng.NextDouble() - 0.5f) * step * 0.4f;
+                    int i = Index(Mathf.FloorToInt(foot.x), Mathf.FloorToInt(foot.y));
+                    if (!inside.Contains(i) || open.Contains(i)) continue;
+                    bool nearOpen = false;
+                    Stamp(foot, 0.8f, j => { if (open.Contains(j)) nearOpen = true; });
+                    if (!nearOpen) feet.Add(foot);
+                }
+            // Blocked: each trunk's tile, and the depth of the mass (tiles of the forest all round, off the paths); its
+            // edge stays walkable between the trunks, under the crowns.
+            var trunks = new HashSet<int>();
+            foreach (var f in feet) trunks.Add(Index(Mathf.FloorToInt(f.x), Mathf.FloorToInt(f.y)));
+            var blocked = new List<int>();
+            foreach (int i in tiles)
+            {
+                if (open.Contains(i)) continue;
+                bool deep = true;
+                foreach (var d in Around4)
+                {
+                    int x = i % size + d.x, y = i / size + d.y;
+                    int j = InMap(x, y) ? Index(x, y) : -1;
+                    if (j < 0 || !inside.Contains(j) || open.Contains(j)) { deep = false; break; }
+                }
+                if (deep || trunks.Contains(i)) blocked.Add(i);
+            }
+            foreach (int i in blocked) obstacle[i] = "blocker";
+            var after = ReachWithout(new bool[n], new bool[n]);
+            for (int i = 0; i < n; i++)
+                if (before[i] && !after[i] && !inside.Contains(i))
+                {
+                    foreach (int j in blocked) obstacle[j] = null;
+                    return false;
+                }
+            foreach (var f in feet) decorProps.Add((trees[rng.Next(trees.Count)].key, f));
+            clearings.Add(centre);
+            return true;
+        }
+
+        // The sparse ground cover, outside the patches.
+        foreach (var sub in t.props.bySubBiome)
+        {
+            var tiles = new List<int>();
+            for (int i = 0; i < n; i++)
+                if (region[i] == 0 && biome[i] != null && biome[i].key == sub.subBiome && dist[i] >= 1 && !inPatch[i]) tiles.Add(i);
+            Scatter(tiles, sub.groups);
         }
     }
 }

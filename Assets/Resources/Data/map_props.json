@@ -23,8 +23,6 @@
   {"key": "jungle_rock_788", "group": "jungle_rock", "map": "D54P11A", "rect": [281, 49, 37, 35], "block": true},
   {"key": "jungle_rock_800", "group": "jungle_rock", "map": "D54P11A", "rect": [164, 259, 45, 36], "block": true},
   {"key": "jungle_rock_820", "group": "jungle_rock", "map": "D54P32A", "rect": [293, 153, 54, 47], "block": true},
-  {"key": "meadow_bloom_bush_877", "group": "meadow_bloom_bush", "map": "D73P11A", "rect": [435, 168, 67, 72], "block": true},
-  {"key": "meadow_bloom_bush_879", "group": "meadow_bloom_bush", "map": "D73P11A", "rect": [26, 192, 67, 72], "block": true},
   {"key": "meadow_flowers_875", "group": "meadow_flowers", "map": "D73P11A", "rect": [289, 144, 23, 23], "block": false},
   {"key": "meadow_flowers_876", "group": "meadow_flowers", "map": "D73P11A", "rect": [384, 168, 24, 23], "block": false},
   {"key": "meadow_flowers_883", "group": "meadow_flowers", "map": "D73P11A", "rect": [480, 240, 23, 23], "block": false},
@@ -34,7 +32,6 @@
   {"key": "meadow_flowers_1031", "group": "meadow_flowers", "map": "P01P01A", "rect": [64, 224, 40, 16], "block": false},
   {"key": "meadow_flowers_1039", "group": "meadow_flowers", "map": "P01P02A", "rect": [256, 184, 24, 16], "block": false},
   {"key": "meadow_flowers_1027", "group": "meadow_flowers", "map": "P01P01A", "rect": [96, 136, 24, 16], "block": false},
-  {"key": "meadow_bush_905", "group": "meadow_bush", "map": "D73P11A", "rect": [53, 482, 91, 70], "block": false},
   {"key": "meadow_bush_1024", "group": "meadow_bush", "map": "P01P01A", "rect": [288, 8, 24, 24], "block": false},
   {"key": "meadow_bush_130", "group": "meadow_bush", "map": "D08P11A", "rect": [160, 346, 39, 30], "block": false},
   {"key": "meadow_bush_105", "group": "meadow_bush", "map": "D05P31A", "rect": [344, 176, 29, 20], "block": false},
@@ -52,7 +49,6 @@
   {"key": "tree_1212", "group": "tree", "map": "P16P01A", "rect": [48, 193, 95, 86], "block": true},
   {"key": "tree_1251", "group": "tree", "map": "P20P02A", "rect": [270, 73, 89, 88], "block": true},
   {"key": "tree_1254", "group": "tree", "map": "P20P02A", "rect": [49, 121, 89, 88], "block": true},
-  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true},
-  {"key": "grass_909", "group": "grass", "map": "D73P11A", "rect": [430, 530, 62, 22], "block": false}
+  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true}
  ]
 }

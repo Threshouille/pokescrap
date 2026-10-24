@@ -54,6 +54,7 @@ public partial class IslandPlan
     public int[] decor; // per tile: a ROM décor drawing it instead of its sub-biome's (a road), 0 for none; may be null
     public readonly List<Vector2Int> markers = new(); // landmarks shown as passage ends that lead nowhere yet (test quarter's portals)
     public readonly List<Vector2Int> caves = new(); // cave mouths (test quarter's mountain top), leading nowhere yet
+    public readonly List<Vector2> clearings = new(); // the clearings in the middle of the forests, in tiles (level design)
     public readonly List<(string key, Vector2 at)> decorProps = new(); // decor elements (Resources/MapProps/<key>) at their foot, in tiles
     public int[] height; // per tile: level of the ground (0 = plain, 1, 2... on hills), may be null
     public bool[] wallLook; // per tile: walkable but drawn as a wall (a ledge looks like its cliff), may be null
@@ -72,13 +73,36 @@ public partial class IslandPlan
         string column = cutPart[i] < 0 ? "Left" : cutPart[i] > 0 ? "Right" : "Mid", row = faceRow[i] <= 1 ? "Top" : "Bottom";
         if (cut[i] == 2) return "mouth" + column + row;
         if (cut[i] == 1) return "stairs" + column + row;
-        if (faceRow[i] == 0) return "rim";
-        // The face carries on along its neighbours of the same level; it ends beside anything else (stairs too).
-        bool Face(int j) => faceRow[j] > 0 && height[j] == height[i] && cut[j] == 0;
+        if (faceRow[i] == 0) return EdgeRole(i) ?? (AtFoot(i) ? "shadow" : null);
+        // The face carries on along its neighbours of the same level, stairs too; it ends beside lower ground.
+        bool Face(int j) => faceRow[j] > 0 && height[j] == height[i];
         int x = i % size;
-        bool leftEnd = x == 0 || !Face(i - 1), rightEnd = x == size - 1 || !Face(i + 1);
-        if (leftEnd != rightEnd) return (leftEnd ? "left" : "right") + row;
+        bool End(int j) => !Face(j) && height[j] < height[i]; // beside its own level, it runs into it: no end
+        bool leftEnd = x == 0 || End(i - 1), rightEnd = x == size - 1 || End(i + 1);
+        if (leftEnd || rightEnd) return (rightEnd ? "right" : "left") + row;
         return faceRow[i] == 1 ? "top" : faceRow[i] >= faceLen[i] ? "bottom" : "middle";
+    }
+    /// Ground right below the foot of a face (not stairs), in its shadow.
+    public bool AtFoot(int i)
+    {
+        int above = i + size;
+        return faceRow != null && faceRow[i] == 0 && above < size * size && faceRow[above] > 0 && faceRow[above] >= faceLen[above]
+            && cut[above] == 0 && height[above] > height[i];
+    }
+
+    /// The edge of a level seen from above, on its side towards lower ground: back (north), left, right, their outer
+    /// corners, or an inner corner (lower ground only across it, towards the back); null if none. The faces (south)
+    /// stand on the lower ground, they are no edge.
+    public string EdgeRole(int i)
+    {
+        int x = i % size, y = i / size;
+        bool Lower(int dx, int dy) => InMap(x + dx, y + dy) && height[Index(x + dx, y + dy)] < height[i];
+        bool back = Lower(0, 1), left = Lower(-1, 0), right = Lower(1, 0);
+        if (back) return left ? "backLeft" : right ? "backRight" : "back";
+        if (left || right) return left ? "left" : "right";
+        if (Lower(-1, 1)) return "innerLeft";
+        if (Lower(1, 1)) return "innerRight";
+        return null;
     }
     public readonly Theme[] themes = new Theme[4]; // per quarter
     public readonly int[] order = new int[4]; // quarters in the order they open (clockwise)

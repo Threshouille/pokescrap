@@ -1,10 +1,7 @@
 fileFormatVersion: 2
-guid: ef703912a8225f0b39c8005d317b257b
+guid: 9272aa9cfa83ab9089aef924893c5b2e
 TextureImporter:
-  internalIDToNameTable:
-  - first:
-      213: -5827079989693768701
-    second: meadow_bloom_bush_877_0
+  internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,29 +110,7 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: meadow_bloom_bush_877_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 67
-        height: 72
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 30c14806f9d022fa0800000000000000
-      internalID: -5827079989693768701
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
@@ -149,8 +124,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      meadow_bloom_bush_877_0: -5827079989693768701
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

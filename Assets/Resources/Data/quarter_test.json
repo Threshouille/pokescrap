@@ -54,6 +54,10 @@
    "columnOffset": 1.2
   },
   "relief": {
+   "grid": 3,
+   "terraceExtras": 2,
+   "terraceWidth": [0.75, 0.95],
+   "terraceHeight": [0.5, 0.7],
    "hills": 6,
    "hillRadius": [
     5,
@@ -66,7 +70,7 @@
    "rockDecors": [
     49
    ],
-   "rampDecor": 35,
+   "rampDecor": 0,
    "ledges": 4,
    "ledgeLength": [
     3,
@@ -78,10 +82,7 @@
     0.98,
     1.0
    ],
-   "footShadow": [
-    0.7,
-    0.85
-   ],
+   "footShadow": [],
    "cave": {
     "decor": 9,
     "shade": 0.8,
@@ -105,23 +106,15 @@
      "groups": [
       {
        "group": "jungle_fern",
-       "per100": 5
-      },
-      {
-       "group": "jungle_palm",
-       "per100": 1.5
+       "per100": 2.5
       },
       {
        "group": "jungle_big",
-       "per100": 0.4
+       "per100": 0.2
       },
       {
        "group": "jungle_rock",
-       "per100": 0.3
-      },
-      {
-       "group": "tree",
-       "per100": 0.6
+       "per100": 0.15
       }
      ]
     },
@@ -130,31 +123,112 @@
      "groups": [
       {
        "group": "meadow_flowers",
-       "per100": 4
+       "per100": 2
       },
       {
        "group": "meadow_bush",
-       "per100": 0.8
-      },
-      {
-       "group": "meadow_bloom_bush",
-       "per100": 0.35
-      },
-      {
-       "group": "meadow_rock",
        "per100": 0.4
       },
       {
-       "group": "tree",
-       "per100": 0.35
+       "group": "meadow_rock",
+       "per100": 0.2
+      }
+     ]
+    }
+   ],
+   "patches": [
+    {
+     "subBiome": "meadow",
+     "kind": "forest",
+     "count": [
+      1,
+      2
+     ],
+     "radius": [9, 13],
+     "trees": [
+      "tree"
+     ],
+     "treeSpacing": 1.6,
+     "paths": 2,
+     "pathWidth": 2,
+     "clearing": 2.5
+    },
+    {
+     "subBiome": "meadow",
+     "kind": "scatter",
+     "count": [
+      2,
+      3
+     ],
+     "radius": [
+      4,
+      7
+     ],
+     "groups": [
+      {
+       "group": "meadow_flowers",
+       "per100": 30
       },
       {
-       "group": "stump",
-       "per100": 0.05
+       "group": "meadow_bush",
+       "per100": 2
+      }
+     ]
+    },
+    {
+     "subBiome": "meadow",
+     "kind": "scatter",
+     "count": [
+      1,
+      1
+     ],
+     "radius": [
+      3,
+      5
+     ],
+     "groups": [
+      {
+       "group": "meadow_rock",
+       "per100": 8
+      }
+     ]
+    },
+    {
+     "subBiome": "jungle",
+     "kind": "forest",
+     "count": [
+      2,
+      3
+     ],
+     "radius": [9, 14],
+     "trees": [
+      "tree",
+      "jungle_palm"
+     ],
+     "treeSpacing": 1.5,
+     "paths": 2,
+     "pathWidth": 2,
+     "clearing": 2.5
+    },
+    {
+     "subBiome": "jungle",
+     "kind": "scatter",
+     "count": [
+      2,
+      3
+     ],
+     "radius": [
+      4,
+      7
+     ],
+     "groups": [
+      {
+       "group": "jungle_fern",
+       "per100": 25
       },
       {
-       "group": "grass",
-       "per100": 0.6
+       "group": "jungle_big",
+       "per100": 2
       }
      ]
     }

@@ -1,6 +1,6 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 24/10/2026 (**suite : composition du quart d'île, voir la section ci-dessous**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
+Dernière mise à jour : 24/10/2026, 2e session (**composition du quart d'île : falaises, hauteur, végétation ; voir la section ci-dessous**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
 
 ## Méthode de travail avec Owen
 
@@ -51,28 +51,33 @@ pierres clairsemées du décor 30) entre deux portails (marqueurs inertes) par l
 escaliers de 3 colonnes, montagne en lacets, rebords à sens unique (validés), grotte au sommet sous un toit qui
 s'efface (validée, sol du décor 9).
 
-Fait, **jugé « brouillon » par Owen (24/10, capture en jeu)** — à reprendre en priorité :
-1. **Falaises incohérentes** : les morceaux tirés des cartes 224 (P01P01A, terre rose + escaliers) et 26 (D09P11A,
-   roche + entrée de grotte) sont posés case par case selon un rôle (`IslandPlan.CliffRole` : top / middle / bottom,
-   extrémités, rim, escaliers, entrée), mais les formes de plateaux sont trop irrégulières (blobs bruités) et il manque
-   des morceaux : coins extérieurs et intérieurs, côtés est / ouest et dos (nord) du plateau (le « rim » réutilise un
-   morceau de paroi, d'où l'effet « tuiles dans tous les sens »). Pistes : plateaux aux contours plus réguliers (segments
-   droits, marches d'au moins 2-3 cases), jeu de morceaux complet par style pris dans une même carte (repérer dans
-   `Rom/refs/maps/` les vrais coins et côtés ; la carte 224 a des coins à ses blocs de terrasse), ou découper un bloc
-   entier de falaise de la carte comme un seul « modèle » posé tel quel. Outils : `Tools/pmd/render_maps.py`
-   (toutes les cartes rendues, `Rom/refs/maps/sheet.png`), `Data/cliff_styles.json` + `Tools/pmd/extract_cliffs.py`.
-2. **Éléments de décor sur des cases sombres** : cause trouvée, pas corrigée. L'obstacle invisible `blocker` (sous les
-   arbres, rochers, gros buissons) a `hidden` (pas de sprite) mais `Obstacles` peint quand même sa couleur `#406030`
-   dans sa texture à plat (`Obstacles.cs` vers la ligne 908 : `pixels[i] = Draw(i) ? default : kind[i].tint`) : ne rien
-   peindre pour un obstacle `hidden`.
-3. **Éléments ratés à retirer de `Data/map_props.json`** : les gros buissons ronds fleuris du Mont Céleste
-   (`meadow_bloom_bush_877`, `_879`, groupe `meadow_bloom_bush`) et la haie qui ressemble à un haut d'arbre mal coupé
-   (`meadow_bush_905`, peut-être aussi `meadow_bush_130`). Planche des candidats : `Rom/refs/props/nature_board.png`
-   (numéros = `candidates.json`, généré par `Tools/pmd/find_map_props.py`) ; Owen peut choisir par numéro.
-4. Restent à faire ensuite : arbres transparents quand un Pokémon passe derrière ; plus de variété d'arbres (ceux de
-   la couche du dessous des cartes, à détourer : le sol autour s'efface par remplissage, le contour est sombre) ;
-   teintes de palier (`levelShade`, `footShadow`) qui font des carrés sombres, à adoucir ; tester en jeu le blocage et le
-   tri en profondeur autour du décor (tri par l'axe Y, réglage global de `Renderer2D.asset`, à surveiller ailleurs).
+Repris et validé par Owen le 24/10 (2e session) :
+1. **Falaises** : plateaux aux contours droits (rectangles sur une grille de 3 cases, encoches bouchées) ; morceaux
+   refaits dans `cliff_styles.json` : prairie = rebord de la carte 224 + bas de paroi pris dans la carte 226 (zone orange
+   sans pli rose : les plis sont des angles, les enchaîner donnait « une suite de coins »), roche = carte 23 (paroi
+   régulière, entrée de grotte) au lieu de la 26 (gros blocs qui ne se découpent pas) ; colonnes posées dans l'ordre puis
+   en miroir (sans couture) ; sol de la carte effacé en haut des morceaux, bas de paroi en vague, ombre portée au pied
+   (remplace les cases assombries `footShadow`) ; dos, côtés et coins fabriqués à partir de la bande du rebord, extrémités
+   de paroi avec rebord et coin du bas arrondi seulement contre un terrain plus bas ; plus de bordure du décor autour des
+   falaises ; escaliers sans bande de terre ; toit de la grotte jusqu'à la roche.
+2. **Collisions et hauteur** : collisions à l'épaisseur dessinée des rebords ; les tirs d'un palier passent les
+   falaises de ce palier ou plus basses, s'écrasent sur les plus hautes ; IA idem (`ShotClear`) ; scénario de banc
+   « Hauteur : … » (passe).
+3. **Décor** : cases sombres sous le décor corrigées (`blocker` caché n'est plus peint) ; retirés : buissons 877, 879,
+   905, haie `grass_909` ; décor épars réduit (fleurs, buissons, rochers) ; taches par sous-biome : champs de fleurs,
+   fougeraies, éboulis, forêts en massif plein avec sentiers et clairière (`IslandPlan.clearings` pour le level design).
+
+Reste à faire :
+- Arbres transparents quand un Pokémon passe derrière (on marche sous les couronnes en lisière) ; plus de variété
+  d'arbres (couche du dessous des cartes, à détourer).
+- La roche n'a pas d'escaliers à elle (elle emprunte ceux de la prairie, roses) : en chercher dans la carte 24.
+- Banc d'essai lancé dans l'éditeur (24/10) : 23/25, les deux échecs sont des pires images à ~100 ms (« Niveau : pas de
+  gel… », « Île : … ») alors que l'éditeur tournait sans le focus ; à relancer en batch (`setup.py --ai-scenarios`,
+  Unity fermé) pour confirmer que ce n'est pas une régression.
+- Les IA ne cherchent pas encore les hauteurs ; idées de level design autour des clairières.
+- Attention : un rendu de contrôle par `execute_code` dans l'éditeur laisse des objets dans la scène ouverte (`Obstacles`,
+  « Tuiles d'obstacles » à la racine) qui reviennent en jeu : recharger `SampleScene` sans enregistrer après coup, et
+  jamais pendant que Owen est en Play.
 
 Abandonné : la refonte visuelle organique (branche `feature/refonte-visuelle`, non fusionnée, gardée pour mémoire :
 shader de sol, vitrine, assets Claude Design) — Owen préfère les assets de DM en cases carrées.

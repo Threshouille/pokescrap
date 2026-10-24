@@ -905,13 +905,13 @@ public class Obstacles : MonoBehaviour
             if (redrawAll)
             {
                 animated.Clear();
-                for (int i = 0; i < kind.Length; i++) pixels[i] = Draw(i) ? default : kind[i] != null ? kind[i].tint : default;
+                for (int i = 0; i < kind.Length; i++) pixels[i] = Draw(i) || kind[i] == null || kind[i].hidden ? default : kind[i].tint;
             }
             else
                 foreach (int i in changed)
                 {
                     animated.Remove(i);
-                    pixels[i] = Draw(i) ? default : kind[i] != null ? kind[i].tint : default;
+                    pixels[i] = Draw(i) || kind[i] == null || kind[i].hidden ? default : kind[i].tint;
                 }
             redrawAll = false;
             changed.Clear();

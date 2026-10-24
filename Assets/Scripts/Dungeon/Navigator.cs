@@ -112,14 +112,28 @@ public class Navigator
         return Zone.Inside(centre, agent.team, 0.5f) || Terrain.Hazard(centre, agent) || Pylons.Hazard(centre, agent);
     }
 
+    static Vector2Int Snap(DungeonGenerator grid, Vector2Int cell)
+    {
+        if (grid.Walkable(cell.x, cell.y)) return cell;
+        int level = grid.HeightOf(cell.x, cell.y);
+        for (int pass = 0; pass < 2; pass++) // on its own level first (not down the cliff)
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                    if (grid.Walkable(cell.x + dx, cell.y + dy) && (pass == 1 || grid.HeightOf(cell.x + dx, cell.y + dy) == level))
+                        return new Vector2Int(cell.x + dx, cell.y + dy);
+        return cell;
+    }
+
     /// Fills "path"; false when the goal cannot be reached (with "avoid": not without crossing a danger).
     bool FindPath(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent, bool avoid)
     {
         var team = agent.team;
         path.Clear();
         int size = grid.Size;
-        var start = grid.CellOf(from);
-        var goal = grid.CellOf(to);
+        // A point on a tile the grid counts as wall (a cliff's edge seen from above: walkable up to its drawn edge)
+        // stands for the nearest walkable tile beside it.
+        var start = Snap(grid, grid.CellOf(from));
+        var goal = Snap(grid, grid.CellOf(to));
         if (!grid.Walkable(start.x, start.y) || !grid.Walkable(goal.x, goal.y)) return false;
 
         if (cost == null || cost.Length != size * size)

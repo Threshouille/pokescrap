@@ -177,6 +177,15 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
   passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts
   pour l'instant (verrou par Engrenage du Temps à l'étape « sceaux et engrenages »).
+- Relief et hauteur (décidé le 24/10/2026, Owen) : la hauteur donne un avantage. Les attaques à distance tirées d'un
+  palier passent par-dessus les falaises de ce palier ou plus basses et s'écrasent contre celles qui sont plus hautes
+  (d'en bas, on tire dans la paroi) ; le corps à corps ne passe jamais une falaise. Les IA en tiennent compte. Les
+  collisions des falaises suivent leur épaisseur dessinée (rebord fin vu de dessus, moitié basse de la rangée du haut
+  d'une paroi). Plateaux aux contours droits (rectangles sur une grille de 3 cases), falaises dessinées avec des
+  morceaux des cartes de l'histoire.
+- Végétation (décidé le 24/10/2026, Owen) : peu de décor épars (fleurs, buissons, rochers) ; les arbres servent aux
+  forêts. Chaque sous-biome a des taches : champ de fleurs, fougeraie, éboulis, forêt. Une forêt est un massif plein
+  traversé de sentiers vers une clairière centrale, pensé pour le level design (lisière praticable sous les couronnes).
 
 ### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
 - Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue

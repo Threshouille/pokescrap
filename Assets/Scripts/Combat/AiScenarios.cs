@@ -112,6 +112,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Salle : les pylônes lancent leur arc", InRoom("electric", "storm", PylonsFire()));
         yield return Scenario("Niveau : pas de gel sur les obstacles traversables", LevelHitches());
         yield return Scenario("Île : arrivée praticable, pas de gel en se promenant", IslandWalk());
+        yield return Scenario("Hauteur : tire par-dessus la falaise d'en haut, pas d'en bas", HighGround());
         RestoreArena();
 
         Clear();
@@ -608,6 +609,38 @@ public class AiScenarios : MonoBehaviour
         arena.island = null;
         arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
         Report(landed && worst < 0.1f, $"construite en {built * 1000f:0} ms, arrivée {(landed ? "praticable" : "BLOQUÉE")}, pire image {worst * 1000f:0} ms");
+    }
+
+    // A cliff of level 1 across the arena, the ally with a single straight shot and an opponent on the other side:
+    // from above it shoots over the cliff and hits; from below its shots would break on it, so it does not shoot.
+    IEnumerator HighGround()
+    {
+        var arena = DungeonGenerator.Current;
+        MoveDef shot = null;
+        for (int type = 0; type < 18 && shot == null; type++)
+            shot = FindMove(type, m => m.family == "projectile" && (string.IsNullOrEmpty(m.path) || m.path == "straight") && m.count <= 1 && m.burst <= 1
+                && m.castTime <= 0f && string.IsNullOrEmpty(m.status));
+        if (shot == null) { Report(false, "pas d'attaque à distance simple"); yield break; }
+        int row = arena.CellOf(Centre).y;
+        var hits = new bool[2];
+        for (int phase = 0; phase < 2; phase++)
+        {
+            // 0: the ally above (level 1), the opponent below; 1: the other way round.
+            float side = phase == 0 ? 1f : -1f;
+            arena.TestCliff(row);
+            var (_, ally) = Place(new Vector2(-6f, 3.5f * side), new Vector2(0f, 3.5f * side));
+            var kept = (MoveDef[])ally.Moves.Clone();
+            for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, i == 0 ? shot : null);
+            var foe = Enemy(BatchTeam[1], new Vector2(0f, -3.5f * side));
+            foe.maxHp = foe.hp = 100000f;
+            yield return new WaitForSeconds(6f);
+            hits[phase] = foe.hp < foe.maxHp;
+            for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, kept[i]);
+            Clear();
+            arena.Generate();
+            team.PrepareForNextArena(team.transform.position, 0f);
+        }
+        Report(hits[0] && !hits[1], $"{shot.name} : d'en haut {(hits[0] ? "touche" : "ne touche pas")}, d'en bas {(hits[1] ? "touche (à travers la falaise)" : "ne touche pas")}");
     }
 
     // First tile of that obstacle, scanning the room.

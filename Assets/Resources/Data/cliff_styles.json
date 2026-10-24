@@ -1,44 +1,340 @@
 {
- "comment": "Cliff faces cut from the story maps of the ROM (MAP_BG) by Tools/pmd/extract_cliffs.py into Resources/Cliffs/<style>/<role>_<n>.png (24×24, one tile each). map: the BMA name; layer: lower, upper (its transparent pixels kept) or both; pieces: per role, the top left corner (pixels) of each 24×24 piece in the rendered map, several = variants picked at random. Roles: top / middle / bottom (rows of a face, from the ground above it down), leftTop, leftBottom, rightTop, rightBottom (the ends of a face; middle rows use the bottom ones), rim (the thin edge on the other sides), stairsLeft/Mid/Right + Top/Bottom (stairs 3 tiles wide cut into a face), mouthLeft/Mid/Right + Top/Bottom (a cave's mouth in a face).",
+ "comment": "Cliff faces cut from the story maps of the ROM (MAP_BG) by Tools/pmd/extract_cliffs.py into Resources/Cliffs/<style>/<role>_<n>.png (24×24). map: the BMA name; layer: lower, upper (its transparent pixels kept) or both; pieces: per role, the top left corner (pixels) of each 24×24 piece in the rendered map (or {map, layer, at} from another map). Roles: top / middle / bottom (rows of a face, from the ground above it down; their variants are consecutive columns of the map, drawn in turn along the face), leftTop, leftBottom, rightTop, rightBottom (the ends of a face; middle rows use the bottom ones), stairsLeft/Mid/Right + Top/Bottom (stairs 3 tiles wide cut into a face), mouthLeft/Mid/Right + Top/Bottom (a cave's mouth in a face). ground: the map's ground cleared from the top of `roles` (samples: rectangles of its colours; tolerance; depth in pixels). mirror: a role made by flipping another. lip: rows of a piece (the level's edge seen from above) turned into back, left, right, backLeft, backRight, innerLeft, innerRight (the other sides of a level); ends: the ends of a face made from its first column and that lip. previewFloor: the ground colour of the preview. foot: how the bottom row of a face meets the ground (the map's ground cleared from its bottom, or a wavy cut). shadow: cast on the ground at a face's foot (alpha, depth in pixels). mirrorLoop: a face's columns then the same mirrored in reverse order (no seam where they repeat).",
  "styles": [
   {
-   "key": "meadow", "map": "P01P01A", "layer": "lower",
+   "key": "meadow",
+   "map": "P01P01A",
+   "layer": "lower",
+   "previewFloor": [
+    120,
+    180,
+    80
+   ],
    "pieces": {
-    "top": [[264, 312], [144, 312]],
-    "middle": [[258, 336], [150, 336]],
-    "bottom": [[258, 336], [150, 336]],
-    "leftTop": [[240, 312]],
-    "leftBottom": [[240, 336]],
-    "rightTop": [[168, 312]],
-    "rightBottom": [[168, 336]],
-    "rim": [[264, 312]],
-    "stairsLeftTop": [[192, 312]],
-    "stairsLeftBottom": [[192, 336]],
-    "stairsMidTop": [[204, 312]],
-    "stairsMidBottom": [[204, 336]],
-    "stairsRightTop": [[216, 312]],
-    "stairsRightBottom": [[216, 336]]
-   }
+    "top": [
+     [
+      134,
+      296
+     ]
+    ],
+    "middle": [
+     {
+      "map": "P01P03A",
+      "at": [
+       266,
+       24
+      ]
+     },
+     {
+      "map": "P01P03A",
+      "at": [
+       290,
+       24
+      ]
+     }
+    ],
+    "bottom": [
+     {
+      "map": "P01P03A",
+      "at": [
+       266,
+       24
+      ]
+     },
+     {
+      "map": "P01P03A",
+      "at": [
+       290,
+       24
+      ]
+     }
+    ],
+    "stairsLeftTop": [
+     [
+      192,
+      296
+     ]
+    ],
+    "stairsLeftBottom": [
+     [
+      192,
+      320
+     ]
+    ],
+    "stairsMidTop": [
+     [
+      204,
+      296
+     ]
+    ],
+    "stairsMidBottom": [
+     [
+      204,
+      320
+     ]
+    ],
+    "stairsRightTop": [
+     [
+      216,
+      296
+     ]
+    ],
+    "stairsRightBottom": [
+     [
+      216,
+      320
+     ]
+    ]
+   },
+   "ground": {
+    "samples": [
+     [
+      216,
+      264,
+      24,
+      24
+     ],
+     [
+      312,
+      264,
+      24,
+      26
+     ],
+     [
+      160,
+      264,
+      16,
+      20
+     ],
+     [
+      120,
+      250,
+      20,
+      12
+     ],
+     [
+      125,
+      270,
+      40,
+      30
+     ]
+    ],
+    "tolerance": 24,
+    "depth": 18,
+    "roles": [
+     "top",
+     "stairsLeftTop",
+     "stairsMidTop",
+     "stairsRightTop"
+    ]
+   },
+   "lip": {
+    "piece": "top",
+    "rows": [
+     8,
+     22
+    ],
+    "ends": true,
+    "corner": 6
+   },
+   "foot": {
+    "roles": [
+     "bottom"
+    ],
+    "depth": 3,
+    "amplitude": 1
+   },
+   "shadow": {
+    "alpha": 0.45,
+    "depth": 12
+   },
+   "mirrorLoop": true
   },
   {
-   "key": "rock", "map": "D09P11A", "layer": "lower",
+   "key": "rock",
+   "map": "D06P11A",
+   "layer": "lower",
+   "previewFloor": [
+    150,
+    130,
+    100
+   ],
    "pieces": {
-    "top": [[120, 72], [144, 72], [312, 72]],
-    "middle": [[120, 96], [168, 96], [144, 120], [312, 120], [336, 96]],
-    "bottom": [[144, 120], [312, 120]],
-    "leftTop": [[120, 72]],
-    "leftBottom": [[120, 120]],
-    "rightTop": [[312, 72]],
-    "rightBottom": [[312, 120]],
-    "rim": [[144, 72]],
-    "mouthLeftTop": [[216, 168]],
-    "mouthMidTop": [[240, 168]],
-    "mouthRightTop": [[264, 168]],
-    "mouthLeftBottom": [[216, 192]],
-    "mouthMidBottom": [[240, 192]],
-    "mouthRightBottom": [[264, 192]]
+    "top": [
+     [
+      0,
+      312
+     ],
+     [
+      24,
+      312
+     ],
+     [
+      48,
+      312
+     ],
+     [
+      72,
+      312
+     ],
+     [
+      96,
+      312
+     ],
+     [
+      120,
+      312
+     ],
+     [
+      144,
+      312
+     ],
+     [
+      168,
+      312
+     ]
+    ],
+    "middle": [
+     [
+      0,
+      336
+     ],
+     [
+      24,
+      336
+     ],
+     [
+      48,
+      336
+     ],
+     [
+      72,
+      336
+     ],
+     [
+      96,
+      336
+     ],
+     [
+      120,
+      336
+     ],
+     [
+      144,
+      336
+     ],
+     [
+      168,
+      336
+     ]
+    ],
+    "bottom": [
+     [
+      0,
+      336
+     ],
+     [
+      24,
+      336
+     ],
+     [
+      48,
+      336
+     ],
+     [
+      72,
+      336
+     ],
+     [
+      96,
+      336
+     ],
+     [
+      120,
+      336
+     ],
+     [
+      144,
+      336
+     ],
+     [
+      168,
+      336
+     ]
+    ],
+    "mouthLeftTop": [
+     [
+      324,
+      144
+     ]
+    ],
+    "mouthMidTop": [
+     [
+      348,
+      144
+     ]
+    ],
+    "mouthRightTop": [
+     [
+      372,
+      144
+     ]
+    ],
+    "mouthLeftBottom": [
+     [
+      324,
+      168
+     ]
+    ],
+    "mouthMidBottom": [
+     [
+      348,
+      168
+     ]
+    ],
+    "mouthRightBottom": [
+     [
+      372,
+      168
+     ]
+    ]
    },
-   "both": ["mouthLeftTop", "mouthMidTop", "mouthRightTop", "mouthLeftBottom", "mouthMidBottom", "mouthRightBottom"]
+   "ground": {
+    "samples": [
+     [
+      0,
+      288,
+      240,
+      30
+     ]
+    ],
+    "tolerance": 40,
+    "depth": 20,
+    "roles": [
+     "top"
+    ]
+   },
+   "lip": {
+    "piece": "top",
+    "rows": [
+     4,
+     20
+    ],
+    "ends": true,
+    "corner": 6
+   },
+   "foot": {
+    "roles": [
+     "bottom"
+    ],
+    "depth": 4,
+    "amplitude": 2
+   },
+   "shadow": {
+    "alpha": 0.45,
+    "depth": 12
+   },
+   "mirrorLoop": true
   }
  ]
 }

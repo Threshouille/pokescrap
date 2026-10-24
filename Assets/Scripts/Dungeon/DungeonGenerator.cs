@@ -104,6 +104,12 @@ public class DungeonGenerator : MonoBehaviour
         skyWall = new bool[size * size];
         wallLook = plan.wallLook != null ? new bool[size * size] : null;
         cellShade = plan.height != null ? new float[size * size] : null;
+        if (plan.height != null)
+        {
+            cellHeight = new int[size * size];
+            cliffHeight = new int[size * size];
+            for (int k = 0; k < cliffHeight.Length; k++) cliffHeight[k] = -1;
+        }
         var origin = Interior.min;
         var centreDecor = TilesetRoster.Get(CentreDecor);
         int PlanIndex(int x, int y) => x + box.x < plan.size && y + box.y < plan.size ? plan.Index(x + box.x, y + box.y) : -1;
@@ -161,8 +167,18 @@ public class DungeonGenerator : MonoBehaviour
                     cliffTiles ??= new Tile[size * size];
                     var sprites = CliffSprites(plan.cliffStyles[plan.cliffStyle[PlanIndex(x, y)]], role);
                     if (sprites.Length == 0) sprites = CliffSprites(plan.cliffStyles[1], role); // borrowed (the rock's stairs)
-                    if (sprites.Length > 0) cliffTiles[g] = CliffTile(sprites[(x * 7 + y * 13) % sprites.Length], !open[gx, gy]);
+                    // A face's rows: consecutive columns of the map, in turn along the face; other pieces at random.
+                    bool row = role is "top" or "middle" or "bottom";
+                    // An edge seen from above blocks along its drop only (a thin collider, see BuildEdges), not the
+                    // whole tile; to the navigation it stays a wall.
+                    // The edges block as thick as they are drawn (BuildEdges), not the whole tile; to the navigation
+                    // they stay walls.
+                    bool edge = !open[gx, gy] && role is "back" or "left" or "right" or "backLeft" or "backRight" or "top" or "leftTop" or "rightTop";
+                    if (sprites.Length > 0) cliffTiles[g] = CliffTile(sprites[(row ? x : x * 7 + y * 13) % sprites.Length], !open[gx, gy] && !edge);
+                    if (edge) { edgeCells.Add(new Vector2Int(gx, gy)); edgeRoles.Add(role); }
+                    if (!open[gx, gy] && cliffHeight != null) cliffHeight[g] = plan.height[PlanIndex(x, y)];
                 }
+                if (r == zone && cellHeight != null) cellHeight[g] = plan.height[PlanIndex(x, y)];
                 if (r == zone && cellShade != null) cellShade[g] = plan.Shade(PlanIndex(x, y));
             }
         var arrival = (islandArrival ?? plan.Arrival(zone)) - box.min;
@@ -170,6 +186,7 @@ public class DungeonGenerator : MonoBehaviour
         tiles.Clear();
         spawn = origin + arrival;
         Draw(rng);
+        BuildEdges();
         if (plan.roof != null) DrawRoof(plan, box, n);
         Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
@@ -210,6 +227,12 @@ public class DungeonGenerator : MonoBehaviour
     PlayerController team;
     float[] cellShade; // per tile: tint of its ground (relief), 1 = none; may be null
     Tile[] cliffTiles; // per tile: a cliff piece drawn over its ground (cliff_styles.json), may be null
+    int[] cellHeight; // per tile: its level of ground (relief), may be null (all 0)
+    int[] cliffHeight; // per tile: the level of the cliff blocking it (shots from that level or higher fly over), -1 none; may be null
+    readonly List<Vector2Int> edgeCells = new(); // edges of the levels: a collider as thick as the edge drawn
+    readonly List<string> edgeRoles = new();
+    const float EdgeThickness = 0.25f; // of a tile: the collider along the drawn edge of a level seen from above
+    GameObject edgeRoot;
     static readonly Dictionary<(string style, string role), Sprite[]> cliffSprites = new();
     readonly Dictionary<(Sprite, bool), Tile> cliffTileCache = new();
     bool[] skyWall; // island: sky tiles next to land, an invisible wall (nothing drawn, a collider)
@@ -235,6 +258,15 @@ public class DungeonGenerator : MonoBehaviour
         wallLook = null;
         cellShade = null;
         cliffTiles = null;
+        cellHeight = null;
+        cliffHeight = null;
+        edgeCells.Clear();
+        edgeRoles.Clear();
+        if (edgeRoot != null)
+        {
+            if (Application.isPlaying) Destroy(edgeRoot);
+            else DestroyImmediate(edgeRoot);
+        }
         roofed = null;
         if (roofMap != null) roofMap.ClearAllTiles();
         if (island != null)
@@ -367,7 +399,7 @@ public class DungeonGenerator : MonoBehaviour
                 }
                 int mask = 0;
                 for (int i = 0; i < Neighbours.Length; i++)
-                    if (Looks(x + Neighbours[i].x, y + Neighbours[i].y) == isOpen)
+                    if (LooksOpen(x + Neighbours[i].x, y + Neighbours[i].y) == isOpen)
                         mask |= 1 << i;
                 int chunk = (isOpen ? decor.floor : decor.wall)[mask * 3 + variation];
                 (isOpen ? floorCells : wallCells).Add(new Vector3Int(x, y, 0));
@@ -477,6 +509,10 @@ public class DungeonGenerator : MonoBehaviour
     // How a tile is drawn: open ground, or a wall (also a ledge, walkable but drawn as its cliff).
     bool Looks(int x, int y) => IsOpen(x, y) && (wallLook == null || !wallLook[y * size + x]);
 
+    // The same for its neighbours' borders: a cliff piece stands on whole floor, it gives them none.
+    bool LooksOpen(int x, int y) => Looks(x, y)
+        || cliffTiles != null && x >= 0 && y >= 0 && x < size && y < size && cliffTiles[y * size + x] != null;
+
     Tile InvisibleWall()
     {
         if (invisibleWall != null) return invisibleWall;
@@ -508,6 +544,91 @@ public class DungeonGenerator : MonoBehaviour
                 if (!IsOpen(cell.x, cell.y)) return false;
             }
         return true;
+    }
+
+    // The colliders of the edges, as thick as drawn so that one walks up to them: seen from above, a strip along the
+    // side where the ground drops; a face's top row, its lower half (the upper half is the ground above).
+    void BuildEdges()
+    {
+        if (edgeCells.Count == 0) return;
+        edgeRoot = new GameObject("Bords des falaises");
+        edgeRoot.transform.SetParent(wallMap.transform, false);
+        edgeRoot.layer = wallMap.gameObject.layer;
+        edgeRoot.transform.position = Vector3.zero;
+        Vector2 step = CentreOf(1, 1) - CentreOf(0, 0);
+        void Box(Vector2 centre, Vector2 tiles)
+        {
+            var box = edgeRoot.AddComponent<BoxCollider2D>();
+            box.offset = centre;
+            box.size = Vector2.Scale(tiles, step);
+        }
+        float t = EdgeThickness, shift = (1f - t) / 2f;
+        for (int k = 0; k < edgeCells.Count; k++)
+        {
+            var c = CentreOf(edgeCells[k].x, edgeCells[k].y);
+            string role = edgeRoles[k];
+            if (role is "top" or "leftTop" or "rightTop")
+            {
+                Box(c - new Vector2(0f, step.y / 4f), new Vector2(1f, 0.5f));
+                continue;
+            }
+            if (role.StartsWith("back")) Box(c + new Vector2(0f, shift * step.y), new Vector2(1f, t));
+            if (role.EndsWith("eft")) Box(c - new Vector2(shift * step.x, 0f), new Vector2(t, 1f));
+            if (role.EndsWith("ight")) Box(c + new Vector2(shift * step.x, 0f), new Vector2(t, 1f));
+        }
+    }
+
+    /// The level of ground at that point (relief of the island), 0 without relief.
+    public int HeightAt(Vector2 world)
+    {
+        var c = CellOf(world);
+        return HeightOf(c.x, c.y);
+    }
+
+    public int HeightOf(int x, int y) =>
+        cellHeight != null && x >= 0 && y >= 0 && x < size && y < size ? cellHeight[y * size + x] : 0;
+
+    /// True when the wall at that tile is a cliff no higher than that level: a shot from there flies over it.
+    public bool ShotPasses(int x, int y, int level)
+    {
+        if (cliffHeight == null || x < 0 || y < 0 || x >= size || y >= size) return false;
+        int h = cliffHeight[y * size + x];
+        return h >= 0 && h <= level;
+    }
+
+    /// LineClear for a shot from the first point: the cliffs no higher than its level do not stop it.
+    public bool ShotClear(Vector2 from, Vector2 to, float radius)
+    {
+        int level = HeightAt(from);
+        float length = Vector2.Distance(from, to);
+        int steps = Mathf.Max(1, Mathf.CeilToInt(length / 0.25f));
+        for (int i = 0; i <= steps; i++)
+        {
+            var p = Vector2.Lerp(from, to, (float)i / steps);
+            for (int sx = -1; sx <= 1; sx += 2)
+                for (int sy = -1; sy <= 1; sy += 2)
+                {
+                    var cell = CellOf(p + new Vector2(sx * radius, sy * radius));
+                    if (!IsOpen(cell.x, cell.y) && !ShotPasses(cell.x, cell.y, level)) return false;
+                }
+        }
+        return true;
+    }
+
+    /// Test bench (AiScenarios): a cliff of level 1 along row y, from wall to wall, the ground above it on level 1.
+    public void TestCliff(int row)
+    {
+        cellHeight = new int[size * size];
+        cliffHeight = new int[size * size];
+        for (int k = 0; k < cliffHeight.Length; k++) cliffHeight[k] = -1;
+        var inside = Interior;
+        for (int x = inside.xMin; x < inside.xMax; x++)
+        {
+            open[x, row] = false;
+            cliffHeight[row * size + x] = 1;
+            wallMap.SetTile(new Vector3Int(x, row, 0), InvisibleWall());
+            for (int y = row + 1; y < inside.yMax; y++) cellHeight[y * size + x] = 1;
+        }
     }
 
     /// True when a disc of that radius can travel in a straight line between the two points without touching a wall.
