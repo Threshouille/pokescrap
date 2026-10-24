@@ -312,7 +312,7 @@ public class Climate : MonoBehaviour
         if (w.chip != null && w.chip.share > 0f && Time.time >= nextChip)
         {
             nextChip = Time.time + 1f;
-            foreach (var c in Combatant.All)
+            foreach (var c in new List<Combatant>(Combatant.All)) // a copy: the damage may knock one out
                 if (c != null && c.IsAlive && !HasType(c, w.chip.immuneTypes)) c.TakeFixedDamage(c.maxHp * w.chip.share);
         }
     }

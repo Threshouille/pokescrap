@@ -261,6 +261,12 @@ public static class GameData
             : a.basic != b.basic ? b.basic.CompareTo(a.basic) : string.CompareOrdinal(a.name, b.name));
     }
 
+    /// Every Pokémon of the table (dev characters included when devMode is on).
+    public static IEnumerable<PokemonStats> AllPokemon
+    {
+        get { Load(); return pokemon.Values; }
+    }
+
     /// Every move the game can play, sorted by type.
     public static IReadOnlyList<MoveDef> AllMoves
     {
@@ -400,11 +406,19 @@ public static class GameData
     /// damage when the pool has one.
     /// "role" (melee, ranged or support; null for any): the moves are drawn so that the Pokémon gets that role
     /// (see RoleFromMoves), when its list allows it (CanTakeRole).
-    public static int[] RandomMoves(int pokemonId, int count, System.Random rng, string role = null)
+    /// strong: the moves are picked among the more powerful half of what it can learn (a higher-ranked enemy).
+    public static int[] RandomMoves(int pokemonId, int count, System.Random rng, string role = null, bool strong = false)
     {
         var basics = BasicMoves(pokemonId, StatStyle(pokemonId));
         var pool = MovePool(pokemonId);
         pool.RemoveAll(m => m.basic);
+        if (strong)
+        {
+            // Only the damaging moves are thinned out: heals and bonuses stay (a support keeps its role).
+            var hits = pool.FindAll(m => m.power > 0);
+            hits.Sort((x, y) => y.power.CompareTo(x.power));
+            if (hits.Count > 2) pool.RemoveAll(m => m.power > 0 && hits.IndexOf(m) >= (hits.Count + 1) / 2);
+        }
         if (role != null && role != "support") pool.RemoveAll(IsSupportMove); // would turn it into a support
         var result = new List<int>();
         if (basics.Count > 0 && count > 0) result.Add(basics[rng.Next(basics.Count)].id);

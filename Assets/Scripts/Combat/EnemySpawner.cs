@@ -246,6 +246,17 @@ public class EnemySpawner : MonoBehaviour
     {
         nextWaveAt = 0f;
         if (Current.waves == null || CurrentWave >= Current.waves.Length) return;
+        // Encounters drawn for the décor and the stage (the stage's waves only give their number).
+        if (SaveData.Settings.encountersInRuns)
+        {
+            var encounters = Encounters.Wave(rng, CurrentStage, CurrentWave, generator.tileset != null ? generator.tileset.romId : -1);
+            if (encounters.Count > 0)
+            {
+                foreach (var e in encounters) SpawnEncounter(e, SpawnPoint(), Current.enemyLevel);
+                CurrentWave++;
+                return;
+            }
+        }
         var sets = new List<PmdAnimSet>();
         foreach (var entry in Current.waves[CurrentWave].enemies)
             for (int i = 0; i < entry.count; i++)
@@ -291,6 +302,36 @@ public class EnemySpawner : MonoBehaviour
             combatant.GetComponent<EnemyAI>().group = group;
             group.members.Add(combatant);
         }
+    }
+
+    /// An encounter appears around "centre", as one group sharing its target; each member at its rank (level,
+    /// health, moves, item) on top of "level".
+    public List<Combatant> SpawnEncounter(Encounters.Encounter e, Vector3 centre, int level)
+    {
+        var group = new EnemyGroup();
+        var spawned = new List<Combatant>();
+        for (int i = 0; i < e.members.Count; i++)
+        {
+            var m = e.members[i];
+            var set = PokemonRoster.Get(m.pokemonId);
+            if (set == null) continue;
+            // In rings around the first one: a pack with its leader can be seven.
+            float angle = i * 2.4f, radius = i == 0 ? 0f : 1.1f + 0.35f * (i / 6);
+            Vector3 spot = centre + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            // A blocked spot: the nearest free one around, rather than on top of the first member.
+            for (int k = 1; k < 12 && (!generator.WalkableAt(spot, 0.3f) || Obstacles.BlocksAt(spot, null)); k++)
+                spot = centre + new Vector3(Mathf.Cos(angle + k * 0.9f), Mathf.Sin(angle + k * 0.9f)) * (radius + 0.4f * k);
+            if (!generator.WalkableAt(spot, 0.3f) || Obstacles.BlocksAt(spot, null)) spot = centre;
+            var moves = GameData.RandomMoves(m.pokemonId, m.moveCount, rng, m.role, m.rarity.strong);
+            var c = Build(m.pokemonId, set, spot, false, moves, Mathf.Max(1, level + m.levelBonus), healthFactor * m.health);
+            RarityMark.Put(c, m.rarity);
+            if (m.item) c.gameObject.AddComponent<EnemyUltimate>();
+            else if (!Run.Sandbox && rng.NextDouble() < SpecialItems.Loot.eliteChance) Loot.MakeElite(c);
+            c.GetComponent<EnemyAI>().group = group;
+            group.members.Add(c);
+            spawned.Add(c);
+        }
+        return spawned;
     }
 
     PmdAnimSet SupportCandidate()

@@ -183,6 +183,23 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Chiffres de dégâts (17/10/2026) : au-dessus du Pokémon touché, en pixel art. Blanc normal, orange et plus gros si super efficace, gris-bleu et plus petit si pas très efficace, gris foncé sans effet, couleur du statut pour les dégâts de statut, vert précédé de « + » pour les soins.
 - L'environnement réagit au type ou à la nature du Pokémon : les Pokémon volants survolent les trous, les Pokémon aquatiques vont dans l'eau.
 
+### Rencontres (décidé le 24/10/2026, Robin ; étape 1 faite sur `feature/rencontres`)
+- Les vagues ne sont plus écrites à la main : chaque vague tire des **rencontres** jusqu'à épuiser un budget de
+  menace qui grandit avec l'étape et la vague. Lots (précisés le 24/10/2026, Robin) : **solitaire** (un Pokémon fort,
+  commun à épique), **équipe** (corps à corps, distance, soutien, le 2e choisi pour que son type se combine avec celui
+  du 1er : Eau + Électrik, Plante + Feu… ; commun à épique), **meute** (4 à 6 fois le même Pokémon, niveau bas, commun à
+  rare), **gang** (trois solitaires, chacun avec un objet, donc trois ultimes ; rare à épique, à partir de l'étape 3).
+- Combinaisons : un lot peut venir avec un autre dans le même groupe (meute menée par un solitaire rare ou épique,
+  équipe et solitaire, meute et équipe ; probabilités dans `encounters.json`).
+- Téra ennemi cohérent avec l'environnement : le type choisi aide aussi à se déplacer parmi les obstacles autour (Eau ou
+  Vol sur un lac, Spectre entre les rochers…) ; utilisé dès le début du combat quand c'est pour le terrain.
+- À faire plus tard : un usage plus stratégique des méga-évolutions par l'ennemi.
+- Chaque ennemi a un **rang** (commun, peu commun, rare, épique), plus fréquent en avançant : niveaux, PV et attaques en
+  plus, attaques prises parmi les plus puissantes, objet et ultime pour les épiques ; anneau de couleur sous lui.
+- Les Pokémon vont avec le décor (types) et leur stade d'évolution avec l'étape ; légendaires exclus.
+- Suite : 2) élites (champion solitaire ou escouade), 3) comportements de groupe (rôles, encerclement, combos de
+  terrain, obstacles), 4) intégration et équilibrage.
+
 ### Boss
 - Chaque boss est un Pokémon légendaire (Groudon en premier), avec 4 attaques toujours les mêmes, pour que le joueur apprenne ses schémas.
 - Mort du boss : ses gardes disparaissent sans rapporter d'expérience ni de recrue (17/10/2026).

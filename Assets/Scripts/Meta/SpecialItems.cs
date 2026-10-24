@@ -28,6 +28,9 @@ public static class SpecialItems
     {
         public int zMinTargets = 2, level = 1;
         public float startDelay = 4f, checkEvery = 0.5f, teraHealth = 0.75f, teraMinGain = 0.2f, zRange = 8f, zKillShare = 0.6f, zMaxShare = 0.4f;
+        public float megaChance = 0.6f, megaRange = 6f, teraCrossBonus = 0.5f;
+        public float teraTerrainBonus = 0.6f, terrainRadius = 8f;
+        public int terrainMinTiles = 4;
     }
 
     [Serializable] public class FamilyIcons { public string mega, z, tera; }

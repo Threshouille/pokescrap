@@ -174,7 +174,15 @@ public class Combatant : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
     }
 
-    void OnEnable() => all.Add(this);
+    // Drawn once: where two Pokémon exactly on top of each other push each other (opposite ways, the same each frame).
+    // (Unity's Random cannot be called from a field initializer: drawn when first enabled.)
+    float spreadAngle = -1f;
+
+    void OnEnable()
+    {
+        if (spreadAngle < 0f) spreadAngle = UnityEngine.Random.value * Mathf.PI * 2f;
+        all.Add(this);
+    }
     void OnDisable() => all.Remove(this);
 
     public static int CountAlive(Team team)
@@ -213,8 +221,16 @@ public class Combatant : MonoBehaviour
             Vector2 away = me - (Vector2)c.transform.position;
             float distance = away.magnitude;
             if (distance >= space) continue;
-            // Exactly on top of each other: any direction will do.
-            push += (distance > 0.001f ? away / distance : UnityEngine.Random.insideUnitCircle.normalized) * (1f - distance / space);
+            // Exactly on top of each other: a direction that stays the same for this pair (a random one each frame
+            // made them spin on the spot).
+            if (distance <= 0.001f)
+            {
+                away = new Vector2(Mathf.Cos(spreadAngle) - Mathf.Cos(c.spreadAngle), Mathf.Sin(spreadAngle) - Mathf.Sin(c.spreadAngle));
+                away = away.sqrMagnitude > 0.0001f ? away.normalized : Vector2.right;
+                distance = 0f;
+            }
+            else away /= distance;
+            push += away * (1f - distance / space);
         }
         return push;
     }
@@ -380,6 +396,7 @@ public class Combatant : MonoBehaviour
         form.types = new[] { type };
         Stats = form;
         TeraType = type;
+        ShowTeraIcon(type);
     }
 
     public void RevertTera()
@@ -387,6 +404,25 @@ public class Combatant : MonoBehaviour
         if (TeraType < 0) return;
         Stats = beforeTera;
         TeraType = -1;
+        if (teraIcon != null) Destroy(teraIcon);
+    }
+
+    const float TeraIconHeight = 1.15f, TeraIconSize = 0.55f; // tiles above the feet, width
+    GameObject teraIcon;
+
+    // The Tera shard's icon above its head while Terastallized (the tint alone was easy to miss).
+    void ShowTeraIcon(int type)
+    {
+        if (teraIcon != null) Destroy(teraIcon);
+        var icon = SpecialItems.Icon(SpecialItems.IconName(SpecialItems.Family.Tera, null, type));
+        if (icon == null) return;
+        teraIcon = new GameObject("Téra");
+        teraIcon.transform.SetParent(transform, false);
+        teraIcon.transform.localPosition = new Vector3(0f, TeraIconHeight, 0f);
+        teraIcon.transform.localScale = Vector3.one * TeraIconSize / Mathf.Max(0.01f, transform.lossyScale.x);
+        var r = teraIcon.AddComponent<SpriteRenderer>();
+        r.sprite = icon;
+        r.sortingOrder = 2; // above the Pokémon
     }
 
     /// Uses a move that is in none of its slots (a Z move): it borrows the first slot for the cast, whose own move

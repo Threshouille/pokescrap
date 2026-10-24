@@ -122,6 +122,7 @@ public class Terrain : MonoBehaviour
     Transform tileRoot;
     int sortingLayer, sortingOrder;
     readonly List<Pending> pending = new(); // tiles a spreading reaction reaches later
+    static readonly List<Combatant> scan = new();
     readonly HashSet<int> queued = new();
     readonly Dictionary<Combatant, float> nextTick = new();
 
@@ -667,7 +668,9 @@ public class Terrain : MonoBehaviour
             }
         }
         if (active <= 0) return;
-        foreach (var c in Combatant.All)
+        scan.Clear();
+        scan.AddRange(Combatant.All); // a copy: a knock-out from the ground's damage may change the list
+        foreach (var c in scan)
         {
             if (c == null || !c.IsAlive) continue;
             var def = Affecting(c);

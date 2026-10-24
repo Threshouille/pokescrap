@@ -87,12 +87,12 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 27 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 42 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
   brûler un pont sous un ennemi, marcher sur du métal chargé, objets et ultimes, élites, réanimer un K.O., l'éloigner
-  des ennemis, soigner sans se mettre en danger) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
+  des ennemis, soigner sans se mettre en danger, rencontres : budget, meutes, équipes, rangs, décor, apparition) et affiche réussi / échec avec les mesures. Ne pas toucher aux commandes pendant le banc.
   Sans ouvrir Unity : `python3 Tools/setup.py --ai-scenarios` (Unity fermé ; résultats dans `Logs/ai_scenarios.log`,
   code de sortie = nombre d'échecs). Scénarios : `Assets/Scripts/Combat/AiScenarios.cs`.
 
@@ -234,6 +234,25 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 24/10/2026 — Rencontres, étape 1 (Robin, branche `feature/rencontres`)
+- Les vagues de la partie sont tirées dans `encounters.json`, selon un budget qui grandit avec l'étape : **solitaires**
+  (commun à épique), **équipes** (rôles et types qui se combinent, commun à épique), **meutes** (4 à 6 fois le même
+  Pokémon, niveau bas, commun à rare) et **gangs** (trois solitaires avec chacun un objet, rare à épique, dès l'étape 3) ;
+  Pokémon assortis au décor, légendaires exclus. Un lot peut venir accompagné dans le même groupe : meute menée par
+  un solitaire rare ou épique (35 %), équipe et solitaire (15 %), meute et équipe (10 %).
+- **Rangs** commun / peu commun / rare / épique (anneau gris-vert-bleu-violet sous l'ennemi) : plus de niveaux, de PV et
+  d'attaques, attaques plus puissantes, ultime pour les épiques.
+- Terrain de test, **escalier blanc** (en bas) : **observation des rencontres**, sans jouer : une rencontre à la fois
+  dans une salle d'obstacles, contre ton équipe pilotée par l'IA (solitaire qui peut méga-évoluer, meute, équipe, gang,
+  une combinaison, puis une zone peuplée : une vague entière de plusieurs lots) ; R / Select passe à la suivante. Le banc décrit une zone
+  typique à chaque étape (lignes `AIZONE` du journal).
+- Ultimes ennemis : un ennemi dont la lignée a une méga peut porter sa méga-gemme et méga-évolue quand on l'approche ;
+  un Téra-Éclat peut être choisi pour franchir le terrain (Spectre à travers les rochers, Vol au-dessus de l'eau…), utilisé
+  dès que l'obstacle l'arrête. Dans la salle d'observation, le premier ennemi de chaque rencontre porte un objet et le
+  solitaire est un Pokémon qui peut méga-évoluer.
+- Les alliés (et le Pokémon joué en pilote automatique), les élites et les ennemis rares ou épiques refont un passage
+  (pont, glace, nénuphars) pour atteindre leur cible.
 
 ### 23/10/2026 — Secours et soins des alliés (Robin, branche `fix/ia-reanimation`)
 - Quand un membre de l'équipe est K.O., le plus apte à encaisser et finir les ennemis (PV, défenses, dégâts, corps à

@@ -5,17 +5,28 @@ using UnityEngine;
 /// The ultimate of an elite or a boss (GDD, "Objets spéciaux"; settings in items.json, "enemy"). Like any Pokémon it
 /// carries one special item, so one ultimate, used once. The item is picked when it first looks at the fight, from
 /// the player's team:
+/// - a mega stone when its line has a mega with sprites (megaChance): it mega evolves once an opponent is near;
 /// - a Tera shard when a type would shrug off their moves (the type that lowers the most their average type
-///   multiplier against it; its own attacks' types break ties): it Terastallizes once its health is low, for good;
+///   multiplier against it; its own attacks' types break ties) or would carry it across the obstacle between it and
+///   its target, or around it (water, lava, void, rocks: Eau or Vol on a lake, Spectre among rocks...): it
+///   Terastallizes once its health is low, at once when that obstacle stops it, or, picked for the ground, as soon as
+///   the fight starts; for good;
 /// - else the Z crystal of its strongest damaging move: the Z move goes when several opponents are near, or when one
 ///   would lose most of what it has left. A pose with a banner warns first; the strike reaches opponents in view
 ///   within zRange and takes at most zMaxShare of each one's health; its terrain never acts on its own team.
 [RequireComponent(typeof(Combatant))]
 public class EnemyUltimate : MonoBehaviour
 {
-    /// The family of the item it carries (None until it has looked at the fight), and its type.
+    /// The family of the item it carries (None until it has looked at the fight), its type, its mega.
     public SpecialItems.Family Item { get; private set; }
     public int ItemType { get; private set; } = -1;
+    public MegaDef ItemMega { get; private set; }
+
+    /// The Tera shard was picked mostly to get about the obstacles around it: used as soon as the fight starts.
+    public bool TeraForTerrain { get; private set; }
+
+    /// Carries the mega stone of its line whenever it can (the encounter lab shows mega evolutions).
+    public bool preferMega;
 
     /// What it unleashed ("tera", "z" or ""), for the tests.
     public string LastUsed { get; private set; } = "";
@@ -45,15 +56,26 @@ public class EnemyUltimate : MonoBehaviour
     }
 
     /// Gives it that item instead of the one it would pick (tests).
-    public void Carry(SpecialItems.Family family, int type)
+    public void Carry(SpecialItems.Family family, int type, MegaDef mega = null)
     {
         Item = family;
         ItemType = type;
+        ItemMega = mega;
     }
+
+    /// The mega evolutions of its current form that have sprites.
+    public List<MegaDef> Megas() =>
+        self.Stats == null || self.Mega != null ? new List<MegaDef>() : GameData.MegasOf(self.Stats.id).Where(m => PokemonRoster.Has(m.id)).ToList();
 
     /// Picks the item it carries, from the opponents it faces now.
     public void ChooseItem()
     {
+        var megas = Megas();
+        if (megas.Count > 0 && (preferMega || Random.value < SpecialItems.Enemy.megaChance))
+        {
+            Carry(SpecialItems.Family.Mega, -1, megas[Random.Range(0, megas.Count)]);
+            return;
+        }
         int tera = BestTeraType(out float gain);
         if (tera > 0 && gain >= SpecialItems.Enemy.teraMinGain)
         {
@@ -71,7 +93,14 @@ public class EnemyUltimate : MonoBehaviour
         if (used) return false;
         if (Item == SpecialItems.Family.None) ChooseItem();
         var s = SpecialItems.Enemy;
-        if (Item == SpecialItems.Family.Tera && self.TeraType < 0 && self.hp <= self.maxHp * s.teraHealth)
+        if (Item == SpecialItems.Family.Mega && ItemMega != null && self.Mega == null
+            && (self.hp <= self.maxHp * s.teraHealth || Nearest(s.megaRange) != null))
+        {
+            MegaUp(ItemMega);
+            return true;
+        }
+        if (Item == SpecialItems.Family.Tera && self.TeraType < 0
+            && (self.hp <= self.maxHp * s.teraHealth || Crosses(ItemType) || (TeraForTerrain && Nearest(s.zRange) != null)))
         {
             Tera(ItemType);
             return true;
@@ -100,10 +129,83 @@ public class EnemyUltimate : MonoBehaviour
         {
             float after = Average(incoming, new[] { shard.type });
             int own = self.Moves.Count(m => m != null && m.power > 0 && m.type == shard.type);
-            float score = now - after + 0.05f * own;
-            if (score > bestScore) { bestScore = score; best = shard.type; gain = now - after; }
+            float cross = Crosses(shard.type) ? SpecialItems.Enemy.teraCrossBonus : 0f; // the way to its target opens
+            float ground = SpecialItems.Enemy.teraTerrainBonus * TerrainShare(shard.type); // it gets about the obstacles
+            float score = now - after + cross + ground + 0.05f * own;
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = shard.type;
+                gain = now - after + cross + ground;
+                TeraForTerrain = cross + ground > now - after;
+            }
         }
         return best;
+    }
+
+    Combatant Nearest(float range) =>
+        Combatant.Nearest(self.team == Team.Player ? Team.Enemy : Team.Player, self.transform.position, range);
+
+    /// Whether an obstacle on the straight way to its nearest opponent stops it now but would not with that type.
+    public bool Crosses(int type)
+    {
+        var grid = DungeonGenerator.Current;
+        var target = Nearest(float.MaxValue);
+        if (grid == null || target == null || Obstacles.Current == null || self.Stats == null) return false;
+        var tera = self.Stats.Clone();
+        tera.types = new[] { type };
+        Vector2 from = self.transform.position, to = target.transform.position;
+        bool stopped = false;
+        int steps = Mathf.Max(1, Mathf.CeilToInt(Vector2.Distance(from, to) / 0.5f));
+        for (int i = 1; i < steps; i++)
+        {
+            var cell = grid.CellOf(Vector2.Lerp(from, to, (float)i / steps));
+            if (!Obstacles.BlocksStats(cell.x, cell.y, self.Stats)) continue;
+            if (Obstacles.BlocksStats(cell.x, cell.y, tera)) return false; // still stopped there with that type
+            stopped = true;
+        }
+        return stopped;
+    }
+
+    /// Share, among the obstacle tiles that stop it within terrainRadius (at least terrainMinTiles of them), of
+    /// those that type would let it cross: 0 to 1.
+    public float TerrainShare(int type)
+    {
+        var grid = DungeonGenerator.Current;
+        var s = SpecialItems.Enemy;
+        if (grid == null || Obstacles.Current == null || self.Stats == null) return 0f;
+        var tera = self.Stats.Clone();
+        tera.types = new[] { type };
+        var at = grid.CellOf(self.transform.position);
+        int r = Mathf.CeilToInt(s.terrainRadius), stopped = 0, crossed = 0;
+        for (int x = at.x - r; x <= at.x + r; x++)
+            for (int y = at.y - r; y <= at.y + r; y++)
+            {
+                if ((x - at.x) * (x - at.x) + (y - at.y) * (y - at.y) > s.terrainRadius * s.terrainRadius) continue;
+                if (!Obstacles.BlocksStats(x, y, self.Stats)) continue;
+                stopped++;
+                if (!Obstacles.BlocksStats(x, y, tera)) crossed++;
+            }
+        return stopped >= s.terrainMinTiles ? (float)crossed / stopped : 0f;
+    }
+
+    // ---- Mega ----
+
+    void MegaUp(MegaDef mega)
+    {
+        used = true;
+        LastUsed = "mega";
+        string name = self.Stats.name;
+        self.MegaEvolve(mega);
+        var animator = GetComponent<PmdAnimator>();
+        var set = PokemonRoster.Get(mega.id);
+        if (animator != null && set != null) animator.SetAnimSet(set);
+        gameObject.name = mega.name;
+        float pose = SaveData.Settings.megaCastTime;
+        self.BeginEvolution(pose);
+        Ultimates.Aura(self, pose, Color.white);
+        EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+        progression?.Announce($"{name} ennemi méga-évolue en {mega.name} !");
     }
 
     // Types of the damaging moves of the living opponents (each move counts once per Pokémon).

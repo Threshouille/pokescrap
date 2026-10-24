@@ -5,7 +5,7 @@ using UnityEngine;
 /// before it is used; it keeps moving right after, but waits a moment before announcing the next one. It walks
 /// around walls and harmful zones. Its dodge lets a ranged or support enemy flee an opponent that gets too close,
 /// and a melee enemy rush at its target. An elite cut off from its target by water, lava or void changes them with
-/// its moves to make a way (ObstacleTactics.Repair), as allies do.
+/// its moves to make a way (ObstacleTactics.Repair), as allies do; so do the higher ranks (encounters.json, repairs).
 [RequireComponent(typeof(Rigidbody2D), typeof(PmdAnimator), typeof(Combatant))]
 public class EnemyAI : MonoBehaviour
 {
@@ -28,6 +28,11 @@ public class EnemyAI : MonoBehaviour
     readonly Navigator navigator = new();
     readonly Navigator repairNavigator = new();
     ObstacleTactics.Plan repair;
+    readonly Progress towardFoe = new(); // stops getting closer to its target: maybe something to repair
+    // Walking direction, eased toward the wanted one: in a tight group the pull to the target and the neighbours' push
+    // swapped from one frame to the next and the enemy turned back several times a second.
+    const float SteerEase = 0.25f;
+    Vector2 walking;
     bool hasRepair;
     float nextRepair;
     Rigidbody2D body;
@@ -96,8 +101,13 @@ public class EnemyAI : MonoBehaviour
         bool canAttack = Time.time >= nextAttackAt;
         var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target(), canAttack);
         if (TryDodge(decision, position, grid)) return;
-        if (decision.slot < 0 && decision.foe != null && combatant.IsElite && !navigator.Reachable
-            && TryRepair(position, decision.foe.transform.position, canAttack)) return;
+        // Elites and the higher ranks (RarityMark.Repairs) make a way to a target they cannot reach.
+        if (decision.slot < 0 && decision.foe != null && (combatant.IsElite || RarityMark.Repairs(combatant)))
+        {
+            Vector2 foeAt = decision.foe.transform.position;
+            if ((!navigator.Reachable || towardFoe.Stuck(Vector2.Distance(position, foeAt))) && TryRepair(position, foeAt, canAttack)) return;
+        }
+        else towardFoe.Reset();
         if (decision.slot >= 0)
         {
             Vector2 aim = decision.aim != Vector2.zero ? decision.aim.normalized : Vector2.right;
@@ -161,6 +171,9 @@ public class EnemyAI : MonoBehaviour
 
     void Move(Vector2 direction, Vector2 lookAt)
     {
+        walking = Vector2.Lerp(walking, direction, SteerEase);
+        if (walking.sqrMagnitude < 0.0025f) walking = Vector2.zero;
+        direction = walking;
         combatant.Drive(combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor);
         if (Time.time < attackAnimUntil)
         {
@@ -168,7 +181,7 @@ public class EnemyAI : MonoBehaviour
             return;
         }
         Vector2 facing = direction != Vector2.zero ? direction : lookAt;
-        if (facing != Vector2.zero) animator.direction = PmdAnimator.DirectionIndex(facing);
+        animator.Face(facing);
         animator.Play(direction != Vector2.zero ? "Walk" : "Idle");
     }
 
