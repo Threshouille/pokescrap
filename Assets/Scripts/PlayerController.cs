@@ -100,6 +100,7 @@ public class PlayerController : MonoBehaviour
         gameObject.AddComponent<PointLights>();
         gameObject.AddComponent<AmbientParticles>();
         gameObject.AddComponent<Wind>();
+        gameObject.AddComponent<DayNightEffects>();
         gameObject.AddComponent<Evolution>();
         gameObject.AddComponent<Ultimates>();
         gameObject.AddComponent<Bag>(); // the team's shared consumables

@@ -119,6 +119,7 @@ public static class SaveData
         public float megaBossFill = 0.5f; // share of the gauge a boss gives
         public float megaTime = 50f; // seconds before the Pokémon goes back to its form
         public float megaCastTime = 1.5f; // silhouettes alternate, the Pokémon stands still and cannot be hurt
+        public bool postProcessing = true; // bloom, colours and vignette by phase of the day (PostEffects)
     }
 
     static File data;

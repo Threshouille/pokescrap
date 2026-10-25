@@ -15,14 +15,18 @@ public class DayNight : MonoBehaviour
         public string key, name, color = "#ffffff";
         public float minutes = 1f, intensity = 1f;
         public bool night;
-        [NonSerialized] public Color colour;
+        // Post-processing of the phase (PostEffects): bloom intensity, saturation and contrast (-100..100), exposure,
+        // vignette (0..1), colour filter.
+        public float bloom, saturation, contrast, exposure, vignette;
+        public string tint = "#ffffff";
+        [NonSerialized] public Color colour, filter;
     }
 
     [Serializable]
     class Settings
     {
         public bool randomStart = true;
-        public float blend = 30f, clockStart = 5f;
+        public float blend = 30f, clockStart = 5f, bloomThreshold = 0.85f;
         public Phase[] phases = new Phase[0];
     }
 
@@ -39,7 +43,10 @@ public class DayNight : MonoBehaviour
             var asset = Resources.Load<TextAsset>("Data/daynight");
             settings = asset != null ? JsonUtility.FromJson<Settings>(asset.text) : new Settings();
             foreach (var p in settings.phases)
+            {
                 if (!ColorUtility.TryParseHtmlString(p.color, out p.colour)) p.colour = Color.white;
+                if (!ColorUtility.TryParseHtmlString(p.tint, out p.filter)) p.filter = Color.white;
+            }
             return settings;
         }
     }
@@ -76,6 +83,8 @@ public class DayNight : MonoBehaviour
         return null;
     }
 
+    public static float BloomThreshold => Data.bloomThreshold;
+
     public static bool IsNight => Now(out _) is { night: true };
 
     /// How dark it is: 0 at the brightest phase's light, 1 at the darkest one (the point lights follow it).
@@ -106,20 +115,30 @@ public class DayNight : MonoBehaviour
     /// The light of that moment: the phase's own, blending into the next one over its last `blend` seconds.
     static void Light(out Color colour, out float intensity)
     {
-        colour = Color.white;
-        intensity = 1f;
+        colour = Mix(p => p.colour);
+        intensity = Mix(p => p.intensity);
+    }
+
+    // The phase now, the next one and how far it blends into it (over the last `blend` seconds of the phase).
+    static bool Blend(out Phase phase, out Phase next, out float t)
+    {
         var phases = Data.phases;
-        if (phases.Length == 0) return;
-        var phase = Now(out float into);
-        int k = Array.IndexOf(phases, phase);
-        var next = phases[(k + 1) % phases.Length];
+        phase = next = null;
+        t = 0f;
+        if (phases.Length == 0) return false;
+        phase = Now(out float into);
+        next = phases[(Array.IndexOf(phases, phase) + 1) % phases.Length];
         float span = Mathf.Max(0f, phase.minutes) * 60f;
         float blend = Mathf.Min(Data.blend, span / 2f);
-        float t = blend > 0f ? Mathf.Clamp01((into - (span - blend)) / blend) : 0f;
+        t = blend > 0f ? Mathf.Clamp01((into - (span - blend)) / blend) : 0f;
         t = t * t * (3f - 2f * t);
-        colour = Color.Lerp(phase.colour, next.colour, t);
-        intensity = Mathf.Lerp(phase.intensity, next.intensity, t);
+        return true;
     }
+
+    /// A value of the phases at this moment, blended like the light.
+    public static float Mix(Func<Phase, float> of) => Blend(out var a, out var b, out float t) ? Mathf.Lerp(of(a), of(b), t) : 0f;
+
+    public static Color Mix(Func<Phase, Color> of) => Blend(out var a, out var b, out float t) ? Color.Lerp(of(a), of(b), t) : Color.white;
 
     void Awake()
     {

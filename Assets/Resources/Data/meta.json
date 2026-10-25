@@ -73,5 +73,6 @@
   "megaTime": 50,
   "megaCastTime": 1.5,
   "evolutionCardChance": 0.5,
-  "statTieMargin": 0.1
+  "statTieMargin": 0.1,
+  "postProcessing": true
 }

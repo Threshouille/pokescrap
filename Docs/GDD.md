@@ -308,9 +308,8 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   courant des rivières (reflets qui descendent vers la côte), bulles de lave.
 - Vent dans la végétation (fait le 25/10/2026) : arbres, palmiers, buissons, fougères et fleurs ondulent au pixel près
   (pied fixe), plus fort et penchés pendant une tempête ; les feuilles et la neige dérivent avec le vent.
-- Suite prévue : post-traitement (bloom, couleurs,
-  vignette) par phase, eau animée (palette de la ROM ou shader, écume des berges), particules d'ambiance par biome et
-  par phase (lucioles la nuit), vent dans la végétation.
+- Post-traitement (fait le 25/10/2026) : bloom (lave, feu, lucioles et lumières brillent la nuit), couleurs et vignette
+  par phase, en fondu avec l'horloge ; coupable dans `meta.json` (`postProcessing`).
 
 ### Types et environnement
 - La table des types est conservée (avantages et faiblesses), celle de la 4e génération (époque de la ROM).

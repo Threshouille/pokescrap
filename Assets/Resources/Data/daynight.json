@@ -1,12 +1,13 @@
 {
- "comment": "Day and night cycle (DayNight.cs; GDD, 'Jour et nuit'): one day lasts `minutes` of each phase in turn (real minutes, paused with the game), the run starting at a random time of it (randomStart) or at the dawn. Each phase: name shown in the HUD, colour and intensity of the global light, night (evolutions and seals at night, the night's encounters). The light holds the phase's colour, then blends into the next one over its last `blend` seconds. clockStart: the hour shown at the start of the dawn (a day = 24 hours). devKeys: H adds a minute, Shift+H jumps to the next phase (devMode).",
+ "comment": "Day and night cycle (DayNight.cs; GDD, 'Jour et nuit'): one day lasts `minutes` of each phase in turn (real minutes, paused with the game), the run starting at a random time of it (randomStart) or at the dawn. Each phase: name shown in the HUD, colour and intensity of the global light, night (evolutions and seals at night, the night's encounters); post-processing (PostEffects, postProcessing in meta.json): bloom intensity (bright lights and effects glow, threshold bloomThreshold), saturation and contrast (-100 to 100), exposure (EV), vignette (0 to 1), tint (colour filter). The light holds the phase's colour, then blends into the next one over its last `blend` seconds. clockStart: the hour shown at the start of the dawn (a day = 24 hours). devKeys: H adds a minute, Shift+H jumps to the next phase (devMode).",
  "randomStart": true,
  "blend": 30,
  "clockStart": 5,
+ "bloomThreshold": 0.85,
  "phases": [
-  { "key": "dawn", "name": "Aube", "minutes": 1, "color": "#ffc89a", "intensity": 0.85, "night": false },
-  { "key": "day", "name": "Jour", "minutes": 5, "color": "#ffffff", "intensity": 1.0, "night": false },
-  { "key": "dusk", "name": "Crépuscule", "minutes": 1, "color": "#ff9a8a", "intensity": 0.8, "night": false },
-  { "key": "night", "name": "Nuit", "minutes": 3, "color": "#5a6ab8", "intensity": 0.55, "night": true }
+  { "key": "dawn", "name": "Aube", "minutes": 1, "color": "#ffc89a", "intensity": 0.85, "night": false, "bloom": 0.35, "saturation": 5, "contrast": 5, "exposure": 0, "vignette": 0.2, "tint": "#fff0e0" },
+  { "key": "day", "name": "Jour", "minutes": 5, "color": "#ffffff", "intensity": 1.0, "night": false, "bloom": 0.15, "saturation": 10, "contrast": 5, "exposure": 0, "vignette": 0.12, "tint": "#ffffff" },
+  { "key": "dusk", "name": "Crépuscule", "minutes": 1, "color": "#ff9a8a", "intensity": 0.8, "night": false, "bloom": 0.45, "saturation": 5, "contrast": 8, "exposure": 0, "vignette": 0.25, "tint": "#ffe4e0" },
+  { "key": "night", "name": "Nuit", "minutes": 3, "color": "#5a6ab8", "intensity": 0.55, "night": true, "bloom": 0.9, "saturation": -15, "contrast": 12, "exposure": 0, "vignette": 0.35, "tint": "#dfe6ff" }
  ]
 }
