@@ -62,7 +62,7 @@ public partial class IslandPlan
         if (key == "clearing" && clearings.Count > 0)
         {
             var c = Vector2Int.FloorToInt(clearings[rng.Next(clearings.Count)]);
-            if (Walkable(Index(c.x, c.y)))
+            if (Walkable(Index(c.x, c.y)) && !NearCave(c))
             {
                 secret = c;
                 secretSpot = "clearing";
@@ -73,7 +73,7 @@ public partial class IslandPlan
         for (int tries = 0; tries < 2000; tries++)
         {
             int x = rng.Next(size), y = rng.Next(size);
-            if (Vector2.Distance(new Vector2(x, y), start) < s.minDistance) continue;
+            if (Vector2.Distance(new Vector2(x, y), start) < s.minDistance || NearCave(new Vector2Int(x, y))) continue;
             bool clear = true;
             for (int dy = -1; dy <= 1 && clear; dy++)
                 for (int dx = -1; dx <= 1 && clear; dx++)
@@ -85,6 +85,8 @@ public partial class IslandPlan
             return;
         }
     }
+
+    bool NearCave(Vector2Int p) => sealedCave.x >= 0 && Vector2.Distance(p, sealedCave) < CaveSeals.Data.secretDistance;
 
     /// Open ground of a quarter: no wall, obstacle, road, cliff or cave.
     bool FreeGround(int x, int y)

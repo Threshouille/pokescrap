@@ -538,9 +538,16 @@ public class Obstacles : MonoBehaviour
 
     // ---- Moves changing obstacles ---------------------------------------------------------------------------
 
+    /// Any move hitting around a point (radius < 0: an impact), obstacles or not: a cave's mechanism listens (CaveSeal).
+    public static event System.Action<MoveDef, Vector2, float, Combatant> Hit;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetHit() => Hit = null;
+
     /// A move hits around a point (impact, burst, strike): radius < 0 uses each interaction's own.
     public static void OnHit(MoveDef move, Vector2 at, float radius, Combatant caster)
     {
+        if (move != null) Hit?.Invoke(move, at, radius, caster);
         if (Current == null || Current.count <= 0 || move == null) return;
         Current.Touch(move, at, at, radius, false, caster);
     }

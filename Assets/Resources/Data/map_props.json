@@ -49,7 +49,6 @@
   {"key": "tree_1212", "group": "tree", "map": "P16P01A", "rect": [48, 193, 95, 86], "block": true},
   {"key": "tree_1251", "group": "tree", "map": "P20P02A", "rect": [270, 73, 89, 88], "block": true},
   {"key": "tree_1254", "group": "tree", "map": "P20P02A", "rect": [49, 121, 89, 88], "block": true},
-  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true},
-  {"key": "cave_arch", "group": "cave", "map": "G01P08A", "rect": [84, 80, 96, 80], "block": false, "layer": "lower", "clearTop": true, "cutSides": [34, 15, 82]}
+  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true}
  ]
 }

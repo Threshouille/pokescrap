@@ -162,22 +162,7 @@ public class DungeonGenerator : MonoBehaviour
                 cellDecor[g] = nearest[k];
                 open[gx, gy] = r == zone && (zone == IslandPlan.Centre || !plan.wall[PlanIndex(x, y)]);
                 if (r == zone && wallLook != null) wallLook[g] = plan.wallLook[PlanIndex(x, y)];
-                if (r == zone && plan.cliffStyle != null && plan.CliffRole(PlanIndex(x, y)) is { } role)
-                {
-                    cliffTiles ??= new Tile[size * size];
-                    var sprites = CliffSprites(plan.cliffStyles[plan.cliffStyle[PlanIndex(x, y)]], role);
-                    if (sprites.Length == 0) sprites = CliffSprites(plan.cliffStyles[1], role); // borrowed (the rock's stairs)
-                    // A face's rows: consecutive columns of the map, in turn along the face; other pieces at random.
-                    bool row = role is "top" or "middle" or "bottom";
-                    // An edge seen from above blocks along its drop only (a thin collider, see BuildEdges), not the
-                    // whole tile; to the navigation it stays a wall.
-                    // The edges block as thick as they are drawn (BuildEdges), not the whole tile; to the navigation
-                    // they stay walls.
-                    bool edge = !open[gx, gy] && role is "back" or "left" or "right" or "backLeft" or "backRight" or "top" or "leftTop" or "rightTop";
-                    if (sprites.Length > 0) cliffTiles[g] = CliffTile(sprites[(row ? x : x * 7 + y * 13) % sprites.Length], !open[gx, gy] && !edge);
-                    if (edge) { edgeCells.Add(new Vector2Int(gx, gy)); edgeRoles.Add(role); }
-                    if (!open[gx, gy] && cliffHeight != null) cliffHeight[g] = plan.height[PlanIndex(x, y)];
-                }
+                if (r == zone && plan.cliffStyle != null) LayCliff(plan, PlanIndex(x, y), x, y, gx, gy);
                 if (r == zone && cellHeight != null) cellHeight[g] = plan.height[PlanIndex(x, y)];
                 if (r == zone && cellShade != null) cellShade[g] = plan.Shade(PlanIndex(x, y));
             }
@@ -207,6 +192,69 @@ public class DungeonGenerator : MonoBehaviour
         }
         Obstacles.Current.FinishLevel(spawn);
         if (player != null) player.position = CentreOf(spawn.x, spawn.y);
+    }
+
+    // The cliff piece of an island tile (x, y in the zone; gx, gy in the grid), if any: its tile, its edge collider
+    // and the level it blocks shots at.
+    void LayCliff(IslandPlan plan, int i, int x, int y, int gx, int gy)
+    {
+        int g = gy * size + gx;
+        if (cliffTiles != null) cliffTiles[g] = null;
+        if (plan.CliffRole(i) is not { } role) return;
+        cliffTiles ??= new Tile[size * size];
+        var sprites = CliffSprites(plan.cliffStyles[plan.cliffStyle[i]], role);
+        if (sprites.Length == 0) sprites = CliffSprites(plan.cliffStyles[1], role); // borrowed (the rock's stairs)
+        // A face's rows: consecutive columns of the map, in turn along the face; other pieces at random.
+        bool row = role is "top" or "middle" or "bottom";
+        // The edges block as thick as they are drawn (BuildEdges), not the whole tile; to the navigation they stay walls.
+        bool edge = !open[gx, gy] && role is "back" or "left" or "right" or "backLeft" or "backRight" or "top" or "leftTop" or "rightTop";
+        if (sprites.Length > 0) cliffTiles[g] = CliffTile(sprites[(row ? x : x * 7 + y * 13) % sprites.Length], !open[gx, gy] && !edge);
+        if (edge) { edgeCells.Add(new Vector2Int(gx, gy)); edgeRoles.Add(role); }
+        if (!open[gx, gy] && cliffHeight != null) cliffHeight[g] = plan.height[i];
+    }
+
+    /// Island tiles changed in play (a cave's door opened, IslandPlan.OpenCave): drawn again, with their collisions,
+    /// edges and what the navigation sees.
+    public void RedrawIsland(IEnumerable<int> planTiles)
+    {
+        var plan = island;
+        if (plan == null || open == null) return;
+        var origin = Interior.min;
+        int edges = edgeCells.Count;
+        foreach (int i in planTiles)
+        {
+            int x = i % plan.size - IslandOrigin.x, y = i / plan.size - IslandOrigin.y, gx = x + origin.x, gy = y + origin.y;
+            if (gx < 0 || gy < 0 || gx >= size || gy >= size || cellDecor == null) continue;
+            int g = gy * size + gx;
+            open[gx, gy] = !plan.wall[i];
+            if (cliffHeight != null) cliffHeight[g] = -1;
+            for (int k = edgeCells.Count - 1; k >= 0; k--)
+                if (edgeCells[k] == new Vector2Int(gx, gy)) { edgeCells.RemoveAt(k); edgeRoles.RemoveAt(k); edges = -1; }
+            if (plan.decor != null && plan.decor[i] > 0 && TilesetRoster.Get(plan.decor[i]) is { } own) cellDecor[g] = own;
+            if (cellShade != null) cellShade[g] = plan.Shade(i);
+            if (plan.cliffStyle != null) LayCliff(plan, i, x, y, gx, gy);
+            var decor = cellDecor[g];
+            if (decor == null) continue;
+            var cell = new Vector3Int(gx, gy, 0);
+            var piece = cliffTiles != null ? cliffTiles[g] : null;
+            floorMap.SetTile(cell, GetTile(decor, decor.floor[255 * 3], false));
+            wallMap.SetTile(cell, piece != null ? piece : open[gx, gy] ? null : GetTile(decor, decor.wall[255 * 3], true));
+            float shade = cellShade != null && cellShade[g] > 0f ? cellShade[g] : 1f;
+            foreach (var map in new[] { floorMap, wallMap })
+            {
+                map.SetTileFlags(cell, TileFlags.None);
+                map.SetColor(cell, new Color(shade, shade, shade, 1f));
+            }
+        }
+        if (edges != edgeCells.Count)
+        {
+            if (edgeRoot != null)
+            {
+                if (Application.isPlaying) Destroy(edgeRoot);
+                else DestroyImmediate(edgeRoot);
+            }
+            BuildEdges();
+        }
     }
 
     /// Where the team appeared in the arena.

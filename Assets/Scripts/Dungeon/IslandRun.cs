@@ -69,6 +69,7 @@ public class IslandRun : MonoBehaviour
         revealed = new bool[pixels.Length];
         Away = false;
         if (GetComponent<SecretStairs>() == null) gameObject.AddComponent<SecretStairs>();
+        if (GetComponent<CaveSeal>() == null) gameObject.AddComponent<CaveSeal>();
         Build(Plan.order[0], null);
     }
 
@@ -201,6 +202,7 @@ public class IslandRun : MonoBehaviour
     public void End()
     {
         if (GetComponent<SecretStairs>() is { } secret) secret.Clear();
+        if (GetComponent<CaveSeal>() is { } cave) cave.Clear();
         Away = false;
         if (propRoot != null) Destroy(propRoot.gameObject);
         foreach (var e in exits) if (e.marker != null) Destroy(e.marker);

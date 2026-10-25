@@ -144,7 +144,6 @@ public partial class IslandPlan
         plan.LayRelief(t, rng, rock);
         plan.ScatterProps(t, rng);
         plan.PlaceSecret(rng, t.secretChance);
-        plan.PlaceCave(rng, t.caveChance);
         return plan;
     }
 
@@ -364,6 +363,7 @@ public partial class IslandPlan
 
     void LayRelief(QuarterTest t, System.Random rng, int rock)
     {
+        sealedCave = new Vector2Int(-1, -1);
         var r = t.relief;
         relief = r;
         int n = size * size;
@@ -505,6 +505,9 @@ public partial class IslandPlan
                 if (!inside) height[i] = level - 1;
             }
         }
+        // The sealed cave: a plateau of its own (its stairs, ledges and access left to its door).
+        var caveMask = ReserveCave(rng, t.caveChance, dist, r.faceRows);
+        bool InCave(int i) => caveMask != null && caveMask[i];
 
         // Cliffs, as seen in 3/4 view: the side of each level facing the camera (south) is a face faceRows tiles tall
         // per level climbed, standing on the lower ground below it; the other sides a thin rim (the level's own edge).
@@ -551,7 +554,7 @@ public partial class IslandPlan
             for (int y = 0; y < size; y++)
             {
                 int i = Index(x, y);
-                if (face[i] == 0 || faceOf[i] != level || Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), centre) > reach) continue;
+                if (face[i] == 0 || faceOf[i] != level || InCave(i) || Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), centre) > reach) continue;
                 top = Mathf.Max(top, y);
                 bottom = Mathf.Min(bottom, y);
                 count++;
@@ -567,7 +570,7 @@ public partial class IslandPlan
         Vector2Int Stairs(Vector2 centre, float reach, int level, float targetX)
         {
             var xs = new SortedSet<int>();
-            Stamp(centre, reach, i => { if (face[i] > 0 && faceOf[i] == level) xs.Add(i % size); });
+            Stamp(centre, reach, i => { if (face[i] > 0 && faceOf[i] == level && !InCave(i)) xs.Add(i % size); });
             var order = new List<int>(xs);
             order.Sort((a, b) => Mathf.Abs(a + 0.5f - targetX).CompareTo(Mathf.Abs(b + 0.5f - targetX)));
             foreach (int x in order)
@@ -609,7 +612,7 @@ public partial class IslandPlan
             var reached = ReachWithout(cliff, ramps);
             int lost = -1;
             for (int i = 0; i < n && lost < 0; i++)
-                if (height[i] > 0 && !cliff[i] && region[i] == 0 && obstacle[i] == null && !reached[i]) lost = i;
+                if (height[i] > 0 && !cliff[i] && region[i] == 0 && obstacle[i] == null && !reached[i] && !InCave(i)) lost = i;
             if (lost < 0) break;
             var at = new Vector2(lost % size + 0.5f, lost / size + 0.5f);
             if (Stairs(at, 40f, height[lost], at.x).y >= 0) continue;
@@ -652,7 +655,7 @@ public partial class IslandPlan
             {
                 int i = Index(x, y), above = Index(x, y + 1);
                 // The top row of a face: the level's ground just above it.
-                bool fits = face[i] == 1 && !ramps[i] && faceOf[i] == height[above] && !cliff[above] && (roof == null || !roof[above]);
+                bool fits = face[i] == 1 && !ramps[i] && faceOf[i] == height[above] && !cliff[above] && (roof == null || !roof[above]) && !InCave(i);
                 if (fits) { run ??= new List<int>(); run.Add(i); }
                 else { if (run != null && run.Count >= r.ledgeLength[0]) runs.Add(run); run = null; }
             }
@@ -686,6 +689,8 @@ public partial class IslandPlan
             if (decor[i] == 0) decor[i] = rockDecor;
         }
 
+        if (caveMask != null) HollowSealedCave(r.cave, caveMask, face);
+
         // How each cliff tile is drawn: its style (the mountain's or the hills'), its row in its face, stairs or the
         // cave's mouth and their column. Their own ground shows the sub-biome's (no décor of their own).
         cliffStyles = new[] { "", r.hillStyle, r.mountainStyle };
@@ -701,7 +706,7 @@ public partial class IslandPlan
             bool inner = height[i] > 0 && face[i] == 0 && !ramps[i] && EdgeRole(i) != null;
             bool drawn = cliff[i] || obstacle[i] == "ledge" || (ramps[i] && face[i] > 0) || inner;
             if (!drawn || region[i] != 0) continue;
-            bool onMountain = hasMountain && Vector2.Distance(new Vector2(i % size + 0.5f, i / size + 0.5f), mountain) < mountainReach;
+            bool onMountain = hasMountain && Vector2.Distance(new Vector2(i % size + 0.5f, i / size + 0.5f), mountain) < mountainReach || InCave(i);
             cliffStyle[i] = (byte)(onMountain ? 2 : 1);
             faceRow[i] = face[i];
             if (face[i] > 0)
@@ -859,6 +864,7 @@ public partial class IslandPlan
             if (keep) queue.Enqueue(i);
         }
         var landmarks = new List<Vector2Int>(markers) { start };
+        if (sealedCave.x >= 0) { landmarks.Add(sealedCaveFront); landmarks.Add(caveMechanism); }
         foreach (var m in landmarks) Stamp(m, 3.5f, i => { if (dist[i] != 0) { dist[i] = 0; queue.Enqueue(i); } });
         while (queue.Count > 0)
         {
