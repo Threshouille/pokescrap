@@ -18,6 +18,7 @@ public class Zone : MonoBehaviour
     float nextTick;
     float nextBolt;
     bool fallen; // fallEffect already launched
+    float nextPaint;
 
     void OnEnable() => active.Add(this);
     void OnDisable() => active.Remove(this);
@@ -51,6 +52,8 @@ public class Zone : MonoBehaviour
             renderer.color = color;
             renderer.sortingOrder = 0; // above the floor, under the Pokémon
         }
+
+        if (move.zoneRing) Shapes.ZoneRing(go.transform, move.radius, new Color(1f, 1f, 1f, 0.35f));
 
         var zone = go.AddComponent<Zone>();
         zone.team = owner.team;
@@ -101,18 +104,18 @@ public class Zone : MonoBehaviour
         return push.sqrMagnitude > 0.0001f ? push.normalized : Vector2.right;
     }
 
-    // Electrified ground where a bolt struck, under the Pokémon, fading out.
-    void BoltGround(Vector2 spot)
+    // Where the next bolt strikes: on an opponent inside the zone picked at random (boltOnFoes), else anywhere in it.
+    Vector2 BoltSpot()
     {
-        if (string.IsNullOrEmpty(move.boltGroundEffect) || EffectLibrary.Get(move.boltGroundEffect) == null) return;
-        var go = new GameObject(move.boltGroundEffect);
-        go.transform.position = spot;
-        EffectPlayer.Attach(go, move.boltGroundEffect, Vector2.right);
-        var sheet = EffectLibrary.Get(move.boltGroundEffect);
-        go.transform.localScale = Vector3.one * move.boltRadius * 2f * EffectLibrary.PixelsPerUnit / sheet.frame_width;
-        var renderer = go.GetComponent<SpriteRenderer>();
-        renderer.sortingOrder = 0; // on the ground, under the Pokémon
-        go.AddComponent<FadeOut>().duration = move.boltGroundTime > 0f ? move.boltGroundTime : 1f;
+        if (move.boltOnFoes)
+        {
+            var foes = new List<Combatant>();
+            foreach (var c in Combatant.All)
+                if (c.team != team && c.IsAlive && Vector2.Distance(c.transform.position, transform.position) <= move.radius)
+                    foes.Add(c);
+            if (foes.Count > 0) return foes[Random.Range(0, foes.Count)].transform.position;
+        }
+        return (Vector2)transform.position + Random.insideUnitCircle * move.radius;
     }
 
     // A bolt falling from the sky onto the spot: its sheet stands on the spot (a thin yellow streak without one).
@@ -139,6 +142,12 @@ public class Zone : MonoBehaviour
     void FixedUpdate()
     {
         if (move.followOwner && owner != null && owner.IsAlive) transform.position = owner.transform.position;
+        if (move.repaintEvery > 0f && Time.time >= nextPaint)
+        {
+            // The terrain follows the zone wherever it goes (Blizzard freezes all the ground it sweeps).
+            nextPaint = Time.time + move.repaintEvery;
+            Terrain.OnAround(move, transform.position, owner);
+        }
         if (Time.time >= dieAt)
         {
             Destroy(gameObject);
@@ -150,9 +159,8 @@ public class Zone : MonoBehaviour
             while (Time.time >= nextBolt)
             {
                 nextBolt += move.boltInterval;
-                Vector2 spot = (Vector2)transform.position + Random.insideUnitCircle * move.radius;
+                Vector2 spot = BoltSpot();
                 BoltFall(spot);
-                BoltGround(spot);
                 EffectPlayer.Spawn(move.impactEffect, spot, Vector2.right, null, 0f, move.boltRadius * 2f);
                 foreach (var other in Physics2D.OverlapCircleAll(spot, move.boltRadius))
                 {

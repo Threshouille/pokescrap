@@ -114,8 +114,9 @@ public class MoveDef
     public float orbitRadius, orbitTime, orbitInterval; // tiles, seconds circling, seconds between two launches
     public bool followOwner; // zone that stays centred on the user as it moves (Blizzard)
     public float zoneAlpha; // opacity of the zone's sheet (1 when omitted)
-    public string boltGroundEffect; // zone bolts: sheet left on the ground where each bolt strikes, under the Pokémon
-    public float boltGroundTime; // seconds it stays (fading out)
+    public bool boltOnFoes; // zone bolts strike a random opponent inside the zone (a random spot when there is none)
+    public bool zoneRing; // a faint white ring shows the edge of the zone while it lasts
+    public float repaintEvery; // seconds between two paintings of the move's terrain under the zone (one moving with its user)
     public bool hideZone; // zone drawn with nothing on the ground (its bolts and impacts show it)
     public string boltFallEffect; // zone bolts: sheet of the bolt falling from the sky, its bottom on the struck spot
     public string fallEffect; // zone: sheet (pointing right) of something falling from the sky onto it, landing on the first hit

@@ -130,6 +130,20 @@ public static class Shapes
         Object.Destroy(go, 0.35f);
     }
 
+    /// Faint ring under "parent" marking the edge of a zone (removed with it); its scale ignores the parent's.
+    public static void ZoneRing(Transform parent, float radius, Color color)
+    {
+        var go = new GameObject("Bord de zone");
+        go.transform.SetParent(parent, false);
+        Vector3 parentScale = parent.lossyScale;
+        go.transform.localScale = new Vector3(radius * 2f / Mathf.Max(0.001f, parentScale.x), radius * 2f / Mathf.Max(0.001f, parentScale.y), 1f);
+        var renderer = go.AddComponent<SpriteRenderer>();
+        renderer.sprite = ThinRing;
+        renderer.color = color;
+        renderer.sortingOrder = 0; // on the ground, under the Pokémon
+        Unlit.Apply(renderer);
+    }
+
     /// Ring on the ground showing the reach of an area move, fading out over "duration" seconds.
     public static void AreaRing(Vector3 position, float radius, Color color, float duration)
     {
