@@ -578,10 +578,6 @@ public class DungeonGenerator : MonoBehaviour
 
     public bool Walkable(int x, int y) => IsOpen(x, y);
 
-    /// The island's sky beyond the coast (nothing drawn there); false off the island.
-    public bool IsSky(int x, int y) =>
-        island != null && cellDecor != null && x >= 0 && y >= 0 && x < size && y < size && cellDecor[y * size + x] == null;
-
     public Vector2Int CellOf(Vector2 world)
     {
         var cell = floorMap.WorldToCell(world);

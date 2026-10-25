@@ -1,5 +1,5 @@
 {
- "comment": "Point lights (PointLights.cs; GDD, 'Jour et nuit'): their intensity × dayShare in full day, × 1 at the darkest of the night (DayNight.Darkness). Each glow: color, radius (tiles), intensity, flicker (share of the intensity that wavers). pokemonTypes: by type of the Pokémon (ROM type ids), pokemon: by id, before the types; moves: projectiles of that type, and a flash of flashTime seconds where they hit; obstacles / terrains: by key, one light per block of lavaGrid × lavaGrid tiles holding some; brazier, caveMark, caveMouth, stairs, arc: the sealed caves' braziers, mark and open mouth, the island's stairs, the pylons' active arc. Only within range tiles of the camera, at most maxLights at once (the nearest).",
+ "comment": "Point lights (PointLights.cs; GDD, 'Jour et nuit'): their intensity × dayShare in full day, × 1 at the darkest of the night (DayNight.Darkness). Each glow: color, radius (tiles), intensity, flicker (share of the intensity that wavers). pokemonTypes: by type of the Pokémon (ROM type ids), pokemon: by id, before the types; moves: projectiles of that type, and a flash of flashTime seconds where they hit; obstacles / terrains: by key, one light per block of lavaGrid × lavaGrid tiles holding some; brazier, caveMark, caveMouth, stairs, arc, firefly: the sealed caves' braziers, mark and open mouth, the island's stairs, the pylons' active arc, fireflies (AmbientParticles, `light` of an effect). Only within range tiles of the camera, at most maxLights at once (the nearest).",
  "dayShare": 0.15,
  "range": 16,
  "maxLights": 48,
@@ -31,5 +31,6 @@
  "caveMark": { "color": "#b080ff", "radius": 1.8, "intensity": 0.7, "flicker": 0.1 },
  "caveMouth": { "color": "#ffd890", "radius": 3.0, "intensity": 0.6, "flicker": 0.0 },
  "stairs": { "color": "#a0e8ff", "radius": 1.8, "intensity": 0.6, "flicker": 0.0 },
- "arc": { "color": "#fff07a", "radius": 4.0, "intensity": 1.2, "flicker": 0.4 }
+ "arc": { "color": "#fff07a", "radius": 4.0, "intensity": 1.2, "flicker": 0.4 },
+ "firefly": { "color": "#d8ff60", "radius": 1.4, "intensity": 0.9, "flicker": 0.0 }
 }

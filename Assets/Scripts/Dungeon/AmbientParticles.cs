@@ -6,14 +6,17 @@ using UnityEngine;
 /// in the woods, falling leaves, petals, embers over the lava, snow, dust, the current of the rivers... Every
 /// sampleEvery seconds the tiles in sight are sorted by what each effect wants (sub-biome, theme, décor, obstacle,
 /// terrain); each effect is then born on its own tiles at its density, during its phases of the day. A river's
-/// current runs down the water towards the sky at the coast (Flow).
+/// current runs away from the island's centre, along the water (Flow); leaves fall from the trees' crowns; fireflies
+/// carry lights (PointLights).
 public class AmbientParticles : MonoBehaviour
 {
     [Serializable]
     class Effect
     {
         public string key, motion = "wander", sheet = "", shape = "dot";
-        public string[] where = new string[0], phases = new string[0], colors = new string[0];
+        public string[] where = new string[0], phases = new string[0], colors = new string[0], props = new string[0];
+        public string light; // a glow of lights.json on some of its particles (fireflies)
+        public int lights;
         public float density = 1f, speed = 0.5f, sway, spin, alpha = 1f, blink, grow = 1f;
         public float[] life = { 2f, 4f }, size = { 0.1f, 0.2f }, drift = { 0f, 0f };
         public int max = 100, order = 2;
@@ -22,8 +25,14 @@ public class AmbientParticles : MonoBehaviour
         [NonSerialized] public Color[] palette;
         [NonSerialized] public ParticleSystem system;
         [NonSerialized] public readonly List<Vector2Int> cells = new();
+        [NonSerialized] public readonly List<(Vector2 at, float radius)> spots = new(); // crowns of the trees in sight
+        [NonSerialized] public readonly List<UnityEngine.Rendering.Universal.Light2D> glows = new();
+        [NonSerialized] public ParticleSystem.Particle[] buffer;
         [NonSerialized] public float owed;
     }
+
+    [Serializable] class MapProp { public string key, group; public int[] rect = new int[4]; }
+    [Serializable] class MapPropFile { public MapProp[] props = new MapProp[0]; }
 
     [Serializable]
     class Settings
@@ -38,11 +47,14 @@ public class AmbientParticles : MonoBehaviour
     Vector2[] flow; // per grid tile: the way the water runs (rivers), zero elsewhere
     readonly System.Random rng = new();
     readonly Dictionary<string, string> obstacleTags = new(), terrainTags = new();
+    readonly Dictionary<string, MapProp> mapProps = new(); // map_props.json by key: their group and size
 
     void Start()
     {
         var asset = Resources.Load<TextAsset>("Data/ambient");
         data = asset != null ? JsonUtility.FromJson<Settings>(asset.text) : new Settings();
+        var props = Resources.Load<TextAsset>("Data/map_props");
+        if (props != null) foreach (var p in JsonUtility.FromJson<MapPropFile>(props.text).props) mapProps[p.key] = p;
         foreach (var e in data.effects)
         {
             e.places = new HashSet<string>(e.where);
@@ -161,16 +173,47 @@ public class AmbientParticles : MonoBehaviour
         {
             if (e.system == null) continue;
             bool now = e.phases.Length == 0 || Array.IndexOf(e.phases, phase) >= 0;
-            if (!now || e.cells.Count == 0) { e.owed = 0f; continue; }
-            e.owed += e.density * e.cells.Count / 100f * Time.deltaTime;
-            for (; e.owed >= 1f; e.owed -= 1f) Emit(e, grid);
+            int places = e.cells.Count + e.spots.Count;
+            if (now && places > 0)
+            {
+                e.owed += e.density * places / 100f * Time.deltaTime;
+                for (; e.owed >= 1f; e.owed -= 1f) Emit(e, grid);
+            }
+            else e.owed = 0f;
+            if (!string.IsNullOrEmpty(e.light)) Glow(e);
+        }
+    }
+
+    // Lights following some of its particles, as bright as they are (fireflies blink).
+    void Glow(Effect e)
+    {
+        int count = Mathf.Min(e.system.particleCount, e.lights);
+        if (e.buffer == null || e.buffer.Length < e.system.main.maxParticles) e.buffer = new ParticleSystem.Particle[e.system.main.maxParticles];
+        int alive = e.system.GetParticles(e.buffer);
+        while (e.glows.Count < e.lights)
+        {
+            var holder = new GameObject("Lueur " + e.key);
+            holder.transform.SetParent(transform, false);
+            var light = PointLights.Attach(holder, e.light);
+            if (light == null) break;
+            e.glows.Add(light);
+        }
+        for (int k = 0; k < e.glows.Count; k++)
+        {
+            var light = e.glows[k];
+            if (light == null) continue;
+            bool on = k < count && k < alive;
+            PointLights.Want(light, on);
+            if (!on) continue;
+            light.transform.parent.position = e.buffer[k].position;
+            PointLights.Scale(light, e.buffer[k].GetCurrentColor(e.system).a / 255f);
         }
     }
 
     // The tiles in sight (within range), sorted out by effect.
     void Sample(DungeonGenerator grid, Camera cam)
     {
-        foreach (var e in data.effects) e.cells.Clear();
+        foreach (var e in data.effects) { e.cells.Clear(); e.spots.Clear(); }
         if (DungeonGenerator.Generation != flowGeneration) Flow(grid);
         float h = Mathf.Min(cam.orthographicSize + 1f, data.range), w = Mathf.Min(h * cam.aspect + 1f, data.range);
         Vector2 c = cam.transform.position;
@@ -179,6 +222,21 @@ public class AmbientParticles : MonoBehaviour
         var plan = grid.island;
         var origin = plan != null ? grid.IslandOrigin - grid.Interior.min : Vector2Int.zero;
         string decor = plan == null && grid.tileset != null ? "decor:" + grid.tileset.romId : null;
+        // The trees in sight: their crowns (a little above the middle of their sprite).
+        if (plan != null)
+        {
+            Vector2 low = c - new Vector2(w, h), high = c + new Vector2(w, h);
+            Vector2 zero = grid.CentreOf(0, 0) - Vector2.one * 0.5f;
+            foreach (var (key, foot) in plan.decorProps)
+            {
+                if (!mapProps.TryGetValue(key, out var prop)) continue;
+                Vector2 at = zero + foot - (Vector2)origin;
+                if (at.x < low.x || at.y < low.y || at.x > high.x || at.y > high.y) continue;
+                float width = prop.rect[2] / 24f, height = prop.rect[3] / 24f;
+                foreach (var e in data.effects)
+                    if (Array.IndexOf(e.props, prop.group) >= 0) e.spots.Add((at + Vector2.up * height * 0.65f, width * 0.35f));
+            }
+        }
         for (int y = from.y; y <= to.y; y++)
             for (int x = from.x; x <= to.x; x++)
             {
@@ -218,8 +276,16 @@ public class AmbientParticles : MonoBehaviour
 
     void Emit(Effect e, DungeonGenerator grid)
     {
-        var cell = e.cells[rng.Next(e.cells.Count)];
-        Vector2 at = grid.CentreOf(cell.x, cell.y) + new Vector2((float)rng.NextDouble() - 0.5f, (float)rng.NextDouble() - 0.5f);
+        int pick = rng.Next(e.cells.Count + e.spots.Count);
+        var cell = pick < e.cells.Count ? e.cells[pick] : new Vector2Int(-1, -1);
+        Vector2 at;
+        if (pick < e.cells.Count) at = grid.CentreOf(cell.x, cell.y) + new Vector2((float)rng.NextDouble() - 0.5f, (float)rng.NextDouble() - 0.5f);
+        else
+        {
+            var spot = e.spots[pick - e.cells.Count];
+            float turn = (float)rng.NextDouble() * Mathf.PI * 2f, reach = spot.radius * Mathf.Sqrt((float)rng.NextDouble());
+            at = spot.at + new Vector2(Mathf.Cos(turn), Mathf.Sin(turn) * 0.6f) * reach;
+        }
         float angle = (float)rng.NextDouble() * Mathf.PI * 2f;
         Vector2 velocity = e.motion switch
         {
@@ -256,60 +322,28 @@ public class AmbientParticles : MonoBehaviour
         e.system.Emit(p, 1);
     }
 
-    // The way the water runs on each tile: down to where it pours (the sky at the coast), along the water. Lakes and
-    // pools that pour nowhere stay still.
+    // The way the water runs on each tile: away from the island's centre (the arena's), along the water, smoothed over
+    // a few tiles around so that the current follows the bends of a river.
     void Flow(DungeonGenerator grid)
     {
         flowGeneration = DungeonGenerator.Generation;
         int n = grid.Size;
         flow = new Vector2[n * n];
-        var dist = new int[n * n];
-        var queue = new Queue<int>();
+        var plan = grid.island;
+        Vector2 centre = plan != null ? plan.centre - (Vector2)(grid.IslandOrigin - grid.Interior.min) : grid.Interior.center;
         bool Water(int x, int y) => x >= 0 && y >= 0 && x < n && y < n && Obstacles.At(x, y) is { } o && (o.key == "water" || o.key == "frozen" || o.Bridge);
+        float Out(int x, int y) => Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), centre);
         for (int y = 0; y < n; y++)
             for (int x = 0; x < n; x++)
             {
-                int i = y * n + x;
-                dist[i] = int.MaxValue;
                 if (!Water(x, y)) continue;
-                if (grid.IsSky(x + 1, y) || grid.IsSky(x - 1, y) || grid.IsSky(x, y + 1) || grid.IsSky(x, y - 1))
-                {
-                    dist[i] = 0;
-                    queue.Enqueue(i);
-                }
-            }
-        var steps = new[] { new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1) };
-        while (queue.Count > 0)
-        {
-            int c = queue.Dequeue();
-            int cx = c % n, cy = c / n;
-            foreach (var d in steps)
-            {
-                int x = cx + d.x, y = cy + d.y;
-                if (!Water(x, y)) continue;
-                int k = y * n + x;
-                if (dist[k] <= dist[c] + 1) continue;
-                dist[k] = dist[c] + 1;
-                queue.Enqueue(k);
-            }
-        }
-        // Downhill along the distance, smoothed over a few tiles around so that the current bends gently.
-        for (int y = 0; y < n; y++)
-            for (int x = 0; x < n; x++)
-            {
-                int i = y * n + x;
-                if (dist[i] == int.MaxValue) continue;
+                float here = Out(x, y);
                 Vector2 sum = Vector2.zero;
                 for (int dy = -2; dy <= 2; dy++)
                     for (int dx = -2; dx <= 2; dx++)
-                    {
-                        int qx = x + dx, qy = y + dy;
-                        if ((dx == 0 && dy == 0) || qx < 0 || qy < 0 || qx >= n || qy >= n) continue;
-                        int q = qy * n + qx;
-                        if (dist[q] == int.MaxValue) continue;
-                        sum += new Vector2(dx, dy).normalized * (dist[i] - dist[q]);
-                    }
-                flow[i] = sum.sqrMagnitude > 0.01f ? sum.normalized : Vector2.zero;
+                        if ((dx != 0 || dy != 0) && Water(x + dx, y + dy))
+                            sum += new Vector2(dx, dy).normalized * (Out(x + dx, y + dy) - here);
+                flow[y * n + x] = sum.sqrMagnitude > 0.01f ? sum.normalized : Vector2.zero;
             }
     }
 

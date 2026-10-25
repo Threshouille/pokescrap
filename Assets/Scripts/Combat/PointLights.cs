@@ -26,7 +26,7 @@ public class PointLights : MonoBehaviour
         public float dayShare = 0.15f, range = 16f, scanEvery = 0.25f, flashTime = 0.3f;
         public int maxLights = 48, lavaGrid = 3;
         public Glow[] pokemonTypes = new Glow[0], pokemon = new Glow[0], moves = new Glow[0], obstacles = new Glow[0], terrains = new Glow[0];
-        public Glow brazier, caveMark, caveMouth, stairs, arc;
+        public Glow brazier, caveMark, caveMouth, stairs, arc, firefly;
     }
 
     class Entry
@@ -34,7 +34,7 @@ public class PointLights : MonoBehaviour
         public Light2D light;
         public Glow glow;
         public bool wanted = true;
-        public float seed, dieAt = -1f, born;
+        public float seed, dieAt = -1f, born, scale = 1f;
     }
 
     static Settings settings;
@@ -59,7 +59,7 @@ public class PointLights : MonoBehaviour
             settings = asset != null ? JsonUtility.FromJson<Settings>(asset.text) : new Settings();
             foreach (var list in new[] { settings.pokemonTypes, settings.pokemon, settings.moves, settings.obstacles, settings.terrains })
                 foreach (var g in list) Parse(g);
-            foreach (var g in new[] { settings.brazier, settings.caveMark, settings.caveMouth, settings.stairs, settings.arc }) Parse(g);
+            foreach (var g in new[] { settings.brazier, settings.caveMark, settings.caveMouth, settings.stairs, settings.arc, settings.firefly }) Parse(g);
             return settings;
         }
     }
@@ -82,8 +82,14 @@ public class PointLights : MonoBehaviour
     public static Light2D Attach(GameObject on, string name, Vector2 offset = default)
     {
         var d = Data;
-        var glow = name switch { "brazier" => d.brazier, "caveMark" => d.caveMark, "caveMouth" => d.caveMouth, "stairs" => d.stairs, "arc" => d.arc, _ => null };
+        var glow = name switch { "brazier" => d.brazier, "caveMark" => d.caveMark, "caveMouth" => d.caveMouth, "stairs" => d.stairs, "arc" => d.arc, "firefly" => d.firefly, _ => null };
         return glow != null && on != null ? Make(on.transform, glow, offset) : null;
+    }
+
+    /// A share of its intensity (a firefly blinking).
+    public static void Scale(Light2D light, float scale)
+    {
+        if (light != null && byLight.TryGetValue(light, out var e)) e.scale = scale;
     }
 
     /// Whether that light should shine now (a brazier lit, an arc active).
@@ -251,7 +257,7 @@ public class PointLights : MonoBehaviour
             shining++;
             float wave = 1f - e.glow.flicker * Mathf.PerlinNoise(e.seed, Time.time * 8f);
             float fade = e.dieAt > 0f ? Mathf.Clamp01((e.dieAt - Time.time) / Mathf.Max(0.01f, e.dieAt - e.born)) : 1f;
-            e.light.intensity = e.glow.intensity * strength * wave * fade;
+            e.light.intensity = e.glow.intensity * strength * wave * fade * e.scale;
         }
         foreach (var gone in new List<Light2D>(byLight.Keys)) if (gone == null) byLight.Remove(gone);
     }
