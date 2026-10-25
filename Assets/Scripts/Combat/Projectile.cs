@@ -284,6 +284,12 @@ public class Projectile : MonoBehaviour
     {
         Vector2 delta = to - from;
         float length = delta.magnitude;
+        if (OrbitStones.Blocks(team, from, to, radius))
+        {
+            EffectPlayer.Spawn(move.impactEffect, from, delta);
+            Destroy(gameObject);
+            return true;
+        }
         if (length <= 0f) return false;
         foreach (var h in Physics2D.CircleCastAll(from, radius, delta / length, length))
         {
