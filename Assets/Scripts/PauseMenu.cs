@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static HudLayout;
 
 /// In-run pause menu: Options (gamepad) or Escape opens it and freezes time. "Reprendre" closes it, "Retour au
 /// choix des Pokémon" abandons the run (not counted in the run statistics) and goes back to the menu.
@@ -100,7 +101,7 @@ public class PauseMenu : MonoBehaviour
     {
         if (!Open) return;
         GUI.depth = -10; // above the rest of the interface
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
+        float s = HudLayout.Scale;
         title ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         entry ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
         title.fontSize = Mathf.RoundToInt(12f * s);
@@ -122,13 +123,5 @@ public class PauseMenu : MonoBehaviour
             else entry.normal.textColor = Color.white;
             GUI.Label(rect, Entries[i], entry);
         }
-    }
-
-    static void Fill(Rect rect, Color color)
-    {
-        var previous = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = previous;
     }
 }

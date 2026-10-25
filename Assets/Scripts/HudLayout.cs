@@ -1,6 +1,7 @@
 using UnityEngine;
 
-/// Shared layout of the top of the in-run HUD, so its pieces never overlap: the stage box top left, the lots panel top
+/// Shared IMGUI toolkit of the screens (scale, boxes, panels, cached styles, colours) and layout of the top of the
+/// in-run HUD, so its pieces never overlap: the stage box top left, the lots panel top
 /// right (under the weather's name), the sandbox room line then the banners top centre, between the two.
 public static class HudLayout
 {
@@ -14,7 +15,11 @@ public static class HudLayout
     public static float SandboxLine;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => SandboxLine = 0f;
+    static void ResetStatics()
+    {
+        SandboxLine = 0f;
+        styles.Clear();
+    }
 
     public static float Scale => Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
 
@@ -26,22 +31,44 @@ public static class HudLayout
     /// Below the banners at their most (three of them).
     public static float BelowBanners(float s) => BannerTop(s) + 3f * (BannerHeight + BannerGap) * s + 2f * s;
 
+    /// A filled box with a one-pixel (× s) border, faded with the current GUI.color (banners fading out).
     public static void Panel(Rect rect, Color fill, Color border, float s)
     {
-        Fill(rect, fill);
-        Fill(new Rect(rect.x, rect.y, rect.width, s), border);
-        Fill(new Rect(rect.x, rect.yMax - s, rect.width, s), border);
-        Fill(new Rect(rect.x, rect.y, s, rect.height), border);
-        Fill(new Rect(rect.xMax - s, rect.y, s, rect.height), border);
+        Tinted(rect, fill);
+        Tinted(new Rect(rect.x, rect.y, rect.width, s), border);
+        Tinted(new Rect(rect.x, rect.yMax - s, rect.width, s), border);
+        Tinted(new Rect(rect.x, rect.y, s, rect.height), border);
+        Tinted(new Rect(rect.xMax - s, rect.y, s, rect.height), border);
     }
 
     public static void Panel(Rect rect, float s) => Panel(rect, PanelColour, BorderColour, s);
 
+    /// A plain box of that colour (the current GUI.color is ignored).
     public static void Fill(Rect rect, Color color)
     {
         var previous = GUI.color;
-        GUI.color = color * previous;
+        GUI.color = color;
         GUI.DrawTexture(rect, Texture2D.whiteTexture);
         GUI.color = previous;
     }
+
+    /// A box of that colour, multiplied by the current GUI.color.
+    public static void Tinted(Rect rect, Color color) => Fill(rect, color * GUI.color);
+
+    /// A label style kept between frames (OnGUI runs several times a frame: no style built each time), at this
+    /// size for the current scale.
+    public static GUIStyle Style(string key, float size, bool bold = false, TextAnchor anchor = TextAnchor.MiddleLeft,
+        bool wrap = false, bool clip = false)
+    {
+        if (!styles.TryGetValue(key, out var style))
+            styles[key] = style = new GUIStyle(GUI.skin.label)
+            {
+                fontStyle = bold ? FontStyle.Bold : FontStyle.Normal, alignment = anchor, wordWrap = wrap,
+                clipping = clip ? TextClipping.Clip : TextClipping.Overflow,
+            };
+        style.fontSize = Mathf.RoundToInt(size * Scale);
+        return style;
+    }
+
+    static readonly System.Collections.Generic.Dictionary<string, GUIStyle> styles = new();
 }

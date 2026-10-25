@@ -5,6 +5,7 @@ Usage (from the project root, Unity closed):  python3 Tools/setup.py [--unity <p
 Unity is looked for with --unity, then $UNITY_PATH, then in the Unity Hub folders (Linux, macOS, Windows).
 Only rerun the Unity build (e.g. after importing Pokémon):  python3 Tools/setup.py --unity-only [Class.Method]
 AI test bench (AiScenarios, a play session in batch mode):  python3 Tools/setup.py --ai-scenarios
+Edit-mode tests (Assets/Editor/Tests, a few seconds):  python3 Tools/setup.py --edit-tests
 
 Needs Rom/eos_eu.nds (Pokémon Mystery Dungeon: Explorers of Sky, EU, dumped from your own cartridge).
 The repository keeps the .meta file of every generated asset: this script puts each asset back at the path of
@@ -244,7 +245,29 @@ def main():
                         help="only run a Unity batch method (default PmdSpriteImport.BuildEverything)")
     parser.add_argument("--ai-scenarios", action="store_true",
                         help="run the AI test bench in a batch play session (results in Logs/ai_scenarios.log)")
+    parser.add_argument("--edit-tests", action="store_true",
+                        help="run the edit-mode tests in batch mode (results in Logs/edit_tests.xml)")
     args = parser.parse_args()
+
+    if args.edit_tests:
+        unity = find_unity(args.unity)
+        if unity is None:
+            sys.exit("Unity not found: pass --unity <path> or set UNITY_PATH.")
+        results, log = ROOT / "Logs/edit_tests.xml", ROOT / "Logs/edit_tests.log"
+        results.parent.mkdir(exist_ok=True)
+        step("Edit-mode tests (batch)")
+        code = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT), "-runTests",
+                               "-testPlatform", "EditMode", "-testResults", str(results), "-logFile", str(log)]).returncode
+        if results.exists():
+            import xml.etree.ElementTree as ET
+            root = ET.parse(results).getroot()
+            for case in root.iter("test-case"):
+                print(f"{case.get('result', '?'):8} {case.get('name')}")
+                failure = case.find("failure/message")
+                if failure is not None and failure.text:
+                    print("         " + failure.text.strip().replace("\n", "\n         "))
+            print(f"{root.get('passed')}/{root.get('total')} passed")
+        sys.exit(code)
 
     if args.ai_scenarios:
         unity = find_unity(args.unity)

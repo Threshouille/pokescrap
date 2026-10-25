@@ -72,7 +72,9 @@ Le HUD affiche les touches du clavier quand aucune manette n'est branchée.
 
 ## Outils de test
 
-Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false` pour une version de jeu) :
+Réglages de test dans `Assets/Resources/Data/meta_dev.json`, appliqués par-dessus `meta.json` dans l'éditeur et les
+builds de développement seulement (une version de jeu garde les valeurs de `meta.json`, toutes à `false`). Pour
+essayer les vrais déblocages dans l'éditeur, passer une valeur à `false` dans `meta_dev.json` :
 
 - `unlockAll` : tous les Pokémon jouables sont débloqués.
 - `allItems` : tous les objets spéciaux sont possédés (niveau 1 au moins), quoi que dise la sauvegarde.
@@ -235,6 +237,13 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 25/10/2026 — Socle technique (Robin, branche `refacto/socle`)
+- Interface : une seule boîte à outils (`HudLayout`) pour tous les écrans, plus de code recopié.
+- Profil de dev : les réglages de test (`unlockAll`, `allItems`, `devMode`) sont dans `meta_dev.json`, appliqué
+  seulement dans l'éditeur et les builds de développement ; `meta.json` garde les valeurs d'une version de jeu.
+- **Tests EditMode** (`Assets/Editor/Tests/`, quelques secondes) : `python3 Tools/setup.py --edit-tests`.
+- Docs de reprise à jour : HANDOFF, ROADMAP, points ouverts du GDD.
 
 ### 25/10/2026 — Seconde phase des ennemis (Robin, branche `feature/phases`)
 - La méga et la Téra d'un ennemi ouvrent une **seconde phase** à mi-PV (plus au premier contact) : une élite ou un boss ne

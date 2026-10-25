@@ -1,8 +1,8 @@
 {
-  "unlockAll": true,
-  "allItems": true,
+  "unlockAll": false,
+  "allItems": false,
   "teraStab": 2,
-  "devMode": true,
+  "devMode": false,
   "devStartingMoveCount": 4,
   "obstaclesInRuns": true,
   "encountersInRuns": true,

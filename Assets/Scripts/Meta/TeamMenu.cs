@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static HudLayout;
 
 /// Menu scene: pick 3 Pokémon among the unlocked ones and their starting moves, then start a run.
 /// Locked Pokémon show as silhouettes.
@@ -14,7 +15,6 @@ using UnityEngine.InputSystem;
 /// Circle, Square or Escape (O) closes.
 public class TeamMenu : MonoBehaviour
 {
-    const float ReferenceHeight = 360f;
     const int Columns = 6;
     const float Cell = 34f, CellGap = 4f, DeadZone = 0.5f, RepeatDelay = 0.25f;
     const float PanelWidth = 190f, PanelHeight = 214f, Line = 11f;
@@ -408,7 +408,7 @@ public class TeamMenu : MonoBehaviour
 
     void OnGUI()
     {
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / ReferenceHeight));
+        float s = HudLayout.Scale;
         text ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = false };
         title ??= new GUIStyle(text) { alignment = TextAnchor.MiddleCenter };
         text.fontSize = Mathf.RoundToInt(8f * s);
@@ -567,13 +567,6 @@ public class TeamMenu : MonoBehaviour
     static Rect Grow(Rect rect, float amount) =>
         new(rect.x - amount, rect.y - amount, rect.width + 2f * amount, rect.height + 2f * amount);
 
-    static void Fill(Rect rect, Color color)
-    {
-        var previous = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = previous;
-    }
 
     // White text with a one-pixel dark shadow.
     void Label(Rect rect, string content, TextAnchor anchor)

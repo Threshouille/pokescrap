@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static HudLayout;
 
 /// Kinds of the banners at the top of the screen (Progression.Announce): a colour and a mark each.
 public enum Notice { Info, Loot, Alert, Elite }
@@ -264,7 +265,7 @@ public class Progression : MonoBehaviour
 
     void OnGUI()
     {
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
+        float s = HudLayout.Scale;
         title ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         cardTitle ??= new GUIStyle(title);
         cardText ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, wordWrap = true };
@@ -331,13 +332,5 @@ public class Progression : MonoBehaviour
         string help = replacing ? "Croix ou stick : choisir     ✕ (manette) ou Entrée : valider     ○ ou Échap : retour"
             : "Croix ou stick : choisir     ✕ (manette) ou Entrée : valider";
         GUI.Label(new Rect(0, y0 + cardH + 10f * s, Screen.width, 14f * s), help, cardText);
-    }
-
-    static void Fill(Rect rect, Color color)
-    {
-        var previous = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = previous;
     }
 }

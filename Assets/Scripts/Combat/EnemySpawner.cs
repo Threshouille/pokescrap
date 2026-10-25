@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static HudLayout;
 
 /// Runs a whole run: a series of stages (arenas, then a boss), each made of enemy waves. Between two stages the
 /// arena is rebuilt with the next décor and the team is put back on its feet. Also draws the stage indicator,
@@ -388,9 +389,9 @@ public class EnemySpawner : MonoBehaviour
         float top = (Climate.Now != null ? HudLayout.Top + 14f : HudLayout.Top) * s;
         var box = new Rect(Screen.width - w - HudLayout.Side * s, top, w, (lots.Count + 1) * line + 2f * pad);
         HudLayout.Panel(box, s);
-        var bold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
-        var row = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
-        var count = new GUIStyle(text) { alignment = TextAnchor.MiddleRight };
+        var bold = Style("lots.title", 8f, bold: true, clip: true);
+        var row = Style("lots.row", 8f, clip: true);
+        var count = Style("lots.count", 8f, anchor: TextAnchor.MiddleRight);
         GUI.Label(new Rect(box.x + pad, box.y + pad, w - 2f * pad, line), $"Ennemis de la vague · {total}", bold);
         for (int i = 0; i < lots.Count; i++)
         {
@@ -508,7 +509,7 @@ public class EnemySpawner : MonoBehaviour
     void OnGUI()
     {
         if (stages == null || stages.Length == 0) return;
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
+        float s = HudLayout.Scale;
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         title ??= new GUIStyle(label);
         text ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
@@ -528,8 +529,8 @@ public class EnemySpawner : MonoBehaviour
                 : nextWaveAt > 0f ? $"Vague {CurrentWave} / {Current.waves.Length} terminée" : $"Vague {CurrentWave} / {Current.waves.Length}";
             var stageBox = new Rect(HudLayout.Side * s, HudLayout.Top * s, HudLayout.StageWidth * s, 27f * s);
             HudLayout.Panel(stageBox, s);
-            var leftBold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
-            var leftSoft = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+            var leftBold = Style("stage.first", 8f, bold: true, clip: true);
+            var leftSoft = Style("stage.second", 8f, clip: true);
             leftSoft.normal.textColor = HudLayout.Secondary;
             GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 3f * s, stageBox.width - 12f * s, 10f * s), first, leftBold);
             GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 14f * s, stageBox.width - 12f * s, 10f * s), second, leftSoft);
@@ -567,13 +568,5 @@ public class EnemySpawner : MonoBehaviour
             : "Aucune recrue";
         GUI.Label(new Rect(0, y + 62f * s, Screen.width, 14f * s), joined, text);
         GUI.Label(new Rect(0, y + 84f * s, Screen.width, 14f * s), "Croix ou Entrée : rejouer     Rond ou Échap : menu", text);
-    }
-
-    static void Fill(Rect rect, Color color)
-    {
-        var previous = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = previous;
     }
 }

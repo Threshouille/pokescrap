@@ -303,27 +303,37 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 
 ## 4. Points ouverts
 
+Revus le 25/10/2026 : les points tranchés depuis la première version sont regroupés à la fin.
 
 ### Structurants
-1. Boutons : avec la visée au stick droit, les 4 attaques vont sur les gâchettes (L1, L2, R1, R2). Quel bouton pour changer de Pokémon ?
-2. Périmètre de la première version : un seul cycle (2 arènes + 1 boss) ?
+2. Périmètre de la première version : un seul cycle (2 arènes + 1 boss) ? Et quelle structure de partie : étapes,
+   île flottante, niveaux continus (branches d'Owen) ?
 3. Échelle de vitesse : provisoirement 3 à 6 cases/s pour une vitesse de base de 5 à 160. À ajuster en jouant.
-4. Fréquence des choix : tous les 5 niveaux (environ 20 coupures et 60 choix par partie) ou tous les 10 (10 coupures, 30 choix) ?
+17. Cibles d'équilibrage : durée d'une partie, niveau visé, taux de victoire (objectif d'origine : niveau 100 en
+    30 minutes).
 
 ### Combat
-5. Ennemis : confirmer le partage des attaques avec les joueurs ; prévoir un temps d'annonce avant leurs attaques pour qu'elles soient esquivables.
-6. Formule de dégâts.
-7. IA alliée : niveau d'autonomie, ordres possibles ?
+7. IA alliée : ordres possibles ?
 8. Équilibrage solo / 2 joueurs / 3 joueurs.
 9. Lisibilité du type d'un ennemi à l'écran (en partie réglée par la couleur des chiffres de dégâts).
 
 ### Progression
-10. Évolutions sans niveau : décidé le 17/10/2026 (voir Progression en partie).
 11. Talents : un par Pokémon, passif permanent ou à déclencher ?
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?
 
 ### Contenu
-14. Terrains spéciaux (trous, eau, lave) : dans la première version ou plus tard ? Les spectres traversent-ils les murs ?
-15. Boss : lesquels, et avec quels comportements spécifiques ?
-16. Objets et boutiques : quels objets, quels effets ? Piste d'Owen (15/10/2026) : objets trouvés au hasard ou chez des marchands, qui donnent des effets passifs aux Pokémon.
+15. Boss : lesquels, et avec quels comportements spécifiques ? (Groudon seul pour l'instant ; la seconde phase des
+    élites peut servir de modèle.)
+16. Boutiques et monnaies : quoi acheter, où, avec quelle monnaie (une en partie, une entre les parties) ? Boutique
+    Kecleon envisagée.
+
+### Tranchés depuis
+1. Boutons : attaques sur les gâchettes, changement de Pokémon sur la croix gauche / droite, esquive sur ✕.
+4. Fréquence des choix : tous les 10 niveaux.
+5. Ennemis : mêmes attaques que les joueurs, annoncées avant de partir (zone rouge, bulle numérotée pour les boss).
+6. Formule de dégâts : bruts × 30 / (30 + défense), table des types adoucie, STAB.
+10. Évolutions sans niveau : décidé le 17/10/2026 (voir Progression en partie).
+14. Terrains spéciaux : eau, lave, vide, rochers et autres obstacles en partie, franchis selon le type de déplacement
+    ou le type du Pokémon (voir Obstacles).
+16 (en partie). Objets : sac partagé de consommables et objets tenus à tiers (voir Objets de partie).
