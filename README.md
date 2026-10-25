@@ -88,7 +88,7 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 57 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 58 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
@@ -235,6 +235,11 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 25/10/2026 — Seconde phase des ennemis (Robin, branche `feature/phases`)
+- La méga et la Téra d'un ennemi ouvrent une **seconde phase** à mi-PV (plus au premier contact) : une élite ou un boss ne
+  passe pas ce seuil d'un seul coup ; transformation avec onde qui repousse, +30 % des PV (boss +20 %), recharges plus
+  courtes. Champion un peu moins résistant (×5 PV au lieu de ×6). Réglages `phase*` d'`items.json`.
 
 ### 25/10/2026 — Interface en partie (Robin, branche `feature/interface`)
 - Objets lisibles : l'objet tenu du Pokémon joué et son effet au-dessus de son nom, l'objet des alliés en coin de leur
