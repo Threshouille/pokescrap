@@ -33,6 +33,12 @@ public class Zone : MonoBehaviour
         else if (EffectPlayer.Attach(go, move.effect, Vector2.right))
         {
             if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
+            if (move.zoneAlpha > 0f && go.TryGetComponent<SpriteRenderer>(out var sheet))
+            {
+                var c = sheet.color;
+                c.a = move.zoneAlpha;
+                sheet.color = c;
+            }
         }
         else
         {
@@ -95,6 +101,20 @@ public class Zone : MonoBehaviour
         return push.sqrMagnitude > 0.0001f ? push.normalized : Vector2.right;
     }
 
+    // Electrified ground where a bolt struck, under the Pokémon, fading out.
+    void BoltGround(Vector2 spot)
+    {
+        if (string.IsNullOrEmpty(move.boltGroundEffect) || EffectLibrary.Get(move.boltGroundEffect) == null) return;
+        var go = new GameObject(move.boltGroundEffect);
+        go.transform.position = spot;
+        EffectPlayer.Attach(go, move.boltGroundEffect, Vector2.right);
+        var sheet = EffectLibrary.Get(move.boltGroundEffect);
+        go.transform.localScale = Vector3.one * move.boltRadius * 2f * EffectLibrary.PixelsPerUnit / sheet.frame_width;
+        var renderer = go.GetComponent<SpriteRenderer>();
+        renderer.sortingOrder = 0; // on the ground, under the Pokémon
+        go.AddComponent<FadeOut>().duration = move.boltGroundTime > 0f ? move.boltGroundTime : 1f;
+    }
+
     // A bolt falling from the sky onto the spot: its sheet stands on the spot (a thin yellow streak without one).
     void BoltFall(Vector2 spot)
     {
@@ -118,6 +138,7 @@ public class Zone : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (move.followOwner && owner != null && owner.IsAlive) transform.position = owner.transform.position;
         if (Time.time >= dieAt)
         {
             Destroy(gameObject);
@@ -131,6 +152,7 @@ public class Zone : MonoBehaviour
                 nextBolt += move.boltInterval;
                 Vector2 spot = (Vector2)transform.position + Random.insideUnitCircle * move.radius;
                 BoltFall(spot);
+                BoltGround(spot);
                 EffectPlayer.Spawn(move.impactEffect, spot, Vector2.right, null, 0f, move.boltRadius * 2f);
                 foreach (var other in Physics2D.OverlapCircleAll(spot, move.boltRadius))
                 {

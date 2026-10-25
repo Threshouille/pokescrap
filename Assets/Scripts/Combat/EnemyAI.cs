@@ -68,6 +68,14 @@ public class EnemyAI : MonoBehaviour
                 break;
 
             case State.Windup:
+                // A harmful zone under it (a meteor's shadow...) cuts the announcement short: it runs first.
+                if (Zone.EscapeDirection(transform.position, combatant.team, RoleTactics.ZoneMargin) != Vector2.zero)
+                {
+                    if (telegraph != null) Destroy(telegraph);
+                    state = State.Chase;
+                    Chase();
+                    break;
+                }
                 if (!combatant.IsDashing) combatant.Drive(Vector2.zero); // a push still carries it away
                 if (Time.time < stateUntil) break;
                 if (telegraph != null) Destroy(telegraph);
