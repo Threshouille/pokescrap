@@ -1,5 +1,5 @@
 {
- "comment": "Decor elements cut out of the upper layer of the story maps (MAP_BG) by Tools/pmd/extract_map_props.py into Resources/MapProps/<key>.png (found by find_map_props.py). map: BMA name; rect: x, y, width, height (pixels) in the rendered upper layer; group: what the props of quarter_test.json pick from; block: it blocks its tile (a tree trunk, a rock). Its foot is the middle of its bottom edge.",
+ "comment": "Decor elements cut out of the upper layer of the story maps (MAP_BG) by Tools/pmd/extract_map_props.py into Resources/MapProps/<key>.png (found by find_map_props.py). map: BMA name; rect: x, y, width, height (pixels) in the rendered upper layer; group: what the props of quarter_test.json pick from; block: it blocks its tile (a tree trunk, a rock). Its foot is the middle of its bottom edge. layer: lower (the opaque lower layer, detoured by clearTop / cutSides, see extract_map_props.py), upper by default.",
  "props": [
   {"key": "jungle_fern_787", "group": "jungle_fern", "map": "D54P11A", "rect": [183, 46, 24, 24], "block": false},
   {"key": "jungle_fern_790", "group": "jungle_fern", "map": "D54P11A", "rect": [183, 130, 32, 26], "block": false},
@@ -49,6 +49,7 @@
   {"key": "tree_1212", "group": "tree", "map": "P16P01A", "rect": [48, 193, 95, 86], "block": true},
   {"key": "tree_1251", "group": "tree", "map": "P20P02A", "rect": [270, 73, 89, 88], "block": true},
   {"key": "tree_1254", "group": "tree", "map": "P20P02A", "rect": [49, 121, 89, 88], "block": true},
-  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true}
+  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true},
+  {"key": "cave_arch", "group": "cave", "map": "G01P08A", "rect": [84, 80, 96, 80], "block": false, "layer": "lower", "clearTop": true, "cutSides": [34, 15, 82]}
  ]
 }

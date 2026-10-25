@@ -19,7 +19,8 @@ public class CaveSeals
     }
 
     public float chance = 0.5f, minDistance = 20f, secretDistance = 25f, biomeWeight = 3f;
-    public int width = 5, height = 3, clearance = 3, tries = 4000;
+    public int width = 3, height = 2, clearance = 3, tries = 4000;
+    public string sprite = "cave_arch", blocker = "blocker";
     public SecretRooms.Room room = new();
     public Seal[] seals = new Seal[0];
 
@@ -111,6 +112,10 @@ public partial class IslandPlan
             // Flowers and the like (blocking ones are obstacles, kept away above) make room for it.
             var room = new Rect(x0 - 1, y0 - 1, w + 2, h + 2);
             decorProps.RemoveAll(p => room.Contains(p.at));
+            // The rock: drawn by its decor element (foot in the middle of its bottom edge), blocking but at its mouth.
+            decorProps.Add((d.sprite, new Vector2(x0 + w * 0.5f, y0 + 0.05f)));
+            foreach (var p in sealedCaveRect.allPositionsWithin)
+                if (p != mouth) obstacle[Index(p.x, p.y)] = d.blocker;
             return;
         }
     }
