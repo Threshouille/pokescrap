@@ -206,6 +206,27 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Suite : 2) élites (champion solitaire ou escouade), 3) comportements de groupe (rôles, encerclement, combos de
   terrain, obstacles), 4) intégration et équilibrage.
 
+### Objets de partie (décidé le 24/10/2026, Robin ; étape 1 faite sur `feature/sac`)
+- Distincts des objets spéciaux (méga-gemmes, cristaux Z, Téra-Éclats). Deux familles : **consommables** (baies,
+  graines, orbes) dans un **sac partagé** par l'équipe, et **objets tenus** (un par Pokémon, passifs ; étape 2).
+- Rien ne se garde d'une partie à l'autre (esprit roguelike).
+- Commandes : 1 à 4 au clavier ; à la manette, croix haut / bas pour choisir et □ pour utiliser.
+- Étape 1 (faite) : 4 emplacements, piles de 9 ; Baie Oran / Sitrus (soin), Ceriz / Pêcha / Fraive (statuts),
+  Graine Explo (dégâts en zone), Dodo (sommeil), Rappel (relève un K.O.), Vive (vitesse), Orbe Pétrif (fige les
+  ennemis visibles), Orbe Gel (gèle l'eau de la salle) ; lâchés par les ennemis selon leur rang (élites : toujours) et
+  dans le coffre de fin d'étape ; les alliés s'en servent (soin sous 35 % des PV, statut, K.O.).
+- Étape 2 (faite) : **objets tenus**, un par Pokémon : Bandeau Choix, Lunettes Choix, Mouchoir Choix, Restes, Orbe
+  Vie, Grelot Coque, Casque Brut, Ceinture Force, et liés au terrain : Ballon (flotte au-dessus de l'eau, du vide et de
+  la lave jusqu'au premier coup), Bottes de Magma (marche sur la lave), Cape Sable (terrains au sol sans effet). Les
+  ennemis rares, épiques et les élites peuvent en tenir un (il agit pour eux) et le lâchent ; le coffre parfois. Le
+  Pokémon joué le prend en marchant dessus, l'ancien tombe à ses pieds (pour le donner à un autre membre).
+- **Tiers** (24/10/2026) : les objets tenus à effet chiffré (Bandeaux, Lunettes, Mouchoir, Restes, Orbe Vie, Grelot,
+  Casque) existent en I, II, III (anneau bronze, argent ou or) ; un ennemi rare en lâche un I ou II, épique II ou III,
+  élite III ; ramasser le même objet du même tier le monte d'un tier. Ajustements : Graine Explo et Casque Brut
+  plafonnés contre un boss (5 % et 2 % de ses PV), Orbe Pétrif ralentit un boss, Restes seulement hors combat (1 %/s),
+  Orbe Vie une fois par attaque, Orbe Gel gardé s'il n'y a pas d'eau.
+- Sprites des objets : ceux de Donjon Mystère (PMDCollab RawAsset). Suite : boutique Kecleon et monnaie.
+
 ### Boss
 - Chaque boss est un Pokémon légendaire (Groudon en premier), avec 4 attaques toujours les mêmes, pour que le joueur apprenne ses schémas.
 - Mort du boss : ses gardes disparaissent sans rapporter d'expérience ni de recrue (17/10/2026).

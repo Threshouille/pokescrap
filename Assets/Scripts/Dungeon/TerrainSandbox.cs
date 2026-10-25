@@ -126,6 +126,24 @@ public class TerrainSandbox : MonoBehaviour
     {
         SpawnEmitters();
         PlaceStairs();
+        if (DungeonGenerator.Current != null) PlaceShowcase(DungeonGenerator.Current);
+    }
+
+    // Every held item in a row below the arrival point, to try them, and a row of special items below (room 0).
+    void PlaceShowcase(DungeonGenerator arena)
+    {
+        var loot = GetComponent<Loot>();
+        if (loot == null) return;
+        for (int k = 0; k < HeldItems.All.Count; k++)
+            loot.PlaceHeld(HeldItems.All[k].key, Centre(arena) + new Vector2((k - (HeldItems.All.Count - 1) / 2f) * 1.4f, -7f), HeldItems.ShowcaseTier);
+        // A second row: a few special items (mega stones, Z crystals, Tera shards), to see them.
+        var specials = new List<(SpecialItems.Family family, string stone, int type)>();
+        for (int k = 0; k < SpecialItems.Stones.Count && k < 3; k++) specials.Add((SpecialItems.Family.Mega, SpecialItems.Stones[k].key, -1));
+        foreach (int type in new[] { 2, 3, 5, 14 }) specials.Add((SpecialItems.Family.Z, null, type));
+        foreach (int type in new[] { 2, 3, 5, 14 }) specials.Add((SpecialItems.Family.Tera, null, type));
+        for (int k = 0; k < specials.Count; k++)
+            loot.PlaceSpecial(specials[k].family, specials[k].stone, specials[k].type,
+                Centre(arena) + new Vector2((k - (specials.Count - 1) / 2f) * 1.4f, -9f));
     }
 
     static Vector2 Centre(DungeonGenerator arena) => arena.CentreOf(arena.Size / 2, arena.Size / 2);
@@ -443,7 +461,10 @@ public class TerrainSandbox : MonoBehaviour
             var asset = Resources.Load<TextAsset>("Data/obstacle_room");
             if (asset != null) drawn = Obstacles.Current.Generate(JsonUtility.FromJson<Obstacles.Room>(asset.text), rng, KeptClear(arena));
         }
+        var loot = GetComponent<Loot>();
+        if (loot != null) loot.ClearGround();
         if (room == 0) SpawnEmitters();
+        if (room == 0) PlaceShowcase(arena);
         if (room == 1) SpawnDummies();
         RestoreItems();
         if (room == 3)
@@ -493,6 +514,10 @@ public class TerrainSandbox : MonoBehaviour
                + "     ↑/↓ ou 1/2 : cristal     F ou L3 + R3 : lancer     Escalier (en haut à droite) : retour";
     }
 
+    GUIStyle roomLine;
+
+    void OnDestroy() => HudLayout.SandboxLine = 0f;
+
     void OnGUI()
     {
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
@@ -507,13 +532,18 @@ public class TerrainSandbox : MonoBehaviour
 
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     Cibles immobiles (reviennent après un K.O.)     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
-        var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);
+        // Top centre, between the stage box and the lots panel, wrapped; the banners go below it (HudLayout).
+        roomLine ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
+        roomLine.fontSize = Mathf.RoundToInt(7f * s);
+        float width = HudLayout.CenterWidth(s);
+        var content = new GUIContent(line.Replace("     ", "  ·  "));
+        width = Mathf.Min(width, roomLine.CalcSize(content).x + 16f * s);
+        float height = roomLine.CalcHeight(content, width - 12f * s) + 6f * s;
+        var rect = new Rect(Screen.width / 2f - width / 2f, HudLayout.Top * s, width, height);
         var previous = GUI.color;
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        float width = Mathf.Min(Screen.width, Mathf.Max(400f * s, label.CalcSize(new GUIContent(line)).x + 16f * s));
-        GUI.DrawTexture(new Rect(Screen.width / 2f - width / 2f, rect.y, width, rect.height), Texture2D.whiteTexture);
-        GUI.color = previous;
-        GUI.Label(rect, line, label);
+        HudLayout.Panel(rect, s);
+        GUI.Label(new Rect(rect.x + 6f * s, rect.y + 3f * s, rect.width - 12f * s, rect.height - 6f * s), content, roomLine);
+        HudLayout.SandboxLine = height;
         GalleryLabels(s);
         // Fade between the rooms.
         float alpha = pendingRoom >= 0 ? Mathf.Clamp01((Time.unscaledTime - fadeOutAt) / FadeTime)

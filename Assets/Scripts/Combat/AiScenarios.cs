@@ -85,6 +85,13 @@ public class AiScenarios : MonoBehaviour
         results.Clear();
         var sandbox = FindAnyObjectByType<TerrainSandbox>();
         if (sandbox != null) sandbox.Quiet();
+        var teamBag = team.GetComponent<Bag>();
+        if (teamBag != null) teamBag.Clear(); // the test arena's starting bag would change the other scenarios (a Reviver Seed...)
+        var ground = FindAnyObjectByType<Loot>();
+        if (ground != null) ground.ClearGround(); // nor should the held items of the showcase be picked up on the way
+        // No experience during the bench: a level-up opens the upgrade screen, which pauses the game and the bench with it.
+        var progression = team.GetComponent<Progression>();
+        if (progression != null) progression.enabled = false;
         if (team.Count < 2) team.AddMember(BatchTeam[1], team.Controlled.transform.position + Vector3.right);
 
         yield return Scenario("Ne suit pas le Pokémon joué dans le danger", NoFollowIntoDanger());
@@ -129,6 +136,18 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Élite : un champion très fort, plus grand, avec objet et butin garanti", ChampionStands());
         yield return Scenario("Élite : une escouade de 3, seul le chef porte l'objet, butin quand tous tombent", SquadLoot());
         yield return Scenario("Élite : au plus un par étape, plus souvent en avançant", EliteOdds());
+        yield return Scenario("Sac : Baie Oran, Graine Explo, Orbe Gel", BagEffects());
+        yield return Scenario("Sac : un allié blessé mange une baie du sac", AllyEatsBerry());
+        yield return Scenario("Sac : 4 emplacements, piles de 9, plein ensuite", BagCapacity());
+        yield return Scenario("Sac : un élite lâche un objet, ramassé en marchant dessus", EliteDropsConsumable());
+        yield return Scenario("Objets tenus : Bandeau Choix, Restes, Ballon", HeldEffects());
+        yield return Scenario("Objets tenus : Ceinture Force et Casque Brut", HeldLastStand());
+        yield return Scenario("Objets tenus : pris en marchant dessus, l'ancien tombe à ses pieds", HeldSwap());
+        yield return Scenario("Objets tenus : un ennemi qui en tient un le lâche", EnemyDropsHeld());
+        yield return Scenario("Objets tenus : tiers I à III et fusion au ramassage", HeldTiers());
+        yield return Scenario("Objets : Explo et Casque Brut plafonnés contre un boss, Orbe Vie une fois par attaque", ItemLimits());
+        yield return Scenario("Interface : chaque objet a une description", ItemsDescribed());
+        yield return Scenario("Interface : bandeaux regroupés, trois au plus", BannersGrouped());
         yield return Scenario("Eau : poussé dedans, un Pokémon qui ne nage pas revient, un nageur y reste", PushedIntoWater());
         yield return Scenario("Ultime ennemi : Téra pour se déplacer sur la lave qui l'entoure", EnemyTeraForWater());
         yield return Scenario("Rencontres : une équipe a ses rôles et des types qui se combinent", TeamHasRoles());
@@ -137,6 +156,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Rencontres : apparition avec rang, anneau et objet", EncounterSpawns());
 
         Clear();
+        if (progression != null) progression.enabled = true;
         Failures = results.FindAll(r => !r.passed).Count;
         Debug.Log($"AISCENARIO DONE {results.Count - Failures}/{results.Count}");
         current = null;
@@ -970,6 +990,7 @@ public class AiScenarios : MonoBehaviour
         float ratio = solo != null ? e.members[0].health / solo.health : 0f;
         string name = c != null ? c.Stats.name : null; // the champion is gone once knocked out
         Loot.DropsInSandbox = true;
+        if (c != null) c.Hold(null); // a Focus Sash would keep it standing
         if (c != null) c.TakeFixedDamage(c.hp + 1f);
         yield return new WaitForFixedUpdate();
         Loot.DropsInSandbox = false;
@@ -999,6 +1020,7 @@ public class AiScenarios : MonoBehaviour
         Loot.DropsInSandbox = true;
         for (int i = 0; i < spawned.Count; i++)
         {
+            spawned[i].Hold(null); // a Focus Sash would keep it standing
             spawned[i].TakeFixedDamage(spawned[i].hp + 1f);
             yield return new WaitForFixedUpdate();
             if (i < spawned.Count - 1 && Dropped()) early = true;
@@ -1015,7 +1037,7 @@ public class AiScenarios : MonoBehaviour
     static void ClearDrops()
     {
         foreach (var t in FindObjectsByType<Transform>())
-            if (t != null && t.name.StartsWith("Objet :")) Destroy(t.gameObject);
+            if (t != null && (t.name.StartsWith("Objet :") || t.name.StartsWith("Consommable :"))) Destroy(t.gameObject);
     }
 
     // Elite odds: the chance of a stage with an elite rises with the stage, and an elite lot is a champion or a squad.
@@ -1033,6 +1055,242 @@ public class AiScenarios : MonoBehaviour
         }
         Report(fourth > first && champions > 40 && squads > 40,
             $"élite par étape : {first:P0} à l'étape 1, {fourth:P0} à l'étape 4 ; {champions} champions et {squads} escouades sur 200");
+        yield break;
+    }
+
+    // The bag's effects: an Oran Berry heals the controlled Pokémon, a Blast Seed hurts the opponent it is thrown at,
+    // a Freeze Orb freezes the room's water.
+    IEnumerator BagEffects()
+    {
+        var (leader, _) = Place(new Vector2(-3f, 0f), new Vector2(-3f, 3f), settle: false);
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        bag.Add("oran");
+        bag.Add("blast");
+        bag.Add("freeze");
+        var grid = DungeonGenerator.Current;
+        var c = grid.CellOf(Centre + new Vector2(0f, -5f));
+        for (int x = c.x - 3; x <= c.x + 3; x++) Obstacles.Place(x, c.y, "water");
+        var foe = Enemy(BatchTeam[1], new Vector2(0f, 0f));
+        foe.maxHp = foe.hp = 1000f;
+        leader.hp = leader.maxHp * 0.5f;
+        float hp = leader.hp;
+        bool healed = bag.Use(bag.Find(i => i.key == "oran"), leader) && leader.hp > hp;
+        bool hurt = bag.Use(bag.Find(i => i.key == "blast"), leader) && foe.hp < foe.maxHp;
+        bool frozen = bag.Use(bag.Find(i => i.key == "freeze"), leader) && Obstacles.At(c.x, c.y)?.key == "frozen";
+        bool spent = bag.Count("oran") + bag.Count("blast") + bag.Count("freeze") == 0;
+        leader.hp = leader.maxHp;
+        Report(healed && hurt && frozen && spent, $"soin {(healed ? "oui" : "non")}, explosion {(hurt ? "oui" : "non")}, eau gelée {(frozen ? "oui" : "non")}, {(spent ? "objets dépensés" : "objets restants")}");
+        yield break;
+    }
+
+    // An ally under the healing threshold eats an Oran Berry from the shared bag on its own.
+    IEnumerator AllyEatsBerry()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, 0f), new Vector2(-1f, 2f), settle: false);
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        bag.Add("oran", 2);
+        ally.hp = ally.maxHp * 0.2f;
+        float hp = ally.hp;
+        yield return new WaitForSeconds(1.5f);
+        bool ate = ally.hp > hp && bag.Count("oran") == 1;
+        ally.hp = ally.maxHp;
+        Report(ate, $"{(ate ? "baie mangée" : "pas de baie")} : PV {hp:0} → {ally.hp:0}, il reste {bag.Count("oran")} baie(s)");
+    }
+
+    // Capacity: one consumable stacks up to 9 in its slot; four kinds fill the four slots; a fifth kind does not fit.
+    IEnumerator BagCapacity()
+    {
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        bag.Add("oran", 12);
+        bool stack = bag.Count("oran") == 9;
+        bool fourth = bag.Add("blast") && bag.Add("sleep") && bag.Add("quick");
+        bool fifth = bag.Add("petrify");
+        bool more = bag.Add("oran"); // its stack is full and no slot is free
+        bag.Clear();
+        Report(stack && fourth && !fifth && !more, $"pile de {(stack ? 9 : 0)}, 4 sortes {(fourth ? "rangées" : "refusées")}, 5e sorte {(fifth ? "acceptée" : "refusée")}");
+        yield break;
+    }
+
+    // An elite always drops a consumable; the controlled Pokémon walks onto it and it goes into the bag.
+    IEnumerator EliteDropsConsumable()
+    {
+        var (leader, _) = Place(new Vector2(-3f, 0f), new Vector2(-6f, 3f), settle: false);
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        var foe = Enemy(BatchTeam[1], new Vector2(0f, 0f));
+        Loot.Mark(foe);
+        foe.TakeFixedDamage(foe.hp + 1f);
+        yield return new WaitForFixedUpdate();
+        Transform drop = null;
+        foreach (var t in FindObjectsByType<Transform>())
+            if (t != null && t.name.StartsWith("Consommable :")) drop = t;
+        bool dropped = drop != null;
+        string what = dropped ? drop.name : "rien au sol"; // read now: picked up, it is gone
+        if (dropped) Teleport(leader, drop.position);
+        yield return new WaitForSeconds(0.3f);
+        int held = 0;
+        foreach (var s in bag.Contents)
+            if (s != null) held += s.count;
+        ClearDrops();
+        bag.Clear();
+        Report(dropped && held == 1, $"{what}, {held} objet(s) dans le sac");
+    }
+
+    // Held items: a Choice Band raises the attack and slows the recharges, and leaves them as they were once let go;
+    // Leftovers heal a little every second; a Balloon floats over water until the first blow bursts it.
+    IEnumerator HeldEffects()
+    {
+        var (leader, _) = Place(new Vector2(-3f, 0f), new Vector2(-6f, 3f), settle: false);
+        float atk = leader.attackMul, cd = leader.cooldownMul;
+        leader.Hold(HeldItems.Get("choice_band"));
+        bool band = Mathf.Approximately(leader.attackMul, atk * 1.5f) && leader.cooldownMul > cd;
+        leader.Hold(null);
+        bool back = Mathf.Abs(leader.attackMul - atk) < 0.001f && Mathf.Abs(leader.cooldownMul - cd) < 0.001f;
+        leader.Hold(HeldItems.Get("leftovers"));
+        leader.hp = leader.maxHp * 0.5f;
+        float hp = leader.hp;
+        yield return new WaitForSeconds(2.2f);
+        bool regen = leader.hp > hp;
+        leader.Hold(HeldItems.Get("air_balloon"));
+        var grid = DungeonGenerator.Current;
+        var c = grid.CellOf(Centre + new Vector2(2f, -4f));
+        Obstacles.Place(c.x, c.y, "water");
+        Vector2 water = grid.CentreOf(c.x, c.y);
+        bool floats = !Obstacles.BlocksAt(water, leader);
+        leader.TakeHit(5f, GameData.Move(1) ?? FindMove(1, m => true), out _);
+        bool burst = leader.Held == null && Obstacles.BlocksAt(water, leader);
+        leader.Hold(null);
+        leader.hp = leader.maxHp;
+        Report(band && back && regen && floats && burst,
+            $"Bandeau {(band ? "oui" : "non")} (rendu {(back ? "oui" : "non")}), Restes {(regen ? "oui" : "non")}, Ballon : {(floats ? "flotte" : "tombe")} puis {(burst ? "éclate" : "reste")}");
+    }
+
+    // A Focus Sash leaves 1 HP after a knock-out blow, once, and breaks; a Rocky Helmet hurts who strikes it at close range.
+    IEnumerator HeldLastStand()
+    {
+        var (leader, _) = Place(new Vector2(-3f, 0f), new Vector2(-6f, 3f), settle: false);
+        leader.Hold(HeldItems.Get("focus_sash"));
+        leader.hp = leader.maxHp;
+        leader.TakeFixedDamage(leader.maxHp * 3f);
+        bool survived = leader.IsAlive && leader.hp <= 1.01f && leader.Held == null;
+        leader.hp = leader.maxHp;
+        leader.Hold(HeldItems.Get("rocky_helmet"));
+        var foe = Enemy(BatchTeam[1], new Vector2(0f, 0f));
+        float before = foe.hp;
+        HeldItems.OnContact(foe, leader);
+        bool hurt = foe.hp < before;
+        leader.Hold(null);
+        Report(survived && hurt, $"Ceinture Force : {(survived ? "1 PV, brisée" : "rien")}, Casque Brut : {(hurt ? "l'attaquant perd des PV" : "rien")}");
+        yield break;
+    }
+
+    // Walking onto a held item: the controlled Pokémon takes it; onto another one: it takes that one and the first
+    // drops at its feet, without being picked up again at once.
+    IEnumerator HeldSwap()
+    {
+        var (leader, _) = Place(new Vector2(-6f, 0f), new Vector2(-6f, 3f), settle: false);
+        leader.Hold(null);
+        var loot = FindAnyObjectByType<Loot>();
+        loot.PlaceHeld("leftovers", Centre + new Vector2(-2f, 0f));
+        loot.PlaceHeld("choice_scarf", Centre + new Vector2(2f, 0f));
+        Teleport(leader, Centre + new Vector2(-2f, 0f));
+        yield return new WaitForSeconds(0.3f);
+        bool first = leader.Held?.key == "leftovers";
+        Teleport(leader, Centre + new Vector2(2f, 0f));
+        yield return new WaitForSeconds(0.5f);
+        bool second = leader.Held?.key == "choice_scarf";
+        bool dropped = System.Array.Exists(FindObjectsByType<Transform>(), t => t != null && t.name.StartsWith("Objet tenu : Restes"));
+        loot.ClearGround();
+        leader.Hold(null);
+        Report(first && second && dropped, $"{(first ? "Restes pris" : "Restes pas pris")}, {(second ? "Mouchoir pris" : "Mouchoir pas pris")}, {(dropped ? "Restes au sol" : "Restes disparus")}");
+    }
+
+    // An enemy holding an item drops it when knocked out.
+    IEnumerator EnemyDropsHeld()
+    {
+        Place(new Vector2(-6f, 0f), new Vector2(-6f, 3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(3f, 0f));
+        foe.Hold(HeldItems.Get("life_orb"));
+        foe.TakeFixedDamage(foe.hp + 1f);
+        yield return new WaitForFixedUpdate();
+        bool dropped = System.Array.Exists(FindObjectsByType<Transform>(), t => t != null && t.name == "Objet tenu : Orbe Vie");
+        FindAnyObjectByType<Loot>().ClearGround();
+        Report(dropped, dropped ? "Orbe Vie au sol" : "rien au sol");
+    }
+
+    // Tiers: a Choice Band I < II < III; picking the same item of the same tier raises it one tier, a higher one is kept,
+    // another item replaces it and the old one drops.
+    IEnumerator HeldTiers()
+    {
+        var band = HeldItems.Get("choice_band");
+        float a1 = HeldItems.AtTier(band, 1).attackMul, a2 = HeldItems.AtTier(band, 2).attackMul, a3 = HeldItems.AtTier(band, 3).attackMul;
+        bool rising = a1 < a2 && a2 < a3 && Mathf.Abs(HeldItems.AtTier(band, 2).cooldownMul - band.cooldownMul) < 0.001f;
+        var up = HeldItems.Merge(HeldItems.AtTier(band, 1), HeldItems.AtTier(band, 1), out var d1);
+        var keep = HeldItems.Merge(HeldItems.AtTier(band, 3), HeldItems.AtTier(band, 2), out var d2);
+        var swap = HeldItems.Merge(HeldItems.AtTier(band, 2), HeldItems.Get("air_balloon"), out var d3);
+        bool merge = up.tier == 2 && d1 == null && keep.tier == 3 && d2 == null && swap.key == "air_balloon" && d3 != null && d3.tier == 2;
+        Report(rising && merge, $"Bandeau ×{a1:0.00} / ×{a2:0.00} / ×{a3:0.00}, I+I → {up.FullName}, III+II → {keep.FullName}, autre objet : {d3?.FullName} tombe");
+        yield break;
+    }
+
+    // Limits: a Blast Seed takes 5 % of a boss's health (25 % of another's), a Rocky Helmet 2 % of a boss's; a Life Orb
+    // costs its toll once for an attack that hits several times.
+    IEnumerator ItemLimits()
+    {
+        var (leader, _) = Place(new Vector2(-3f, 0f), new Vector2(-6f, 3f), settle: false);
+        var bag = team.GetComponent<Bag>();
+        bag.Clear();
+        bag.Add("blast");
+        var boss = Enemy(BatchTeam[1], new Vector2(0f, 0f));
+        boss.isBoss = true;
+        boss.maxHp = boss.hp = 1000f;
+        bag.Use(bag.Find(i => i.key == "blast"), leader);
+        bool blast = Mathf.Abs(boss.maxHp - boss.hp - 50f) < 1f;
+        leader.Hold(HeldItems.Get("rocky_helmet"));
+        float before = boss.hp;
+        HeldItems.OnContact(boss, leader);
+        bool helmet = Mathf.Abs(before - boss.hp - 20f) < 1f;
+        leader.Hold(HeldItems.Get("life_orb"));
+        float keptHp = leader.maxHp;
+        leader.maxHp = leader.hp = 1000f;
+        var move = GameData.Move(1) ?? FindMove(1, m => true);
+        leader.TryUseMove(0, Vector2.right); // one attack...
+        leader.HitLanded(move, 10f);
+        leader.HitLanded(move, 10f);
+        leader.HitLanded(move, 10f); // ...that hits three times
+        bool orb = Mathf.Abs(leader.maxHp - leader.hp - 30f) < 1f;
+        leader.Hold(null);
+        leader.maxHp = leader.hp = keptHp;
+        Report(blast && helmet && orb, $"Explo sur un boss : {(blast ? "5 %" : "autre")}, Casque Brut : {(helmet ? "2 %" : "autre")}, Orbe Vie : {(orb ? "une fois" : "plusieurs fois")}");
+        yield break;
+    }
+
+    // Every consumable and held item says what it does (the HUD shows it), tiers included.
+    IEnumerator ItemsDescribed()
+    {
+        var missing = new List<string>();
+        foreach (var i in BagItems.All)
+            if (string.IsNullOrEmpty(BagItems.Describe(i))) missing.Add(i.name);
+        foreach (var i in HeldItems.All)
+            if (string.IsNullOrEmpty(HeldItems.Describe(i))) missing.Add(i.name);
+        string band = HeldItems.Describe(HeldItems.AtTier(HeldItems.Get("choice_band"), 3));
+        Report(missing.Count == 0 && band.Contains("70"), missing.Count == 0 ? $"toutes décrites, ex. Bandeau Choix III : {band}" : $"sans description : {string.Join(", ", missing)}");
+        yield break;
+    }
+
+    // The same banner twice shows "×2" on one line; five different ones leave the last three.
+    IEnumerator BannersGrouped()
+    {
+        var progression = team.GetComponent<Progression>();
+        progression.Announce("Test : baie", Notice.Loot);
+        progression.Announce("Test : baie", Notice.Loot);
+        int twice = progression.TimesShown("Test : baie");
+        for (int k = 0; k < 5; k++) progression.Announce($"Test {k}");
+        int count = progression.BannerCount;
+        Report(twice == 2 && count == 3, $"même texte : ×{twice}, après cinq autres : {count} bandeau(x)");
         yield break;
     }
 

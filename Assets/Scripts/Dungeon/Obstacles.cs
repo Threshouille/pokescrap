@@ -416,7 +416,7 @@ public class Obstacles : MonoBehaviour
 
     /// That obstacle would stop this Pokémon (null: no obstacle, nothing stops it).
     public static bool WouldBlock(ObstacleDef def, Combatant c) =>
-        def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
+        def != null && (def.solid || def.fall) && (c == null || (!CanPass(def, c.Stats) && !HeldItems.Crosses(c, def.key)));
 
     /// What a move of this type does to that obstacle on purpose (no paint, no special action), or null.
     public static ObstacleInteraction TurnedBy(int moveType, ObstacleDef on)
@@ -431,6 +431,23 @@ public class Obstacles : MonoBehaviour
     /// The obstacle left by that interaction (null: bare floor).
     public static ObstacleDef Result(ObstacleInteraction it) =>
         !string.IsNullOrEmpty(it.becomes) ? Def(it.becomes) : !string.IsNullOrEmpty(it.leaves) ? Def(it.leaves) : null;
+
+    /// Turns every tile of obstacle "from" into "to" for "duration" seconds (an orb freezing the room's water). Returns
+    /// how many tiles changed.
+    public static int ChangeAll(string from, string to, float duration)
+    {
+        var a = Def(from);
+        var b = Def(to);
+        if (Current == null || Current.kind == null || a == null || b == null) return 0;
+        int changed = 0;
+        for (int i = 0; i < Current.kind.Length; i++)
+            if (Current.kind[i] == a)
+            {
+                Current.Set(i % Current.size, i / Current.size, b, duration);
+                changed++;
+            }
+        return changed;
+    }
 
     /// Lays an obstacle on a tile by hand (the AI test bench); key null or empty clears it.
     public static void Place(int x, int y, string key)

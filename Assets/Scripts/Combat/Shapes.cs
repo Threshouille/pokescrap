@@ -185,6 +185,34 @@ public static class Shapes
     }
     static Sprite ring;
 
+    /// Hexagon outline (the Terastal crystal, TeraAura), white to be tinted.
+    public static Sprite Hexagon
+    {
+        get
+        {
+            if (hexagon != null) return hexagon;
+            const int size = 48;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+            float r = size / 2f, apothem = r * Mathf.Cos(Mathf.PI / 6f);
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++)
+                {
+                    // Distance to the centre along the nearest of the three axes of a pointy-top hexagon.
+                    var p = new Vector2(x + 0.5f - r, y + 0.5f - r);
+                    float d = 0f;
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float a = k * Mathf.PI / 3f;
+                        d = Mathf.Max(d, Mathf.Abs(p.x * Mathf.Cos(a) + p.y * Mathf.Sin(a)));
+                    }
+                    tex.SetPixel(x, y, d <= apothem && d >= apothem - 3f ? Color.white : Color.clear);
+                }
+            tex.Apply();
+            return hexagon = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        }
+    }
+    static Sprite hexagon;
+
     // Runtime sprites are destroyed when play mode ends while statics can survive: hence the null checks.
     public static Sprite Circle
     {

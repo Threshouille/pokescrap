@@ -534,7 +534,7 @@ public class Terrain : MonoBehaviour
         return Current.KindAt(cell.x, cell.y);
     }
 
-    public static bool Immune(Combatant c, TerrainDef def) => Immune(c.Stats, def);
+    public static bool Immune(Combatant c, TerrainDef def) => Immune(c.Stats, def) || HeldItems.TerrainImmune(c, def.key); // a Sand Cloak
 
     /// Not affected by that terrain: one of its types, or floating above the ground.
     public static bool Immune(PokemonStats stats, TerrainDef def)

@@ -97,6 +97,7 @@ public class PlayerController : MonoBehaviour
         gameObject.AddComponent<Progression>();
         gameObject.AddComponent<Evolution>();
         gameObject.AddComponent<Ultimates>();
+        gameObject.AddComponent<Bag>(); // the team's shared consumables
         gameObject.AddComponent<TeamHud>();
         gameObject.AddComponent<PauseMenu>();
     }
@@ -308,6 +309,22 @@ public class PlayerController : MonoBehaviour
         UpdateRevives();
         if (autoPilot || Current.combatant.IsDashing) return; // its AllyAI drives it; a melee dash drives the body
         Current.combatant.Drive(Current.combatant.Steer(move) * Current.combatant.CurrentSpeed);
+    }
+
+    /// Brings the first knocked-out member back with that share of its health (a Reviver Seed). False when none is down.
+    public bool ReviveFirstDown(float healthShare)
+    {
+        foreach (var member in members)
+        {
+            if (member.combatant.IsAlive) continue;
+            member.combatant.Revive(healthShare);
+            member.reviveProgress = 0f;
+            member.animator.Play("Idle");
+            member.ai.enabled = member != Current || autoPilot;
+            if (member.gaugeFill != null) ShowGauge(member);
+            return true;
+        }
+        return false;
     }
 
     /// Between two arenas: knocked-out members get back up, the others are healed a little, effects are removed

@@ -9,7 +9,7 @@ using UnityEngine;
 public static class AiScenarioBatch
 {
     const string Pending = "AiScenarioBatch.Pending", StartedAt = "AiScenarioBatch.StartedAt";
-    const double TimeOut = 300.0, Quiet = 2.0; // seconds; editor idle time required before playing
+    const double TimeOut = 600.0, Quiet = 2.0; // seconds; editor idle time required before playing
 
     static double idleSince = -1.0;
 
