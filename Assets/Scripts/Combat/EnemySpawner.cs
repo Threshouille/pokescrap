@@ -71,14 +71,22 @@ public class EnemySpawner : MonoBehaviour
     int defeated;
     bool recorded;
     Recruitment recruitment;
+    Loot loot;
+    [Tooltip("Seconds the end of a stage waits for its chest to be opened (it is picked up anyway after)")]
+    public float chestWait = 15f;
     GUIStyle label, title, text;
 
     Stage Current => stages[CurrentStage];
     /// Day and night alternate from one stage to the next (some evolutions need one or the other).
-    public bool Night => CurrentStage % 2 == 1;
-    SpriteRenderer nightShade;
+    public bool Night => DayNight.IsNight; // the clock of the day (DayNight)
 
-    void Awake() => recruitment = gameObject.AddComponent<Recruitment>();
+    void Awake()
+    {
+        recruitment = gameObject.AddComponent<Recruitment>();
+        loot = gameObject.AddComponent<Loot>();
+        // An opened chest lets the stage end soon after.
+        loot.ChestOpened += () => { if (phase == Phase.Cleared) phaseUntil = Mathf.Min(phaseUntil, Time.time + stagePause); };
+    }
 
     void OnEnable() => Combatant.AnyDied += OnDied;
     void OnDisable() => Combatant.AnyDied -= OnDied;
@@ -105,35 +113,16 @@ public class EnemySpawner : MonoBehaviour
 
     void BeginStage()
     {
+        lots.Clear();
+        // At most one elite lot (champion or squad) per stage, during a wave drawn now.
+        eliteWave = Current.waves != null && Current.waves.Length > 0 && rng.NextDouble() < Encounters.EliteChance(CurrentStage)
+            ? rng.Next(Current.waves.Length) : -1;
         CurrentWave = 0;
         nextWaveAt = 0f;
         boss = null;
-        ShowNight();
         if (Run.Sandbox && !sandboxWaves) return;
         if (Current.boss != null && !Run.Sandbox) boss = Spawn(Current.boss, SpawnPoint(), true);
         SpawnNextWave();
-    }
-
-    // A dark veil over the arena at night, under health bars and numbers.
-    void ShowNight()
-    {
-        var cam = Camera.main;
-        if (nightShade == null && cam != null)
-        {
-            var go = new GameObject("NightShade");
-            go.transform.SetParent(cam.transform, false);
-            go.transform.localPosition = new Vector3(0f, 0f, 1f);
-            go.transform.localScale = new Vector3(200f, 200f, 1f);
-            nightShade = go.AddComponent<SpriteRenderer>();
-            nightShade.sprite = Shapes.Square;
-            nightShade.sortingOrder = 2; // above the floor and the Pokémon
-        }
-        if (nightShade == null) return;
-        var settings = SaveData.Settings;
-        ColorUtility.TryParseHtmlString(settings.nightColor, out var color);
-        color.a = settings.nightAlpha;
-        nightShade.color = color;
-        nightShade.gameObject.SetActive(Night);
     }
 
     void FixedUpdate()
@@ -146,7 +135,11 @@ public class EnemySpawner : MonoBehaviour
 
             case Phase.Cleared:
                 if (Time.time < phaseUntil) break;
-                if (CurrentStage >= stages.Length - 1) phase = Phase.Won;
+                if (CurrentStage >= stages.Length - 1)
+                {
+                    loot.CollectAll();
+                    phase = Phase.Won;
+                }
                 else Enter(Phase.FadingOut, fadeTime);
                 break;
 
@@ -185,7 +178,8 @@ public class EnemySpawner : MonoBehaviour
             // The boss is down: its escort leaves with it (no experience, no recruit, not counted as defeated).
             foreach (var escort in GetComponentsInChildren<Combatant>())
                 if (escort.IsAlive) Destroy(escort.gameObject);
-            Enter(Phase.Cleared, stagePause);
+            if (boss != null) loot.BossDrop(boss.transform.position);
+            Clear();
             return;
         }
 
@@ -193,15 +187,24 @@ public class EnemySpawner : MonoBehaviour
         if (escortAlive > 0) return;
         if (CurrentWave >= Current.waves.Length)
         {
-            if (!bossStage) Enter(Phase.Cleared, stagePause);
+            if (!bossStage) Clear();
             return;
         }
         if (nextWaveAt <= 0f) nextWaveAt = Time.time + delayBetweenWaves;
         else if (Time.time >= nextWaveAt) SpawnNextWave();
     }
 
+    // The stage is won: a chest near the team, and a wait for it to be opened.
+    void Clear()
+    {
+        var leader = team != null ? team.Controlled : null;
+        if (leader != null) loot.SpawnChest((Vector2)leader.transform.position + Vector2.right * 2f);
+        Enter(Phase.Cleared, loot.ChestWaiting ? stagePause + chestWait : stagePause);
+    }
+
     void NextStage()
     {
+        loot.CollectAll(); // what was left on the ground
         CurrentStage++;
         // Leftovers of the previous fight.
         foreach (var zone in FindObjectsByType<Zone>()) Destroy(zone.gameObject);
@@ -223,6 +226,23 @@ public class EnemySpawner : MonoBehaviour
     {
         nextWaveAt = 0f;
         if (Current.waves == null || CurrentWave >= Current.waves.Length) return;
+        // Encounters drawn for the décor and the stage (the stage's waves only give their number).
+        if (SaveData.Settings.encountersInRuns)
+        {
+            int decor = generator.tileset != null ? generator.tileset.romId : -1;
+            var encounters = Encounters.Wave(rng, CurrentStage, CurrentWave, decor);
+            if (CurrentWave == eliteWave && !Run.Sandbox && Encounters.Elite(rng, CurrentStage, decor) is { } elite)
+            {
+                encounters.Add(elite);
+                AnnounceElite(elite);
+            }
+            if (encounters.Count > 0)
+            {
+                foreach (var e in encounters) SpawnEncounter(e, SpawnPoint(), Current.enemyLevel);
+                CurrentWave++;
+                return;
+            }
+        }
         var sets = new List<PmdAnimSet>();
         foreach (var entry in Current.waves[CurrentWave].enemies)
             for (int i = 0; i < entry.count; i++)
@@ -270,6 +290,104 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
+    /// An encounter appears around "centre", as one group sharing its target; each member at its rank (level,
+    /// health, moves, item) on top of "level".
+    public List<Combatant> SpawnEncounter(Encounters.Encounter e, Vector3 centre, int level)
+    {
+        var group = new EnemyGroup();
+        var spawned = new List<Combatant>();
+        for (int i = 0; i < e.members.Count; i++)
+        {
+            var m = e.members[i];
+            var set = PokemonRoster.Get(m.pokemonId);
+            if (set == null) continue;
+            // In rings around the first one: a pack with its leader can be seven.
+            float angle = i * 2.4f, radius = i == 0 ? 0f : 1.1f + 0.35f * (i / 6);
+            Vector3 spot = centre + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            // A blocked spot: the nearest free one around, rather than on top of the first member.
+            for (int k = 1; k < 12 && (!generator.WalkableAt(spot, 0.3f) || Obstacles.BlocksAt(spot, null)); k++)
+                spot = centre + new Vector3(Mathf.Cos(angle + k * 0.9f), Mathf.Sin(angle + k * 0.9f)) * (radius + 0.4f * k);
+            if (!generator.WalkableAt(spot, 0.3f) || Obstacles.BlocksAt(spot, null)) spot = centre;
+            var moves = GameData.RandomMoves(m.pokemonId, m.moveCount, rng, m.role, m.rarity.strong);
+            var c = Build(m.pokemonId, set, spot, false, moves, Mathf.Max(1, level + m.levelBonus), healthFactor * m.health);
+            RarityMark.Put(c, m.rarity);
+            // The higher ranks (and elites) may hold an item, which acts for them and drops when they fall.
+            string rank = m.lot != null && m.lot.elite ? "elite" : m.rarity.key;
+            if (rng.NextDouble() < HeldItems.EnemyChance(rank)) c.Hold(HeldItems.AtTier(HeldItems.Roll(rng), HeldItems.EnemyTier(rank, rng)));
+            if (m.item) c.gameObject.AddComponent<EnemyUltimate>().preferMega = m.lot != null && m.lot.preferMega;
+            if (m.lot != null && m.lot.elite)
+            {
+                // An elite lot (champion, squad): golden ring, sure loot (the squad's once all of it is down), bigger.
+                var mark = Loot.Mark(c);
+                mark.sureLoot = true;
+                if (e.members.Count > 1) mark.squad = group;
+                if (m.lot.scale != 1f) c.transform.localScale = Vector3.one * m.lot.scale;
+            }
+            c.GetComponent<EnemyAI>().group = group;
+            group.members.Add(c);
+            spawned.Add(c);
+        }
+        if (spawned.Count > 0) lots.Add(new Lot { label = LotLabel(e), members = spawned, elite = e.category.elite });
+        return spawned;
+    }
+
+    int eliteWave = -1; // the wave of this stage with an elite lot, or -1
+
+    // The lots on the field, for the wave panel (top right): its members, a line while any of them stands.
+    class Lot
+    {
+        public string label;
+        public List<Combatant> members;
+        public bool elite;
+        public int Alive => members.FindAll(m => m != null && m.IsAlive).Count;
+    }
+
+    readonly List<Lot> lots = new();
+
+    /// "Meute · Rattata", "Équipe", "Champion · Dracaufeu", "Meute + Solitaire · Rattata".
+    static string LotLabel(Encounters.Encounter e)
+    {
+        string name = e.category.name + (e.with != null ? " + " + e.with.name : "");
+        bool one = e.category.key is "pack" or "solo" or "champion";
+        return one && e.members.Count > 0 ? $"{name} · {GameData.Pokemon(e.members[0].pokemonId)?.name}" : name;
+    }
+
+    // Wave panel, top right under the weather's name: one line per lot still standing (how many of it are left), the
+    // elites in gold; how many enemies in all.
+    void DrawLots(float s)
+    {
+        lots.RemoveAll(l => l.Alive == 0);
+        if (lots.Count == 0) return;
+        float w = HudLayout.LotsWidth * s, line = 11f * s, pad = 6f * s;
+        int total = 0;
+        foreach (var l in lots) total += l.Alive;
+        float top = (Climate.Now != null ? HudLayout.Top + 14f : HudLayout.Top) * s;
+        var box = new Rect(Screen.width - w - HudLayout.Side * s, top, w, (lots.Count + 1) * line + 2f * pad);
+        HudLayout.Panel(box, s);
+        var bold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+        var row = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+        var count = new GUIStyle(text) { alignment = TextAnchor.MiddleRight };
+        GUI.Label(new Rect(box.x + pad, box.y + pad, w - 2f * pad, line), $"Ennemis de la vague · {total}", bold);
+        for (int i = 0; i < lots.Count; i++)
+        {
+            var r = new Rect(box.x + pad, box.y + pad + (i + 1) * line, w - 2f * pad, line);
+            bool elite = lots[i].elite;
+            row.normal.textColor = elite ? HudLayout.Gold : Color.white;
+            count.normal.textColor = elite ? HudLayout.Gold : HudLayout.Secondary;
+            GUI.Label(new Rect(r.x, r.y, r.width - 34f * s, r.height), lots[i].label, row);
+            GUI.Label(r, $"{lots[i].Alive} / {lots[i].members.Count}", count);
+        }
+    }
+
+    /// The banner when an elite lot arrives.
+    public void AnnounceElite(Encounters.Encounter elite)
+    {
+        var progression = team != null ? team.GetComponent<Progression>() : null;
+        if (progression == null || elite.members.Count == 0) return;
+        string leader = GameData.Pokemon(elite.members[0].pokemonId)?.name;
+        progression.Announce(elite.members.Count == 1 ? $"Un champion apparaît : {leader} !" : $"Une escouade d'élite approche, menée par {leader} !", Notice.Elite);
+    }
+
     PmdAnimSet SupportCandidate()
     {
         var candidates = new List<PmdAnimSet>();
@@ -287,7 +405,27 @@ public class EnemySpawner : MonoBehaviour
 
     Combatant Spawn(PmdAnimSet set, Vector3 position, bool isBoss, string role = null)
     {
-        var go = new GameObject(GameData.Pokemon(set.pokemonId)?.name ?? "Enemy");
+        // Bosses keep their fixed moves; other enemies draw theirs from what they learn by level.
+        var combatant = Build(set.pokemonId, set, position, isBoss,
+            isBoss ? null : GameData.RandomMoves(set.pokemonId, SaveData.Settings.enemyMoveCount, rng, role),
+            Current.enemyLevel, isBoss ? bossHealthFactor : healthFactor);
+        if (!isBoss && !Run.Sandbox && rng.NextDouble() < SpecialItems.Loot.eliteChance) Loot.MakeElite(combatant);
+        return combatant;
+    }
+
+    /// A fighting enemy for the test arena's rooms (TerrainSandbox): moves given by id, an elite when asked.
+    public Combatant SpawnFighter(int pokemonId, int[] moveIds, Vector3 position, bool isBoss, bool elite, int level, float health)
+    {
+        var set = PokemonRoster.Get(pokemonId);
+        if (set == null) return null;
+        var combatant = Build(pokemonId, set, position, isBoss, moveIds, level, health);
+        if (elite) Loot.MakeElite(combatant);
+        return combatant;
+    }
+
+    Combatant Build(int pokemonId, PmdAnimSet set, Vector3 position, bool isBoss, int[] moveIds, int enemyLevel, float health)
+    {
+        var go = new GameObject(GameData.Pokemon(pokemonId)?.name ?? "Enemy");
         go.transform.SetParent(transform, false);
         go.transform.position = position;
         if (isBoss) go.transform.localScale = Vector3.one * bossScale;
@@ -301,14 +439,17 @@ public class EnemySpawner : MonoBehaviour
 
         go.AddComponent<PmdAnimator>().SetAnimSet(set);
         var combatant = go.AddComponent<Combatant>();
-        // Bosses keep their fixed moves; other enemies draw theirs from what they learn by level.
-        combatant.Init(set.pokemonId, Team.Enemy, isBoss ? null : GameData.RandomMoves(set.pokemonId, SaveData.Settings.enemyMoveCount, rng, role));
-        for (int level = 2; level <= Current.enemyLevel; level++)
-            combatant.ApplyGrowth(LevelData.Growth(set.pokemonId, level), level);
+        combatant.Init(pokemonId, Team.Enemy, moveIds);
+        for (int level = 2; level <= enemyLevel; level++)
+            combatant.ApplyGrowth(LevelData.Growth(pokemonId, level), level);
         combatant.damageFactor = damageFactor;
         combatant.isBoss = isBoss;
-        combatant.maxHp = combatant.hp = combatant.maxHp * (isBoss ? bossHealthFactor : healthFactor);
-        if (isBoss) go.AddComponent<BossAI>(); // numbered announcements instead of danger areas
+        combatant.maxHp = combatant.hp = combatant.maxHp * health;
+        if (isBoss)
+        {
+            go.AddComponent<BossAI>(); // numbered announcements instead of danger areas
+            go.AddComponent<EnemyUltimate>();
+        }
         else
         {
             go.AddComponent<EnemyAI>();
@@ -355,13 +496,20 @@ public class EnemySpawner : MonoBehaviour
         bool defeat = team != null && team.GameOver;
         if (!Victory && !defeat)
         {
+            // Stage, top left: which one and where (day or night), then the wave.
             bool bossStage = Current.boss != null && !Run.Sandbox;
-            string where = Run.Sandbox ? "Terrain de test (dev) — Options : menu pause" : Night ? "Nuit — " : "Jour — ";
-            if (!Run.Sandbox) where += bossStage ? Current.name
-                : nextWaveAt > 0f ? $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length} terminée"
-                : $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length}";
-            Fill(new Rect(cx - 110f * s, 4f * s, 220f * s, 12f * s), new Color(0f, 0f, 0f, 0.6f));
-            GUI.Label(new Rect(cx - 110f * s, 4f * s, 220f * s, 12f * s), where, label);
+            string place = Current.name.Contains("tape") ? Current.name : $"Étape {CurrentStage + 1} — {Current.name}";
+            string first = Run.Sandbox ? $"Terrain de test (dev) · {DayNight.Label}" : $"{place} · {DayNight.Label}";
+            string second = Run.Sandbox ? "Options : menu pause" : bossStage ? "Boss"
+                : nextWaveAt > 0f ? $"Vague {CurrentWave} / {Current.waves.Length} terminée" : $"Vague {CurrentWave} / {Current.waves.Length}";
+            var stageBox = new Rect(HudLayout.Side * s, HudLayout.Top * s, HudLayout.StageWidth * s, 27f * s);
+            HudLayout.Panel(stageBox, s);
+            var leftBold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+            var leftSoft = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+            leftSoft.normal.textColor = HudLayout.Secondary;
+            GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 3f * s, stageBox.width - 12f * s, 10f * s), first, leftBold);
+            GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 14f * s, stageBox.width - 12f * s, 10f * s), second, leftSoft);
+            DrawLots(s);
 
             if (bossStage && boss != null && boss.IsAlive)
             {

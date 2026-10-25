@@ -12,6 +12,18 @@ public class Navigator
     const float WaypointReached = 0.35f;
     const float HazardCost = 25f; // extra cost of a tile inside a hostile zone, in tiles of detour
     const float Diagonal = 1.41421356f;
+    const int MaxExpanded = 4000; // tiles a search may look at (a level is a large map): beyond, a partial path
+    /// Search limit in use (MaxExpanded; the test bench lowers it to play a large map on a small arena).
+    public static int Limit = MaxExpanded;
+
+    public static void ResetLimit() => Limit = MaxExpanded;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => ResetLimit();
+    // Tiles all the searches of one frame may look at together (several AIs chasing across an island): beyond, a
+    // search waits for the next frame and the AI keeps to its current path.
+    const int FrameBudget = 4000;
+    static int budgetFrame, spent;
     static readonly Vector2Int[] Steps =
     {
         new(1, 0), new(-1, 0), new(0, 1), new(0, -1), new(1, 1), new(1, -1), new(-1, 1), new(-1, -1),
@@ -52,7 +64,14 @@ public class Navigator
 
         var cell = grid.CellOf(to);
         // An unreachable goal is searched again only every RepathInterval, not at every step.
-        if ((path.Count == 0 && Reachable) || cell != goalCell || Time.time >= nextSearch || pathAvoids != avoid)
+        if (Time.frameCount != budgetFrame)
+        {
+            budgetFrame = Time.frameCount;
+            spent = 0;
+        }
+        bool due = (path.Count == 0 && Reachable) || cell != goalCell || Time.time >= nextSearch || pathAvoids != avoid;
+        if (due && spent >= FrameBudget && path.Count > 0) due = false; // over this frame's budget: next frame
+        if (due)
         {
             SafePath = false;
             if (avoid) SafePath = FindPath(grid, from, to, agent, true);
@@ -100,14 +119,28 @@ public class Navigator
         return Zone.Inside(centre, agent.team, 0.5f) || Terrain.Hazard(centre, agent) || Pylons.Hazard(centre, agent);
     }
 
+    static Vector2Int Snap(DungeonGenerator grid, Vector2Int cell)
+    {
+        if (grid.Walkable(cell.x, cell.y)) return cell;
+        int level = grid.HeightOf(cell.x, cell.y);
+        for (int pass = 0; pass < 2; pass++) // on its own level first (not down the cliff)
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                    if (grid.Walkable(cell.x + dx, cell.y + dy) && (pass == 1 || grid.HeightOf(cell.x + dx, cell.y + dy) == level))
+                        return new Vector2Int(cell.x + dx, cell.y + dy);
+        return cell;
+    }
+
     /// Fills "path"; false when the goal cannot be reached (with "avoid": not without crossing a danger).
     bool FindPath(DungeonGenerator grid, Vector2 from, Vector2 to, Combatant agent, bool avoid)
     {
         var team = agent.team;
         path.Clear();
         int size = grid.Size;
-        var start = grid.CellOf(from);
-        var goal = grid.CellOf(to);
+        // A point on a tile the grid counts as wall (a cliff's edge seen from above: walkable up to its drawn edge)
+        // stands for the nearest walkable tile beside it.
+        var start = Snap(grid, grid.CellOf(from));
+        var goal = Snap(grid, grid.CellOf(to));
         if (!grid.Walkable(start.x, start.y) || !grid.Walkable(goal.x, goal.y)) return false;
 
         if (cost == null || cost.Length != size * size)
@@ -123,12 +156,18 @@ public class Navigator
 
         int startNode = start.y * size + start.x, goalNode = goal.y * size + goal.x;
         Visit(startNode, 0f, -1, Heuristic(start, goal));
-        while (heap.Count > 0)
+        int expanded = 0, closest = startNode;
+        float closestLeft = Heuristic(start, goal);
+        while (heap.Count > 0 && expanded < Limit)
         {
             int node = Pop();
             if (closed[node]) continue;
             closed[node] = true;
+            expanded++;
+            spent++;
             if (node == goalNode) break;
+            float left = priority[node] - cost[node];
+            if (left < closestLeft) { closestLeft = left; closest = node; }
 
             int x = node % size, y = node / size;
             foreach (var step in Steps)
@@ -153,11 +192,15 @@ public class Navigator
             }
         }
 
-        if (stamp[goalNode] != search || !closed[goalNode]) return false; // unreachable
-        for (int node = goalNode; node != startNode && node >= 0; node = parent[node])
+        bool reached = stamp[goalNode] == search && closed[goalNode];
+        // Every reachable tile looked at without finding the goal: unreachable. The search stopped by its limit
+        // (the goal is far, on a large map): a partial path to the tile closest to the goal, walked meanwhile.
+        if (!reached && heap.Count == 0) return false;
+        int end = reached ? goalNode : closest;
+        for (int node = end; node != startNode && node >= 0; node = parent[node])
             path.Add(grid.CentreOf(node % size, node / size));
         path.Reverse();
-        if (path.Count > 0) path[path.Count - 1] = to;
+        if (reached && path.Count > 0) path[path.Count - 1] = to;
         return true;
     }
 

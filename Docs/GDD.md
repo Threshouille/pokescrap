@@ -51,6 +51,36 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - L'IA lance une météo quand elle favorise les types de son équipe, un sport contre des adversaires proches du type visé. Réglages : `climates.json`.
 - Tirs et vent (20/10/2026, Robin) : la météo change la vitesse et la portée des tirs de certains types (pluie : Feu ×0,7, Eau ×1,15 ; soleil : Feu ×1,2, Eau ×0,8 ; grêle : Glace ×1,2) ; la grêle (15 %) et la tempête de sable (25 %) ont un vent de direction fixe, tirée au lancement, qui accélère et allonge les tirs dans son sens et les freine contre lui (Vol ×2, Roche et Sol insensibles) ; il déporte les Pokémon Vol (0,8 case/s sous la grêle, 1,5 dans la tempête de sable, même à l'arrêt), pas les autres (20/10/2026, Robin).
 
+### Objets spéciaux : méga-gemmes, cristaux Z, Téra-Éclats (décidé le 23/10/2026, Robin)
+- Trois familles : 27 méga-gemmes (une par méga ayant ses sprites), 17 cristaux Z et 17 Téra-Éclats (un par type ; pas
+  de Fée, absente de la table de la 4e génération).
+- Un emplacement par famille et par Pokémon ; un seul objet actif par partie, choisi avant la partie (ex. Dracaufeu :
+  méga, Z ou Téra). Les encoches de l'écran de choix montrent les familles disponibles pour ce Pokémon (3 pour
+  Dracaufeu, 2 pour un Pokémon sans méga). Pas de changement d'objet en cours de partie (pour l'instant).
+- Conservation : méga-gemmes permanentes et uniques (une gemme obtenue ne retombe plus) ; cristaux Z et Téra-Éclats en
+  collection permanente à niveaux (le premier exemplaire débloque, chaque doublon fait monter de niveau, jusqu'à 3).
+- Compatibilité : méga-gemme pour sa lignée (utile une fois la bonne forme atteinte) ; cristal Z si le Pokémon connaît
+  une attaque offensive du type ; Téra-Éclat pour tout Pokémon. Rayquaza méga-évolue sans gemme s'il connaît Draco
+  Ascension.
+- Les trois effets sont des ultimes alimentés par la jauge commune de la méga : seul le Pokémon joué déclenche le sien,
+  la jauge se vide. Capacité Z (revu le 23/10/2026, Robin) : tous les ennemis
+  visibles à l'écran sont frappés directement (dégâts de sa plus forte attaque du type, multipliés selon le niveau) et
+  subissent un effet propre au type (ex. Électrik : éclair + paralysie ; Feu : brûlure + braises ; Eau : poussée +
+  flaque ; Acier : bonus de défense à l'équipe ; détail dans `items.json`). Persos de dev : Dev Mew a un cristal Z Feu,
+  Dev Métamorph un Téra-Éclat Spectre. Téracristal : le Pokémon prend le type de l'éclat pendant 40 à 60 s selon le niveau (défense,
+  terrains, immunités ; attaques de ce type renforcées).
+- Ultimes ennemis (décidé le 23/10/2026, Robin) : comme tout Pokémon, un élite ou un boss porte un seul objet, donc un
+  seul ultime, une seule fois ; l'objet est choisi d'après l'équipe du joueur : Téracristal défensif quand ils sont blessés et qu'un type encaisse mieux les attaques
+  de l'équipe, capacité Z quand l'équipe est groupée ou qu'une cible est presque K.O. (bandeau d'alerte pendant la pose,
+  dégâts plafonnés). Le terrain d'une capacité Z n'agit jamais sur l'équipe de son lanceur. Les élites modifient aussi le terrain comme les alliés (gèlent une rivière, brûlent un pont).
+- Seconde phase (décidé le 25/10/2026, Robin) : la méga et la Téra d'un ennemi ouvrent une seconde phase à 50 % de ses
+  PV (plus jamais au premier contact) ; une élite ou un boss ne peut pas franchir ce seuil d'un seul coup. À la
+  transformation (immobile et invincible un instant, onde qui repousse l'équipe) : +30 % des PV max (boss +20 %, ennemi
+  d'un rang à objet +10 %), recharges × 0,8, en plus des statistiques ou du type. La capacité Z ne soigne pas ; la méga
+  et la Téra du joueur non plus. En contrepartie, le champion passe de 6 à 5 fois les PV.
+- Obtention (à affiner) : boss (méga-gemme non possédée, compatible avec l'équipe en priorité), coffre de fin d'étape
+  (Z ou Téra pondérés vers les types de l'équipe), rare ennemi d'élite ; plus tard défis, quêtes, îlots, boutique.
+
 ### Méga-évolutions (décidé le 20/10/2026, Robin)
 - Une sorte d'ultime : une **jauge commune à l'équipe** se remplit au K.O. des ennemis (plus pour un boss) et se garde
   d'une étape à l'autre ; pleine, le Pokémon contrôlé qui le peut méga-évolue (L3 + R3, F au clavier : L1 et R1 sont des attaques), la jauge
@@ -133,7 +163,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Les Pokémon évoluent pendant la partie. On débloque toujours la première forme d'une lignée.
 - Évolution (plan validé par Owen le 17/10/2026, fait le même jour ; à tester à la manette) :
   - Manuelle : quand les conditions sont réunies (y compris par niveau), le joueur appuie sur Triangle. Animation : silhouettes blanches de l'ancienne et de la nouvelle forme qui alternent (environ 2,5 s, Pokémon immobile et invincible), puis onde de choc de 5 cases (recul de 2 cases, dégâts 15 + niveau).
-  - Jour et nuit alternent à chaque étape (évolutions de jour ou de nuit).
+  - Évolutions de jour ou de nuit : selon l'horloge du jour (voir « Jour et nuit »).
   - QI : +1 par seconde quand le Pokémon est contrôlé par le joueur (remplace le bonheur).
   - Genre et hasard (Chenipotte) tirés en début de partie.
   - Beauté (Barpau) : +1 par seconde sans être touché, −10 par coup reçu, évolution à 100.
@@ -152,11 +182,184 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Une arène = plusieurs vagues d'ennemis (à confirmer).
 - Boutiques possibles entre les niveaux, avec un système d'objets (à préciser).
 
+### Étages et salles (décidé le 22/10/2026, Robin)
+- Étages façon Binding of Isaac : plusieurs salles reliées, dont des salles optionnelles (défis) ; une salle de boss
+  par étage : tous les 1 ou 2 étages un gros boss (légendaire), sinon une équipe de 3 Pokémon un peu forts ; sous-boss.
+- Salles inspirées de Donjon Mystère (décors de la ROM), de tailles variées ; instances tirées au hasard (plusieurs
+  salles de lave différentes). Portes fermées pendant le combat. Pas de butin pour l'instant.
+- Ordre : 1) catalogue et générateur de salles (fait le 22/10/2026) ; 2) plan procédural de l'étage et mini-carte (fait le 22/10/2026 façon Isaac, puis remplacé par les niveaux continus, voir ci-dessous) ;
+  3) règles des salles (portes, embuscade, défis, sous-boss, boss, cadence des légendaires).
+
+### L'île flottante (décidé le 22/10/2026, Robin) — remplace les niveaux continus comme structure de la run
+- Une run = une île flottante : 4 quartiers (un quart d'île chacun) + une zone centrale finale. Ordre imposé, sens des
+  aiguilles d'une montre ; chaque quartier s'ouvre avec un Engrenage du Temps, les 4 ouvrent le centre.
+- Quartier : région principale ouverte / semi-ouverte, biomes générés (champs d'altitude, d'humidité, de température :
+  volcans, grandes rivières, lacs, forêts, falaises), variations de sous-biomes fluides et organiques ; plus des chaînes
+  d'îlots flottants au thème en rupture (code des niveaux continus réutilisé, quitte à le revoir).
+- Durée : trame principale ≈ 30 min sans les îlots ; les îlots sont une voie optionnelle qui rallonge la run.
+- Engrenages du Temps : par run, deux quartiers donnent le leur par un boss, un en 3 fragments dispersés dans trois
+  sous-biomes de la région (gardés : mini-gardien, énigme de décor ou recoin ; indice sur la mini-carte), un par une
+  quête du Tableau des missions tirée parmi Sauvetage (ramener un Pokémon perdu), Avis de recherche (traquer un Pokémon
+  qui fuit), Défense du sanctuaire (tenir 3 vagues) ; chaque quête se termine par un boss. Le 4e quartier finit
+  toujours par un boss. Les îlots ne donnent pas d'engrenage : récompenses de détour (plus tard).
+- Centre : série de salles défis et combats, structure de donjon (salles du catalogue), boss final.
+- Zones séparées (décidé le 22/10/2026, Owen) : chaque quartier et le centre sont des instances à part (une carte
+  chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
+  passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts
+  pour l'instant (verrou par Engrenage du Temps à l'étape « sceaux et engrenages »).
+- Relief et hauteur (décidé le 24/10/2026, Owen) : la hauteur donne un avantage. Les attaques à distance tirées d'un
+  palier passent par-dessus les falaises de ce palier ou plus basses et s'écrasent contre celles qui sont plus hautes
+  (d'en bas, on tire dans la paroi) ; le corps à corps ne passe jamais une falaise. Les IA en tiennent compte. Les
+  collisions des falaises suivent leur épaisseur dessinée (rebord fin vu de dessus, moitié basse de la rangée du haut
+  d'une paroi). Plateaux aux contours droits (rectangles sur une grille de 3 cases), falaises dessinées avec des
+  morceaux des cartes de l'histoire.
+- Végétation (décidé le 24/10/2026, Owen) : peu de décor épars (fleurs, buissons, rochers) ; les arbres servent aux
+  forêts. Chaque sous-biome a des taches : champ de fleurs, fougeraie, éboulis, forêt. Une forêt est un massif plein
+  traversé de sentiers vers une clairière centrale, pensé pour le level design (lisière praticable sous les couronnes).
+- Escaliers secrets (décidé le 25/10/2026, Owen ; génération à faire, Robin) : un escalier caché dans un quartier mène à
+  une salle à part (écran de chargement, comme un changement de zone), dont un escalier ramène exactement au même
+  endroit ; l'escalier secret disparaît ensuite. Tirage avec une probabilité, comme les Monster Houses de DM (0 ou 1
+  par quartier, pas systématique), surprise totale : aucun indice sur la mini-carte ni avant d'entrer.
+  - Cachettes retenues : au centre d'une clairière de forêt (`IslandPlan.clearings`) ; sous un rocher fissuré à briser
+    (obstacle dédié, brisé par les types Combat, Sol, Roche, Acier par exemple : à régler pour qu'une équipe sans ces
+    types n'en soit pas toujours privée). Idées écartées pour l'instant : fond de grotte, palier isolé atteint par un
+    rebord, escalier invisible révélé à l'approche.
+  - Contenus retenus : **trésor** (un coffre : cristal Z ou Téra-Éclat pondéré vers l'équipe, méga-gemme rare) ;
+    **embuscade** (façon Monster House : sortie fermée, 2 vagues ou plus, coffre à la fin) ; **gardien** (un seul
+    Pokémon rare et costaud, élite, taux de recrutement augmenté ; il garde un coffre). Poids de tirage à régler.
+  - Idées pour plus tard : faux trésor (coffre qui libère une embuscade, reconnaissable à un détail), source (soin,
+    réanimation, jauge méga), énigme de terrain (coffre derrière eau, lave ou lianes à franchir par les interactions),
+    défi (survivre à la lave qui monte, ramasser des éclats en temps limité), marchand Kecleon (quand les boutiques
+    existeront).
+  - Thèmes logiques (demande d'Owen pour Robin) : la salle prend le décor et les obstacles du sous-biome de l'escalier
+    (forêt → salle de forêt, montagne → grotte…) ; ses Pokémon (embuscade, gardien) sont tirés dans une population
+    cohérente avec ce sous-biome (et plus largement : peuplement des quartiers par biome, à définir dans les données).
+  - Briques déjà en place : catalogue de salles `rooms.json` (`RoomCatalog.Pick(type, rng, thème, variante)` ; types
+    `monster_house`, `subboss`, `rest`…), construction d'une zone et retour (`IslandRun.Build(zone, arrivée)`,
+    `LoadingScreen.Run`), coffre et objets (`Loot.SpawnChest`, `RollTyped`, `RollStone` ; rien n'est donné dans le
+    terrain de test), ennemis (`EnemySpawner.SpawnFighter`, `Loot.MakeElite`, `GameData.RandomMoves`), recrutement
+    (`Recruitment`, taux de la ROM × `recruitMultiplier`), rochers et interactions (`obstacles.json`, `boulder*`),
+    clairières des forêts du quart de test. Données à prévoir : un fichier du genre `secret_rooms.json` (probabilité,
+    poids des cachettes et des contenus, vagues, niveaux, populations).
+  - Fait le 25/10/2026 (Owen) : escalier, cachettes (clairière, rocher fissuré brisé par Combat, Sol, Roche ou Acier),
+    salle vide du catalogue et retour, dans le quart de test (`secret_rooms.json`, `SecretStairs`). Reste (Robin) : le
+    contenu des salles (trésor, embuscade, gardien) et les thèmes logiques.
+- Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
+  sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
+  (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.
+  - Sceau tiré d'après le biome quand c'est possible (sinon un sceau générique) :
+    volcan : coulée de lave figée (Eau ou Glace la change en pierre qui se fissure), fumerolles (éteintes par la pluie) ;
+    glacier : mur de glace (Feu ou Zénith, fond en 3 états), stalactites (Roche ou Combat les font tomber) ;
+    côte : grotte marine noyée (marée basse la nuit, ou Plante qui absorbe), coquillages à frapper par ordre de taille ;
+    forêt : racines ou lianes (Feu, Insecte, Plante), arbre creux endormi (s'éveille la nuit) ;
+    désert : entrée ensevelie (Vol ou Tempêtesable), cadran solaire (Zénith) ;
+    ruines : porte à runes (un Zarbi ou une Psy dans l'équipe), braseros (Feu sur chacun, ils s'éteignent après
+    quelques secondes), plaques de pression (les 3 Pokémon dessus en même temps).
+    Génériques : gardien (élite devant l'entrée), clé (coffre ou élite du quartier), nettoyer le quartier, temps passé.
+  - Faisabilité : la plupart des sceaux tirés sont réalisables par l'équipe (types, attaques apprises) ; quelques-uns
+    rares peuvent ne pas l'être (raison de rejouer).
+  - Lisibilité (point délicat) : un repère commun à toutes les grottes scellées (même symbole, même lueur) ; l'icône de
+    la condition gravée sur le sceau (icônes de types, soleil, lune, nuage) ; progression visible (états successifs,
+    secousse, particules ; « cling » ou petit nuage gris quand l'attaque n'a pas d'effet) ; ouverture marquée (secousse
+    de caméra, dissipation, escalier qui apparaît, signalé sur la mini-carte) ; bulle d'indice optionnelle à l'approche.
+    Entrée tirée des éléments des cartes de l'histoire (`map_props`, entrée de grotte du style `rock`) ; états du sceau
+    en planches Claude Design (comme `obstacle_*`).
+  - Forme retenue (Owen) : une petite grotte comme celle du sommet des montagnes, sur un plateau isolé (pas creusée
+    dans une falaise ni une colline) ; la porte est une partie de sa paroi qui disparaît ; un mécanisme devant la grotte
+    fait comprendre l'énigme. L'escalier reste après usage.
+  - Plaques de pression : seuls les Pokémon joués par des humains comptent, jamais les IA (énigme pour jouer entre amis).
+  - Fait le 25/10/2026 : génération, porte, mécanisme provisoire, conditions type d'attaque, météo, équipe, braseros,
+    plaques, coquillages, temps ; escalier vers une salle vide. Reste : nuit sur l'île, clé, gardien, nettoyer le
+    quartier, planches Claude Design, contenu des salles.
+  - Étapes : 1) données (`cave_seals.json`) et placement dans `IslandPlan` ; 2) `CaveSeal` (conditions type d'attaque,
+    météo, braseros ou plaques ; repère et icône) ; 3) escalier vers une salle du catalogue (comme `SecretStairs`) ;
+    4) nuit sur l'île, clé, gardien, planches.
+
+### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
+- Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue
+  sans fondu ; les salles deviennent des zones aux contours naturels (ou construites : ruines, labyrinthe) reliées par
+  des chemins sinueux ; chemin principal du départ au boss, branches optionnelles (défis, recoins), quelques boucles.
+- Taille : 10 à 14 zones, 5 à 8 minutes de traversée sans combat. Mini-carte avec brouillard qui se révèle.
+- Biomes : un thème par niveau et une suite de sous-biomes cohérents le long du chemin (`biomes.json`), changement de
+  décor sur une frontière naturelle (goulet, rivière, ravin, arche) et dégradé d'obstacles avant la frontière.
+- Exploration : passages secrets ouverts par les interactions du décor (rocher brisé, lianes brûlées, rivière gelée,
+  pont refait), points de repère.
+- Combats libres en général ; sortie bloquée (barrière de glace ou de ronces) pour les défis et le boss.
+- Ordre : 1) carte continue (zones, chemins, branches, mini-carte), 2) sous-biomes et transitions, 3) exploration,
+  4) rencontres (ennemis par zone, défis, sous-boss, boss).
+
+### Jour et nuit (décidé le 25/10/2026, Owen ; branche `feature/jour-nuit`)
+- Un cycle de 10 minutes réelles (aube 1 min, jour 5, crépuscule 1, nuit 3), arrêté pendant les pauses ; une partie
+  commence à une heure tirée au hasard. Il remplace l'alternance jour / nuit par étape.
+- Éclairage : la lumière globale change de couleur et d'intensité selon la phase (orangé, blanc, rose-orangé, bleu
+  sombre mais jouable) ; barres de vie, nombres, visées, icônes et effets d'attaque restent non éclairés.
+- La nuit compte pour les évolutions de nuit et les sceaux de nuit des grottes.
+- **Pour Robin (rencontres)** : la nuit doit influer sur les Pokémon qui apparaissent : types Spectre et Ténèbres plus
+  fréquents, une liste de Pokémon nocturnes favorisés (Hoothoot, Nosferapti, Mimigal, Ténéfix, Feuforêve…), et
+  éventuellement des Pokémon de jour seulement ou de nuit seulement ; poids dans `encounters.json`, phase lue par
+  `DayNight.IsNight` (ou `DayNight.Now`).
+- Lumières ponctuelles (fait le 25/10/2026) : Pokémon Feu (et Loupio, Lanturn, Muciole, Lumivole), tirs et impacts Feu et
+  Électrik, lave et braises, braseros, repère et entrée des grottes, escaliers, arcs des pylônes ; presque invisibles le
+  jour, pleines la nuit.
+- Eau animée (fait le 25/10/2026) : l'animation de palette de la ROM (miroitement de l'eau, lueur de la lave, cristaux)
+  sur les sols, murs et obstacles des décors. Sens du courant des rivières : avec les particules.
+- Particules d'ambiance (fait le 25/10/2026, planches Claude Design) : lucioles (forêts,
+  prairie, crépuscule et nuit), feuilles, pétales, pollen, braises (volcan, lave), neige, poussière (désert, ruines),
+  courant des rivières (reflets qui descendent vers la côte), bulles de lave.
+- Vent dans la végétation (fait le 25/10/2026) : arbres, palmiers, buissons, fougères et fleurs ondulent au pixel près
+  (pied fixe), plus fort et penchés pendant une tempête ; les feuilles et la neige dérivent avec le vent.
+- Post-traitement (fait le 25/10/2026) : bloom (lave, feu, lucioles et lumières brillent la nuit), couleurs et vignette
+  par phase, en fondu avec l'horloge ; coupable dans `meta.json` (`postProcessing`).
+
 ### Types et environnement
 - La table des types est conservée (avantages et faiblesses), celle de la 4e génération (époque de la ROM).
 - Multiplicateurs adoucis (17/10/2026, `meta.json`) : super efficace × 1,5, pas très efficace × 0,6, sans effet × 0,25 (pas d'immunité totale) ; une faiblesse et une résistance s'annulent ; résultat borné entre × 0,2 et × 2. Bonus d'attaque du même type (STAB) × 1,25.
 - Chiffres de dégâts (17/10/2026) : au-dessus du Pokémon touché, en pixel art. Blanc normal, orange et plus gros si super efficace, gris-bleu et plus petit si pas très efficace, gris foncé sans effet, couleur du statut pour les dégâts de statut, vert précédé de « + » pour les soins.
 - L'environnement réagit au type ou à la nature du Pokémon : les Pokémon volants survolent les trous, les Pokémon aquatiques vont dans l'eau.
+
+### Rencontres (décidé le 24/10/2026, Robin ; étape 1 faite sur `feature/rencontres`)
+- Les vagues ne sont plus écrites à la main : chaque vague tire des **rencontres** jusqu'à épuiser un budget de
+  menace qui grandit avec l'étape et la vague. Lots (précisés le 24/10/2026, Robin) : **solitaire** (un Pokémon fort,
+  commun à épique), **équipe** (corps à corps, distance, soutien, le 2e choisi pour que son type se combine avec celui
+  du 1er : Eau + Électrik, Plante + Feu… ; commun à épique), **meute** (4 à 6 fois le même Pokémon, niveau bas, commun à
+  rare), **gang** (trois solitaires, chacun avec un objet, donc trois ultimes ; rare à épique, à partir de l'étape 3).
+- Combinaisons : un lot peut venir avec un autre dans le même groupe (meute menée par un solitaire rare ou épique,
+  équipe et solitaire, meute et équipe ; probabilités dans `encounters.json`).
+- Téra ennemi cohérent avec l'environnement : le type choisi aide aussi à se déplacer parmi les obstacles autour (Eau ou
+  Vol sur un lac, Spectre entre les rochers…) ; utilisé dès le début du combat quand c'est pour le terrain.
+- **Élites** (étape 2, 24/10/2026) : au plus un par étape, plus souvent en avançant (15 % à l'étape 1, 60 % à
+  l'étape 4), pendant une vague, en plus de son budget, annoncé par un bandeau. **Champion** : un Pokémon très fort
+  (plus évolué, +5 niveaux, PV × 6, 4 attaques puissantes, objet et méga si possible, plus grand). **Escouade
+  d'élite** : trois complémentaires, rares ou épiques, seul le chef porte un objet. Anneau doré, butin garanti (à la
+  chute du champion, quand toute l'escouade est tombée) ; ils modifient le terrain comme les alliés. Les élites tirés
+  au hasard parmi les ennemis ordinaires disparaissent des rencontres.
+- À faire plus tard : un usage plus stratégique des méga-évolutions par l'ennemi.
+- Chaque ennemi a un **rang** (commun, peu commun, rare, épique), plus fréquent en avançant : niveaux, PV et attaques en
+  plus, attaques prises parmi les plus puissantes, objet et ultime pour les épiques ; anneau de couleur sous lui.
+- Les Pokémon vont avec le décor (types) et leur stade d'évolution avec l'étape ; légendaires exclus.
+- Suite : 2) élites (champion solitaire ou escouade), 3) comportements de groupe (rôles, encerclement, combos de
+  terrain, obstacles), 4) intégration et équilibrage.
+
+### Objets de partie (décidé le 24/10/2026, Robin ; étape 1 faite sur `feature/sac`)
+- Distincts des objets spéciaux (méga-gemmes, cristaux Z, Téra-Éclats). Deux familles : **consommables** (baies,
+  graines, orbes) dans un **sac partagé** par l'équipe, et **objets tenus** (un par Pokémon, passifs ; étape 2).
+- Rien ne se garde d'une partie à l'autre (esprit roguelike).
+- Commandes : 1 à 4 au clavier ; à la manette, croix haut / bas pour choisir et □ pour utiliser.
+- Étape 1 (faite) : 4 emplacements, piles de 9 ; Baie Oran / Sitrus (soin), Ceriz / Pêcha / Fraive (statuts),
+  Graine Explo (dégâts en zone), Dodo (sommeil), Rappel (relève un K.O.), Vive (vitesse), Orbe Pétrif (fige les
+  ennemis visibles), Orbe Gel (gèle l'eau de la salle) ; lâchés par les ennemis selon leur rang (élites : toujours) et
+  dans le coffre de fin d'étape ; les alliés s'en servent (soin sous 35 % des PV, statut, K.O.).
+- Étape 2 (faite) : **objets tenus**, un par Pokémon : Bandeau Choix, Lunettes Choix, Mouchoir Choix, Restes, Orbe
+  Vie, Grelot Coque, Casque Brut, Ceinture Force, et liés au terrain : Ballon (flotte au-dessus de l'eau, du vide et de
+  la lave jusqu'au premier coup), Bottes de Magma (marche sur la lave), Cape Sable (terrains au sol sans effet). Les
+  ennemis rares, épiques et les élites peuvent en tenir un (il agit pour eux) et le lâchent ; le coffre parfois. Le
+  Pokémon joué le prend en marchant dessus, l'ancien tombe à ses pieds (pour le donner à un autre membre).
+- **Tiers** (24/10/2026) : les objets tenus à effet chiffré (Bandeaux, Lunettes, Mouchoir, Restes, Orbe Vie, Grelot,
+  Casque) existent en I, II, III (anneau bronze, argent ou or) ; un ennemi rare en lâche un I ou II, épique II ou III,
+  élite III ; ramasser le même objet du même tier le monte d'un tier. Ajustements : Graine Explo et Casque Brut
+  plafonnés contre un boss (5 % et 2 % de ses PV), Orbe Pétrif ralentit un boss, Restes seulement hors combat (1 %/s),
+  Orbe Vie une fois par attaque, Orbe Gel gardé s'il n'y a pas d'eau.
+- Sprites des objets : ceux de Donjon Mystère (PMDCollab RawAsset). Suite : boutique Kecleon et monnaie.
 
 ### Boss
 - Chaque boss est un Pokémon légendaire (Groudon en premier), avec 4 attaques toujours les mêmes, pour que le joueur apprenne ses schémas.

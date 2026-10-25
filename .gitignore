@@ -29,11 +29,15 @@ __pycache__/
 /Assets/Resources/Portraits/*.png
 /Assets/Resources/AnimSets/*.asset
 /Assets/Tilesets/*/chunks.png
+/Assets/Tilesets/*/anim.png
 /Assets/Tilesets/*/tileset.json
 /Assets/Tilesets/*/Tileset.asset
 /Assets/Resources/ObstacleTiles/*/chunks.png
+/Assets/Resources/ObstacleTiles/*/anim.png
 /Assets/Resources/ObstacleTiles/*/tileset.json
 /Assets/Resources/ObstacleTiles/rock_*.png
+# Special item icons (PokeAPI, Nikostera): downloaded by Tools/pmd/import_items.py
+/Assets/Resources/Items/*.png
 /Assets/Data/*.json
 /Assets/Resources/Data/pokemon_rt.json
 /Assets/Resources/Data/levels_rt.bytes
@@ -43,3 +47,5 @@ __pycache__/
 .DS_Store
 Thumbs.db
 .vscode/
+/Assets/Resources/Cliffs/*/*.png
+/Assets/Resources/MapProps/*.png

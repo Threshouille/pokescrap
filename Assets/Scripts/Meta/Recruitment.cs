@@ -53,7 +53,7 @@ public class Recruitment : MonoBehaviour
         var message = new GUIContent($"{name} veut rejoindre l'équipe !");
         float pad = 2f * s, height = 28f * s;
         float width = height + 2f * pad + text.CalcSize(message).x + 4f * s;
-        var box = new Rect((Screen.width - width) / 2f, 36f * s, width, height);
+        var box = new Rect((Screen.width - width) / 2f, HudLayout.BelowBanners(s), width, height);
         Fill(box, new Color(0.08f, 0.08f, 0.12f, 0.85f));
         var portrait = PokemonRoster.Portrait(shown);
         if (portrait != null) GUI.DrawTexture(new Rect(box.x + pad, box.y + pad, height - 2f * pad, height - 2f * pad), portrait);

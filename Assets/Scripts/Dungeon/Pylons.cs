@@ -8,6 +8,13 @@ using UnityEngine;
 /// arc for a while). An arc over water or metal electrifies the whole of it. Settings: "arc" in obstacles.json.
 public class Pylons : MonoBehaviour
 {
+    // Outside play mode (batch tools building rooms) Destroy never runs: the objects go at once.
+    static void Discard(UnityEngine.Object o)
+    {
+        if (Application.isPlaying) Destroy(o);
+        else DestroyImmediate(o);
+    }
+
     [Serializable]
     public class TypeMul { public int type; public float mul = 1f; }
 
@@ -43,6 +50,7 @@ public class Pylons : MonoBehaviour
         public float phaseAt; // start of the current cycle
         public float overchargedUntil, groundedUntil;
         public SpriteRenderer line;
+        public UnityEngine.Rendering.Universal.Light2D glow; // lights around while the arc is active (PointLights)
         public readonly HashSet<Combatant> hit = new();
         public bool wasActive;
     }
@@ -70,13 +78,14 @@ public class Pylons : MonoBehaviour
     }
 
     /// Forgets every pair (a new arena), keeping the component on the obstacles' object.
-    public static void Clear(Obstacles host)
+    public static void Clear(Obstacles host, RectInt? area = null)
     {
         if (current == null) current = host.gameObject.GetComponent<Pylons>();
         if (current == null) current = host.gameObject.AddComponent<Pylons>();
+        // Within an area (one zone of a level), only the pairs whose first pylon stands in it.
         foreach (var p in current.pairs)
-            if (p.line != null) Destroy(p.line.gameObject);
-        current.pairs.Clear();
+            if (p.line != null && (area == null || area.Value.Contains(p.a))) Discard(p.line.gameObject);
+        current.pairs.RemoveAll(p => area == null || area.Value.Contains(p.a));
     }
 
     /// Two pylon tiles linked by an arc.
@@ -88,9 +97,15 @@ public class Pylons : MonoBehaviour
         var go = new GameObject("Arc électrique");
         go.transform.SetParent(current.transform, false);
         pair.line = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(pair.line); // keeps its colours at night (DayNight)
         pair.line.sprite = Shapes.Square;
         pair.line.sortingOrder = 2; // over the Pokémon
         pair.line.enabled = false;
+        var middle = new GameObject("Lueur de l'arc");
+        middle.transform.SetParent(current.transform, false);
+        middle.transform.position = (pair.from + pair.to) / 2f;
+        pair.glow = PointLights.Attach(middle, "arc");
+        PointLights.Want(pair.glow, false);
         current.pairs.Add(pair);
     }
 
@@ -120,6 +135,21 @@ public class Pylons : MonoBehaviour
                 p.overchargedUntil = 0f;
             }
         }
+    }
+
+    /// Pairs of pylons in the arena.
+    public static int PairCount => current != null ? current.pairs.Count : 0;
+
+    /// Whether an arc is on (or warning) right now somewhere (tests).
+    public static bool AnyArcLive()
+    {
+        if (current == null) return false;
+        foreach (var p in current.pairs)
+        {
+            var phase = PhaseOf(p);
+            if (phase == Phase.Warn || phase == Phase.Active) return true;
+        }
+        return false;
     }
 
     static bool Immune(Combatant c)
@@ -200,7 +230,7 @@ public class Pylons : MonoBehaviour
             }
             p.wasActive = active;
             if (!active) continue;
-            foreach (var c in Combatant.All)
+            foreach (var c in new List<Combatant>(Combatant.All)) // a copy: the damage may knock one out
             {
                 if (c == null || !c.IsAlive || p.hit.Contains(c) || Immune(c)) continue;
                 if (DistanceToSegment(c.transform.position, p.from, p.to) > s.width) continue;
@@ -255,6 +285,7 @@ public class Pylons : MonoBehaviour
             Obstacles.OverrideSheet(p.b.x, p.b.y, look);
             bool warn = phase == Phase.Warn, on = phase == Phase.Active;
             p.line.enabled = warn || on;
+            PointLights.Want(p.glow, on);
             if (!p.line.enabled) continue;
             Vector2 ab = p.to - p.from;
             var sheet = on ? arcSheet : warnSheet;

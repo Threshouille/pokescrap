@@ -30,6 +30,11 @@ public class ObstacleDef
     public string decaysTo; // what it becomes by itself after decayTime seconds (a burning bridge burns out)
     public float decayTime;
     public RockSource[] romRocks = new RockSource[0]; // ROM rocks drawing it, one picked per tile (variants)
+    public int[] oneWay = new int[0]; // a ledge: (x, y), the only way across it, jumping down; any other way it blocks, and
+                                      // standing on it carries the Pokémon down (oneWay)
+    public bool hidden; // not drawn by the obstacles: the map draws it (a ledge looks like its cliff)
+    public bool OneWay => oneWay != null && oneWay.Length == 2;
+    public bool ownRocks; // always drawn with its romRocks, never with the rock cut from the arena's décor (ruins' columns)
     public string spriteTint; // colour laid over its sprite (a cracked boulder is darker)
     public float bumpStun; // solid: seconds a Pokémon thrown against it (push, slide) is stunned
     public float bumpDamage; // ... and the share of its max HP it loses
@@ -52,16 +57,23 @@ public class ObstacleDef
 /// depends on which of its 8 neighbours are of the same kind, like the arena's walls and floor.
 public class RomObstacleTiles
 {
-    [Serializable] class Layout { public int chunkSize = 24, columns = 16, padding; public int[] water; }
+    [Serializable] class Layout
+    {
+        public int chunkSize = 24, columns = 16, padding; public int[] water;
+        public int[] animChunks = new int[0]; public int animFrames; public float animFrameMs;
+    }
 
     readonly Texture2D texture;
     readonly Layout layout;
     readonly Dictionary<int, Sprite> sprites = new();
+    /// Its palette animation (the water's shimmer, the lava's glow), or null.
+    public readonly ChunkAnimation Animation;
 
-    RomObstacleTiles(Texture2D texture, Layout layout)
+    RomObstacleTiles(Texture2D texture, Layout layout, Texture2D anim)
     {
         this.texture = texture;
         this.layout = layout;
+        Animation = ChunkAnimation.Make(anim, layout.animChunks, layout.animFrames, layout.animFrameMs, layout.chunkSize, layout.padding);
     }
 
     static readonly Dictionary<int, RomObstacleTiles> loaded = new();
@@ -80,7 +92,11 @@ public class RomObstacleTiles
     {
         if (decor == null || decor.texture == null || decor.water == null || decor.water.Length < 256 * 3) return null;
         if (decors.TryGetValue(decor, out var found) && found != null) return found;
-        found = new RomObstacleTiles(decor.texture, new Layout { chunkSize = decor.chunkSize, columns = decor.columns, padding = decor.padding, water = decor.water });
+        found = new RomObstacleTiles(decor.texture, new Layout
+        {
+            chunkSize = decor.chunkSize, columns = decor.columns, padding = decor.padding, water = decor.water,
+            animChunks = decor.animChunks, animFrames = decor.animFrames, animFrameMs = decor.animFrameMs,
+        }, decor.anim);
         decors[decor] = found;
         return found;
     }
@@ -92,16 +108,19 @@ public class RomObstacleTiles
         if (loaded.TryGetValue(id, out var found)) return found;
         var texture = Resources.Load<Texture2D>($"ObstacleTiles/{id:000}/chunks");
         var json = Resources.Load<TextAsset>($"ObstacleTiles/{id:000}/tileset");
-        found = texture != null && json != null ? new RomObstacleTiles(texture, JsonUtility.FromJson<Layout>(json.text)) : null;
+        found = texture != null && json != null
+            ? new RomObstacleTiles(texture, JsonUtility.FromJson<Layout>(json.text), Resources.Load<Texture2D>($"ObstacleTiles/{id:000}/anim")) : null;
         if (found != null && (found.layout.water == null || found.layout.water.Length < 256 * 3)) found = null;
         loaded[id] = found;
         return found;
     }
 
     /// Mask bits (neighbour of the same kind): S=1 SE=2 E=4 NE=8 N=16 NW=32 W=64 SW=128; variation 0 to 2.
+    public int ChunkOf(int mask, int variation) => layout.water[mask * 3 + variation];
+
     public Sprite Tile(int mask, int variation)
     {
-        int chunk = layout.water[mask * 3 + variation];
+        int chunk = ChunkOf(mask, variation);
         if (sprites.TryGetValue(chunk, out var sprite) && sprite != null) return sprite;
         int size = layout.chunkSize, cell = size + 2 * layout.padding;
         var rect = new Rect(chunk % layout.columns * cell + layout.padding,
@@ -162,6 +181,13 @@ public class ObstacleInteraction
 /// The dev sandbox's obstacle room fills it (Generate); everywhere else it stays empty.
 public class Obstacles : MonoBehaviour
 {
+    // Outside play mode (batch tools building rooms) Destroy never runs: the objects go at once.
+    static void Discard(UnityEngine.Object o)
+    {
+        if (Application.isPlaying) Destroy(o);
+        else DestroyImmediate(o);
+    }
+
     const float FallCooldown = 0.6f; // seconds after a fall before another one counts
     const float FallProtection = 1f; // seconds without taking hits after coming back from a fall
     const int SafeSearch = 15; // tiles around a fall searched for solid ground
@@ -183,7 +209,15 @@ public class Obstacles : MonoBehaviour
     ObstacleDef[] revertTo; // what a temporary change turns back into
     ObstacleDef[] under; // what a bridge (or another hand-drawn obstacle) spans: drawn beneath it
     SpriteRenderer[] baseTiles, topTiles; // ROM layer, then hand-made sheet, per tile (made when first needed)
-    readonly List<int> animated = new(); // tiles whose hand-made sheet has several frames
+    readonly HashSet<int> animated = new(); // tiles whose hand-made sheet has several frames
+    // Tiles whose ROM layer moves (palette animation: water, lava), and the frame each animation was last shown at.
+    readonly Dictionary<int, (ChunkAnimation anim, int chunk)> romAnimated = new();
+    readonly Dictionary<ChunkAnimation, int> romFrame = new(); // every animation in use (a handful)
+    // Tiles to draw again at the next LateUpdate (a change and its 8 neighbours, whose banks depend on it), or all of
+    // them after a rebuild; tiles with a timed change (revertAt). A level is a large map: never all tiles per frame.
+    readonly HashSet<int> changed = new(), timed = new();
+    readonly List<int> due = new();
+    bool redrawAll;
     readonly Dictionary<int, EffectLibrary.Sheet> sheetOverrides = new(); // another look for a tile (a charged pylon)
     Transform tileRoot;
     int sortingLayer, sortingOrder;
@@ -194,11 +228,13 @@ public class Obstacles : MonoBehaviour
     readonly Dictionary<Combatant, float> bumpedAt = new();
     Texture2D texture;
     Color32[] pixels;
-    bool dirty;
     int count;
 
     /// Tiles holding an obstacle.
     public int Count => count;
+
+    /// Tile sprites drawn for the obstacles (tests).
+    public int DrawnTiles => tileRoot != null ? tileRoot.childCount : 0;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset()
@@ -250,16 +286,18 @@ public class Obstacles : MonoBehaviour
         revertTo = new ObstacleDef[size * size];
         revertAt = new float[size * size];
         under = new ObstacleDef[size * size];
-        if (tileRoot != null) Destroy(tileRoot.gameObject);
+        if (tileRoot != null) Discard(tileRoot.gameObject);
         tileRoot = null;
         baseTiles = new SpriteRenderer[size * size];
         topTiles = new SpriteRenderer[size * size];
         animated.Clear();
+        romAnimated.Clear();
+        romFrame.Clear();
         sheetOverrides.Clear();
         decorTiles = null;
         reach = null;
         foreach (var solid in solids.Values)
-            if (solid != null) Destroy(solid);
+            if (solid != null) Discard(solid);
         solids.Clear();
         lastSafe.Clear();
         fellAt.Clear();
@@ -273,7 +311,7 @@ public class Obstacles : MonoBehaviour
         count = 0;
         if (texture == null || texture.width != size)
         {
-            if (texture != null) Destroy(texture);
+            if (texture != null) Discard(texture);
             texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             pixels = new Color32[size * size];
             var renderer = GetComponent<SpriteRenderer>();
@@ -291,7 +329,9 @@ public class Obstacles : MonoBehaviour
         Vector2 origin = arena.CentreOf(0, 0), step = arena.CentreOf(1, 1) - origin;
         transform.position = origin - step / 2f;
         transform.localScale = new Vector3(step.x, step.y, 1f);
-        dirty = true;
+        redrawAll = true;
+        changed.Clear();
+        timed.Clear();
     }
 
     // ---- State ----------------------------------------------------------------------------------------------
@@ -337,7 +377,11 @@ public class Obstacles : MonoBehaviour
         if (old == null && def != null) count++;
         else if (old != null && def == null) count--;
         UpdateSolid(x, y, def);
-        dirty = true;
+        if (revertAt[i] > 0f) timed.Add(i);
+        else timed.Remove(i);
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+                if (Inside(x + dx, y + dy)) changed.Add((y + dy) * size + x + dx);
     }
 
     // A solid tile (ice wall) gets a collider: it stops Pokémon and shots like a wall.
@@ -348,7 +392,7 @@ public class Obstacles : MonoBehaviour
         if (solids.TryGetValue(i, out var go))
         {
             if (solid) return;
-            if (go != null) Destroy(go);
+            if (go != null) Discard(go);
             solids.Remove(i);
             return;
         }
@@ -407,9 +451,16 @@ public class Obstacles : MonoBehaviour
     /// This Pokémon cannot be on that tile: a solid one, or one it would fall into.
     public static bool Blocks(int x, int y, Combatant c) => WouldBlock(At(x, y), c);
 
+    /// Whether the tile would stop a Pokémon of these stats (a Terastallized form looked at before it changes).
+    public static bool BlocksStats(int x, int y, PokemonStats stats)
+    {
+        var def = At(x, y);
+        return def != null && (def.solid || def.fall) && !CanPass(def, stats);
+    }
+
     /// That obstacle would stop this Pokémon (null: no obstacle, nothing stops it).
     public static bool WouldBlock(ObstacleDef def, Combatant c) =>
-        def != null && (def.solid || def.fall) && (c == null || !CanPass(def, c.Stats));
+        def != null && (def.solid || def.fall || def.OneWay) && (c == null || (!CanPass(def, c.Stats) && !HeldItems.Crosses(c, def.key)));
 
     /// What a move of this type does to that obstacle on purpose (no paint, no special action), or null.
     public static ObstacleInteraction TurnedBy(int moveType, ObstacleDef on)
@@ -424,6 +475,23 @@ public class Obstacles : MonoBehaviour
     /// The obstacle left by that interaction (null: bare floor).
     public static ObstacleDef Result(ObstacleInteraction it) =>
         !string.IsNullOrEmpty(it.becomes) ? Def(it.becomes) : !string.IsNullOrEmpty(it.leaves) ? Def(it.leaves) : null;
+
+    /// Turns every tile of obstacle "from" into "to" for "duration" seconds (an orb freezing the room's water). Returns
+    /// how many tiles changed.
+    public static int ChangeAll(string from, string to, float duration)
+    {
+        var a = Def(from);
+        var b = Def(to);
+        if (Current == null || Current.kind == null || a == null || b == null) return 0;
+        int changed = 0;
+        for (int i = 0; i < Current.kind.Length; i++)
+            if (Current.kind[i] == a)
+            {
+                Current.Set(i % Current.size, i / Current.size, b, duration);
+                changed++;
+            }
+        return changed;
+    }
 
     /// Lays an obstacle on a tile by hand (the AI test bench); key null or empty clears it.
     public static void Place(int x, int y, string key)
@@ -451,10 +519,25 @@ public class Obstacles : MonoBehaviour
     public static Vector2 Clamp(Combatant c, Vector2 position, Vector2 velocity)
     {
         if (Current == null || Current.count <= 0 || velocity == Vector2.zero) return velocity;
-        if (velocity.x != 0f && BlocksAt(position + new Vector2(Mathf.Sign(velocity.x) * EdgeLook, 0f), c)) velocity.x = 0f;
-        if (velocity.y != 0f && BlocksAt(position + new Vector2(0f, Mathf.Sign(velocity.y) * EdgeLook), c)) velocity.y = 0f;
+        if (velocity.x != 0f && Stops(c, position, new Vector2(Mathf.Sign(velocity.x), 0f))) velocity.x = 0f;
+        if (velocity.y != 0f && Stops(c, position, new Vector2(0f, Mathf.Sign(velocity.y)))) velocity.y = 0f;
         return velocity;
     }
+
+    // Walking that way stops at what lies ahead; a ledge only lets one in going its way (down).
+    static bool Stops(Combatant c, Vector2 position, Vector2 dir)
+    {
+        var ahead = At(position + dir * EdgeLook);
+        if (ahead != null && ahead.OneWay && ahead == At(position)) return false; // along the ledge it stands on
+        if (ahead != null && ahead.OneWay) return !(Mathf.RoundToInt(dir.x) == ahead.oneWay[0] && Mathf.RoundToInt(dir.y) == ahead.oneWay[1]);
+        return WouldBlock(ahead, c);
+    }
+
+    const float LedgeSpeed = 7f; // tiles/s: a Pokémon on a ledge is carried down it
+
+    /// On a ledge: the push that carries the Pokémon down it.
+    public static Vector2 LedgePush(Combatant c) =>
+        At(c.transform.position) is { } d && d.OneWay ? new Vector2(d.oneWay[0], d.oneWay[1]) * LedgeSpeed : Vector2.zero;
 
     /// That obstacle leaves this Pokémon alone (its type, or how it moves): no slowing, sliding or sinking.
     static bool Easy(ObstacleDef def, PokemonStats stats) =>
@@ -498,9 +581,16 @@ public class Obstacles : MonoBehaviour
 
     // ---- Moves changing obstacles ---------------------------------------------------------------------------
 
+    /// Any move hitting around a point (radius < 0: an impact), obstacles or not: a cave's mechanism listens (CaveSeal).
+    public static event System.Action<MoveDef, Vector2, float, Combatant> Hit;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetHit() => Hit = null;
+
     /// A move hits around a point (impact, burst, strike): radius < 0 uses each interaction's own.
     public static void OnHit(MoveDef move, Vector2 at, float radius, Combatant caster)
     {
+        if (move != null) Hit?.Invoke(move, at, radius, caster);
         if (Current == null || Current.count <= 0 || move == null) return;
         Current.Touch(move, at, at, radius, false, caster);
     }
@@ -664,7 +754,7 @@ public class Obstacles : MonoBehaviour
         if (sheet == null && !had || had && old == sheet) return;
         if (sheet == null) Current.sheetOverrides.Remove(i);
         else Current.sheetOverrides[i] = sheet;
-        Current.dirty = true;
+        Current.changed.Add(i);
     }
 
     public static int FrameOf(EffectLibrary.Sheet sheet) => FrameAt(sheet);
@@ -695,16 +785,22 @@ public class Obstacles : MonoBehaviour
             pending.RemoveAt(k--);
             if (kind[p.cell] == p.from) Set(p.cell % size, p.cell / size, p.to, p.to != null ? p.duration : 0f);
         }
-        for (int i = 0; i < kind.Length; i++)
-            if (revertAt[i] > 0f && Time.time >= revertAt[i])
-            {
-                var back = revertTo[i];
-                revertAt[i] = 0f;
-                revertTo[i] = null;
-                Set(i % size, i / size, back);
-            }
+        due.Clear();
+        foreach (int i in timed)
+            if (Time.time >= revertAt[i]) due.Add(i);
+        foreach (int i in due)
+        {
+            var back = revertTo[i];
+            revertAt[i] = 0f;
+            revertTo[i] = null;
+            Set(i % size, i / size, back);
+        }
         if (count <= 0) return;
-        foreach (var c in Combatant.All)
+        // A copy: a knock-out in a fall (or anything a hit sets off) may change the list, and the error that followed
+        // skipped the fall checks of everyone after it in the list.
+        scan.Clear();
+        scan.AddRange(Combatant.All);
+        foreach (var c in scan)
         {
             if (c == null || !c.IsAlive) continue;
             Meet(c);
@@ -715,11 +811,39 @@ public class Obstacles : MonoBehaviour
             if (!BlocksAt(position, c))
             {
                 lastSafe[c] = position; // where it comes back after a fall
+                WatchSwim(c, position);
                 continue;
             }
             if (fellAt.TryGetValue(c, out float at) && Time.time < at + FallCooldown) continue;
             Fall(c, At(position));
         }
+    }
+
+    static readonly List<Combatant> scan = new();
+    readonly Dictionary<Combatant, float> onLiquidSince = new();
+    const float SwimReport = 1.5f; // seconds on water, lava or void before the log says why it does not fall
+
+    // Diagnostic (pokémon seen staying in the water): a Pokémon that stays on water, lava or void without falling is
+    // logged once with what lets it (types, ROM movement type, Tera, mega), as "OBSTACLE SWIM".
+    void WatchSwim(Combatant c, Vector2 position)
+    {
+        var def = At(position);
+        if (def == null || !def.fall)
+        {
+            onLiquidSince.Remove(c);
+            return;
+        }
+        if (!onLiquidSince.TryGetValue(c, out float since))
+        {
+            onLiquidSince[c] = Time.time;
+            return;
+        }
+        if (since < 0f || Time.time - since < SwimReport) return;
+        onLiquidSince[c] = -1f; // once per stay
+        var s = c.Stats;
+        Debug.Log($"OBSTACLE SWIM {s?.name} ({c.team}) sur {def.key} : types {string.Join("/", s?.types ?? new int[0])}, "
+                  + $"déplacement ROM {s?.movementType}, Téra {c.TeraType}, méga {(c.Mega != null ? c.Mega.name : "non")}, "
+                  + $"passe par {(Array.IndexOf(def.passTypes, s?.movementType ?? -1) >= 0 ? "son déplacement" : "son type")}");
     }
 
     readonly Dictionary<Combatant, float> tollAt = new();
@@ -858,11 +982,21 @@ public class Obstacles : MonoBehaviour
     void LateUpdate()
     {
         if (texture == null) return;
-        if (dirty)
+        if (redrawAll || changed.Count > 0)
         {
-            dirty = false;
-            animated.Clear();
-            for (int i = 0; i < kind.Length; i++) pixels[i] = Draw(i) ? default : kind[i] != null ? kind[i].tint : default;
+            if (redrawAll)
+            {
+                animated.Clear();
+                for (int i = 0; i < kind.Length; i++) pixels[i] = Draw(i) || kind[i] == null || kind[i].hidden ? default : kind[i].tint;
+            }
+            else
+                foreach (int i in changed)
+                {
+                    animated.Remove(i);
+                    pixels[i] = Draw(i) || kind[i] == null || kind[i].hidden ? default : kind[i].tint;
+                }
+            redrawAll = false;
+            changed.Clear();
             texture.SetPixels32(pixels);
             texture.Apply();
         }
@@ -871,6 +1005,31 @@ public class Obstacles : MonoBehaviour
             var sheet = sheetOverrides.TryGetValue(i, out var other) ? other : kind[i]?.sheet;
             if (topTiles[i] != null && sheet != null) topTiles[i].sprite = sheet.Frame(FrameAt(sheet));
         }
+        AnimateRomTiles();
+    }
+
+    // The ROM layer's palette animation: when an animation turns to its next frame, the tiles of it in sight change
+    // sprite (a river of thousands of tiles costs only what the camera sees).
+    void AnimateRomTiles()
+    {
+        var cam = Camera.main;
+        if (romAnimated.Count == 0 || cam == null || grid == null) return;
+        bool turned = false;
+        foreach (var (anim, shown) in romFrame)
+            if (shown != anim.FrameNow) { turned = true; break; }
+        if (!turned) return;
+        float h = cam.orthographicSize + 2f, w = h * cam.aspect + 2f;
+        Vector2 c = cam.transform.position;
+        var from = grid.CellOf(c - new Vector2(w, h));
+        var to = grid.CellOf(c + new Vector2(w, h));
+        for (int y = Mathf.Max(0, from.y); y <= Mathf.Min(size - 1, to.y); y++)
+            for (int x = Mathf.Max(0, from.x); x <= Mathf.Min(size - 1, to.x); x++)
+            {
+                int i = y * size + x;
+                if (!romAnimated.TryGetValue(i, out var a) || baseTiles[i] == null) continue;
+                baseTiles[i].sprite = a.anim.Frames(a.chunk)[a.anim.FrameNow];
+            }
+        foreach (var anim in new List<ChunkAnimation>(romFrame.Keys)) romFrame[anim] = anim.FrameNow;
     }
 
     // Draws tile i with sprites (ROM layer underneath, hand-made sheet on top); false when it has neither and the
@@ -880,14 +1039,25 @@ public class Obstacles : MonoBehaviour
         var def = kind[i];
         var floorKind = def == null ? null : def.tileset >= 0 ? def : under[i];
         var rom = floorKind == null ? null
-            : decorTiles != null && floorKind.key == "water" ? decorTiles : RomObstacleTiles.Get(floorKind.tileset);
+            : decorTiles != null && floorKind.key == decorKind ? decorTiles : RomObstacleTiles.Get(floorKind.tileset);
         var sheet = sheetOverrides.TryGetValue(i, out var other) && def != null ? other : def?.sheet;
         int x = i % size, y = i / size;
         // Without its own look yet, a flat stand-in drawn on top (planks for a bridge, so it shows over the void).
+        // A rock is cut from the arena's own décor when there is one (a tree in a forest, a magma block in a
+        // volcano: rooms.json "rocks"), else from the ROM décors of romRocks.
         Sprite rock = def != null && sheet == null && def.romRocks.Length > 0
-            ? RockSprite(def.romRocks[(x * 7 + y * 13) % def.romRocks.Length].tileset) : null;
-        Sprite flat = def != null && sheet == null && rock == null && def.tileset < 0 ? FlatSprite(def) : null;
-        Show(baseTiles, i, rom != null ? rom.Tile(Mask(x, y, floorKind), (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0) : null, 0, 0f);
+            ? (!def.ownRocks && grid != null && grid.tileset != null ? RockSprite(grid.tileset.romId) : null)
+              ?? RockSprite(def.romRocks[(x * 7 + y * 13) % def.romRocks.Length].tileset) : null;
+        Sprite flat = def != null && !def.hidden && sheet == null && rock == null && def.tileset < 0 ? FlatSprite(def) : null;
+        int mask = rom != null ? Mask(x, y, floorKind) : 0, variation = (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0;
+        Show(baseTiles, i, rom != null ? rom.Tile(mask, variation) : null, 0, 0f);
+        int chunk = rom != null ? rom.ChunkOf(mask, variation) : -1;
+        if (rom?.Animation != null && rom.Animation.Has(chunk))
+        {
+            romAnimated[i] = (rom.Animation, chunk);
+            romFrame[rom.Animation] = -1; // shown again at the current frame
+        }
+        else romAnimated.Remove(i);
         float angle = def != null && def.Bridge && !SpansNorthSouth(x, y) ? 90f : 0f;
         Show(topTiles, i, sheet != null ? sheet.Frame(FrameAt(sheet)) : rock != null ? rock : flat, 1, angle, def?.spriteColor ?? Color.white);
         if (sheet != null && sheet.frame_count > 1) animated.Add(i);
@@ -1042,6 +1212,7 @@ public class Obstacles : MonoBehaviour
         public int[] tilesets = new int[0];
         public int walls = -1;
         public bool decorWater;
+        public string decorKind; // the obstacle drawn with the décor's own secondary layer (lava for a volcano); water when empty
     }
 
     [Serializable] class ArenaFile { public Room[] profiles; public Room fallback; }
@@ -1064,14 +1235,36 @@ public class Obstacles : MonoBehaviour
 
     /// Lays the obstacles of a real run's arena (DungeonGenerator.Generate): drawn from the décor's profile,
     /// the team's spawn point kept clear. Then works out which tiles a walker reaches from it (enemy spawns).
-    public void GenerateArena(Room profile, System.Random rng, Vector2Int spawn)
+    public void GenerateArena(Room profile, System.Random rng, List<Vector2Int> keep)
     {
-        decorTiles = profile != null && profile.decorWater ? RomObstacleTiles.FromDecor(grid.tileset) : null;
-        if (profile?.pool != null && profile.pool.Length > 0) Generate(profile, rng, new List<Vector2Int> { spawn });
+        var spawn = keep[0];
+        bool decor = profile != null && (profile.decorWater || !string.IsNullOrEmpty(profile.decorKind));
+        decorTiles = decor ? RomObstacleTiles.FromDecor(grid.tileset) : null;
+        decorKind = decor && !string.IsNullOrEmpty(profile.decorKind) ? profile.decorKind : "water";
+        if (profile?.pool != null && profile.pool.Length > 0) Generate(profile, rng, keep);
         ComputeReach(spawn);
     }
 
+    /// Lays the obstacles of one zone of a level (LevelBuilder): like GenerateArena, but only within "zone", the
+    /// cells of "keep" (where the paths come in) kept clear and reached. Call FinishLevel once every zone is done.
+    public void GenerateZone(Room profile, System.Random rng, List<Vector2Int> keep, RectInt zone)
+    {
+        if (profile?.pool == null || profile.pool.Length == 0) return;
+        if (decorTiles == null && (profile.decorWater || !string.IsNullOrEmpty(profile.decorKind)))
+        {
+            decorTiles = RomObstacleTiles.FromDecor(grid.tileset);
+            decorKind = !string.IsNullOrEmpty(profile.decorKind) ? profile.decorKind : "water";
+        }
+        area = zone;
+        try { Generate(profile, rng, keep); }
+        finally { area = null; }
+    }
+
+    /// After the zones of a level: which tiles a walker reaches from the start (enemy spawns).
+    public void FinishLevel(Vector2Int start) => ComputeReach(start);
+
     RomObstacleTiles decorTiles; // the arena's own water (its décor's secondary layer), drawn instead of the default
+    string decorKind = "water"; // the obstacle drawn with it
     bool[] reach; // tiles a standard walker reaches from the spawn point (null: everywhere)
 
     void ComputeReach(Vector2Int from)
@@ -1121,7 +1314,7 @@ public class Obstacles : MonoBehaviour
         for (int attempt = 0; attempt < 30; attempt++)
         {
             Clear();
-            Pylons.Clear(this); // pairs of a discarded attempt would leave arcs between empty tiles
+            Pylons.Clear(this, area); // pairs of a discarded attempt would leave arcs between empty tiles
             reserved.Clear();
             names.Clear();
             int wanted = rng.Next(room.features[0], room.features[Mathf.Min(1, room.features.Length - 1)] + 1);
@@ -1140,19 +1333,27 @@ public class Obstacles : MonoBehaviour
             if (Connected(keep)) return names;
         }
         Clear();
-        Pylons.Clear(this);
+        Pylons.Clear(this, area);
         names.Clear();
         return names;
     }
 
     static bool Band(Feature f) => f.type == "chasm" || f.type == "river";
 
+    // A random number in [min, max), or min when the area is too small for the range (a small zone of a level).
+    static int Between(System.Random rng, int min, int max) => max > min ? rng.Next(min, max) : min;
+
     static int Order(Feature f) => Band(f) ? 0 : f.type == "ice_patch" ? 2 : 1;
+
+    // The tiles a generation works on: the whole room, or one zone of a level (GenerateZone).
+    RectInt? area;
+    RectInt Area => area ?? grid.Interior;
 
     void Clear()
     {
-        for (int x = 0; x < size; x++)
-            for (int y = 0; y < size; y++)
+        var r = Area;
+        for (int x = Mathf.Max(0, r.xMin); x < Mathf.Min(size, r.xMax); x++)
+            for (int y = Mathf.Max(0, r.yMin); y < Mathf.Min(size, r.yMax); y++)
                 if (kind[y * size + x] != null) Set(x, y, null);
     }
 
@@ -1189,7 +1390,7 @@ public class Obstacles : MonoBehaviour
     // the spawn point and the stairs, and far enough from the obstacles it must not touch.
     bool Free(int x, int y, ObstacleDef placing, bool edges = false)
     {
-        var interior = grid.Interior;
+        var interior = Area;
         int m = edges ? 0 : 1;
         if (x < interior.xMin + m || y < interior.yMin + m || x >= interior.xMax - m || y >= interior.yMax - m) return false;
         if (!grid.Walkable(x, y) || KindAt(x, y) != null || reserved.Contains(y * size + x)) return false;
@@ -1236,7 +1437,7 @@ public class Obstacles : MonoBehaviour
     {
         var band = Def(f.kind);
         if (band == null) return false;
-        var interior = grid.Interior;
+        var interior = Area;
         bool horizontal = rng.Next(2) == 0;
         int length = horizontal ? interior.width : interior.height;
         int start = horizontal ? interior.xMin : interior.yMin;
@@ -1318,11 +1519,11 @@ public class Obstacles : MonoBehaviour
     {
         var lake = Def(f.kind);
         if (lake == null) return false;
-        var interior = grid.Interior;
+        var interior = Area;
         int r = f.sizes != null && f.sizes.Length > 0 ? f.sizes[rng.Next(f.sizes.Length)] : 3;
         for (int attempt = 0; attempt < 40; attempt++)
         {
-            int cx = rng.Next(interior.xMin + r + 2, interior.xMax - r - 2), cy = rng.Next(interior.yMin + r + 2, interior.yMax - r - 2);
+            int cx = Between(rng, interior.xMin + r + 2, interior.xMax - r - 2), cy = Between(rng, interior.yMin + r + 2, interior.yMax - r - 2);
             if (!FarFromKept(cx, cy, r)) continue;
             var discs = new List<(float, float, float)> { (cx, cy, r) };
             for (int d = 0; d < 3; d++) discs.Add((cx + rng.Next(-r, r + 1) * 0.6f, cy + rng.Next(-r, r + 1) * 0.6f, r * 0.6f + rng.Next(0, 2)));
@@ -1353,12 +1554,12 @@ public class Obstacles : MonoBehaviour
         var ring = Def(f.kind);
         var bridge = Def(f.bridgeKind);
         if (ring == null) return false;
-        var interior = grid.Interior;
+        var interior = Area;
         int r = f.sizes != null && f.sizes.Length > 0 ? f.sizes[rng.Next(f.sizes.Length)] : 2;
         int outer = r + f.width;
         for (int attempt = 0; attempt < 150; attempt++) // it needs a wide free area
         {
-            int cx = rng.Next(interior.xMin + outer + 2, interior.xMax - outer - 2), cy = rng.Next(interior.yMin + outer + 2, interior.yMax - outer - 2);
+            int cx = Between(rng, interior.xMin + outer + 2, interior.xMax - outer - 2), cy = Between(rng, interior.yMin + outer + 2, interior.yMax - outer - 2);
             if (!FarFromKept(cx, cy, outer)) continue;
             bool fits = true; // the whole ring must fit, or there would be a dry way in
             for (int x = cx - outer; x <= cx + outer && fits; x++)
@@ -1403,13 +1604,13 @@ public class Obstacles : MonoBehaviour
     {
         var small = Def("boulder");
         var big = Def("boulder_big");
-        var interior = grid.Interior;
+        var interior = Area;
         int wanted = Pick(f.count, rng, 4), built = 0;
         for (int attempt = 0; attempt < 80 && built < wanted; attempt++)
         {
             bool large = big != null && rng.NextDouble() < f.bigChance;
             int s = large ? 2 : 1;
-            int x0 = rng.Next(interior.xMin + 2, interior.xMax - 2 - s), y0 = rng.Next(interior.yMin + 2, interior.yMax - 2 - s);
+            int x0 = Between(rng, interior.xMin + 2, interior.xMax - 2 - s), y0 = Between(rng, interior.yMin + 2, interior.yMax - 2 - s);
             bool ok = true;
             for (int x = x0 - 1; x <= x0 + s && ok; x++) // a free ring around, so boulders never form walls
                 for (int y = y0 - 1; y <= y0 + s && ok; y++)
@@ -1428,14 +1629,14 @@ public class Obstacles : MonoBehaviour
     {
         var pylon = Def("pylon");
         if (pylon == null) return false;
-        var interior = grid.Interior;
+        var interior = Area;
         int wanted = Pick(f.count, rng, 1), built = 0;
         for (int attempt = 0; attempt < 80 && built < wanted; attempt++)
         {
             bool horizontal = rng.Next(2) == 0;
             int gap = Pick(f.distance, rng, 5);
-            int x0 = rng.Next(interior.xMin + 2, interior.xMax - 2 - (horizontal ? gap : 0));
-            int y0 = rng.Next(interior.yMin + 2, interior.yMax - 2 - (horizontal ? 0 : gap));
+            int x0 = Between(rng, interior.xMin + 2, interior.xMax - 2 - (horizontal ? gap : 0));
+            int y0 = Between(rng, interior.yMin + 2, interior.yMax - 2 - (horizontal ? 0 : gap));
             var a = new Vector2Int(x0, y0);
             var b = horizontal ? new Vector2Int(x0 + gap, y0) : new Vector2Int(x0, y0 + gap);
             if (!Free(a.x, a.y, pylon) || !Free(b.x, b.y, pylon)) continue;
@@ -1461,11 +1662,11 @@ public class Obstacles : MonoBehaviour
         var metal = Def("metal");
         var magnet = Def("magnet");
         if (metal == null) return false;
-        var interior = grid.Interior;
+        var interior = Area;
         int r = f.sizes != null && f.sizes.Length > 0 ? f.sizes[rng.Next(f.sizes.Length)] : 2;
         for (int attempt = 0; attempt < 60; attempt++)
         {
-            int cx = rng.Next(interior.xMin + r + 3, interior.xMax - r - 3), cy = rng.Next(interior.yMin + r + 3, interior.yMax - r - 3);
+            int cx = Between(rng, interior.xMin + r + 3, interior.xMax - r - 3), cy = Between(rng, interior.yMin + r + 3, interior.yMax - r - 3);
             if (!FarFromKept(cx, cy, r)) continue;
             var plates = new List<Vector2Int>();
             for (int x = cx - r - 1; x <= cx + r + 1; x++)
@@ -1527,13 +1728,13 @@ public class Obstacles : MonoBehaviour
     bool PlaceIceWalls(Feature f, System.Random rng)
     {
         var wall = Def("ice_wall");
-        var interior = grid.Interior;
+        var interior = Area;
         int walls = Pick(f.count, rng, 3);
         int built = 0;
         for (int attempt = 0; attempt < 60 && built < walls; attempt++)
         {
             bool horizontal = rng.Next(2) == 0;
-            int x0 = rng.Next(interior.xMin + 2, interior.xMax - 4), y0 = rng.Next(interior.yMin + 2, interior.yMax - 4);
+            int x0 = Between(rng, interior.xMin + 2, interior.xMax - 4), y0 = Between(rng, interior.yMin + 2, interior.yMax - 4);
             bool ok = true;
             for (int t = 0; t < 3 && ok; t++) ok = Free(horizontal ? x0 + t : x0, horizontal ? y0 : y0 + t, wall);
             if (!ok) continue;
@@ -1568,13 +1769,17 @@ public class Obstacles : MonoBehaviour
         }
         foreach (var k in keep)
             if (!seen[k.y * size + k.x]) return false;
-        int open = 0;
-        for (int x = 0; x < size; x++)
-            for (int y = 0; y < size; y++)
+        // Most of the walkable floor of the area must be reached.
+        var r = Area;
+        int open = 0, inArea = 0;
+        for (int x = Mathf.Max(0, r.xMin); x < Mathf.Min(size, r.xMax); x++)
+            for (int y = Mathf.Max(0, r.yMin); y < Mathf.Min(size, r.yMax); y++)
             {
                 var def = KindAt(x, y);
-                if (grid.Walkable(x, y) && (def == null || (!def.solid && !def.fall))) open++;
+                if (!grid.Walkable(x, y) || (def != null && (def.solid || def.fall))) continue;
+                open++;
+                if (seen[y * size + x]) inArea++;
             }
-        return reached >= open * 0.85f;
+        return inArea >= open * 0.85f;
     }
 }

@@ -4,7 +4,8 @@ using UnityEngine;
 /// this class adds what is specific to an enemy: every move is announced (wind-up with a visible danger area)
 /// before it is used; it keeps moving right after, but waits a moment before announcing the next one. It walks
 /// around walls and harmful zones. Its dodge lets a ranged or support enemy flee an opponent that gets too close,
-/// and a melee enemy rush at its target.
+/// and a melee enemy rush at its target. An elite cut off from its target by water, lava or void changes them with
+/// its moves to make a way (ObstacleTactics.Repair), as allies do; so do the higher ranks (encounters.json, repairs).
 [RequireComponent(typeof(Rigidbody2D), typeof(PmdAnimator), typeof(Combatant))]
 public class EnemyAI : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class EnemyAI : MonoBehaviour
 
     const float DefaultWindup = 0.5f;
     const float AttackAnimTime = 0.3f;
+    const float RepairInterval = 0.5f;
     const float FleeDistance = 2.5f; // ranged and support: dodge away from an opponent this close
     const float RushMin = 3f, RushMax = 6f; // melee: dodge toward a target this far away
     static readonly Color TelegraphColor = new(1f, 0.15f, 0.15f, 0.35f);
@@ -24,6 +26,15 @@ public class EnemyAI : MonoBehaviour
     [System.NonSerialized] public EnemyGroup group; // set by EnemySpawner: the group's members share their target
 
     readonly Navigator navigator = new();
+    readonly Navigator repairNavigator = new();
+    ObstacleTactics.Plan repair;
+    readonly Progress towardFoe = new(); // stops getting closer to its target: maybe something to repair
+    // Walking direction, eased toward the wanted one: in a tight group the pull to the target and the neighbours' push
+    // swapped from one frame to the next and the enemy turned back several times a second.
+    const float SteerEase = 0.25f;
+    Vector2 walking;
+    bool hasRepair;
+    float nextRepair;
     Rigidbody2D body;
     PmdAnimator animator;
     Combatant combatant;
@@ -90,6 +101,13 @@ public class EnemyAI : MonoBehaviour
         bool canAttack = Time.time >= nextAttackAt;
         var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target(), canAttack);
         if (TryDodge(decision, position, grid)) return;
+        // Elites and the higher ranks (RarityMark.Repairs) make a way to a target they cannot reach.
+        if (decision.slot < 0 && decision.foe != null && (combatant.IsElite || RarityMark.Repairs(combatant)))
+        {
+            Vector2 foeAt = decision.foe.transform.position;
+            if ((!navigator.Reachable || towardFoe.Stuck(Vector2.Distance(position, foeAt))) && TryRepair(position, foeAt, canAttack)) return;
+        }
+        else towardFoe.Reset();
         if (decision.slot >= 0)
         {
             Vector2 aim = decision.aim != Vector2.zero ? decision.aim.normalized : Vector2.right;
@@ -97,6 +115,30 @@ public class EnemyAI : MonoBehaviour
             return;
         }
         Move(decision.engaged ? decision.move : Vector2.zero, decision.look);
+    }
+
+    // No way to its target: walks to where a move makes one (freezes the river...), then announces it.
+    bool TryRepair(Vector2 position, Vector2 goal, bool canAttack)
+    {
+        if (Time.time >= nextRepair)
+        {
+            hasRepair = ObstacleTactics.Repair(combatant, goal, out repair);
+            nextRepair = Time.time + RepairInterval;
+        }
+        if (!hasRepair) return false;
+        if (ObstacleTactics.AtStand(combatant, repair))
+        {
+            if (canAttack && combatant.CooldownLeft(repair.slot) <= 0f)
+            {
+                StartWindup(repair.slot, combatant.Moves[repair.slot], repair.aim.normalized, repair.distance);
+                nextRepair = 0f; // look again once the way changed
+                return true;
+            }
+            Move(Vector2.zero, repair.aim); // waits for the move to come back
+            return true;
+        }
+        Move(repairNavigator.Direction(position, repair.stand, combatant, avoid: true), repair.stand - position);
+        return true;
     }
 
     bool TryDodge(RoleTactics.Decision decision, Vector2 position, DungeonGenerator grid)
@@ -129,6 +171,9 @@ public class EnemyAI : MonoBehaviour
 
     void Move(Vector2 direction, Vector2 lookAt)
     {
+        walking = Vector2.Lerp(walking, direction, SteerEase);
+        if (walking.sqrMagnitude < 0.0025f) walking = Vector2.zero;
+        direction = walking;
         combatant.Drive(combatant.Steer(direction) * combatant.CurrentSpeed * speedFactor);
         if (Time.time < attackAnimUntil)
         {
@@ -136,7 +181,7 @@ public class EnemyAI : MonoBehaviour
             return;
         }
         Vector2 facing = direction != Vector2.zero ? direction : lookAt;
-        if (facing != Vector2.zero) animator.direction = PmdAnimator.DirectionIndex(facing);
+        animator.Face(facing);
         animator.Play(direction != Vector2.zero ? "Walk" : "Idle");
     }
 
@@ -157,6 +202,7 @@ public class EnemyAI : MonoBehaviour
 
         telegraph = new GameObject("Telegraph");
         var renderer = telegraph.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.color = TelegraphColor;
         renderer.sortingOrder = 0; // above the floor, under the Pokémon
 

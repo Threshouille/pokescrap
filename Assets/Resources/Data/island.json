@@ -1,0 +1,15 @@
+{
+ "comment": "The run's floating island (IslandPlan.cs). radius: tiles from the centre to the coast; coastNoise / coastScale: how much the coast wavers (share of the radius) and the size of its bays; voidMargin: tiles of sky around the island on the map; centreRatio: radius of the central zone (share of the island's); moat: tiles of void ringing the central zone; borderWidth: tiles of the barrier between two quarters (cliff or chasm, crossed by a sealed passage later); borderNoise: how much a border wavers (share of a quarter's angle); fieldScale: size of the hills and wet spots of the biome fields (lower: larger); octaves: detail of those fields.",
+ "island": {
+  "radius": 190,
+  "coastNoise": 0.2,
+  "coastScale": 0.008,
+  "voidMargin": 24,
+  "centreRatio": 0.22,
+  "moat": 6,
+  "borderWidth": 6,
+  "borderNoise": 0.35,
+  "fieldScale": 0.011,
+  "octaves": 3
+ }
+}

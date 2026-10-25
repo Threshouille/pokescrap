@@ -1,0 +1,619 @@
+{
+ "comment": "Themes of the island's quarters and their sub-biomes (IslandPlan.cs). A quarter takes one theme (four different ones per run); each of its tiles gets the first sub-biome whose altitude and moisture ranges (0 to 1, ranked within the quarter so that every quarter spreads over its whole range) contain the tile's. tilesets: ROM décors drawing it (rooms.json numbers); color: on the preview map (IslandCheck). peak: strength of a high point in the middle of the quarter (a volcano's cone, a glacier's summit; 0: none), peakRadius in share of the island's radius. Big features: rivers (count) start high and run down the slope to the coast or a lake, riverKind (water, lava; void for a canyon) riverWidth tiles wide, crossed every so often by bridgeKind (a bridge, cooled rock, vines); lakes (count, lakeKind, lakeSize radius in tiles) lie in the lowest hollows; crater: the obstacle filling the top of the peak; cliffLevels: altitudes where a cliff (wall) runs along the slope, with gaps. walls (per sub-biome): share of it taken by thickets or rock masses (semi-open). Everything stays reachable from the landing point and the passages between quarters.",
+ "themes": [
+  {
+   "key": "volcano",
+   "name": "Volcan",
+   "peak": 0.7,
+   "peakRadius": 0.22,
+   "subbiomes": [
+    {
+     "key": "basalt",
+     "name": "Rivage de basalte",
+     "alt": [
+      0,
+      0.3
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      110
+     ],
+     "color": "#8a6a5a",
+     "walls": 0.06
+    },
+    {
+     "key": "ash",
+     "name": "Pentes de cendres",
+     "alt": [
+      0.3,
+      0.62
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      57
+     ],
+     "color": "#6a5a72",
+     "walls": 0.06
+    },
+    {
+     "key": "magma_caves",
+     "name": "Grottes de magma",
+     "alt": [
+      0.62,
+      0.82
+     ],
+     "moist": [
+      0.5,
+      1
+     ],
+     "tilesets": [
+      58
+     ],
+     "color": "#9a3a2a",
+     "walls": 0.25
+    },
+    {
+     "key": "flows",
+     "name": "Coulées",
+     "alt": [
+      0.62,
+      0.82
+     ],
+     "moist": [
+      0,
+      0.5
+     ],
+     "tilesets": [
+      123
+     ],
+     "color": "#c8501a",
+     "walls": 0.06
+    },
+    {
+     "key": "crater",
+     "name": "Cratère",
+     "alt": [
+      0.82,
+      1
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      58
+     ],
+     "color": "#e8641a",
+     "walls": 0.06
+    }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "lava",
+   "riverWidth": [
+    3,
+    4
+   ],
+   "bridgeKind": "rock",
+   "lakes": [
+    1,
+    2
+   ],
+   "lakeKind": "lava",
+   "lakeSize": [
+    3,
+    6
+   ],
+   "crater": "lava",
+   "cliffLevels": [
+    0.55,
+    0.78
+   ]
+  },
+  {
+   "key": "glacier",
+   "name": "Glacier",
+   "peak": 0.5,
+   "peakRadius": 0.25,
+   "subbiomes": [
+    {
+     "key": "tundra",
+     "name": "Toundra",
+     "alt": [
+      0,
+      0.4
+     ],
+     "moist": [
+      0,
+      0.5
+     ],
+     "tilesets": [
+      139
+     ],
+     "color": "#b8c8c0",
+     "walls": 0.06
+    },
+    {
+     "key": "frozen_forest",
+     "name": "Forêt glacée",
+     "alt": [
+      0,
+      0.55
+     ],
+     "moist": [
+      0.5,
+      1
+     ],
+     "tilesets": [
+      137
+     ],
+     "color": "#8aa8b0",
+     "walls": 0.2
+    },
+    {
+     "key": "ice_fields",
+     "name": "Champs de glace",
+     "alt": [
+      0.4,
+      0.75
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      140
+     ],
+     "color": "#a8c8e8",
+     "walls": 0.06
+    },
+    {
+     "key": "summit",
+     "name": "Sommet",
+     "alt": [
+      0.75,
+      1
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      140
+     ],
+     "color": "#e8f4ff",
+     "walls": 0.06
+    }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    3,
+    4
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    2,
+    3
+   ],
+   "lakeKind": "ice_floor",
+   "lakeSize": [
+    5,
+    9
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.5,
+    0.75
+   ]
+  },
+  {
+   "key": "coast",
+   "name": "Côte",
+   "peak": 0,
+   "peakRadius": 0.2,
+   "subbiomes": [
+    {
+     "key": "beach",
+     "name": "Plage",
+     "alt": [
+      0,
+      0.3
+     ],
+     "moist": [
+      0,
+      0.6
+     ],
+     "tilesets": [
+      52
+     ],
+     "color": "#e8d8a0",
+     "walls": 0.06
+    },
+    {
+     "key": "lagoon",
+     "name": "Lagunes",
+     "alt": [
+      0,
+      0.45
+     ],
+     "moist": [
+      0.6,
+      1
+     ],
+     "tilesets": [
+      4
+     ],
+     "color": "#4ab8a8",
+     "walls": 0.06
+    },
+    {
+     "key": "cliffs",
+     "name": "Falaises",
+     "alt": [
+      0.6,
+      1
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      126
+     ],
+     "color": "#3a7888",
+     "walls": 0.2
+    },
+    {
+     "key": "caves",
+     "name": "Grottes marines",
+     "alt": [
+      0.3,
+      0.6
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      39
+     ],
+     "color": "#5a5a9a",
+     "walls": 0.2
+    }
+   ],
+   "rivers": [
+    3,
+    4
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    4,
+    6
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    2,
+    4
+   ],
+   "lakeKind": "water",
+   "lakeSize": [
+    4,
+    8
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.62
+   ]
+  },
+  {
+   "key": "forest",
+   "name": "Forêt",
+   "peak": 0.2,
+   "peakRadius": 0.3,
+   "subbiomes": [
+    {
+     "key": "woods",
+     "name": "Bois clair",
+     "alt": [
+      0,
+      0.5
+     ],
+     "moist": [
+      0,
+      0.45
+     ],
+     "tilesets": [
+      5
+     ],
+     "color": "#7ab84a",
+     "walls": 0.06
+    },
+    {
+     "key": "deep",
+     "name": "Forêt profonde",
+     "alt": [
+      0,
+      1
+     ],
+     "moist": [
+      0.45,
+      0.75
+     ],
+     "tilesets": [
+      35
+     ],
+     "color": "#2a6a3a",
+     "walls": 0.3
+    },
+    {
+     "key": "jungle",
+     "name": "Jungle",
+     "alt": [
+      0,
+      0.6
+     ],
+     "moist": [
+      0.75,
+      1
+     ],
+     "tilesets": [
+      44
+     ],
+     "color": "#3a9a2a",
+     "walls": 0.25
+    },
+    {
+     "key": "highwood",
+     "name": "Hauts bois",
+     "alt": [
+      0.5,
+      1
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      128
+     ],
+     "color": "#5a4a7a",
+     "walls": 0.18
+    }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    3,
+    5
+   ],
+   "bridgeKind": "vine_bridge",
+   "lakes": [
+    1,
+    2
+   ],
+   "lakeKind": "water",
+   "lakeSize": [
+    3,
+    6
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.6
+   ]
+  },
+  {
+   "key": "desert",
+   "name": "Désert",
+   "peak": 0.3,
+   "peakRadius": 0.25,
+   "subbiomes": [
+    {
+     "key": "dunes",
+     "name": "Dunes",
+     "alt": [
+      0,
+      0.55
+     ],
+     "moist": [
+      0,
+      0.6
+     ],
+     "tilesets": [
+      17
+     ],
+     "color": "#e8c870",
+     "walls": 0.06
+    },
+    {
+     "key": "oasis",
+     "name": "Oasis",
+     "alt": [
+      0,
+      0.45
+     ],
+     "moist": [
+      0.75,
+      1
+     ],
+     "tilesets": [
+      85
+     ],
+     "color": "#7ac8a0",
+     "walls": 0.06
+    },
+    {
+     "key": "canyon",
+     "name": "Canyon",
+     "alt": [
+      0.55,
+      1
+     ],
+     "moist": [
+      0,
+      0.7
+     ],
+     "tilesets": [
+      20
+     ],
+     "color": "#b8783a",
+     "walls": 0.15
+    },
+    {
+     "key": "quicksand",
+     "name": "Sables mouvants",
+     "alt": [
+      0,
+      1
+     ],
+     "moist": [
+      0.6,
+      1
+     ],
+     "tilesets": [
+      19
+     ],
+     "color": "#c8a050",
+     "walls": 0.06
+    }
+   ],
+   "rivers": [
+    2,
+    3
+   ],
+   "riverKind": "void",
+   "riverWidth": [
+    3,
+    5
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    2,
+    3
+   ],
+   "lakeKind": "quicksand",
+   "lakeSize": [
+    4,
+    7
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.6
+   ]
+  },
+  {
+   "key": "ruins",
+   "name": "Ruines",
+   "peak": 0.25,
+   "peakRadius": 0.25,
+   "subbiomes": [
+    {
+     "key": "outskirts",
+     "name": "Abords",
+     "alt": [
+      0,
+      0.4
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      28
+     ],
+     "color": "#6a7a6a",
+     "walls": 0.06
+    },
+    {
+     "key": "halls",
+     "name": "Salles effondrées",
+     "alt": [
+      0.4,
+      0.75
+     ],
+     "moist": [
+      0,
+      0.6
+     ],
+     "tilesets": [
+      29
+     ],
+     "color": "#5a6a5a",
+     "walls": 0.2
+    },
+    {
+     "key": "overgrown",
+     "name": "Ruines envahies",
+     "alt": [
+      0.4,
+      0.75
+     ],
+     "moist": [
+      0.6,
+      1
+     ],
+     "tilesets": [
+      30
+     ],
+     "color": "#6a8a3a",
+     "walls": 0.22
+    },
+    {
+     "key": "temple",
+     "name": "Temple",
+     "alt": [
+      0.75,
+      1
+     ],
+     "moist": [
+      0,
+      1
+     ],
+     "tilesets": [
+      45
+     ],
+     "color": "#a8b8a8",
+     "walls": 0.1
+    }
+   ],
+   "rivers": [
+    1,
+    2
+   ],
+   "riverKind": "water",
+   "riverWidth": [
+    3,
+    4
+   ],
+   "bridgeKind": "bridge",
+   "lakes": [
+    1,
+    2
+   ],
+   "lakeKind": "water",
+   "lakeSize": [
+    3,
+    5
+   ],
+   "crater": "",
+   "cliffLevels": [
+    0.55,
+    0.8
+   ]
+  }
+ ]
+}

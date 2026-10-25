@@ -13,6 +13,7 @@ public class BossAI : MonoBehaviour
     const float DefaultWindup = 1f;
     const float MinApproach = 0.6f, MaxApproach = 3f; // seconds walking before the next announcement
     static readonly Vector3 BubbleOffset = new(0f, 1.25f, 0f);
+    const float TauntReach = 12f; // tiles: a guard this close draws the boss
 
     [Tooltip("Share of the Pokémon's own speed used while moving")]
     public float speedFactor = 0.5f;
@@ -49,6 +50,7 @@ public class BossAI : MonoBehaviour
         go.transform.SetParent(transform, false);
         go.transform.localPosition = BubbleOffset;
         bubble = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(bubble); // keeps its colours at night (DayNight)
         bubble.sortingOrder = 13; // above everything attached to a Pokémon
         go.SetActive(false);
         stateSince = Time.time;
@@ -57,7 +59,9 @@ public class BossAI : MonoBehaviour
     void FixedUpdate()
     {
         if (!combatant.IsAlive) return;
-        var target = Combatant.Nearest(Team.Player, transform.position, float.MaxValue);
+        // The nearest member of the team, unless one guards a knocked-out team-mate (TeamRescue): it draws the boss.
+        var target = TargetChoice.Taunter(Team.Player, transform.position, TauntReach);
+        if (target == null) target = Combatant.Nearest(Team.Player, transform.position, float.MaxValue);
 
         switch (state)
         {

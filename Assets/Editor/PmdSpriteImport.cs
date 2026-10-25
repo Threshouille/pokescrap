@@ -12,12 +12,17 @@ public class PmdSpriteImport : AssetPostprocessor
     const string EffectRoot = "Assets/Resources/Effects";
     const string PortraitRoot = "Assets/Resources/Portraits";
     const string ObstacleTileRoot = "Assets/Resources/ObstacleTiles";
+    const string CliffRoot = "Assets/Resources/Cliffs";
+    const string MapPropRoot = "Assets/Resources/MapProps"; // decor elements cut from the story maps (extract_map_props.py) // cliff pieces cut from the story maps (extract_cliffs.py)
+    const string ItemRoot = "Assets/Resources/Items";
     const string AnimSetRoot = "Assets/Resources/" + PokemonRoster.AnimSetPath;
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/"))
+        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/") || assetPath.StartsWith(CliffRoot + "/") || assetPath.StartsWith(MapPropRoot + "/") || assetPath.StartsWith(ItemRoot + "/"))
             Configure((TextureImporter)assetImporter);
+        // The palette animations of the décors (extract_tileset.py) can be wider than the default 2048 px.
+        if (assetPath.EndsWith("/anim.png")) ((TextureImporter)assetImporter).maxTextureSize = 8192;
     }
 
     static bool Configure(TextureImporter importer)
@@ -46,6 +51,7 @@ public class PmdSpriteImport : AssetPostprocessor
     [MenuItem("Pokescrap/Build Tilesets")]
     public static void BuildTilesets()
     {
+        var built = new System.Collections.Generic.List<DungeonTileset>();
         foreach (var folder in AssetDatabase.GetSubFolders(TilesetRoot))
         {
             var jsonPath = folder + "/tileset.json";
@@ -62,10 +68,32 @@ public class PmdSpriteImport : AssetPostprocessor
             }
             JsonUtility.FromJsonOverwrite(File.ReadAllText(jsonPath), tileset);
             tileset.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            // Its palette animation, when it has one (extract_tileset.py).
+            if (AssetImporter.GetAtPath(folder + "/anim.png") is TextureImporter animImporter
+                && (Configure(animImporter) | animImporter.maxTextureSize < 8192))
+            {
+                animImporter.maxTextureSize = 8192;
+                animImporter.SaveAndReimport();
+            }
+            tileset.anim = AssetDatabase.LoadAssetAtPath<Texture2D>(folder + "/anim.png");
+            if (tileset.anim == null) tileset.animChunks = new int[0];
             if (int.TryParse(Path.GetFileName(folder), out int romId)) tileset.romId = romId;
             EditorUtility.SetDirty(tileset);
             Debug.Log($"{assetPath}: {tileset.wall.Length / 3} wall masks");
+            built.Add(tileset);
         }
+        // Every décor by ROM number, for the room generator (TilesetRoster.Get).
+        var rosterPath = $"Assets/Resources/{TilesetRoster.ResourcePath}.asset";
+        var roster = AssetDatabase.LoadAssetAtPath<TilesetRoster>(rosterPath);
+        if (roster == null)
+        {
+            roster = ScriptableObject.CreateInstance<TilesetRoster>();
+            AssetDatabase.CreateAsset(roster, rosterPath);
+        }
+        built.Sort((a, b) => a.romId.CompareTo(b.romId));
+        roster.tilesets = built;
+        EditorUtility.SetDirty(roster);
+        Debug.Log($"{rosterPath}: {built.Count} décors");
         AssetDatabase.SaveAssets();
     }
 

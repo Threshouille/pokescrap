@@ -3731,6 +3731,684 @@
         "#d8b070",
         "#f0d8a0"
       ]
+    },
+    {
+      "file": "seal_stele.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#3a6a2a",
+        "#6a9a3a"
+      ]
+    },
+    {
+      "file": "seal_stele_hit.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#ffffff",
+        "#6a9a3a"
+      ]
+    },
+    {
+      "file": "seal_stele_open.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#a07010",
+        "#f0c030",
+        "#fff0a0"
+      ]
+    },
+    {
+      "file": "seal_no_effect.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4"
+      ]
+    },
+    {
+      "file": "seal_icons.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 9,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#a07010",
+        "#f0c030",
+        "#fff0a0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "seal_type_icons.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 17,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#a8a878",
+        "#f08030",
+        "#6890f0",
+        "#78c850",
+        "#f8d030",
+        "#98d8d8",
+        "#c03028",
+        "#a040a0",
+        "#e0c068",
+        "#a890f0",
+        "#f85888",
+        "#a8b820",
+        "#b8a038",
+        "#705898",
+        "#7038f8",
+        "#705848",
+        "#b8b8d0"
+      ]
+    },
+    {
+      "file": "seal_brazier.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4"
+      ]
+    },
+    {
+      "file": "seal_brazier_lit.png",
+      "frame_width": 24,
+      "frame_height": 36,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff6c0"
+      ]
+    },
+    {
+      "file": "seal_plate.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#a07010",
+        "#f0c030",
+        "#fff0a0"
+      ]
+    },
+    {
+      "file": "seal_shells.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#7a5058",
+        "#c89aa0",
+        "#f0d0d4",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "seal_mark.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        140,
+        140,
+        140,
+        140,
+        140,
+        140
+      ],
+      "loop": true,
+      "palette": [
+        "#4a2a6a",
+        "#8a5ac8",
+        "#d0b0ff"
+      ]
+    },
+    {
+      "file": "seal_dust.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#8a7a64",
+        "#c0b090",
+        "#e8dcc4",
+        "#6a6560",
+        "#3a3836"
+      ]
+    },
+    {
+      "file": "seal_door.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4"
+      ]
+    },
+    {
+      "file": "seal_door_lava.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#1a1010",
+        "#6a1810",
+        "#d03018",
+        "#ff8a30",
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4"
+      ]
+    },
+    {
+      "file": "seal_door_fumaroles.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#3a2a20",
+        "#6a4a32",
+        "#9a7050",
+        "#6a1810",
+        "#d03018",
+        "#ff8a30",
+        "#c8c0b4",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "seal_door_ice.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a6aa0",
+        "#7ab0e0",
+        "#c0e4ff",
+        "#ffffff",
+        "#6ab0e8"
+      ]
+    },
+    {
+      "file": "seal_door_icicles.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a6aa0",
+        "#7ab0e0",
+        "#c0e4ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "seal_door_sea.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#1a3a6a",
+        "#2a6ab0",
+        "#6ab0e8",
+        "#e0f4ff"
+      ]
+    },
+    {
+      "file": "seal_door_vines.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#1a3a1a",
+        "#3a6a2a",
+        "#6aa03a",
+        "#e05a8a",
+        "#a03060",
+        "#f0dca0"
+      ]
+    },
+    {
+      "file": "seal_door_tree.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        300,
+        300,
+        300,
+        300
+      ],
+      "loop": true,
+      "palette": [
+        "#3a2410",
+        "#6a4420",
+        "#9a6a3a",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "seal_door_flowers.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#1a3a1a",
+        "#3a6a2a",
+        "#6aa03a",
+        "#a03060",
+        "#e05a8a",
+        "#f8a0c0",
+        "#a07010",
+        "#f0c030",
+        "#fff0a0"
+      ]
+    },
+    {
+      "file": "seal_door_sand.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#a07a40",
+        "#d0b070",
+        "#f0dca0",
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4"
+      ]
+    },
+    {
+      "file": "seal_door_runes.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#4a4a5a",
+        "#8a8a9a",
+        "#acacb8",
+        "#6a7aff",
+        "#c0c8ff"
+      ]
+    },
+    {
+      "file": "seal_door_lock.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2410",
+        "#6a4420",
+        "#9a6a3a",
+        "#2a2a30",
+        "#4a4a52",
+        "#6a6a74",
+        "#9a9aa4"
+      ]
+    },
+    {
+      "file": "seal_door_shells.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a2a20",
+        "#6a4a32",
+        "#9a7050",
+        "#c8a078",
+        "#c04a5a",
+        "#f0909a",
+        "#7a5058",
+        "#c89aa0",
+        "#f0d0d4",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "particle_firefly.png",
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#c8ff50",
+        "#eaff70",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "particle_leaf.png",
+      "frame_width": 10,
+      "frame_height": 10,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a6a2a",
+        "#5aa03a",
+        "#7cbc40",
+        "#c89030",
+        "#8a5a28",
+        "#5a3818"
+      ]
+    },
+    {
+      "file": "particle_petal.png",
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#ffb0d0",
+        "#ffd0e0",
+        "#ffffff",
+        "#ffe080",
+        "#e0b850"
+      ]
+    },
+    {
+      "file": "particle_ember.png",
+      "frame_width": 6,
+      "frame_height": 6,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#ff5a20",
+        "#ff8a30",
+        "#ffd040"
+      ]
+    },
+    {
+      "file": "particle_snow.png",
+      "frame_width": 7,
+      "frame_height": 7,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#ffffff",
+        "#e0f0ff",
+        "#a8c8e8"
+      ]
+    },
+    {
+      "file": "particle_dust.png",
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#c8b080",
+        "#e0c890"
+      ]
+    },
+    {
+      "file": "particle_foam.png",
+      "frame_width": 10,
+      "frame_height": 6,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#ffffff",
+        "#d8f4ff",
+        "#8ac8f0"
+      ]
+    },
+    {
+      "file": "particle_bubble.png",
+      "frame_width": 12,
+      "frame_height": 12,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        180,
+        180,
+        180,
+        180,
+        180,
+        180
+      ],
+      "loop": false,
+      "palette": [
+        "#c42418",
+        "#f0741a",
+        "#ffd23a"
+      ],
+      "note": "animation jouée une fois (pas une planche à variantes)"
     }
   ]
 }

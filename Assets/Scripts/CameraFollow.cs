@@ -13,6 +13,19 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Approximate duration of the slide towards a new target, in seconds")]
     public float slideTime = 0.18f;
 
+    static float shakeStrength, shakeUntil, shakeLength;
+
+    /// Shakes the camera (tiles, seconds), fading out: a cave's door opening.
+    public static void Shake(float strength, float time)
+    {
+        shakeStrength = strength;
+        shakeLength = Mathf.Max(0.01f, time);
+        shakeUntil = Time.time + time;
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetShake() => shakeUntil = 0f;
+
     Camera cam;
     Vector2 position; // unsnapped camera position
     Vector2 velocity;
@@ -49,10 +62,12 @@ public class CameraFollow : MonoBehaviour
             position = goal;
         }
 
+        var shown = position;
+        if (Time.time < shakeUntil) shown += Random.insideUnitCircle * shakeStrength * (shakeUntil - Time.time) / shakeLength;
         float unitsPerPixel = 2f * cam.orthographicSize / cam.pixelHeight;
         transform.position = new Vector3(
-            Mathf.Round(position.x / unitsPerPixel) * unitsPerPixel,
-            Mathf.Round(position.y / unitsPerPixel) * unitsPerPixel,
+            Mathf.Round(shown.x / unitsPerPixel) * unitsPerPixel,
+            Mathf.Round(shown.y / unitsPerPixel) * unitsPerPixel,
             transform.position.z);
     }
 }

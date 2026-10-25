@@ -6,7 +6,8 @@ using UnityEngine;
 /// and waits at the edge when there is none. When the leader falls back (walks away from it beyond allyFollowBreak),
 /// it drops the fight and follows; hurt (under allyRetreatHealth), it keeps close to the leader and only fights
 /// opponents that come near, until it is back above allyRetreatRecover (meta.json). Cut off from the leader by water,
-/// lava or void, it changes them with its moves to make a way (ObstacleTactics.Repair).
+/// lava or void, it changes them with its moves to make a way (ObstacleTactics.Repair). While a team-mate is knocked
+/// out, it either guards it (draws the opponents near it away) or brings it back (TeamRescue).
 /// It walks around walls and harmful zones, dodges announced attacks and incoming shots, and a melee ally dodges
 /// forward to catch up with its target.
 [RequireComponent(typeof(Rigidbody2D), typeof(PmdAnimator), typeof(Combatant))]
@@ -17,7 +18,7 @@ public class AllyAI : MonoBehaviour
     const float ShotLookahead = 0.5f; // seconds: a shot arriving within this is dodged
     const float PursuitMin = 3f, PursuitMax = 6f; // melee: dodges toward a target this far away...
     const float PursuitHealth = 0.5f; // ...when above this share of its HP (the dodge stays for defence otherwise)
-    const int SafeSearch = 6; // tiles around the leader searched for a safe spot when it stands in danger
+    const int SafeSearch = 12; // tiles around the leader searched for a safe spot (in danger, or out of reach)
     const float EdgeLook = 0.6f; // tiles ahead checked before a step while following
 
     [Tooltip("The Pokémon the player controls (the team object follows it)")]
@@ -33,10 +34,16 @@ public class AllyAI : MonoBehaviour
 
     readonly Navigator navigator = new();
     readonly Navigator repairNavigator = new(); // way to the spot a repair is made from (the main one keeps the leader)
+    readonly Navigator rescueNavigator = new(); // way to a knocked-out team-mate or to the guard's spot
+    PlayerController team;
+    Combatant leaderCombatant;
+    Transform leaderSeenAs;
     ObstacleTactics.Plan repair;
     bool hasRepair;
     float nextRepair;
     const float RepairInterval = 0.5f;
+    Vector2 repairGoal; // where the repair plan leads (the leader, or an opponent out of reach)
+    readonly Progress towardFoe = new(); // stops getting closer to its opponent: maybe something to repair
     Rigidbody2D body;
     PmdAnimator animator;
     Combatant combatant;
@@ -47,6 +54,10 @@ public class AllyAI : MonoBehaviour
     bool cautious; // low on health: stays by the leader
     Vector2 lastLeader, leaderVelocity; // the leader's smoothed velocity, to tell when it falls back
     bool leaderSeen;
+    // On a large map the path search stops at its limit and gives a partial path, so a river with no way across
+    // still looks "reachable": an ally that stops getting closer for StuckTime seconds looks for a repair anyway.
+    const float StuckTime = 1.5f, StuckProgress = 0.3f;
+    float stuckSince = -1f, stuckDistance;
 
     void Awake()
     {
@@ -56,6 +67,8 @@ public class AllyAI : MonoBehaviour
         leash = SaveData.Settings.allyLeash;
         aggroRange = SaveData.Settings.allyAggroRange;
     }
+
+    void Start() => team = FindAnyObjectByType<PlayerController>();
 
     void FixedUpdate()
     {
@@ -86,6 +99,9 @@ public class AllyAI : MonoBehaviour
             return;
         }
 
+        TryBag(); // instant: a berry when low, a cure, a Reviver Seed
+        if (TryRescue(position, grid)) return;
+
         var settings = SaveData.Settings;
         Vector2 toLeader = (Vector2)leader.position - position;
         Vector2 leaderAt = leader.position;
@@ -111,13 +127,22 @@ public class AllyAI : MonoBehaviour
             Vector2 toGoal = goal - position;
             float near = goal == (Vector2)leader.position ? followDistance : 0.3f;
             Vector2 follow = toGoal.magnitude > near ? navigator.Direction(position, goal, combatant, avoid: true) : Vector2.zero;
-            if (follow == Vector2.zero && toGoal.magnitude > near && !navigator.Reachable && TryRepair(position)) return;
+            bool cutOff = follow == Vector2.zero && !navigator.Reachable;
+            if (toGoal.magnitude > near && (cutOff || Stuck(toGoal.magnitude, near)) && TryRepair(position, leader.position)) return;
             follow = RoleTactics.Separate(combatant, grid, position, follow); // spread out around the leader
             // No safe way: waits at the edge rather than stepping into danger.
             if (follow != Vector2.zero && !navigator.SafePath && Dangerous(position + follow.normalized * EdgeLook)) follow = Vector2.zero;
             Steer(follow, toLeader);
             return;
         }
+        // Its opponent out of reach across water, lava or void (nothing to use from here): makes a way to it when one
+        // of its moves can (the team on autopilot in the encounter lab crosses a burnt bridge this way).
+        if (decision.slot < 0 && decision.foe != null)
+        {
+            Vector2 foeAt = decision.foe.transform.position;
+            if ((!navigator.Reachable || towardFoe.Stuck(Vector2.Distance(position, foeAt))) && TryRepair(position, foeAt)) return;
+        }
+        else towardFoe.Reset();
         if (TryPursue(decision, position, grid)) return;
         Steer(decision.move, decision.look);
     }
@@ -132,12 +157,14 @@ public class AllyAI : MonoBehaviour
         return true;
     }
 
-    // No way to the leader: walks to where a move makes one (freezes the river...), then uses it.
-    bool TryRepair(Vector2 position)
+    // No way to the goal (the leader, or an opponent): walks to where a move makes one (freezes the river...), then
+    // uses it.
+    bool TryRepair(Vector2 position, Vector2 goal)
     {
-        if (Time.time >= nextRepair)
+        if (Time.time >= nextRepair || Vector2.Distance(goal, repairGoal) > 2f)
         {
-            hasRepair = ObstacleTactics.Repair(combatant, leader.position, out repair);
+            repairGoal = goal;
+            hasRepair = ObstacleTactics.Repair(combatant, goal, out repair);
             nextRepair = Time.time + RepairInterval;
         }
         if (!hasRepair) return false;
@@ -155,6 +182,86 @@ public class AllyAI : MonoBehaviour
         return true;
     }
 
+    float nextBagAt;
+    Bag bag;
+
+    // The team's bag (Bag): a heal under healBelow of its health, a berry against a status it has, a Reviver Seed
+    // when a team-mate is down; at most once every "cooldown" seconds.
+    void TryBag()
+    {
+        if (Time.time < nextBagAt) return;
+        if (bag == null && team != null) bag = team.GetComponent<Bag>();
+        if (bag == null) return;
+        var ai = BagItems.AiSettings;
+        int slot = -1;
+        if (combatant.hp < combatant.maxHp * ai.healBelow) slot = bag.Find(i => i.effect == "heal");
+        if (slot < 0) slot = bag.Find(i => i.effect == "cure" && combatant.HasStatus(i.status));
+        if (slot < 0 && TeamRescue.Downed(combatant) != null) slot = bag.Find(i => i.effect == "revive");
+        if (slot >= 0 && bag.Use(slot, combatant)) nextBagAt = Time.time + ai.cooldown;
+        else nextBagAt = Time.time + 0.5f;
+    }
+
+    // A team-mate is knocked out: guards it or brings it back (TeamRescue).
+    bool TryRescue(Vector2 position, DungeonGenerator grid)
+    {
+        if (leaderSeenAs != leader)
+        {
+            leaderSeenAs = leader;
+            leaderCombatant = leader != null ? leader.GetComponent<Combatant>() : null;
+        }
+        float radius = team != null ? team.reviveRadius : 1f;
+        var job = TeamRescue.JobOf(combatant, leaderCombatant, radius, out var downed, out var threat);
+        if (job == TeamRescue.Job.None) return false;
+
+        if (job == TeamRescue.Job.Revive)
+        {
+            Vector2 toBody = (Vector2)downed.transform.position - position;
+            // On it: stays, and only hits what is in reach from there.
+            if (toBody.magnitude <= radius * 0.6f)
+            {
+                var hold = RoleTactics.Decide(combatant, navigator, aggroRange);
+                if (hold.slot >= 0 && hold.foe != null && combatant.Moves[hold.slot].lunge <= 0f
+                    && Act(hold.slot, hold.aim, hold.distance)) return true;
+                Steer(Vector2.zero, hold.foe != null ? (Vector2)hold.foe.transform.position - position : toBody);
+                return true;
+            }
+            Vector2 way = rescueNavigator.Direction(position, downed.transform.position, combatant, avoid: true);
+            if (way != Vector2.zero && !rescueNavigator.SafePath && Dangerous(position + way.normalized * EdgeLook)) way = Vector2.zero;
+            Steer(way, toBody);
+            return true;
+        }
+
+        // Guard: fights the opponent nearest to the knocked-out one and draws it (and its group) away.
+        TargetChoice.Taunt(combatant);
+        var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, threat);
+        if (decision.slot >= 0 && Act(decision.slot, decision.aim, decision.distance)) return true;
+        bool ready = false;
+        for (int i = 0; i < Combatant.MoveSlots; i++)
+            if (combatant.Moves[i] != null && combatant.Moves[i].power > 0 && combatant.CooldownLeft(i) <= 0f) ready = true;
+        Vector2 spot = TeamRescue.GuardSpot(combatant, downed, threat, ready);
+        Vector2 toSpot = spot - position;
+        Vector2 step = toSpot.magnitude > 0.4f ? rescueNavigator.Direction(position, spot, combatant, avoid: true) : Vector2.zero;
+        Steer(step, (Vector2)threat.transform.position - position);
+        return true;
+    }
+
+    // Following without getting closer for StuckTime seconds (distance to the goal down by less than StuckProgress).
+    bool Stuck(float distance, float near)
+    {
+        if (distance <= near + 0.5f)
+        {
+            stuckSince = -1f;
+            return false;
+        }
+        if (stuckSince < 0f || distance < stuckDistance - StuckProgress)
+        {
+            stuckSince = Time.time;
+            stuckDistance = distance;
+            return false;
+        }
+        return Time.time - stuckSince >= StuckTime;
+    }
+
     /// True when standing there would hurt this ally: a harmful zone, terrain or electric arc.
     bool Dangerous(Vector2 point) =>
         Zone.Inside(point, combatant.team, RoleTactics.ZoneMargin) || Terrain.Hazard(point, combatant) || Pylons.Hazard(point, combatant);
@@ -163,7 +270,8 @@ public class AllyAI : MonoBehaviour
     // when there is none within reach).
     Vector2 SafeSpotNear(Vector2 target, DungeonGenerator grid)
     {
-        if (grid == null || !Dangerous(target)) return target;
+        // Also when the leader stands where this ally cannot (a flyer over water, lava or void).
+        if (grid == null || (!Dangerous(target) && !Obstacles.BlocksAt(target, combatant))) return target;
         var cell = grid.CellOf(target);
         for (int r = 1; r <= SafeSearch; r++)
         {
@@ -214,12 +322,12 @@ public class AllyAI : MonoBehaviour
         }
         else if (direction != Vector2.zero)
         {
-            animator.direction = PmdAnimator.DirectionIndex(direction);
+            animator.Face(direction);
             animator.Play("Walk");
         }
         else
         {
-            if (lookAt != Vector2.zero) animator.direction = PmdAnimator.DirectionIndex(lookAt);
+            animator.Face(lookAt);
             animator.Play("Idle");
         }
     }

@@ -1,8 +1,11 @@
 {
   "unlockAll": true,
+  "allItems": true,
+  "teraStab": 2,
   "devMode": true,
   "devStartingMoveCount": 4,
   "obstaclesInRuns": true,
+  "encountersInRuns": true,
   "startingUnlocked": [1, 4, 7, 172, 488, 489],
   "recruitMultiplier": 1,
   "recruitMessageTime": 3,
@@ -29,6 +32,7 @@
   "aiTargetThreat": 1,
   "aiTargetFocus": 0.5,
   "aiTargetKeep": 1,
+  "aiTargetTaunt": 3,
   "allyAggroRange": 9,
   "allyLeash": 9,
   "allyFollowBreak": 4,
@@ -36,6 +40,11 @@
   "allyRetreatHealth": 0.3,
   "allyRetreatRecover": 0.5,
   "allyCautiousAggro": 4,
+  "allyGuardRadius": 6,
+  "allyLureDistance": 3,
+  "allyHealLow": 0.4,
+  "allyHealSafeHealth": 0.5,
+  "allyHealSafeGap": 3,
   "superEffective": 1.5,
   "notVeryEffective": 0.6,
   "noEffect": 0.25,
@@ -65,6 +74,5 @@
   "megaCastTime": 1.5,
   "evolutionCardChance": 0.5,
   "statTieMargin": 0.1,
-  "nightColor": "#0a1440",
-  "nightAlpha": 0.3
+  "postProcessing": true
 }

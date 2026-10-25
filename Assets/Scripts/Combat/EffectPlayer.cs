@@ -79,6 +79,7 @@ public class EffectPlayer : MonoBehaviour
         player.spriteRenderer = go.GetComponent<SpriteRenderer>();
         if (player.spriteRenderer == null) player.spriteRenderer = go.AddComponent<SpriteRenderer>();
         player.spriteRenderer.sortingOrder = SortingOrder;
+        Unlit.Apply(player.spriteRenderer); // effects keep their colours at night (DayNight)
         player.spriteRenderer.color = Color.white;
         player.spriteRenderer.sprite = sheet.Frame(0);
         return true;

@@ -1,0 +1,195 @@
+{
+ "comment": "Objets tenus (HeldItems.cs, Combatant.Hold ; GDD « Objets de partie ») : un par Pokémon, passif, perdu en fin de partie. Champs : key, name, letter / color (en attendant les icônes), attackMul / specialAttackMul / speedMul / cooldownMul (multiplient les stats tant qu'il le tient), damageMul (dégâts de ses attaques), regenShare (part des PV max regagnée par seconde), drainShare (part des dégâts infligés regagnée), recoilShare (part de ses PV max perdue à chaque coup porté), contactShare (un adversaire qui le frappe au corps à corps perd cette part de ses PV max), sash (survit une fois à un coup fatal avec 1 PV, puis l'objet se brise), crosses (obstacles qu'il traverse sans tomber), popOnHit (l'objet éclate au premier coup reçu), terrainImmune (terrains sans effet sur lui), weight (fréquence). enemies.byRank : chance qu'un ennemi de ce rang (clés de encounters.json, 'elite') tienne un objet, qu'il lâche en tombant. chestChance : chance d'un objet tenu dans le coffre de fin d'étape. Ramassé en marchant dessus par le Pokémon joué ; l'objet qu'il tenait tombe à ses pieds. icon : sprite de Donjon Mystère (PMDCollab RawAsset, dossier Item) téléchargé par Tools/pmd/import_items.py dans Assets/Resources/Items/<icon>.png ; letter / color servent tant qu'il manque. Tiers (tiers, objets 'tiered') : I, II, III ; les valeurs écrites sont celles du tier II, multipliées par 'scale' pour les autres (bonus des multiplicateurs, parts de PV ; la pénalité de recharge ne change pas) ; anneau de la couleur du tier. Tier d'un objet tenu par un ennemi : tierByRank (au hasard entre les deux bornes) ; coffre : chestTiers ; présentoir du terrain de test : showcaseTier. Ramasser le même objet : un tier de plus s'il est du même tier, le plus haut sinon (rien ne tombe). regenOutOfFight : les Restes ne soignent que sans adversaire à moins de 8 cases ni coup reçu depuis 3 s ; bossContactShare : part des PV max d'un boss (Casque Brut) ; l'Orbe Vie coûte ses PV une fois par attaque, pas à chaque coup.",
+ "items": [
+  {
+   "key": "choice_band",
+   "name": "Bandeau Choix",
+   "letter": "B",
+   "color": "#e05050",
+   "attackMul": 1.5,
+   "cooldownMul": 1.25,
+   "weight": 2,
+   "icon": "pmd_Band_Pink",
+   "tiered": true
+  },
+  {
+   "key": "choice_specs",
+   "name": "Lunettes Choix",
+   "letter": "L",
+   "color": "#5080e0",
+   "specialAttackMul": 1.5,
+   "cooldownMul": 1.25,
+   "weight": 2,
+   "icon": "pmd_Specs_Red",
+   "tiered": true
+  },
+  {
+   "key": "choice_scarf",
+   "name": "Mouchoir Choix",
+   "letter": "M",
+   "color": "#e0c050",
+   "speedMul": 1.3,
+   "cooldownMul": 1.15,
+   "weight": 2,
+   "icon": "pmd_Scarf_Blue",
+   "tiered": true
+  },
+  {
+   "key": "leftovers",
+   "name": "Restes",
+   "letter": "R",
+   "color": "#80c060",
+   "regenShare": 0.01,
+   "weight": 2,
+   "icon": "pmd_Apple_Red",
+   "tiered": true,
+   "regenOutOfFight": true
+  },
+  {
+   "key": "life_orb",
+   "name": "Orbe Vie",
+   "letter": "O",
+   "color": "#b050c0",
+   "damageMul": 1.3,
+   "recoilShare": 0.03,
+   "weight": 2,
+   "icon": "pmd_Life_Orb",
+   "tiered": true
+  },
+  {
+   "key": "shell_bell",
+   "name": "Grelot Coque",
+   "letter": "G",
+   "color": "#f0e0b0",
+   "drainShare": 0.125,
+   "weight": 2,
+   "icon": "pmd_Note_Gold",
+   "tiered": true
+  },
+  {
+   "key": "rocky_helmet",
+   "name": "Casque Brut",
+   "letter": "C",
+   "color": "#a08060",
+   "contactShare": 0.08,
+   "weight": 2,
+   "icon": "pmd_Crown_Gray",
+   "tiered": true,
+   "bossContactShare": 0.02
+  },
+  {
+   "key": "focus_sash",
+   "name": "Ceinture Force",
+   "letter": "F",
+   "color": "#f08030",
+   "sash": true,
+   "weight": 1,
+   "icon": "pmd_Belt_White"
+  },
+  {
+   "key": "air_balloon",
+   "name": "Ballon",
+   "letter": "B",
+   "color": "#f05070",
+   "crosses": [
+    "water",
+    "void",
+    "lava",
+    "burning_bridge",
+    "burnt_bridge"
+   ],
+   "popOnHit": true,
+   "weight": 2,
+   "icon": "pmd_Orb_Pink"
+  },
+  {
+   "key": "magma_boots",
+   "name": "Bottes de Magma",
+   "letter": "M",
+   "color": "#c04020",
+   "crosses": [
+    "lava"
+   ],
+   "weight": 1,
+   "icon": "pmd_Stone_Orange"
+  },
+  {
+   "key": "sand_cloak",
+   "name": "Cape Sable",
+   "letter": "S",
+   "color": "#d0b080",
+   "terrainImmune": [
+    "embers",
+    "mud",
+    "brambles",
+    "toxic",
+    "electric",
+    "electrified"
+   ],
+   "weight": 1,
+   "icon": "pmd_Cape_Orange"
+  }
+ ],
+ "enemies": {
+  "byRank": [
+   {
+    "rank": "rare",
+    "chance": 0.3
+   },
+   {
+    "rank": "epic",
+    "chance": 0.6
+   },
+   {
+    "rank": "elite",
+    "chance": 1
+   }
+  ],
+  "tierByRank": [
+   {
+    "rank": "rare",
+    "tiers": [
+     1,
+     2
+    ]
+   },
+   {
+    "rank": "epic",
+    "tiers": [
+     2,
+     3
+    ]
+   },
+   {
+    "rank": "elite",
+    "tiers": [
+     3,
+     3
+    ]
+   }
+  ]
+ },
+ "chestChance": 0.3,
+ "tiers": [
+  {
+   "name": "I",
+   "color": "#c0804a",
+   "scale": 0.6
+  },
+  {
+   "name": "II",
+   "color": "#d8d8e0",
+   "scale": 1.0
+  },
+  {
+   "name": "III",
+   "color": "#f0c840",
+   "scale": 1.4
+  }
+ ],
+ "chestTiers": [
+  1,
+  2
+ ],
+ "showcaseTier": 2
+}

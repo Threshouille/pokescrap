@@ -34,6 +34,33 @@ public class Combatant : MonoBehaviour
     public float atk, spAtk, def, spDef;
     // Multipliers changed by upgrades.
     public float attackMul = 1f, specialAttackMul = 1f, cooldownMul = 1f;
+
+    /// The held item (HeldItems), or null.
+    public HeldItems.Item Held { get; private set; }
+    float nextRegenAt, lastHurtAt = -10f;
+    int attackCount, recoiledAttack = -1; // moves used, and the one a Life Orb last took its toll for
+
+    /// Holds that item (null: none): the old one's stat changes are taken back, the new one's applied. Returns the old one.
+    public HeldItems.Item Hold(HeldItems.Item item)
+    {
+        var old = Held;
+        if (old != null)
+        {
+            attackMul /= old.attackMul;
+            specialAttackMul /= old.specialAttackMul;
+            cooldownMul /= old.cooldownMul;
+            moveSpeed /= old.speedMul;
+        }
+        Held = item;
+        if (item != null)
+        {
+            attackMul *= item.attackMul;
+            specialAttackMul *= item.specialAttackMul;
+            cooldownMul *= item.cooldownMul;
+            moveSpeed *= item.speedMul;
+        }
+        return old;
+    }
     public float projectileSizeMul = 1f, projectileSpeedMul = 1f, meleeAreaMul = 1f;
 
     public PokemonStats Stats { get; private set; }
@@ -55,6 +82,9 @@ public class Combatant : MonoBehaviour
     public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil && !IsEvolving;
     /// True during the evolution animation: the Pokémon stands still and nothing hurts it.
     public bool IsEvolving => Time.time < evolvingUntil;
+
+    /// An elite enemy (Loot.MakeElite): it handles obstacles like an ally (ObstacleTactics).
+    public bool IsElite => GetComponent<EliteMark>() != null;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
     public bool IsDodging => Time.time < dodgeUntil;
@@ -171,7 +201,15 @@ public class Combatant : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
     }
 
-    void OnEnable() => all.Add(this);
+    // Drawn once: where two Pokémon exactly on top of each other push each other (opposite ways, the same each frame).
+    // (Unity's Random cannot be called from a field initializer: drawn when first enabled.)
+    float spreadAngle = -1f;
+
+    void OnEnable()
+    {
+        if (spreadAngle < 0f) spreadAngle = UnityEngine.Random.value * Mathf.PI * 2f;
+        all.Add(this);
+    }
     void OnDisable() => all.Remove(this);
 
     public static int CountAlive(Team team)
@@ -210,8 +248,16 @@ public class Combatant : MonoBehaviour
             Vector2 away = me - (Vector2)c.transform.position;
             float distance = away.magnitude;
             if (distance >= space) continue;
-            // Exactly on top of each other: any direction will do.
-            push += (distance > 0.001f ? away / distance : UnityEngine.Random.insideUnitCircle.normalized) * (1f - distance / space);
+            // Exactly on top of each other: a direction that stays the same for this pair (a random one each frame
+            // made them spin on the spot).
+            if (distance <= 0.001f)
+            {
+                away = new Vector2(Mathf.Cos(spreadAngle) - Mathf.Cos(c.spreadAngle), Mathf.Sin(spreadAngle) - Mathf.Sin(c.spreadAngle));
+                away = away.sqrMagnitude > 0.0001f ? away.normalized : Vector2.right;
+                distance = 0f;
+            }
+            else away /= distance;
+            push += away * (1f - distance / space);
         }
         return push;
     }
@@ -360,6 +406,57 @@ public class Combatant : MonoBehaviour
         Mega = null;
     }
 
+    /// The special item this Pokémon brings into the run (its ultimate: Ultimates), or null.
+    public SpecialItems.Equipped Special { get; set; }
+
+    /// The Terastal type, -1 when not Terastallized.
+    public int TeraType { get; private set; } = -1;
+    PokemonStats beforeTera;
+
+    /// Terastal phase: the Pokémon takes that type alone (defence, terrains, immunities); its moves of that type hit
+    /// harder (DamageOf). RevertTera gives its types back.
+    public void Terastallize(int type)
+    {
+        if (TeraType >= 0 || Stats == null) return;
+        beforeTera = Stats;
+        var form = Stats.Clone();
+        form.types = new[] { type };
+        Stats = form;
+        TeraType = type;
+        ShowTeraIcon(type);
+    }
+
+    public void RevertTera()
+    {
+        if (TeraType < 0) return;
+        Stats = beforeTera;
+        TeraType = -1;
+        if (teraIcon != null) Destroy(teraIcon);
+    }
+
+    GameObject teraIcon;
+
+    // Its Tera type at a glance: crystal hexagon under the feet, the shard above the head (TeraAura).
+    void ShowTeraIcon(int type)
+    {
+        if (teraIcon != null) Destroy(teraIcon);
+        teraIcon = TeraAura.Attach(this, type).gameObject;
+    }
+
+    /// Uses a move that is in none of its slots (a Z move): it borrows the first slot for the cast, whose own move
+    /// and recharge are put back right after.
+    public bool UseExtraMove(MoveDef move, Vector2 direction, float distance = -1f)
+    {
+        var kept = Moves[0];
+        float ready = readyAt[0];
+        Moves[0] = move;
+        readyAt[0] = 0f;
+        bool used = TryUseMove(0, direction, distance);
+        Moves[0] = kept;
+        readyAt[0] = ready;
+        return used;
+    }
+
     /// Moves this Pokémon could learn now: those of its first form, plus those of the forms it evolved into,
     /// with a weight (moves of an evolved current form are more likely). Known moves are left out.
     public List<(MoveDef move, float weight)> LearnableMoves(float evolvedWeight)
@@ -447,7 +544,8 @@ public class Combatant : MonoBehaviour
     {
         if (body == null) return;
         velocity = velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this) + Obstacles.Pull(this) // magnets drag Acier
-            + Climate.WindPush(this); // a storm's wind carries the Vol
+            + Climate.WindPush(this) // a storm's wind carries the Vol
+            + Obstacles.LedgePush(this); // a ledge carries it down
         velocity = Obstacles.Clamp(this, body.position, velocity);
         float accel = Terrain.SlideAccel(this), ground = Obstacles.SlideAccel(this);
         if (ground > 0f) accel = accel > 0f ? Mathf.Min(accel, ground) : ground;
@@ -530,6 +628,15 @@ public class Combatant : MonoBehaviour
     /// Called on the attacker when one of its moves lands: drain, recoil and bonuses it gives itself.
     public void HitLanded(MoveDef move, float dealt)
     {
+        if (Held != null && dealt > 0f)
+        {
+            if (Held.drainShare > 0f) Heal(dealt * Held.drainShare); // a Shell Bell
+            if (Held.recoilShare > 0f && IsAlive && recoiledAttack != attackCount) // a Life Orb: once per attack, not per hit
+            {
+                recoiledAttack = attackCount;
+                TakeFixedDamage(maxHp * Held.recoilShare);
+            }
+        }
         if (dealt > 0f && move.drain > 0f)
             MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
         if (!string.IsNullOrEmpty(move.selfModStat) && (move.selfStatChance <= 0f || UnityEngine.Random.value <= move.selfStatChance))
@@ -549,6 +656,7 @@ public class Combatant : MonoBehaviour
     {
         var move = Moves[slot];
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
+        attackCount++; // a new attack (a Life Orb takes its toll once per attack)
 
         if (move.family == "heal")
         {
@@ -789,6 +897,7 @@ public class Combatant : MonoBehaviour
                 if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
+                HeldItems.OnContact(this, target); // a Rocky Helmet
             }
         }
         if (move.chainBonus > 0f && hit.Count > 0)
@@ -999,6 +1108,14 @@ public class Combatant : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
+        {
+            nextRegenAt = Time.time + 1f;
+            // Leftovers that only work out of a fight: no opponent within 8 tiles, no hit taken for 3 s.
+            bool calm = !Held.regenOutOfFight || (Time.time - lastHurtAt >= 3f
+                && Nearest(team == Team.Player ? Team.Enemy : Team.Player, transform.position, 8f) == null);
+            if (hp < maxHp && calm) Heal(maxHp * Held.regenShare);
+        }
         if (!UpdateStatuses()) { castMove = null; return; }
 
         // Little jump in place while casting a move with a hop.
@@ -1039,6 +1156,7 @@ public class Combatant : MonoBehaviour
                 target.Stun(StunOf(delayedMove));
                 target.ApplyEffects(delayedMove, false, this);
                 HitLanded(delayedMove, dealt);
+                HeldItems.OnContact(this, target);
             }
             delayedTargets.Clear();
             delayedMove = null;
@@ -1178,6 +1296,7 @@ public class Combatant : MonoBehaviour
                     target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
+                HeldItems.OnContact(this, target);
             }
         }
         return count;
@@ -1190,8 +1309,13 @@ public class Combatant : MonoBehaviour
         float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
         float burn = move.category == "physical" ? StatusProduct(def => def.physicalAttackMul) : 1f;
         float scale = (move.damageScale > 0f ? move.damageScale : 1f) * EnemyBasic(move, SaveData.Settings.enemyBasicDamageMul);
-        float stab = Stats?.types != null && System.Array.IndexOf(Stats.types, move.type) >= 0 ? SaveData.Settings.stab : 1f;
-        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab;
+        // Same-type bonus: its own types; Terastallized, the Tera type too, and more when it was already one of them.
+        var own = TeraType >= 0 && beforeTera != null ? beforeTera.types : Stats?.types;
+        bool native = own != null && System.Array.IndexOf(own, move.type) >= 0;
+        float stab = TeraType == move.type ? (native ? SaveData.Settings.teraStab : SaveData.Settings.stab)
+            : native ? SaveData.Settings.stab : 1f;
+        float held = Held != null ? Held.damageMul : 1f; // an Orbe Vie
+        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab * held;
     }
 
     /// The damage a hit of this move would roughly deal to "target" (types, defence; weather and terrain aside),
@@ -1221,6 +1345,12 @@ public class Combatant : MonoBehaviour
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
+        lastHurtAt = Time.time;
+        if (Held != null && Held.popOnHit && IsAlive) // a Balloon bursts at the first blow
+        {
+            Hold(null);
+            EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+        }
         Hurt?.Invoke(this);
         return true;
     }
@@ -1247,8 +1377,21 @@ public class Combatant : MonoBehaviour
         healFlashUntil = Time.time + 2f * HitFlashTime;
     }
 
+    /// An elite or a boss keeping its second phase (EnemyUltimate): a blow that would cross this share of its HP stops
+    /// there; 0 when it has none (or has used it).
+    public float phaseFloorShare;
+
     void LoseHp(float amount)
     {
+        float floor = maxHp * phaseFloorShare;
+        if (phaseFloorShare > 0f && hp > floor && hp - amount < floor) amount = hp - floor;
+        // A Focus Sash: a blow that would knock it out leaves it 1 HP, once, and the sash is gone.
+        if (Held != null && Held.sash && hp > 1f && hp - amount <= 0f)
+        {
+            amount = hp - 1f;
+            Hold(null);
+            EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+        }
         hp = Mathf.Max(0f, hp - amount);
         flashUntil = Time.time + HitFlashTime;
         if (IsAlive) return;
@@ -1314,6 +1457,9 @@ public class Combatant : MonoBehaviour
         }
 
         var tint = StatusTint();
+        // Terastallized: a crystal sheen of its Tera type that comes and goes.
+        if (TeraType >= 0)
+            tint = Color.Lerp(tint, Color.Lerp(Color.white, GameData.TypeColor(TeraType), 0.55f), 0.35f + 0.25f * Mathf.Sin(Time.time * 4f));
         if (spriteRenderer != null)
             spriteRenderer.color = IsEvolving ? Color.white
                 : Time.time < flashUntil ? new Color(1f, 0.4f, 0.4f)
@@ -1377,6 +1523,7 @@ public class Combatant : MonoBehaviour
         icon = new GameObject("StatusIcon");
         icon.transform.SetParent(transform, false);
         var renderer = icon.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.sprite = Shapes.StatusIcon(key, StatusLibrary.Get(key)?.color);
         renderer.sortingOrder = 12; // above the health bar
         statusIcons[key] = icon;

@@ -38,6 +38,7 @@ public class Zone : MonoBehaviour
         {
             go.transform.localScale = Vector3.one * move.radius * 2f;
             var renderer = go.AddComponent<SpriteRenderer>();
+            Unlit.Apply(renderer); // keeps its colours at night (DayNight)
             renderer.sprite = Shapes.Circle;
             var color = GameData.TypeColor(move.type);
             color.a = 0.45f;

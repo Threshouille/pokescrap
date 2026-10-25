@@ -3,16 +3,21 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// Kinds of the banners at the top of the screen (Progression.Announce): a colour and a mark each.
+public enum Notice { Info, Loot, Alert, Elite }
+
 /// Run progression: experience shared by the team, levels, evolutions at the level of the original game, and at
 /// regular levels one upgrade to pick among three for each Pokémon. One of the three is a new move while the
 /// Pokémon knows fewer than 4, then only sometimes (it replaces a known move). The game is paused while choosing.
+/// Also draws the banners (Announce).
 [RequireComponent(typeof(PlayerController))]
 public class Progression : MonoBehaviour
 {
     public const int MaxLevel = 100;
     const int Options = 3;
     const float StickThreshold = 0.6f;
-    const float BannerTime = 3f;
+    const float BannerTime = 3f, BannerFade = 0.4f;
+    const int MaxBanners = 3;
 
     /// One card of the choice screen: an upgrade or a new move.
     class Offer
@@ -36,7 +41,15 @@ public class Progression : MonoBehaviour
     /// True while the upgrade screen is open (the game is paused).
     public bool Choosing => options != null;
     /// Messages shown at the top of the screen for a moment (evolutions), with the unscaled time they end.
-    readonly List<(string text, float until)> banners = new();
+    class Banner
+    {
+        public string text;
+        public Notice kind;
+        public int count = 1;
+        public float until;
+    }
+
+    readonly List<Banner> banners = new();
 
     readonly Queue<Combatant> pending = new();
     readonly System.Random rng = new();
@@ -46,7 +59,7 @@ public class Progression : MonoBehaviour
     bool replacing; // choosing which known move the new one replaces
     int replaceSelected; // 0-3: a known move, 4: keep them all
     bool stickNeutral = true;
-    GUIStyle title, cardTitle, cardText;
+    GUIStyle title, cardTitle, cardText, bannerText;
 
     Evolution evolution;
 
@@ -58,7 +71,32 @@ public class Progression : MonoBehaviour
     void Start() => evolution = GetComponent<Evolution>(); // added after this component
 
     /// A message at the top of the screen for a moment.
-    public void Announce(string text) => banners.Add((text, Time.unscaledTime + BannerTime));
+    /// A banner at the top of the screen: the same text again adds "×2" instead of a second line; at most three at once
+    /// (the oldest goes); a colour and a mark per kind (loot green, alert red, elite or boss gold).
+    public void Announce(string text, Notice kind = Notice.Info)
+    {
+        var same = banners.Find(b => b.text == text);
+        if (same != null)
+        {
+            same.count++;
+            same.until = Time.unscaledTime + BannerTime;
+            return;
+        }
+        banners.Add(new Banner { text = text, kind = kind, until = Time.unscaledTime + BannerTime });
+        while (banners.Count > MaxBanners) banners.RemoveAt(0);
+    }
+
+    /// Banners on screen, and how many times that text was announced in a row (the test bench).
+    public int BannerCount => banners.Count;
+    public int TimesShown(string text) => banners.Find(b => b.text == text)?.count ?? 0;
+
+    static Color BannerColour(Notice kind) => kind switch
+    {
+        Notice.Loot => new Color(0.25f, 0.7f, 0.35f),
+        Notice.Alert => new Color(0.9f, 0.3f, 0.25f),
+        Notice.Elite => new Color(0.95f, 0.75f, 0.25f),
+        _ => new Color(0.6f, 0.65f, 0.75f),
+    };
 
     void OnEnable() => Combatant.AnyDied += OnDied;
 
@@ -230,17 +268,29 @@ public class Progression : MonoBehaviour
         title ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         cardTitle ??= new GUIStyle(title);
         cardText ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperCenter, wordWrap = true };
+        bannerText ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+        bannerText.fontSize = Mathf.RoundToInt(8f * s);
         title.fontSize = Mathf.RoundToInt(11f * s);
         cardTitle.fontSize = Mathf.RoundToInt(9f * s);
         cardText.fontSize = Mathf.RoundToInt(7f * s);
 
+        // Banners, top centre (below the sandbox room line): tinted by their kind, coloured border, fading out at the end.
         banners.RemoveAll(b => Time.unscaledTime >= b.until);
+        var previous = GUI.color;
+        float bannerWidth = Mathf.Min(280f * s, HudLayout.CenterWidth(s));
         for (int i = 0; i < banners.Count; i++)
         {
-            var rect = new Rect(Screen.width / 2f - 160f * s, (52f + i * 16f) * s, 320f * s, 14f * s);
-            Fill(rect, new Color(0.08f, 0.08f, 0.12f, 0.85f));
-            GUI.Label(rect, banners[i].text, cardTitle);
+            var b = banners[i];
+            float alpha = Mathf.Clamp01((b.until - Time.unscaledTime) / BannerFade);
+            var rect = new Rect(Screen.width / 2f - bannerWidth / 2f, HudLayout.BannerTop(s) + i * (HudLayout.BannerHeight + HudLayout.BannerGap) * s,
+                bannerWidth, HudLayout.BannerHeight * s);
+            var colour = BannerColour(b.kind);
+            GUI.color = new Color(1f, 1f, 1f, alpha);
+            HudLayout.Panel(rect, Color.Lerp(HudLayout.PanelColour, new Color(colour.r, colour.g, colour.b, 0.95f), 0.3f), colour, s);
+            bannerText.normal.textColor = Color.Lerp(Color.white, colour, 0.25f);
+            GUI.Label(new Rect(rect.x + 6f * s, rect.y, rect.width - 12f * s, rect.height), b.count > 1 ? $"{b.text}  ×{b.count}" : b.text, bannerText);
         }
+        GUI.color = previous;
 
         if (options == null || pending.Count == 0) return;
         var who = pending.Peek();
