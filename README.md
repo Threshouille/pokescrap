@@ -316,6 +316,13 @@ des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
 
+### 25/10/2026 — Engrenages du Temps et boss de quartier (Robin, branche `feature/engrenages`)
+- Le passage vers le quartier suivant s'ouvre avec l'Engrenage du Temps du quartier, le centre avec les quatre
+  (`time_gears.json`). Un quartier le donne par un boss ou par 3 fragments gardés (indices sur la mini-carte). Le boss
+  attend sur un îlot, derrière un portail de la côte qui s'ouvre avec la clé trouvée au fond du donjon de la clé
+  (embuscade, puis gardien et coffre) ; grand, il méga-évolue à mi-PV (rarement, 3 %, le légendaire du thème, qui se
+  téracristallise). Compteur sous l'encadré d'étape. Quart de test : G change de mode.
+
 ### 25/10/2026 — Peuplement de l'île, étapes 1 à 3 : populations, camps et rondes, salles (Robin, branche `feature/peuplement`)
 - Chaque sous-biome de l'île a sa population (`populations.json` : types pondérés, types de la nuit), utilisée par les
   rencontres à la place du décor ; niveau et rang qui montent avec le quartier et la distance à l'arrivée.

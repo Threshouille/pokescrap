@@ -55,9 +55,34 @@ public class BossAI : MonoBehaviour
         stateSince = Time.time;
     }
 
+    /// Asleep where it was put (a quarter's boss on the island, TimeGears): until a member of the team comes within
+    /// that many tiles, or it is hurt.
+    public void Sleep(float wakeRadius)
+    {
+        asleep = true;
+        sleepRadius = wakeRadius;
+        sleepHealth = combatant != null ? combatant.hp : float.MaxValue;
+    }
+
+    public bool Asleep => asleep;
+
+    bool asleep;
+    float sleepRadius, sleepHealth;
+
     void FixedUpdate()
     {
         if (!combatant.IsAlive) return;
+        if (asleep)
+        {
+            var near = Combatant.Nearest(Team.Player, transform.position, sleepRadius);
+            if (near == null && combatant.hp >= sleepHealth - 0.5f)
+            {
+                combatant.Drive(Vector2.zero);
+                animator.Play(animator.Has("Sleep") ? "Sleep" : "Idle");
+                return;
+            }
+            asleep = false;
+        }
         // The nearest member of the team, unless one guards a knocked-out team-mate (TeamRescue): it draws the boss.
         var target = TargetChoice.Taunter(Team.Player, transform.position, TauntReach);
         if (target == null) target = Combatant.Nearest(Team.Player, transform.position, float.MaxValue);

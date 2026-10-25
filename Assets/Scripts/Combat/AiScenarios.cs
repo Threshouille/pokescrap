@@ -173,6 +173,8 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Peuplement : chaque sous-biome a sa population, plus forte en avançant", HabitatsPopulated());
         yield return Scenario("Peuplement : camps et rondes au repos, réveil, laisse, retour d'un autre lot", QuarterPopulated());
         yield return Scenario("Salles de l'île : trésor, embuscade à sortie fermée, gardien sur son coffre", IslandRoomContents());
+        yield return Scenario("Engrenages : passages fermés jusqu'à l'engrenage, centre avec les quatre", GearsLockPassages());
+        yield return Scenario("Engrenages : donjon de la clé, portail de l'îlot, boss grand et prêt à sa seconde phase ; fragments et indices", GearsFromBossAndFragments());
 
         Clear();
         if (progression != null) progression.enabled = true;
@@ -1831,7 +1833,7 @@ public class AiScenarios : MonoBehaviour
         else if (camp == null) { ok = false; result += " ; aucun camp en jeu"; }
         Restore(kept, members);
         run.End();
-        foreach (var c in new MonoBehaviour[] { GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+        foreach (var c in new MonoBehaviour[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>(), GetComponent<TimeGears>(), GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
             if (c != null) Destroy(c);
         arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
         Report(ok, result);
@@ -1906,10 +1908,133 @@ public class AiScenarios : MonoBehaviour
         Restore(kept, members);
         run.End();
         if (loot != null) loot.RemoveChest();
-        foreach (var c in new MonoBehaviour[] { GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+        foreach (var c in new MonoBehaviour[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>(), GetComponent<TimeGears>(), GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
             if (c != null) Destroy(c);
         arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
         Report(ok, string.Join(" ; ", lines));
+    }
+
+    // A whole island: each quarter has its way of giving its gear (the last one a boss); onward passages and the centre
+    // wait for the gears, the way back never does.
+    IEnumerator GearsLockPassages()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var run = gameObject.AddComponent<IslandRun>();
+        var plan = IslandPlan.Generate(new System.Random(77));
+        run.Begin(plan);
+        yield return new WaitForSeconds(0.3f);
+        var gears = GetComponent<TimeGears>();
+        var o = plan.order;
+        bool lastBoss = gears.quarters[o[3]] != null && gears.quarters[o[3]].mode == TimeGears.Boss;
+        bool shut = !gears.CanPass(o[0], o[1]) && !gears.CanPass(o[3], IslandPlan.Centre);
+        bool back = gears.CanPass(o[1], o[0]);
+        gears.quarters[o[0]].gear = true;
+        bool opens = gears.CanPass(o[0], o[1]) && !gears.CanPass(o[1], o[2]);
+        foreach (var q in gears.quarters) q.gear = true;
+        bool centre = gears.CanPass(o[3], IslandPlan.Centre);
+        string modes = string.Join(", ", o.Select(q => gears.quarters[q].mode));
+        EndIsland(run);
+        Report(lastBoss && shut && back && opens && centre,
+            $"modes {modes} ; fermés au départ {shut}, retour libre {back}, ouvert avec l'engrenage {opens}, centre avec les quatre {centre}");
+    }
+
+    // The test quarter with a boss: its islet's portal stays shut; the key dungeon's two rooms (an ambush, then a
+    // guardian by a chest) give the key; the islet's boss is big, ready to mega evolve (or Terastallize), and its fall
+    // gives the gear. The legendary comes about 3 % of the time. Then with fragments: three, each with a hint.
+    IEnumerator GearsFromBossAndFragments()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var run = gameObject.AddComponent<IslandRun>();
+        var plan = IslandPlan.QuarterTestPlan(23);
+        run.Begin(plan);
+        var gears = GetComponent<TimeGears>();
+        gears.ForceTestMode(TimeGears.Boss);
+        yield return new WaitForSeconds(0.5f);
+        var q = gears.Here;
+        var dungeon = GetComponent<KeyDungeon>();
+        var portal = GetComponent<BossPortal>();
+        var loot = FindAnyObjectByType<Loot>();
+        int legendaries = 0;
+        for (int k = 0; k < 2000; k++) { gears.PickBoss(plan, 0, out bool legend); if (legend) legendaries++; }
+        // The portal, without the key: nothing happens.
+        IEnumerator Walk(Vector2? to)
+        {
+            if (to == null) yield break;
+            foreach (var m in members) Teleport(m, to.Value + Vector2.down * 3f);
+            yield return new WaitForSeconds(0.3f);
+            foreach (var m in members) Teleport(m, to.Value);
+            float until = Time.realtimeSinceStartup + 6f;
+            yield return new WaitForSecondsRealtime(0.3f);
+            while (LoadingScreen.Busy && Time.realtimeSinceStartup < until) yield return null;
+            yield return new WaitForSeconds(0.5f);
+        }
+        IEnumerator Clean(IslandStairs stairs)
+        {
+            float end = Time.time + 25f;
+            while (stairs.Content != null && !stairs.Content.Done && Time.time < end)
+            {
+                foreach (var c in Combatant.All.ToList())
+                    if (c != null && c.IsAlive && c.team == Team.Enemy) KnockOut(c);
+                if (loot != null && loot.ChestAt is { } chest) foreach (var m in members) Teleport(m, chest);
+                yield return new WaitForSeconds(0.5f);
+            }
+        }
+        yield return Walk(portal.StairsAt);
+        bool shut = !portal.InRoom;
+        // The key dungeon: room after room.
+        yield return Walk(dungeon.StairsAt);
+        bool inDungeon = dungeon.InRoom;
+        yield return Clean(dungeon);
+        yield return Walk(dungeon.NextAt);
+        bool second = dungeon.InRoom && dungeon.Floor == 1;
+        yield return Clean(dungeon);
+        yield return new WaitForSeconds(0.3f);
+        bool key = q.hasKey;
+        yield return Walk(dungeon.BackAt);
+        // The islet.
+        yield return Walk(portal.StairsAt);
+        var bosses = gears.BossInPlay.Where(c => c != null).ToList();
+        bool big = bosses.Count > 0 && bosses.All(c => c.transform.localScale.x >= 1.5f);
+        bool phase = bosses.Count > 0 && bosses.All(c => c.GetComponent<EnemyUltimate>() is { } u && (u.Item == SpecialItems.Family.Mega || u.Item == SpecialItems.Family.Tera));
+        string who = string.Join(" + ", bosses.Select(c => c.Stats.name));
+        bool locked = portal.Content != null && portal.Content.Locked;
+        yield return Clean(portal);
+        yield return new WaitForSeconds(0.3f);
+        bool gear = q.gear && gears.Found == 1;
+        yield return Walk(portal.BackAt);
+        loot?.RemoveChest();
+        // Fragments (the team back at the arrival).
+        foreach (var m in members) Teleport(m, arena.SpawnPoint);
+        yield return new WaitForSeconds(0.2f);
+        gears.ForceTestMode(TimeGears.Fragments);
+        yield return new WaitForSeconds(0.3f);
+        q = gears.Here;
+        int fragments = q.fragments.Count, hints = run.hints.Count;
+        foreach (var f in q.fragments)
+        {
+            foreach (var m in members) Teleport(m, run.Cell(f.tile));
+            yield return new WaitForSeconds(0.3f);
+        }
+        bool together = q.gear && q.fragments.All(f => f.taken) && run.hints.Count == 0;
+        Restore(kept, members);
+        EndIsland(run);
+        float rate = legendaries / 20f;
+        Report(shut && inDungeon && second && key && big && phase && locked && gear && rate > 1f && rate < 6f && fragments == 3 && hints == 3 && together,
+            $"portail fermé sans clé {shut} ; donjon {inDungeon}, 2e salle {second}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
+    }
+
+    void EndIsland(IslandRun run)
+    {
+        run.End();
+        foreach (var c in new MonoBehaviour[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>(), GetComponent<TimeGears>(), GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+            if (c != null) Destroy(c);
+        DungeonGenerator.Current.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
     }
 
     // Typical populated zones: whole waves at each stage, every lot following its rules; the log shows one zone per

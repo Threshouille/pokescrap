@@ -60,7 +60,14 @@ public class RoomContent
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset() => data = null;
 
-    public const string Treasures = "treasure", Ambushes = "ambush", Guardians = "guardian";
+    public const string Treasures = "treasure", Ambushes = "ambush", Guardians = "guardian", Bosses = "boss";
+
+    /// A boss room (the islet's, TimeGears): its foes, spawned by whoever made the content; the room's type.
+    public Func<DungeonGenerator, EnemySpawner, Vector2, List<Combatant>> spawnBoss;
+    public string bossRoomType = "boss";
+
+    /// Where the room's content ended (its chest, the team): the next room's stairs go there.
+    public Vector2? EndAt { get; private set; }
 
     /// treasure, ambush or guardian.
     public readonly string key;
@@ -72,8 +79,8 @@ public class RoomContent
 
     /// Played to the end (its chest given or the room cleared).
     public bool Done { get; private set; }
-    /// The way out is shut (an ambush still going).
-    public bool Locked => key == Ambushes && started && !Done;
+    /// The way out is shut (an ambush or a boss fight still going).
+    public bool Locked => (key == Ambushes || key == Bosses) && started && !Done;
 
     bool started;
     int wavesLeft;
@@ -112,8 +119,8 @@ public class RoomContent
     /// Its room: the content's room type, in the sub-biome's theme and décor when the catalogue has them.
     public RoomInstance Room()
     {
-        string type = key == Ambushes ? Data.ambush.roomType : key == Guardians ? Data.guardian.roomType : Data.treasure.roomType;
-        string theme = Array.Find(Data.themes, t => t.subBiome == habitat)?.theme;
+        string type = key == Bosses ? bossRoomType : key == Ambushes ? Data.ambush.roomType : key == Guardians ? Data.guardian.roomType : Data.treasure.roomType;
+        string theme = key == Bosses ? null : Array.Find(Data.themes, t => t.subBiome == habitat)?.theme; // an islet: the boss arenas
         var room = (theme != null ? RoomCatalog.Pick(type, rng, theme) : null) ?? RoomCatalog.Pick(type, rng) ?? RoomCatalog.Pick(null, rng);
         // The sub-biome's own décor when its theme draws it.
         if (room != null && decor > 0 && room.theme != null && Array.IndexOf(room.theme.tilesets, decor) >= 0 && TilesetRoster.Get(decor) != null)
@@ -133,12 +140,23 @@ public class RoomContent
         Vector2 far = arena.RandomOpenPosition(rng, Mathf.Min(8f, arena.Interior.width / 3f), arrival);
         switch (key)
         {
+            case Bosses:
+                if (spawnBoss != null && spawner != null) enemies.AddRange(spawnBoss(arena, spawner, far));
+                if (enemies.Count == 0) Done = true;
+                break;
             case Ambushes:
                 wavesLeft = rng.Next(Data.ambush.waves[0], Data.ambush.waves[Mathf.Min(1, Data.ambush.waves.Length - 1)] + 1);
                 nextWaveAt = Time.time + Data.ambush.pause;
                 break;
             case Guardians:
-                far = arena.RandomOpenPosition(rng, Data.guardian.wake + 3f, arrival); // asleep when the team comes in
+                // A few tiles beyond its waking reach: asleep when the team comes in, and in sight.
+                float wanted = Data.guardian.wake + 4f;
+                far = arena.RandomOpenPosition(rng, Data.guardian.wake + 3f, arrival);
+                for (int k = 0; k < 40; k++)
+                {
+                    Vector2 spot = arena.RandomOpenPosition(rng, Data.guardian.wake + 3f, arrival);
+                    if (Mathf.Abs(Vector2.Distance(spot, arrival) - wanted) < Mathf.Abs(Vector2.Distance(far, arrival) - wanted)) far = spot;
+                }
                 loot?.SpawnChest(far, anywhere: true, Data.guardian.stoneChance, Data.guardian.chestIcon);
                 var e = Encounters.CategoryOf(Data.guardian.lot) is { } lot
                     ? Encounters.Make(rng, lot, Stage(Data.guardian.stageBonus), -1, where: new Populations.Where(habitat, spawner != null && spawner.Night))
@@ -146,6 +164,8 @@ public class RoomContent
                 if (e == null || spawner == null) { Done = loot == null || loot.ChestAt == null; break; }
                 enemies.AddRange(spawner.SpawnEncounter(e, far, Level));
                 foreach (var c in enemies) c.gameObject.AddComponent<RecruitBonus>().multiplier = Data.guardian.recruitBonus;
+                if (enemies.Count > 0 && UnityEngine.Object.FindAnyObjectByType<Progression>() is { } progression)
+                    progression.Announce($"Un gardien dort près du coffre : {enemies[0].Stats.name}", Notice.Elite);
                 if (enemies.Count > 0 && enemies[0].GetComponent<EnemyAI>()?.group is { } group)
                     group.Rest(new EnemyGroup.Roam { home = far, wake = Data.guardian.wake, leash = Data.guardian.leash });
                 break;
@@ -162,6 +182,13 @@ public class RoomContent
     {
         if (!started || Done) return;
         enemies.RemoveAll(c => c == null || !c.IsAlive);
+        if (key == Bosses)
+        {
+            if (enemies.Count > 0) return;
+            EndAt = teamAt;
+            Done = true;
+            return;
+        }
         if (key == Ambushes)
         {
             if (enemies.Count > 0) return;
@@ -169,6 +196,7 @@ public class RoomContent
             {
                 // Cleared: the chest, and the way out opens.
                 loot?.SpawnChest(teamAt + Vector2.up * 1.5f, anywhere: true, Data.ambush.stoneChance, Data.ambush.chestIcon);
+                EndAt = teamAt + Vector2.right * 2f;
                 Done = true;
                 return;
             }
@@ -179,7 +207,11 @@ public class RoomContent
             return;
         }
         // Treasure and guardian: done once the chest is opened.
-        if (loot == null || loot.ChestAt == null) Done = true;
+        if (loot == null || loot.ChestAt == null)
+        {
+            EndAt = teamAt + Vector2.right * 2f;
+            Done = true;
+        }
     }
 
     void SpawnWave(Vector2 teamAt)
@@ -211,7 +243,11 @@ public class RoomContent
         foreach (var c in enemies)
             if (c != null) UnityEngine.Object.Destroy(c.gameObject);
         enemies.Clear();
+        // Nothing stays on the ground of a room left behind (the game has one chest at a time, and what lies there
+        // would show at the same place in the next room): an unfinished room takes its chest back, the rest is given.
+        if (loot == null) loot = UnityEngine.Object.FindAnyObjectByType<Loot>();
         if (!Done) loot?.RemoveChest();
+        loot?.CollectAll();
         started = false;
     }
 }

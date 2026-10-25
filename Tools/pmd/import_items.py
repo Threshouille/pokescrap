@@ -62,6 +62,8 @@ def main():
     # Chests: the stage's (items.json loot.chestIcon) and the island rooms' (room_contents.json, chestIcon of each content).
     rooms = json.loads((root / "Assets/Resources/Data/room_contents.json").read_text(encoding="utf-8"))
     chests = {items.get("loot", {}).get("chestIcon", "")} | {c.get("chestIcon", "") for c in rooms.values() if isinstance(c, dict)}
+    gears = json.loads((root / "Assets/Resources/Data/time_gears.json").read_text(encoding="utf-8")).get("boss", {})
+    chests |= {gears.get("chestIcon", ""), gears.get("keyIcon", "")} # the boss's chest, the islet's key
     wanted += [(c, ["pmd:" + RAWASSET]) for c in sorted(chests) if c.startswith("pmd_")]
     out = root / "Assets/Resources/Items"
     out.mkdir(parents=True, exist_ok=True)

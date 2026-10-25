@@ -203,6 +203,25 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   qui fuit), Défense du sanctuaire (tenir 3 vagues) ; chaque quête se termine par un boss. Le 4e quartier finit
   toujours par un boss. Les îlots ne donnent pas d'engrenage : récompenses de détour (plus tard).
 - Centre : série de salles défis et combats, structure de donjon (salles du catalogue), boss final.
+- Engrenages et boss de quartier (décidé le 25/10/2026, Robin ; `feature/engrenages`, `time_gears.json`) : passage
+  suivant fermé jusqu'à l'engrenage du quartier, centre avec les quatre. Le boss est sur un îlot à part, par un portail
+  au bord de la côte qui ne s'ouvre qu'avec la clé de l'îlot, au fond d'un donjon propre au boss (une embuscade, puis un
+  gardien près d'un coffre qui contient la clé) ; dans l'îlot, la sortie reste fermée jusqu'à sa chute (engrenage et
+  coffre). Le boss est plus grand qu'un Pokémon ordinaire (× 1,6) et méga-évolue à sa seconde phase : un Pokémon dont
+  la méga a ses sprites et qui vit dans un sous-biome du quartier (sinon n'importe lequel ; le duo Gardevoir + Gallame
+  en forêt) ; rarement (3 %) le légendaire du thème (volcan Groudon, glacier Artikodin, côte Kyogre, forêt Celebi,
+  désert Regirock, ruines Registeel), dont la seconde phase est un Téracristal d'un type avantageux (pour l'instant
+  celui qui encaisse le mieux les attaques de l'équipe ; à affiner). Fragments : 3 dans des sous-biomes différents,
+  gardés par une élite endormie ou cachés dans le recoin le plus haut, indice sur la mini-carte. Quêtes du Tableau des
+  missions : plus tard (un boss en attendant).
+  - Retours de test (26/10/2026, Robin), à faire :
+    - Boss uniques : plus de PV, un passif de zone, barre de vie en deux phases, arène sur mesure qui favorise son
+      type (ex. Altaria : une arène pleine de ponts et 2 Pokémon qui peuvent les brûler pour gêner l'équipe).
+    - Gardien du donjon trop faible : un Pokémon évolué, avec une seconde phase lui aussi, accompagné de 2 sbires
+      qui ont chacun une capacité Z.
+    - Clé : un asset dédié ; rendre l'ensemble plus stable (prototype pour l'instant).
+    - Donjon lié au boss qu'il précède : thème du donjon d'après le boss (boss Vol → donjon Vol), quitte à limiter
+      le choix des boss.
 - Zones séparées (décidé le 22/10/2026, Owen) : chaque quartier et le centre sont des instances à part (une carte
   chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
   passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts

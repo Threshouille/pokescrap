@@ -1,0 +1,134 @@
+{
+ "comment": "Engrenages du Temps (TimeGears.cs, GDD « L'île flottante ») : le passage vers le quartier suivant s'ouvre avec l'engrenage du quartier, le centre avec les quatre. À la création de l'île, chaque quartier reçoit sa façon de le donner : modes (combien de quartiers par mode ; le dernier de l'ordre est toujours un boss), quest : un boss en attendant les quêtes. testMode : le mode du quart de test (G en devMode). Boss : son îlot s'ouvre par un portail au bord de la côte (portalShare de la distance maximale au moins) avec la clé de l'îlot, donnée par le coffre de la dernière salle du donjon de la clé du quartier (entrée à dungeonShare de la distance maximale au moins ; salles : contenus de room_contents.json, l'une après l'autre ; keyIcon). Dans l'îlot (salle roomType de rooms.json), la sortie reste fermée jusqu'à sa chute : engrenage et coffre. Tirage : legendaryChance le légendaire du thème (bosses[].legendary : ids, le premier avec des sprites ; seconde phase : Téracristal d'un type qui encaisse les attaques de l'équipe), sinon un Pokémon dont la méga a ses sprites et qui vit dans un sous-biome du quartier (populations.json ; sinon n'importe lequel), ou une des options écrites (options : membres, mega), poids optionWeight ; seconde phase : méga-évolution. scale : taille ; level (en plus de baseLevel + Populations.LevelBonus), health (× PV). fragments : count fragments dans des sous-biomes différents, gardés (guards : elite endormie à côté ; nook, le recoin le plus haut et le plus loin), indice sur la mini-carte à hint cases près.",
+ "baseLevel": 2,
+ "modes": {
+  "boss": 2,
+  "fragments": 1,
+  "quest": 1
+ },
+ "questAs": "boss",
+ "testMode": "boss",
+ "boss": {
+  "roomType": "boss",
+  "dungeonShare": 0.45,
+  "portalShare": 0.5,
+  "dungeonRooms": [
+   "ambush",
+   "guardian"
+  ],
+  "keyIcon": "pmd_Key_White",
+  "legendaryChance": 0.03,
+  "optionWeight": 3,
+  "scale": 1.6,
+  "level": 3,
+  "health": 8,
+  "stoneChance": 0.3,
+  "chestIcon": "pmd_Chest_Gold"
+ },
+ "bosses": [
+  {
+   "theme": "volcano",
+   "legendary": [
+    415
+   ],
+   "options": []
+  },
+  {
+   "theme": "glacier",
+   "legendary": [
+    144
+   ],
+   "options": []
+  },
+  {
+   "theme": "coast",
+   "legendary": [
+    414
+   ],
+   "options": []
+  },
+  {
+   "theme": "forest",
+   "legendary": [
+    278,
+    279
+   ],
+   "options": [
+    {
+     "weight": 1,
+     "members": [
+      {
+       "pokemon": [
+        310
+       ],
+       "mega": true
+      },
+      {
+       "pokemon": [
+        517
+       ],
+       "mega": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "theme": "test",
+   "legendary": [
+    278,
+    279
+   ],
+   "options": [
+    {
+     "weight": 1,
+     "members": [
+      {
+       "pokemon": [
+        310
+       ],
+       "mega": true
+      },
+      {
+       "pokemon": [
+        517
+       ],
+       "mega": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "theme": "desert",
+   "legendary": [
+    409
+   ],
+   "options": []
+  },
+  {
+   "theme": "ruins",
+   "legendary": [
+    411
+   ],
+   "options": []
+  }
+ ],
+ "fragments": {
+  "count": 3,
+  "hint": 4,
+  "guards": [
+   {
+    "key": "elite",
+    "weight": 1
+   },
+   {
+    "key": "nook",
+    "weight": 1
+   }
+  ],
+  "eliteLot": "champion",
+  "wake": 5,
+  "leash": 10
+ }
+}

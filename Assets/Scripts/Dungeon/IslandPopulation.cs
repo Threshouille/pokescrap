@@ -140,7 +140,7 @@ public class IslandPopulation : MonoBehaviour
     }
 
     // The quarter's open land: walkable, no obstacle, out of caves, away from its arrival and its landmarks.
-    static List<Vector2Int> Land(IslandPlan plan, int q, out Vector2Int arrival)
+    public static List<Vector2Int> Land(IslandPlan plan, int q, out Vector2Int arrival)
     {
         arrival = plan.Arrival(q);
         var keep = new List<Vector2Int>(plan.markers.Concat(plan.caves));
@@ -190,12 +190,24 @@ public class IslandPopulation : MonoBehaviour
     bool Round(IslandPlan plan, Place place, Kind kind, HashSet<Vector2Int> land)
     {
         place.route.Add(place.tile);
+        // Only points it can walk to: the open land joined to its start (on its level), within its radius.
         int level = Height(plan, place.tile);
-        for (int tries = 0; tries < 60 && place.route.Count < Mathf.Max(2, kind.points); tries++)
+        var reach = new HashSet<Vector2Int> { place.tile };
+        var queue = new Queue<Vector2Int>(reach);
+        while (queue.Count > 0)
         {
-            float angle = (float)rng.NextDouble() * Mathf.PI * 2f, reach = kind.radius * (0.5f + 0.5f * (float)rng.NextDouble());
-            var t = place.tile + Vector2Int.RoundToInt(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * reach);
-            if (!land.Contains(t) || Height(plan, t) != level || place.route.Any(r => Vector2.Distance(r, t) < kind.radius * 0.5f)) continue;
+            var c = queue.Dequeue();
+            foreach (var d in new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down })
+            {
+                var n = c + d;
+                if (land.Contains(n) && Height(plan, n) == level && Vector2.Distance(n, place.tile) <= kind.radius && reach.Add(n)) queue.Enqueue(n);
+            }
+        }
+        var options = reach.Where(t => Vector2.Distance(t, place.tile) >= kind.radius * 0.5f).ToList();
+        for (int tries = 0; tries < 60 && options.Count > 0 && place.route.Count < Mathf.Max(2, kind.points); tries++)
+        {
+            var t = options[rng.Next(options.Count)];
+            if (place.route.Any(r => Vector2.Distance(r, t) < kind.radius * 0.5f)) continue;
             place.route.Add(t);
         }
         return place.route.Count >= 2;
