@@ -1,10 +1,10 @@
 {
- "comment": "Sealed caves (GDD, 'Grottes scellées'; CaveSeals.cs, IslandPlan.PlaceCave): a small cave of a quarter, shut by a seal that opens on a condition; inside, stairs to a room (like the secret stairs). chance: that a quarter has one. spots: where, by weight (cliff: its mouth cut into the bottom of a cliff face, open ground at its foot; open: a mound on open ground, 3×3 tiles clear). minDistance: tiles from the landing; secretDistance: from the secret stairs. seals: biomes = sub-biome or theme keys (biomes.json) where it may be drawn, its weight × biomeWeight there; none: drawn anywhere at its weight. kind: element (opens on an attack of one of 'types' (ROM type ids), while one of 'weathers' lasts (climates.json), or at night when 'night'; 'stages' hits for those that wear down), team (a Pokémon of one of 'types' or 'pokemon' (ids) in the team), sequence ('count' things to hit in order), braziers ('count' to light with 'types', out again after 'seconds'), plates ('count' plates held at once), guardian, key, clear (no enemy left in the quarter), time ('seconds' spent in the quarter). hint: the short text of the hint bubble. room: the room the stairs lead to (rooms.json type, theme, variant).",
+ "comment": "Sealed caves (GDD, 'Grottes scellées'; CaveSeals.cs, IslandPlan.PlaceCave): a small cave of a quarter, shut by a seal that opens on a condition; inside, stairs to a room (like the secret stairs). chance: that a quarter has one. width / height: tiles of the cave's own rock, detached from cliffs and hills (its mouth in the middle of its bottom row), on flat open ground with clearance tiles free all around (tries: random spots tried). minDistance: tiles from the landing; secretDistance: from the secret stairs. seals: biomes = sub-biome or theme keys (biomes.json) where it may be drawn, its weight × biomeWeight there; none: drawn anywhere at its weight. kind: element (opens on an attack of one of 'types' (ROM type ids), while one of 'weathers' lasts (climates.json), or at night when 'night'; 'stages' hits for those that wear down), team (a Pokémon of one of 'types' or 'pokemon' (ids) in the team), sequence ('count' things to hit in order), braziers ('count' to light with 'types', out again after 'seconds'), plates ('count' plates held at once), guardian, key, clear (no enemy left in the quarter), time ('seconds' spent in the quarter). hint: the short text of the hint bubble. room: the room the stairs lead to (rooms.json type, theme, variant).",
  "chance": 0.5,
- "spots": [
-  { "key": "cliff", "weight": 2 },
-  { "key": "open", "weight": 1 }
- ],
+ "width": 5,
+ "height": 3,
+ "clearance": 3,
+ "tries": 4000,
  "minDistance": 20,
  "secretDistance": 25,
  "biomeWeight": 3,

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 /// Sealed caves settings (Resources/Data/cave_seals.json; GDD, "Grottes scellées").
@@ -20,7 +19,7 @@ public class CaveSeals
     }
 
     public float chance = 0.5f, minDistance = 20f, secretDistance = 25f, biomeWeight = 3f;
-    public SecretRooms.Spot[] spots = new SecretRooms.Spot[0];
+    public int width = 5, height = 3, clearance = 3, tries = 4000;
     public SecretRooms.Room room = new();
     public Seal[] seals = new Seal[0];
 
@@ -74,99 +73,45 @@ public class CaveSeals
 
 public partial class IslandPlan
 {
-    public Vector2Int sealedCave = new(-1, -1); // the sealed cave's stairs (a cliff's mouth or a mound), -1 none
+    public Vector2Int sealedCave = new(-1, -1); // the sealed cave's stairs (the middle of its mouth), -1 none
     public Vector2Int sealedCaveFront = new(-1, -1); // the open ground in front of it, where the team stands
-    public string sealedCaveSpot; // "cliff" or "open"
+    public RectInt sealedCaveRect; // the tiles of the cave's rock (width × height, the mouth on its bottom row)
     public string caveSeal; // its seal (cave_seals.json key)
 
-    /// A sealed cave, drawn with a chance (chanceOverride when not negative): its mouth at the bottom of a cliff face
-    /// (5 columns of the same face, none cut, open ground of a lower level at its foot), or a mound on open ground;
-    /// far enough from the landing and the secret stairs. The seal fits the sub-biome in front of it when it can.
+    /// A sealed cave, drawn with a chance (chanceOverride when not negative): a rock of its own (width × height tiles,
+    /// its mouth in the middle of its bottom row) on flat open ground, clearance tiles from any cliff, wall, obstacle,
+    /// road or other structure (small decor elements there are removed); far enough from the landing and the secret stairs. Its seal fits the sub-biome.
     public void PlaceCave(System.Random rng, float chanceOverride = -1f)
     {
         var d = CaveSeals.Data;
         float chance = chanceOverride >= 0f ? chanceOverride : d.chance;
-        if (rng.NextDouble() >= chance || d.spots.Length == 0) return;
-        float total = 0f;
-        foreach (var spot in d.spots) total += Mathf.Max(0f, spot.weight);
-        float pick = (float)rng.NextDouble() * total;
-        string key = d.spots[^1].key;
-        foreach (var spot in d.spots)
+        if (rng.NextDouble() >= chance) return;
+        int w = Mathf.Max(1, d.width), h = Mathf.Max(1, d.height), c = Mathf.Max(0, d.clearance);
+        for (int tries = 0; tries < d.tries; tries++)
         {
-            pick -= Mathf.Max(0f, spot.weight);
-            if (pick < 0f) { key = spot.key; break; }
-        }
-        bool Far(int x, int y) => Vector2.Distance(new Vector2(x, y), start) >= d.minDistance
-            && (secret.x < 0 || Vector2.Distance(new Vector2(x, y), secret) >= d.secretDistance);
-
-        Vector2Int at = new(-1, -1), front = at;
-        string spotKey = key;
-        if (key == "cliff" && !CliffMouth(rng, Far, out at, out front)) spotKey = "open";
-        if (spotKey == "open" && !OpenMound(rng, Far, out at, out front))
-        {
-            if (key == "cliff" || !CliffMouth(rng, Far, out at, out front)) return;
-            spotKey = "cliff";
-        }
-        int i = Index(front.x, front.y);
-        var seal = CaveSeals.Pick(biome[i]?.key, region[i] >= 0 && region[i] < 4 ? themes[region[i]]?.key : null, rng);
-        if (seal == null) return;
-        sealedCave = at;
-        sealedCaveFront = front;
-        sealedCaveSpot = spotKey;
-        caveSeal = seal.key;
-    }
-
-    bool CliffMouth(System.Random rng, Func<int, int, bool> far, out Vector2Int at, out Vector2Int front)
-    {
-        at = front = new Vector2Int(-1, -1);
-        if (faceRow == null || cut == null || height == null) return false;
-        bool Bottom(int x, int y, int h)
-        {
-            if (!InMap(x, y)) return false;
-            int i = Index(x, y);
-            return region[i] >= 0 && region[i] < 4 && cliffStyle[i] != 0 && faceRow[i] > 0 && faceRow[i] >= faceLen[i]
-                && cut[i] == 0 && height[i] == h && (roof == null || !roof[i]);
-        }
-        // Open ground of a lower level at the foot (in the face's shadow: its cliff style is the shadow's).
-        bool Foot(int x, int y, int h)
-        {
-            if (!InMap(x, y)) return false;
-            int i = Index(x, y);
-            return region[i] >= 0 && region[i] < 4 && !wall[i] && obstacle[i] == null && faceRow[i] == 0 && cut[i] == 0
-                && height[i] < h && (roof == null || !roof[i]);
-        }
-        var found = new List<Vector2Int>();
-        for (int y = 1; y < size; y++)
-            for (int x = 2; x < size - 2; x++)
-            {
-                int h = height[Index(x, y)];
-                bool ok = true;
-                for (int dx = -2; dx <= 2 && ok; dx++) ok = Bottom(x + dx, y, h);
-                for (int dx = -1; dx <= 1 && ok; dx++) ok = Foot(x + dx, y - 1, h);
-                if (ok && far(x, y)) found.Add(new Vector2Int(x, y));
-            }
-        if (found.Count == 0) return false;
-        at = found[rng.Next(found.Count)];
-        front = at + Vector2Int.down;
-        return true;
-    }
-
-    bool OpenMound(System.Random rng, Func<int, int, bool> far, out Vector2Int at, out Vector2Int front)
-    {
-        at = front = new Vector2Int(-1, -1);
-        for (int tries = 0; tries < 2000; tries++)
-        {
-            int x = rng.Next(size), y = rng.Next(size);
-            if (!far(x, y)) continue;
+            int x0 = rng.Next(size - w), y0 = rng.Next(size - h);
+            var mouth = new Vector2Int(x0 + w / 2, y0);
+            if (Vector2.Distance(mouth, start) < d.minDistance
+                || (secret.x >= 0 && Vector2.Distance(mouth, secret) < d.secretDistance)) continue;
+            int level = height != null ? height[Index(mouth.x, mouth.y)] : 0;
             bool clear = true;
-            for (int dy = -2; dy <= 1 && clear; dy++)
-                for (int dx = -1; dx <= 1 && clear; dx++)
-                    clear = FreeGround(x + dx, y + dy);
+            for (int y = y0 - c; y < y0 + h + c && clear; y++)
+                for (int x = x0 - c; x < x0 + w + c && clear; x++)
+                    clear = FreeGround(x, y) && (height == null || height[Index(x, y)] == level)
+                        && (secret.x != x || secret.y != y);
             if (!clear) continue;
-            at = new Vector2Int(x, y);
-            front = at + Vector2Int.down;
-            return true;
+            var front = mouth + Vector2Int.down;
+            int i = Index(front.x, front.y);
+            var seal = CaveSeals.Pick(biome[i]?.key, region[i] >= 0 && region[i] < 4 ? themes[region[i]]?.key : null, rng);
+            if (seal == null) return;
+            sealedCave = mouth;
+            sealedCaveFront = front;
+            sealedCaveRect = new RectInt(x0, y0, w, h);
+            caveSeal = seal.key;
+            // Flowers and the like (blocking ones are obstacles, kept away above) make room for it.
+            var room = new Rect(x0 - 1, y0 - 1, w + 2, h + 2);
+            decorProps.RemoveAll(p => room.Contains(p.at));
+            return;
         }
-        return false;
     }
 }

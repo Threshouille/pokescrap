@@ -224,12 +224,10 @@ public static class IslandCheck
                         px[plan.Index(m.x + dx, m.y + dy)] = new Color32(255, 210, 60, 255);
             if (plan.sealedCave.x >= 0)
             {
-                for (int dx = -1; dx <= 1; dx++)
-                    for (int dy = -1; dy <= 1; dy++)
-                        px[plan.Index(plan.sealedCave.x + dx, plan.sealedCave.y + dy)] = new Color32(255, 120, 0, 255);
+                foreach (var p in plan.sealedCaveRect.allPositionsWithin) px[plan.Index(p.x, p.y)] = new Color32(255, 120, 0, 255);
                 px[plan.Index(plan.sealedCaveFront.x, plan.sealedCaveFront.y)] = new Color32(255, 255, 255, 255);
                 var front = plan.biome[plan.Index(plan.sealedCaveFront.x, plan.sealedCaveFront.y)];
-                Debug.Log($"QUARTER #{k + 1} grotte scellée : {plan.caveSeal} ({plan.sealedCaveSpot}) en {plan.sealedCave}, sous-biome {front?.key}");
+                Debug.Log($"QUARTER #{k + 1} grotte scellée : {plan.caveSeal} en {plan.sealedCave}, sous-biome {front?.key}");
             }
             else Debug.Log($"QUARTER #{k + 1} grotte scellée : aucune");
             for (int dx = -1; dx <= 1; dx++)
