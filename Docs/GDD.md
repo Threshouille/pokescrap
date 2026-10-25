@@ -130,7 +130,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Feu **Lance-Flamme** : jet de flammes en cône tant que le bouton est enfoncé (3 s maximum), lanceur ralenti, visée qui suit la cible.
   - Eau **Vibraqua** : anneau d'eau lent (sans tête chercheuse depuis le 19/10/2026), qui grossit et rétrécit, traverse les ennemis ; confusion 20 %.
   - Plante **Méga-Sangsue** : lien accroché à la cible 1,5 s qui la draine et soigne le lanceur ; casse si elle s'éloigne.
-  - Électrik **Fatal-Foudre** : après 1 s de charge (animation de tir), le sol autour du lanceur devient chargé (terrain de Robin, 2,5 cases) et, pendant 6 s, un éclair tombe du ciel toutes les 0,5 s sur un ennemi pris au hasard dans les 5,5 cases (n'importe où s'il n'y en a pas), avec une onde de choc de 1,5 case de rayon (dégâts, faible chance de paralysie) ; un léger cercle blanc marque la limite de la zone.
+  - Électrik **Fatal-Foudre** : après 1 s de charge (animation de tir), pendant 6 s, un éclair tombe du ciel toutes les 0,5 s sur un ennemi pris au hasard dans les 5,5 cases (n'importe où s'il n'y en a pas), avec une onde de choc de 1,5 case de rayon (dégâts, faible chance de paralysie) qui laisse du sol chargé (terrain de Robin) ; les ennemis n'évitent pas la zone ; un léger cercle blanc marque la limite de la zone.
   - Glace **Blizzard** : même charge que Fatal-Foudre (animation de tir) ; tempête semi-transparente de 3 cases de rayon qui reste centrée sur le lanceur pendant 4 s, ralentit et blesse chaque seconde, et laisse du verglas partout où elle passe.
   - Combat **Frappe Atlas** : courte ruée, saisie, saut et écrasement au sol, onde de choc autour de l'impact.
   - Poison **Acidarmure** : le Pokémon se liquéfie 2 s (intouchable, plus rapide, traverse et empoisonne les ennemis).
@@ -140,7 +140,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Insecte **Plaie-Croix** : ruée de 4,5 cases qui traverse les ennemis ; figés (animation de dégâts) dès qu'elle les touche, ils sont tranchés d'un coup 0,25 s après la fin de la ruée (entaille en X), comme un coup de sabre à retardement.
   - Roche **Pouv. Antique** : 5 pierres en orbite (bloquent les tirs) puis lancées une à une sur la cible.
   - Spectre **Onde Folie** : cône qui rend confus 4 s (sans dégâts) ; et **Ball'Ombre** : charge tant que le bouton est enfoncé (immobile, maximum après 2 s, peut être tenue indéfiniment), la charge augmente taille et dégâts ; rapide, courte portée, s'arrête et flotte en bout de course.
-  - Dragon **Draco Météor** : gros météores qui tombent du ciel en diagonale, en ligne en partant du lanceur (ombre d'avertissement puis chute), puis Attaque Spé du lanceur en baisse.
+  - Dragon **Draco Météor** (les ennemis n'évitent pas les ombres, sinon les météores ne touchent jamais) : gros météores qui tombent du ciel en diagonale, en ligne en partant du lanceur (ombre d'avertissement puis chute), puis Attaque Spé du lanceur en baisse.
   - Ténèbres **Coup Bas** : garde de 1 s ; si un ennemi attaque le lanceur, il se téléporte derrière lui et frappe très fort, sinon petit coup devant.
   - Acier **Gyroballe** : toupie pendant 2 s, déplacement libre, blesse ce qu'elle touche, plus fort contre les ennemis rapides.
   - Lots : 1 Vibraqua, Lame d'Air, Plaie-Croix, Onde Folie, Telluriforce ; 2 Fatal-Foudre, Blizzard, Draco Météor, Pouv. Antique ; 3 (bouton maintenu) Lance-Flamme, Ball'Ombre, Méga-Sangsue ; 4 (états du corps, prises) Plaquage, Frappe Atlas, Acidarmure, Gyroballe, Psyko, Coup Bas.

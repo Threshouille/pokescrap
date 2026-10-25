@@ -33,7 +33,7 @@
     {"move": 238, "comment": "Végé-Attak", "terrain": "brambles", "shape": "impact"},
     {"move": 144, "comment": "Étincelle", "terrain": "electric", "shape": "dash"},
     {"move": 129, "comment": "Tonnerre", "terrain": "electric", "shape": "around"},
-    {"move": 64, "comment": "Fatal-Foudre : sol chargé autour du lanceur", "terrain": "electric", "shape": "around", "radius": 2.5},
+    {"move": 64, "comment": "Fatal-Foudre : sol chargé là où frappe chaque éclair (Zone.boltInterval)", "terrain": "electric", "shape": "impact", "radius": 1.5},
     {"move": 101, "comment": "Poudreuse", "terrain": "ice", "shape": "trail"},
     {"move": 97, "comment": "Vent Glace", "terrain": "ice", "shape": "trail"},
     {"move": 345, "comment": "Laser Glace", "terrain": "ice", "shape": "trail"},

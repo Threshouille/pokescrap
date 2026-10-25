@@ -71,15 +71,18 @@ public class Zone : MonoBehaviour
                 var target = other.GetComponentInParent<Combatant>();
                 if (target != null && target.team != owner.team && target.IsAlive) target.Stun(firstTick);
             }
-        Terrain.OnImpact(move, centre, owner);
-        Terrain.OnAround(move, centre, owner);
+        if (move.boltInterval <= 0f) // a zone of bolts leaves its terrain where they strike
+        {
+            Terrain.OnImpact(move, centre, owner);
+            Terrain.OnAround(move, centre, owner);
+        }
     }
 
     /// True when the point lies in a zone that is harmful to the given team (margin widens the zones).
     public static bool Inside(Vector2 point, Team victim, float margin)
     {
         foreach (var zone in active)
-            if (zone.move != null && zone.team != victim
+            if (zone.move != null && zone.team != victim && !zone.move.aiIgnore
                 && Vector2.Distance(point, zone.transform.position) <= zone.move.radius + margin)
                 return true;
         return false;
@@ -93,7 +96,7 @@ public class Zone : MonoBehaviour
         bool inside = false;
         foreach (var zone in active)
         {
-            if (zone.move == null || zone.team == victim) continue;
+            if (zone.move == null || zone.team == victim || zone.move.aiIgnore) continue;
             Vector2 away = point - (Vector2)zone.transform.position;
             float depth = zone.move.radius + margin - away.magnitude;
             if (depth < 0f) continue;
@@ -161,6 +164,7 @@ public class Zone : MonoBehaviour
                 nextBolt += move.boltInterval;
                 Vector2 spot = BoltSpot();
                 BoltFall(spot);
+                Terrain.OnImpact(move, spot, owner);
                 EffectPlayer.Spawn(move.impactEffect, spot, Vector2.right, null, 0f, move.boltRadius * 2f);
                 foreach (var other in Physics2D.OverlapCircleAll(spot, move.boltRadius))
                 {
