@@ -1,0 +1,271 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+/// The floating island a run takes place on (GDD, "L'île flottante"; Assets/Resources/Data/island.json and
+/// biomes.json). Data only, one value per tile: four quarters around a central zone, each with a theme of its own
+/// (four different ones per run) and played clockwise from a random first one; a ring of void around the central zone;
+/// a barrier between two quarters (all played as walls: each zone is a map of its own, see passages). Inside a quarter, two noise fields (altitude, with a peak for a volcano or a
+/// glacier, and moisture), ranked within the quarter, pick each tile's sub-biome. Big features (rivers, lakes,
+/// cliffs), the drawing and the islet chains come next.
+public partial class IslandPlan
+{
+    public const int Void = -1, Border = -2, Moat = -3, Centre = 4;
+
+    [Serializable]
+    public class Settings
+    {
+        public float radius = 190f, coastNoise = 0.1f, coastScale = 0.012f;
+        public int voidMargin = 24;
+        public float centreRatio = 0.22f;
+        public int moat = 6, borderWidth = 6;
+        public float borderNoise = 0.35f, fieldScale = 0.018f;
+        public int octaves = 4;
+    }
+
+    [Serializable]
+    public class SubBiome
+    {
+        public string key, name, color;
+        public float[] alt = { 0f, 1f }, moist = { 0f, 1f };
+        public int[] tilesets = new int[0];
+        public float walls; // share taken by thickets or rock masses
+    }
+
+    [Serializable]
+    public class Theme
+    {
+        public string key, name;
+        public float peak, peakRadius = 0.2f;
+        public SubBiome[] subbiomes = new SubBiome[0];
+        // Big features (IslandFeatures.cs).
+        public int[] rivers = { 1, 2 }, riverWidth = { 2, 3 }, lakes = { 1, 2 }, lakeSize = { 3, 6 };
+        public string riverKind = "water", bridgeKind = "bridge", lakeKind = "water", crater;
+        public float[] cliffLevels = new float[0];
+    }
+
+    [Serializable] class IslandFile { public Settings island = new(); }
+    [Serializable] class BiomeFile { public Theme[] themes = new Theme[0]; }
+
+    public int size; // the map is size × size tiles
+    public int[] region; // Void, Border, Moat, Centre, or the quarter (0 to 3)
+    public SubBiome[] biome; // per tile, null off the quarters
+    public float[] altitude, moisture; // per tile, 0 to 1 (ranked within the quarter)
+    public int[] decor; // per tile: a ROM décor drawing it instead of its sub-biome's (a road), 0 for none; may be null
+    public readonly List<Vector2Int> markers = new(); // landmarks shown as passage ends that lead nowhere yet (test quarter's portals)
+    public readonly List<Vector2Int> caves = new(); // cave mouths (test quarter's mountain top), leading nowhere yet
+    public Vector2Int secret = new(-1, -1); // secret stairs (SecretStairs), -1 none
+    public string secretSpot; // where they hide: "clearing" or "rock" (under secret_rooms.json's rock, to break)
+    public readonly List<Vector2> clearings = new(); // the clearings in the middle of the forests, in tiles (level design)
+    public readonly List<(string key, Vector2 at)> decorProps = new(); // decor elements (Resources/MapProps/<key>) at their foot, in tiles
+    public int[] height; // per tile: level of the ground (0 = plain, 1, 2... on hills), may be null
+    public bool[] wallLook; // per tile: walkable but drawn as a wall (a ledge looks like its cliff), may be null
+    public bool[] roof; // per tile: under a roof that hides it until the controlled Pokémon goes under (a cave), may be null
+    public int roofDecor; // ROM décor whose walls draw the roof
+    // Cliffs drawn with pieces cut from the story maps (cliff_styles.json, Resources/Cliffs), may be null:
+    public string[] cliffStyles; // style names, by index (0: none)
+    public byte[] cliffStyle; // per tile: index of its style, 0 for a tile that is no cliff
+    public int[] faceRow, faceLen; // per face tile: its row from the top of its face (1...), and the face's rows there
+    public sbyte[] cut, cutPart; // per face tile: 1 stairs, 2 a cave's mouth; their column (-1 left, 0 middle, 1 right)
+
+    /// The piece drawing a cliff tile (a role of cliff_styles.json), or null.
+    public string CliffRole(int i)
+    {
+        if (cliffStyle == null || cliffStyle[i] == 0) return null;
+        string column = cutPart[i] < 0 ? "Left" : cutPart[i] > 0 ? "Right" : "Mid", row = faceRow[i] <= 1 ? "Top" : "Bottom";
+        if (cut[i] == 2) return "mouth" + column + row;
+        if (cut[i] == 1) return "stairs" + column + row;
+        if (faceRow[i] == 0) return EdgeRole(i) ?? (AtFoot(i) ? "shadow" : null);
+        // The face carries on along its neighbours of the same level, stairs too; it ends beside lower ground.
+        bool Face(int j) => faceRow[j] > 0 && height[j] == height[i];
+        int x = i % size;
+        bool End(int j) => !Face(j) && height[j] < height[i]; // beside its own level, it runs into it: no end
+        bool leftEnd = x == 0 || End(i - 1), rightEnd = x == size - 1 || End(i + 1);
+        if (leftEnd || rightEnd) return (rightEnd ? "right" : "left") + row;
+        return faceRow[i] == 1 ? "top" : faceRow[i] >= faceLen[i] ? "bottom" : "middle";
+    }
+    /// Ground right below the foot of a face (not stairs), in its shadow.
+    public bool AtFoot(int i)
+    {
+        int above = i + size;
+        return faceRow != null && faceRow[i] == 0 && above < size * size && faceRow[above] > 0 && faceRow[above] >= faceLen[above]
+            && cut[above] == 0 && height[above] > height[i];
+    }
+
+    /// The edge of a level seen from above, on its side towards lower ground: back (north), left, right, their outer
+    /// corners, or an inner corner (lower ground only across it, towards the back); null if none. The faces (south)
+    /// stand on the lower ground, they are no edge.
+    public string EdgeRole(int i)
+    {
+        int x = i % size, y = i / size;
+        bool Lower(int dx, int dy) => InMap(x + dx, y + dy) && height[Index(x + dx, y + dy)] < height[i];
+        bool back = Lower(0, 1), left = Lower(-1, 0), right = Lower(1, 0);
+        if (back) return left ? "backLeft" : right ? "backRight" : "back";
+        if (left || right) return left ? "left" : "right";
+        if (Lower(-1, 1)) return "innerLeft";
+        if (Lower(1, 1)) return "innerRight";
+        return null;
+    }
+    public readonly Theme[] themes = new Theme[4]; // per quarter
+    public readonly int[] order = new int[4]; // quarters in the order they open (clockwise)
+    public Vector2Int start; // where the team lands, on the first quarter's coast
+    public Settings settings;
+    float rotation; // degrees: where the first quarter starts
+
+    /// The zones, each played as a map of its own (DungeonGenerator.islandZone): the quarters 0 to 3, the centre.
+    public const int ZoneCount = 5;
+
+    /// Name shown while a zone loads.
+    public string ZoneName(int zone) => zone == Centre ? "Centre de l'île" : themes[zone].name;
+
+    /// The tiles of a zone and a few around (its walls), within the map.
+    public RectInt ZoneBounds(int zone)
+    {
+        int minX = size, minY = size, maxX = -1, maxY = -1;
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                if (region[Index(x, y)] != zone) continue;
+                minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
+                minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y);
+            }
+        const int Around = 3;
+        minX = Mathf.Max(0, minX - Around); minY = Mathf.Max(0, minY - Around);
+        maxX = Mathf.Min(size - 1, maxX + Around); maxY = Mathf.Min(size - 1, maxY + Around);
+        return new RectInt(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    }
+
+    public int Index(int x, int y) => y * size + x;
+
+    public static IslandPlan Generate(System.Random rng)
+    {
+        var plan = new IslandPlan();
+        // System.Random's first draws follow its seed closely (seeds 1, 2, 3 give alike islands): stir it first.
+        uint h = (uint)rng.Next();
+        h ^= h >> 16; h *= 0x7feb352d; h ^= h >> 15; h *= 0x846ca68b; h ^= h >> 16;
+        plan.Build(new System.Random((int)(h & 0x7fffffff)));
+        return plan;
+    }
+
+    static T Load<T>(string path) where T : new()
+    {
+        var asset = Resources.Load<TextAsset>(path);
+        return asset != null ? JsonUtility.FromJson<T>(asset.text) : new T();
+    }
+
+    void Build(System.Random rng)
+    {
+        settings = Load<IslandFile>("Data/island").island;
+        var all = new List<Theme>(Load<BiomeFile>("Data/biomes").themes);
+        var s = settings;
+        size = Mathf.CeilToInt(2f * (s.radius * (1f + s.coastNoise) + s.voidMargin));
+        int n = size * size;
+        region = new int[n];
+        biome = new SubBiome[n];
+        altitude = new float[n];
+        moisture = new float[n];
+
+        // Four different themes; the quarters open clockwise from a random one.
+        for (int q = 0; q < 4; q++)
+        {
+            var t = all[rng.Next(all.Count)];
+            all.Remove(t);
+            themes[q] = t;
+        }
+        int first = rng.Next(4);
+        for (int k = 0; k < 4; k++) order[k] = (first - k + 4) % 4; // quarter angles grow anticlockwise
+        rotation = (float)rng.NextDouble() * 90f;
+        var offsets = new Vector2[6];
+        for (int i = 0; i < offsets.Length; i++) offsets[i] = new Vector2((float)rng.NextDouble() * 1000f, (float)rng.NextDouble() * 1000f);
+
+        float c = size / 2f;
+        // Peaks: in the middle of each quarter, two thirds of the way to the coast.
+        var peaks = new Vector2[4];
+        for (int q = 0; q < 4; q++)
+        {
+            float a = (rotation + q * 90f + 45f) * Mathf.Deg2Rad;
+            peaks[q] = new Vector2(c, c) + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * s.radius * 0.6f;
+        }
+
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int i = Index(x, y);
+                float dx = x + 0.5f - c, dy = y + 0.5f - c;
+                float r = Mathf.Sqrt(dx * dx + dy * dy) / s.radius;
+                float coast = 1f + s.coastNoise * (Fbm(x * s.coastScale, y * s.coastScale, offsets[0], 3) * 2f - 1f);
+                if (r > coast) { region[i] = Void; continue; }
+                float centre = s.centreRatio * (1f + 0.15f * (Fbm(x * 0.03f, y * 0.03f, offsets[1], 2) - 0.5f));
+                if (r < centre) { region[i] = Centre; continue; }
+                if (r < centre + s.moat / s.radius) { region[i] = Moat; continue; }
+                // Quarter by angle, its edges wavering; a barrier along them.
+                float angle = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg - rotation;
+                angle += s.borderNoise * 90f * (Fbm(x * 0.01f, y * 0.01f, offsets[2], 3) - 0.5f);
+                angle = Mathf.Repeat(angle, 360f);
+                int q = Mathf.FloorToInt(angle / 90f) % 4;
+                float toEdge = Mathf.Min(angle - q * 90f, (q + 1) * 90f - angle) * Mathf.Deg2Rad * r * s.radius;
+                if (toEdge < s.borderWidth / 2f) { region[i] = Border; continue; }
+                region[i] = q;
+                // Fields.
+                float alt = Fbm(x * s.fieldScale, y * s.fieldScale, offsets[3], s.octaves);
+                var t = themes[q];
+                if (t.peak > 0f)
+                {
+                    float d = Vector2.Distance(new Vector2(x, y), peaks[q]) / (t.peakRadius * s.radius);
+                    alt += t.peak * Mathf.Clamp01(1f - d);
+                }
+                alt -= 0.25f * Mathf.Clamp01((r - 0.85f) / 0.15f); // lower near the coast
+                altitude[i] = alt;
+                moisture[i] = Fbm(x * s.fieldScale * 1.3f, y * s.fieldScale * 1.3f, offsets[4], s.octaves);
+            }
+
+        // Ranked within each quarter, so that every quarter spreads over its whole range of sub-biomes.
+        for (int q = 0; q < 4; q++)
+        {
+            Rank(altitude, q);
+            Rank(moisture, q);
+        }
+        for (int i = 0; i < n; i++)
+            if (region[i] >= 0 && region[i] < 4) biome[i] = Pick(themes[region[i]], altitude[i], moisture[i]);
+
+        // The landing point: on the first quarter's coast, in the middle of its arc.
+        float landing = (rotation + order[0] * 90f + 45f) * Mathf.Deg2Rad;
+        var dir = new Vector2(Mathf.Cos(landing), Mathf.Sin(landing));
+        start = Vector2Int.RoundToInt(new Vector2(c, c) + dir * s.radius * 0.95f);
+        for (int k = 0; k < 40 && (Outside(start) || region[Index(start.x, start.y)] != order[0]); k++)
+            start = Vector2Int.RoundToInt(new Vector2(c, c) + dir * s.radius * (0.95f - k * 0.02f));
+        BuildFeatures(rng, offsets[5]);
+    }
+
+    bool Outside(Vector2Int p) => p.x < 0 || p.y < 0 || p.x >= size || p.y >= size;
+
+    void Rank(float[] field, int q)
+    {
+        var cells = new List<int>();
+        for (int i = 0; i < field.Length; i++)
+            if (region[i] == q) cells.Add(i);
+        cells.Sort((a, b) => field[a].CompareTo(field[b]));
+        for (int k = 0; k < cells.Count; k++) field[cells[k]] = cells.Count > 1 ? k / (float)(cells.Count - 1) : 0f;
+    }
+
+    static SubBiome Pick(Theme t, float alt, float moist)
+    {
+        foreach (var b in t.subbiomes)
+            if (alt >= b.alt[0] && alt <= b.alt[1] && moist >= b.moist[0] && moist <= b.moist[1]) return b;
+        return t.subbiomes.Length > 0 ? t.subbiomes[^1] : null;
+    }
+
+    // Fractal noise, 0 to 1.
+    static float Fbm(float x, float y, Vector2 offset, int octaves)
+    {
+        float sum = 0f, amp = 1f, total = 0f, freq = 1f;
+        for (int o = 0; o < octaves; o++)
+        {
+            sum += amp * Mathf.PerlinNoise(x * freq + offset.x, y * freq + offset.y);
+            total += amp;
+            amp *= 0.5f;
+            freq *= 2f;
+        }
+        return sum / total;
+    }
+}

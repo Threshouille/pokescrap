@@ -182,6 +182,112 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Une arène = plusieurs vagues d'ennemis (à confirmer).
 - Boutiques possibles entre les niveaux, avec un système d'objets (à préciser).
 
+### Étages et salles (décidé le 22/10/2026, Robin)
+- Étages façon Binding of Isaac : plusieurs salles reliées, dont des salles optionnelles (défis) ; une salle de boss
+  par étage : tous les 1 ou 2 étages un gros boss (légendaire), sinon une équipe de 3 Pokémon un peu forts ; sous-boss.
+- Salles inspirées de Donjon Mystère (décors de la ROM), de tailles variées ; instances tirées au hasard (plusieurs
+  salles de lave différentes). Portes fermées pendant le combat. Pas de butin pour l'instant.
+- Ordre : 1) catalogue et générateur de salles (fait le 22/10/2026) ; 2) plan procédural de l'étage et mini-carte (fait le 22/10/2026 façon Isaac, puis remplacé par les niveaux continus, voir ci-dessous) ;
+  3) règles des salles (portes, embuscade, défis, sous-boss, boss, cadence des légendaires).
+
+### L'île flottante (décidé le 22/10/2026, Robin) — remplace les niveaux continus comme structure de la run
+- Une run = une île flottante : 4 quartiers (un quart d'île chacun) + une zone centrale finale. Ordre imposé, sens des
+  aiguilles d'une montre ; chaque quartier s'ouvre avec un Engrenage du Temps, les 4 ouvrent le centre.
+- Quartier : région principale ouverte / semi-ouverte, biomes générés (champs d'altitude, d'humidité, de température :
+  volcans, grandes rivières, lacs, forêts, falaises), variations de sous-biomes fluides et organiques ; plus des chaînes
+  d'îlots flottants au thème en rupture (code des niveaux continus réutilisé, quitte à le revoir).
+- Durée : trame principale ≈ 30 min sans les îlots ; les îlots sont une voie optionnelle qui rallonge la run.
+- Engrenages du Temps : par run, deux quartiers donnent le leur par un boss, un en 3 fragments dispersés dans trois
+  sous-biomes de la région (gardés : mini-gardien, énigme de décor ou recoin ; indice sur la mini-carte), un par une
+  quête du Tableau des missions tirée parmi Sauvetage (ramener un Pokémon perdu), Avis de recherche (traquer un Pokémon
+  qui fuit), Défense du sanctuaire (tenir 3 vagues) ; chaque quête se termine par un boss. Le 4e quartier finit
+  toujours par un boss. Les îlots ne donnent pas d'engrenage : récompenses de détour (plus tard).
+- Centre : série de salles défis et combats, structure de donjon (salles du catalogue), boss final.
+- Zones séparées (décidé le 22/10/2026, Owen) : chaque quartier et le centre sont des instances à part (une carte
+  chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
+  passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts
+  pour l'instant (verrou par Engrenage du Temps à l'étape « sceaux et engrenages »).
+- Relief et hauteur (décidé le 24/10/2026, Owen) : la hauteur donne un avantage. Les attaques à distance tirées d'un
+  palier passent par-dessus les falaises de ce palier ou plus basses et s'écrasent contre celles qui sont plus hautes
+  (d'en bas, on tire dans la paroi) ; le corps à corps ne passe jamais une falaise. Les IA en tiennent compte. Les
+  collisions des falaises suivent leur épaisseur dessinée (rebord fin vu de dessus, moitié basse de la rangée du haut
+  d'une paroi). Plateaux aux contours droits (rectangles sur une grille de 3 cases), falaises dessinées avec des
+  morceaux des cartes de l'histoire.
+- Végétation (décidé le 24/10/2026, Owen) : peu de décor épars (fleurs, buissons, rochers) ; les arbres servent aux
+  forêts. Chaque sous-biome a des taches : champ de fleurs, fougeraie, éboulis, forêt. Une forêt est un massif plein
+  traversé de sentiers vers une clairière centrale, pensé pour le level design (lisière praticable sous les couronnes).
+- Escaliers secrets (décidé le 25/10/2026, Owen ; génération à faire, Robin) : un escalier caché dans un quartier mène à
+  une salle à part (écran de chargement, comme un changement de zone), dont un escalier ramène exactement au même
+  endroit ; l'escalier secret disparaît ensuite. Tirage avec une probabilité, comme les Monster Houses de DM (0 ou 1
+  par quartier, pas systématique), surprise totale : aucun indice sur la mini-carte ni avant d'entrer.
+  - Cachettes retenues : au centre d'une clairière de forêt (`IslandPlan.clearings`) ; sous un rocher fissuré à briser
+    (obstacle dédié, brisé par les types Combat, Sol, Roche, Acier par exemple : à régler pour qu'une équipe sans ces
+    types n'en soit pas toujours privée). Idées écartées pour l'instant : fond de grotte, palier isolé atteint par un
+    rebord, escalier invisible révélé à l'approche.
+  - Contenus retenus : **trésor** (un coffre : cristal Z ou Téra-Éclat pondéré vers l'équipe, méga-gemme rare) ;
+    **embuscade** (façon Monster House : sortie fermée, 2 vagues ou plus, coffre à la fin) ; **gardien** (un seul
+    Pokémon rare et costaud, élite, taux de recrutement augmenté ; il garde un coffre). Poids de tirage à régler.
+  - Idées pour plus tard : faux trésor (coffre qui libère une embuscade, reconnaissable à un détail), source (soin,
+    réanimation, jauge méga), énigme de terrain (coffre derrière eau, lave ou lianes à franchir par les interactions),
+    défi (survivre à la lave qui monte, ramasser des éclats en temps limité), marchand Kecleon (quand les boutiques
+    existeront).
+  - Thèmes logiques (demande d'Owen pour Robin) : la salle prend le décor et les obstacles du sous-biome de l'escalier
+    (forêt → salle de forêt, montagne → grotte…) ; ses Pokémon (embuscade, gardien) sont tirés dans une population
+    cohérente avec ce sous-biome (et plus largement : peuplement des quartiers par biome, à définir dans les données).
+  - Briques déjà en place : catalogue de salles `rooms.json` (`RoomCatalog.Pick(type, rng, thème, variante)` ; types
+    `monster_house`, `subboss`, `rest`…), construction d'une zone et retour (`IslandRun.Build(zone, arrivée)`,
+    `LoadingScreen.Run`), coffre et objets (`Loot.SpawnChest`, `RollTyped`, `RollStone` ; rien n'est donné dans le
+    terrain de test), ennemis (`EnemySpawner.SpawnFighter`, `Loot.MakeElite`, `GameData.RandomMoves`), recrutement
+    (`Recruitment`, taux de la ROM × `recruitMultiplier`), rochers et interactions (`obstacles.json`, `boulder*`),
+    clairières des forêts du quart de test. Données à prévoir : un fichier du genre `secret_rooms.json` (probabilité,
+    poids des cachettes et des contenus, vagues, niveaux, populations).
+  - Fait le 25/10/2026 (Owen) : escalier, cachettes (clairière, rocher fissuré brisé par Combat, Sol, Roche ou Acier),
+    salle vide du catalogue et retour, dans le quart de test (`secret_rooms.json`, `SecretStairs`). Reste (Robin) : le
+    contenu des salles (trésor, embuscade, gardien) et les thèmes logiques.
+- Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
+  sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
+  (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.
+  - Sceau tiré d'après le biome quand c'est possible (sinon un sceau générique) :
+    volcan : coulée de lave figée (Eau ou Glace la change en pierre qui se fissure), fumerolles (éteintes par la pluie) ;
+    glacier : mur de glace (Feu ou Zénith, fond en 3 états), stalactites (Roche ou Combat les font tomber) ;
+    côte : grotte marine noyée (marée basse la nuit, ou Plante qui absorbe), coquillages à frapper par ordre de taille ;
+    forêt : racines ou lianes (Feu, Insecte, Plante), arbre creux endormi (s'éveille la nuit) ;
+    désert : entrée ensevelie (Vol ou Tempêtesable), cadran solaire (Zénith) ;
+    ruines : porte à runes (un Zarbi ou une Psy dans l'équipe), braseros (Feu sur chacun, ils s'éteignent après
+    quelques secondes), plaques de pression (les 3 Pokémon dessus en même temps).
+    Génériques : gardien (élite devant l'entrée), clé (coffre ou élite du quartier), nettoyer le quartier, temps passé.
+  - Faisabilité : la plupart des sceaux tirés sont réalisables par l'équipe (types, attaques apprises) ; quelques-uns
+    rares peuvent ne pas l'être (raison de rejouer).
+  - Lisibilité (point délicat) : un repère commun à toutes les grottes scellées (même symbole, même lueur) ; l'icône de
+    la condition gravée sur le sceau (icônes de types, soleil, lune, nuage) ; progression visible (états successifs,
+    secousse, particules ; « cling » ou petit nuage gris quand l'attaque n'a pas d'effet) ; ouverture marquée (secousse
+    de caméra, dissipation, escalier qui apparaît, signalé sur la mini-carte) ; bulle d'indice optionnelle à l'approche.
+    Entrée tirée des éléments des cartes de l'histoire (`map_props`, entrée de grotte du style `rock`) ; états du sceau
+    en planches Claude Design (comme `obstacle_*`).
+  - Forme retenue (Owen) : une petite grotte comme celle du sommet des montagnes, sur un plateau isolé (pas creusée
+    dans une falaise ni une colline) ; la porte est une partie de sa paroi qui disparaît ; un mécanisme devant la grotte
+    fait comprendre l'énigme. L'escalier reste après usage.
+  - Plaques de pression : seuls les Pokémon joués par des humains comptent, jamais les IA (énigme pour jouer entre amis).
+  - Fait le 25/10/2026 : génération, porte, mécanisme provisoire, conditions type d'attaque, météo, équipe, braseros,
+    plaques, coquillages, temps ; escalier vers une salle vide. Reste : nuit sur l'île, clé, gardien, nettoyer le
+    quartier, planches Claude Design, contenu des salles.
+  - Étapes : 1) données (`cave_seals.json`) et placement dans `IslandPlan` ; 2) `CaveSeal` (conditions type d'attaque,
+    météo, braseros ou plaques ; repère et icône) ; 3) escalier vers une salle du catalogue (comme `SecretStairs`) ;
+    4) nuit sur l'île, clé, gardien, planches.
+
+### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
+- Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue
+  sans fondu ; les salles deviennent des zones aux contours naturels (ou construites : ruines, labyrinthe) reliées par
+  des chemins sinueux ; chemin principal du départ au boss, branches optionnelles (défis, recoins), quelques boucles.
+- Taille : 10 à 14 zones, 5 à 8 minutes de traversée sans combat. Mini-carte avec brouillard qui se révèle.
+- Biomes : un thème par niveau et une suite de sous-biomes cohérents le long du chemin (`biomes.json`), changement de
+  décor sur une frontière naturelle (goulet, rivière, ravin, arche) et dégradé d'obstacles avant la frontière.
+- Exploration : passages secrets ouverts par les interactions du décor (rocher brisé, lianes brûlées, rivière gelée,
+  pont refait), points de repère.
+- Combats libres en général ; sortie bloquée (barrière de glace ou de ronces) pour les défis et le boss.
+- Ordre : 1) carte continue (zones, chemins, branches, mini-carte), 2) sous-biomes et transitions, 3) exploration,
+  4) rencontres (ennemis par zone, défis, sous-boss, boss).
+
 ### Types et environnement
 - La table des types est conservée (avantages et faiblesses), celle de la 4e génération (époque de la ROM).
 - Multiplicateurs adoucis (17/10/2026, `meta.json`) : super efficace × 1,5, pas très efficace × 0,6, sans effet × 0,25 (pas d'immunité totale) ; une faiblesse et une résistance s'annulent ; résultat borné entre × 0,2 et × 2. Bonus d'attaque du même type (STAB) × 1,25.

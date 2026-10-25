@@ -34,8 +34,10 @@ PORTRAITS = ROOT / "Assets/Resources/Portraits"
 ANIMSETS = ROOT / "Assets/Resources/AnimSets"
 TILESETS = ROOT / "Assets/Tilesets"
 OBSTACLE_TILES = ROOT / "Assets/Resources/ObstacleTiles"
+CLIFFS = ROOT / "Assets/Resources/Cliffs"
+MAP_PROPS = ROOT / "Assets/Resources/MapProps"
 # Folders whose content comes from the ROM (only their .meta files are versioned).
-GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data",
+GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, MAP_PROPS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data",
              ROOT / "Assets/Resources/Items"]
 # ScriptableObjects rebuilt by Unity: a placeholder keeps their GUID until the Build menus fill them.
 PLACEHOLDERS = {ANIMSETS: "Assets/Scripts/Pmd/PmdAnimSet.cs", TILESETS: "Assets/Scripts/Dungeon/DungeonTileset.cs"}
@@ -126,15 +128,31 @@ def restore_tilesets():
 
 
 def restore_obstacle_tiles():
-    """Water, lava and void of the obstacles (secondary layer of ROM tilesets), and rocks (lone wall chunks)."""
+    """Water, lava and void of the obstacles (secondary layer of ROM tilesets), and rocks (lone wall chunks): those
+    of obstacles.json, then one per décor of rooms.json."""
     step("Obstacle tilesets (water, lava, void)")
     data = json.loads((ROOT / "Assets/Resources/Data/obstacles.json").read_text(encoding="utf-8"))
     ids = sorted({o["tileset"] for o in data["obstacles"] if o.get("tileset", -1) >= 0})
     if ids:
         run(python(), "-I", PMD / "extract_tileset.py", ROM, OBSTACLE_TILES, *ids)
     rocks = sorted({f"{r['tileset']}:{r.get('cut', 'floor')}" for o in data["obstacles"] for r in o.get("romRocks", [])})
+    # Rocks of the rooms' décors (a tree in a forest...), except those that do not cut well.
+    rooms = json.loads((ROOT / "Assets/Resources/Data/rooms.json").read_text(encoding="utf-8"))
+    cut = rooms.get("rocks", {})
+    for theme in rooms.get("themes", []):
+        for t in theme.get("tilesets", []):
+            if t not in cut.get("none", []) and not any(r.startswith(f"{t}:") for r in rocks):
+                rocks.append(f"{t}:{'core' if t in cut.get('core', []) else 'floor'}")
     if rocks:
         run(python(), "-I", PMD / "extract_rock.py", ROM, OBSTACLE_TILES, *rocks)
+
+
+def restore_cliffs():
+    """Cliff faces cut from the story maps (cliff_styles.json)."""
+    step("Cliff faces (story maps)")
+    run(python(), "-I", PMD / "extract_cliffs.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/cliff_styles.json", CLIFFS)
+    step("Decor elements (story maps)")
+    run(python(), "-I", PMD / "extract_map_props.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/map_props.json", MAP_PROPS)
 
 
 def script_guid(script):
@@ -275,6 +293,7 @@ def main():
     restore_items(args.force)
     restore_tilesets()
     restore_obstacle_tiles()
+    restore_cliffs()
     placeholders()
     missing = missing_assets()
     if missing:

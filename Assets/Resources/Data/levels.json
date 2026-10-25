@@ -1,0 +1,51 @@
+{
+ "comment": "Levels as one continuous map (LevelPlan.cs, in the manner of Minecraft Dungeons). mainZones: zones on the main path, start and boss included (the one before the boss is the sub-boss); branches: side branches off the middle of the main path, branchLength zones each, ending in the challenge and rest zones; loops: a branch's end joined back to a nearby zone of the main path; monsterHouse: combat zones turned into monster houses; gap: tiles of path between two zones' edges (min, max); turn: degrees the main path may turn at each zone; zoneScale: zone size from its room's size (rooms.json); pathWidth: tiles (min, max), varying along the path; wiggle: tiles a path strays from the straight line; border: tiles of wall around the outermost zones. Natural zones get an irregular outline, built ones (ring, cross, maze, bars plans) keep their rectangle. pocketChance / pocketEvery / pocketRadius: recesses on the side of the paths (chance every so many tiles, radius in tiles).",
+ "level": {
+  "mainZones": [
+   8,
+   10
+  ],
+  "branches": [
+   2,
+   4
+  ],
+  "branchLength": [
+   1,
+   2
+  ],
+  "loops": [
+   0,
+   1
+  ],
+  "challenge": [
+   1,
+   2
+  ],
+  "rest": [
+   0,
+   1
+  ],
+  "monsterHouse": [
+   1,
+   1
+  ],
+  "gap": [
+   10,
+   18
+  ],
+  "turn": 55,
+  "zoneScale": 1.25,
+  "pathWidth": [
+   3,
+   6
+  ],
+  "wiggle": 3.5,
+  "border": 4,
+  "pocketChance": 0.4,
+  "pocketEvery": 10,
+  "pocketRadius": [
+   2,
+   4
+  ]
+ }
+}

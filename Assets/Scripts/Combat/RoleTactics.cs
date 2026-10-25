@@ -75,7 +75,9 @@ public static class RoleTactics
         decision.foe = foe;
         Vector2 toFoe = foe != null ? (Vector2)foe.transform.position - position : Vector2.zero;
         float foeDistance = toFoe.magnitude;
-        bool lineOfFire = foe != null && (grid == null || grid.LineClear(position, foe.transform.position, ShotRadius));
+        // Shots fly over the cliffs below the shooter (high ground); a melee blow needs a clear way.
+        bool lineOfFire = foe != null && (grid == null || grid.ShotClear(position, foe.transform.position, ShotRadius));
+        bool lineOfReach = foe != null && (grid == null || grid.LineClear(position, foe.transform.position, ShotRadius));
         decision.look = toFoe;
 
         // Ranged and support Pokémon back away from an opponent that gets too close. When cornered (no way to
@@ -161,7 +163,7 @@ public static class RoleTactics
                     // For a ranged or support Pokémon a melee move is self-defence only.
                     float reach = melee ? move.Reach : Mathf.Min(move.Reach, SelfDefence);
                     bool intoCloud = move.lunge > 0f && Zone.Inside(foe.transform.position, self.team, ZoneMargin);
-                    if (foeDistance <= reach && lineOfFire && !intoCloud)
+                    if (foeDistance <= reach && lineOfReach && !intoCloud)
                     {
                         int value = TerrainValue(self, move, foe);
                         if (value > 0) return Use(decision, slot, toFoe, foeDistance);

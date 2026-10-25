@@ -39,23 +39,22 @@ public static class ObstacleTactics
         int size = grid.Size;
         var start = grid.CellOf(self.transform.position);
         var end = grid.CellOf(goal);
+        // A repair is local (the river between the ally and the leader): not when the leader is far away.
+        if (Vector2Int.Distance(start, end) > RepairRange) return false;
+        var slots = new Dictionary<ObstacleDef, int>(); // the move that changes each kind of obstacle, looked up once
 
         // Dijkstra on 4-neighbours: walkable tiles cost 1, tiles one of self's moves would make walkable ChangeCost.
-        var cost = new int[size * size];
-        var parent = new int[size * size];
-        var changeSlot = new int[size * size];
-        for (int i = 0; i < cost.Length; i++) { cost[i] = int.MaxValue; parent[i] = -1; changeSlot[i] = -1; }
-        var open = new List<int>();
+        // Buffers shared by every search (a level is a large map), "stamp" marks what belongs to this one; at most
+        // MaxSearched tiles are looked at.
+        Prepare(size * size);
         int startNode = start.y * size + start.x, endNode = end.y * size + end.x;
-        cost[startNode] = 0;
-        open.Add(startNode);
-        while (open.Count > 0)
+        Touch(startNode, 0, -1, -1);
+        int searched = 0;
+        while (open.Count > 0 && searched < MaxSearched)
         {
-            int best = 0;
-            for (int i = 1; i < open.Count; i++)
-                if (cost[open[i]] < cost[open[best]]) best = i;
-            int node = open[best];
-            open.RemoveAt(best);
+            var (at, node) = PopMin();
+            if (at > cost[node]) continue; // a later, cheaper entry was already taken
+            searched++;
             if (node == endNode) break;
             int x = node % size, y = node / size;
             foreach (var step in Steps)
@@ -65,19 +64,17 @@ public static class ObstacleTactics
                 int next = ny * size + nx, slot = -1, add = 1;
                 if (Obstacles.Blocks(nx, ny, self))
                 {
-                    slot = ChangingSlot(self, Obstacles.At(nx, ny), turnsWalkable: true);
+                    var on = Obstacles.At(nx, ny);
+                    if (!slots.TryGetValue(on, out slot)) slots[on] = slot = ChangingSlot(self, on, turnsWalkable: true);
                     if (slot < 0) continue;
                     add = ChangeCost;
                 }
                 else if (Navigator.Dangerous(grid, nx, ny, self)) add = 8;
-                if (cost[node] + add >= cost[next]) continue;
-                cost[next] = cost[node] + add;
-                parent[next] = node;
-                changeSlot[next] = slot;
-                open.Add(next);
+                if (cost[node] + add >= CostOf(next)) continue;
+                Touch(next, cost[node] + add, node, slot);
             }
         }
-        if (cost[endNode] == int.MaxValue) return false;
+        if (CostOf(endNode) == int.MaxValue) return false;
 
         // The first tile to change on the way, and the walkable tile before it.
         var way = new List<int>();
@@ -100,7 +97,7 @@ public static class ObstacleTactics
         // where it lands, at the end of its range: stand about that far away, on walkable ground.
         if (move.family == "projectile" && move.path != "arc" && !it.path)
         {
-            if (!FindStand(self, cell, move.range, cost, size, out stand)) return false;
+            if (!FindStand(self, cell, move.range, size, out stand)) return false;
         }
         plan.slot = changeSlot[target];
         plan.stand = stand;
@@ -111,15 +108,81 @@ public static class ObstacleTactics
         return true;
     }
 
+    const int MaxSearched = 5000; // tiles a repair search looks at
+    const float RepairRange = 40f; // tiles: a leader farther than this is not reached by a repair
+
+    static int[] cost, parent, changeSlot, stamp;
+    static int search;
+    static readonly List<int> touched = new(); // tiles reached by the current search
+    static readonly List<(int cost, int node)> open = new(); // binary heap on cost
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics()
+    {
+        cost = parent = changeSlot = stamp = null;
+        search = 0;
+    }
+
+    static void Prepare(int cells)
+    {
+        if (cost == null || cost.Length != cells)
+        {
+            cost = new int[cells];
+            parent = new int[cells];
+            changeSlot = new int[cells];
+            stamp = new int[cells];
+        }
+        search++;
+        touched.Clear();
+        open.Clear();
+    }
+
+    static int CostOf(int node) => stamp[node] == search ? cost[node] : int.MaxValue;
+
+    static void Touch(int node, int value, int from, int slot)
+    {
+        if (stamp[node] != search) touched.Add(node);
+        stamp[node] = search;
+        cost[node] = value;
+        parent[node] = from;
+        changeSlot[node] = slot;
+        open.Add((value, node));
+        for (int i = open.Count - 1; i > 0;)
+        {
+            int up = (i - 1) / 2;
+            if (open[up].cost <= open[i].cost) break;
+            (open[up], open[i]) = (open[i], open[up]);
+            i = up;
+        }
+    }
+
+    static (int, int) PopMin()
+    {
+        var top = open[0];
+        int last = open.Count - 1;
+        open[0] = open[last];
+        open.RemoveAt(last);
+        for (int i = 0; ;)
+        {
+            int l = 2 * i + 1, r = l + 1, best = i;
+            if (l < open.Count && open[l].cost < open[best].cost) best = l;
+            if (r < open.Count && open[r].cost < open[best].cost) best = r;
+            if (best == i) break;
+            (open[best], open[i]) = (open[i], open[best]);
+            i = best;
+        }
+        return top;
+    }
+
     // A walkable tile already reached by the search, "range" (± RangeSlack) from the cell, nearest to self.
-    static bool FindStand(Combatant self, Vector2 cell, float range, int[] cost, int size, out Vector2 stand)
+    static bool FindStand(Combatant self, Vector2 cell, float range, int size, out Vector2 stand)
     {
         var grid = DungeonGenerator.Current;
         stand = Vector2.zero;
         int bestCost = int.MaxValue;
-        for (int node = 0; node < cost.Length; node++)
+        foreach (int node in touched)
         {
-            if (cost[node] == int.MaxValue || cost[node] >= bestCost) continue;
+            if (cost[node] >= bestCost) continue;
             int x = node % size, y = node / size;
             if (Obstacles.Blocks(x, y, self)) continue;
             Vector2 at = grid.CentreOf(x, y);

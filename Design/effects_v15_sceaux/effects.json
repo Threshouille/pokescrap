@@ -1,0 +1,278 @@
+{
+  "seal_stele": {
+    "file": "seal_stele.png",
+    "frame_width": 24,
+    "frame_height": 36,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#3a6a2a",
+      "#6a9a3a"
+    ]
+  },
+  "seal_stele_hit": {
+    "file": "seal_stele_hit.png",
+    "frame_width": 24,
+    "frame_height": 36,
+    "frame_count": 4,
+    "frame_duration_ms": [
+      60,
+      60,
+      60,
+      60
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#ffffff",
+      "#6a9a3a"
+    ]
+  },
+  "seal_stele_open": {
+    "file": "seal_stele_open.png",
+    "frame_width": 24,
+    "frame_height": 36,
+    "frame_count": 4,
+    "frame_duration_ms": [
+      150,
+      150,
+      150,
+      150
+    ],
+    "loop": true,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#a07010",
+      "#f0c030",
+      "#fff0a0"
+    ]
+  },
+  "seal_no_effect": {
+    "file": "seal_no_effect.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 5,
+    "frame_duration_ms": [
+      70,
+      70,
+      70,
+      70,
+      70
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4"
+    ]
+  },
+  "seal_icons": {
+    "file": "seal_icons.png",
+    "frame_width": 16,
+    "frame_height": 16,
+    "frame_count": 9,
+    "frame_duration_ms": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#a07010",
+      "#f0c030",
+      "#fff0a0",
+      "#ffffff"
+    ]
+  },
+  "seal_type_icons": {
+    "file": "seal_type_icons.png",
+    "frame_width": 16,
+    "frame_height": 16,
+    "frame_count": 17,
+    "frame_duration_ms": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#a8a878",
+      "#f08030",
+      "#6890f0",
+      "#78c850",
+      "#f8d030",
+      "#98d8d8",
+      "#c03028",
+      "#a040a0",
+      "#e0c068",
+      "#a890f0",
+      "#f85888",
+      "#a8b820",
+      "#b8a038",
+      "#705898",
+      "#7038f8",
+      "#705848",
+      "#b8b8d0"
+    ]
+  },
+  "seal_brazier": {
+    "file": "seal_brazier.png",
+    "frame_width": 24,
+    "frame_height": 36,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4"
+    ]
+  },
+  "seal_brazier_lit": {
+    "file": "seal_brazier_lit.png",
+    "frame_width": 24,
+    "frame_height": 36,
+    "frame_count": 6,
+    "frame_duration_ms": [
+      90,
+      90,
+      90,
+      90,
+      90,
+      90
+    ],
+    "loop": true,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#c42418",
+      "#f0741a",
+      "#ffd23a",
+      "#fff6c0"
+    ]
+  },
+  "seal_plate": {
+    "file": "seal_plate.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 2,
+    "frame_duration_ms": [
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#a07010",
+      "#f0c030",
+      "#fff0a0"
+    ]
+  },
+  "seal_shells": {
+    "file": "seal_shells.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 6,
+    "frame_duration_ms": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#7a5058",
+      "#c89aa0",
+      "#f0d0d4",
+      "#ffffff"
+    ]
+  },
+  "seal_mark": {
+    "file": "seal_mark.png",
+    "frame_width": 24,
+    "frame_height": 24,
+    "frame_count": 6,
+    "frame_duration_ms": [
+      140,
+      140,
+      140,
+      140,
+      140,
+      140
+    ],
+    "loop": true,
+    "palette": [
+      "#4a2a6a",
+      "#8a5ac8",
+      "#d0b0ff"
+    ]
+  },
+  "seal_dust": {
+    "file": "seal_dust.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 8,
+    "frame_duration_ms": [
+      70,
+      70,
+      70,
+      70,
+      70,
+      70,
+      70,
+      70
+    ],
+    "loop": false,
+    "palette": [
+      "#8a7a64",
+      "#c0b090",
+      "#e8dcc4",
+      "#6a6560",
+      "#3a3836"
+    ]
+  }
+}

@@ -327,6 +327,21 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
+    /// Moves the team to a point (through a door, from one room of a floor to the next): nobody is healed, a
+    /// knocked-out member stays down.
+    public void PlaceTeam(Vector3 point)
+    {
+        transform.position = point;
+        for (int i = 0; i < members.Count; i++)
+        {
+            var member = members[i];
+            Vector2 spot = point + StartOffsets[i % StartOffsets.Length];
+            member.body.position = spot;
+            member.go.transform.position = spot;
+            member.body.linearVelocity = Vector2.zero;
+        }
+    }
+
     /// Between two arenas: knocked-out members get back up, the others are healed a little, effects are removed
     /// and everybody is placed around the given point.
     public void PrepareForNextArena(Vector3 centre, float healShare)

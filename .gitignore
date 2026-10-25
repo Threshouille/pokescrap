@@ -45,3 +45,5 @@ __pycache__/
 .DS_Store
 Thumbs.db
 .vscode/
+/Assets/Resources/Cliffs/*/*.png
+/Assets/Resources/MapProps/*.png

@@ -15,12 +15,12 @@ using UnityEngine.InputSystem;
 /// plays its animations one after the other.
 /// The obstacle room also holds training dummies ("dummies"): enemies that neither move nor attack, at random free
 /// tiles, which come back a few seconds after being knocked out, to try moves, Z moves and obstacles on.
-/// A fourth room shows the Z moves: sturdy dummies in a ring, the controlled Pokémon carries the Z crystal picked with
+/// Another room shows the Z moves (dark orange stairs): sturdy dummies in a ring, the controlled Pokémon carries the Z crystal picked with
 /// ↑/↓ (1/2) and borrows the strongest move of its type when it knows none (Ultimates.DemoMoves).
 /// Two more rooms are real fights, with the opponent back a few seconds after a knock-out: an elite beyond a river
 /// (with a bridge or not, R / Select: it freezes the river to come, burns the bridge under a close fighter, uses
-/// its ultimate), and a legendary boss whose ultimate (Terastal phase or Z move) depends on the fight. The green stairs
-/// lead to the rescue and heal demos (RescueDemos).
+/// its ultimate), and a legendary boss whose ultimate (Terastal phase or Z move) depends on the fight. The blue stairs
+/// lead to the rescue and heal demos (RescueDemos). Rooms 6 to 9 (ZDemoRoom...RescueRoom) follow those of the island work.
 public class TerrainSandbox : MonoBehaviour
 {
     const float AttackAnimTime = 0.4f;
@@ -82,17 +82,25 @@ public class TerrainSandbox : MonoBehaviour
     const float FadeTime = 0.25f, StairsReach = 0.6f;
     static readonly Vector2 BaseStairs = new(12f, 12f), ObstacleStairs = new(-12f, -12f); // from the arena centre, in tiles
     static readonly Vector2 GalleryStairs = new(12f, -12f), GalleryBackStairs = new(-12f, 12f);
+    static readonly Vector2 RoomsStairs = new(-12f, -12f); // to the room gallery (rooms.json)
+    static readonly Vector2 IslandStairs = new(0f, -12f); // to a test island (IslandPlan, IslandRun)
+    static readonly Vector2 QuarterStairs = new(0f, 12f); // to the test quarter of island (quarter_test.json)
+
+    // Rooms of the items and AI work (dev): Z demo, elite, boss, rescue demos.
     static readonly Vector2 ZDemoStairs = new(-12f, 12f), ZDemoBackStairs = new(12f, 12f);
-    static readonly Vector2 EliteStairs = new(-12f, -12f), EliteBackStairs = new(-12f, 12f);
-    static readonly Vector2 BossStairs = new(0f, -12f), BossBackStairs = new(0f, 12f);
+    static readonly Vector2 EliteStairs = new(-12f, 0f), EliteBackStairs = new(-12f, 12f);
+    static readonly Vector2 BossStairs = new(6f, 12f), BossBackStairs = new(0f, 12f);
     static readonly Vector2 RescueStairs = new(12f, 0f), RescueBackStairs = new(-12f, 0f);
     static readonly Vector2 EncounterStairs = new(-6f, -12f); // to the encounter lab (its way back: ObstacleStairs)
     public const int EncounterRoom = 20; // far from the other rooms' numbers, which other branches add to
     const int RiverFrom = 3, RiverTo = 5; // elite room: columns of the river, from the arrival point
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
-    int room; // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: Z demo, 4: elite room, 5: boss room, 6: rescue demos
-    Combatant fighter; // the elite or the boss of rooms 4 and 5
+    // 0: terrain sandbox, 1: obstacle room, 2: mega gallery, 3: room gallery, 4: test island, 5: test quarter,
+    // 6: Z demo, 7: elite room, 8: boss room, 9: rescue demos
+    int room;
+    const int ZDemoRoom = 6, EliteRoom = 7, BossRoom = 8, RescueRoom = 9;
+    Combatant fighter; // the elite or the boss of their rooms
     float fighterBack; // when it comes back once knocked out
     bool bridge; // elite room: the river has a bridge (R / Select switches)
     class Dummy
@@ -106,6 +114,11 @@ public class TerrainSandbox : MonoBehaviour
     readonly List<Dummy> dummies = new();
     readonly Dictionary<Combatant, SpecialItems.Equipped> keptItems = new(); // items before the Z demo room
     int zDemoIndex;
+    int quarterSeed, quarterRock; // test quarter: kept to draw the same one again with another rock (C)
+    IslandRun island; // test island
+    RoomInstance shownRoom; // room gallery: the room on show
+    int roomType; // room gallery: 0 any type, else RoomCatalog.Types[roomType - 1]
+    DungeonTileset sandboxDecor; // the arena's own décor, put back when leaving the room gallery
     int pendingRoom = -1;
     float fadeOutAt, switchAt, fadeInUntil;
     bool stairsArmed; // the stairs only work once the Pokémon has stepped off them
@@ -287,7 +300,7 @@ public class TerrainSandbox : MonoBehaviour
             file ??= Settings();
             if (d.back <= 0f)
             {
-                d.back = Time.time + (room == 3 ? file.zDemoRespawn : file.dummyRespawn);
+                d.back = Time.time + (room == ZDemoRoom ? file.zDemoRespawn : file.dummyRespawn);
                 continue;
             }
             if (Time.time < d.back) continue;
@@ -315,18 +328,18 @@ public class TerrainSandbox : MonoBehaviour
     {
         var spawner = GetComponent<EnemySpawner>();
         var arena = DungeonGenerator.Current;
-        var f = room == 4 ? Settings().eliteRoom : Settings().bossRoom;
+        var f = room == EliteRoom ? Settings().eliteRoom : Settings().bossRoom;
         if (spawner == null || arena == null || f.pokemon <= 0) return;
         fighter = spawner.SpawnFighter(f.pokemon, f.moves.Length > 0 ? f.moves : null, Centre(arena) + Vec(f.offset),
-            isBoss: room == 5, elite: room == 4, f.level, f.health);
-        if (fighter != null && room == 5) fighter.gameObject.AddComponent<HealthBar>(); // no boss bar in the test arena
+            isBoss: room == BossRoom, elite: room == EliteRoom, f.level, f.health);
+        if (fighter != null && room == BossRoom) fighter.gameObject.AddComponent<HealthBar>(); // no boss bar in the test arena
         fighterBack = 0f;
     }
 
     void UpdateFighter()
     {
-        if ((room != 4 && room != 5) || pendingRoom >= 0 || (fighter != null && fighter.IsAlive)) return;
-        var f = room == 4 ? Settings().eliteRoom : Settings().bossRoom;
+        if ((room != EliteRoom && room != BossRoom) || pendingRoom >= 0 || (fighter != null && fighter.IsAlive)) return;
+        var f = room == EliteRoom ? Settings().eliteRoom : Settings().bossRoom;
         if (fighterBack <= 0f)
         {
             fighterBack = Time.time + f.respawn;
@@ -391,13 +404,19 @@ public class TerrainSandbox : MonoBehaviour
         {
             AddStairs(arena, BaseStairs, 1, "Escalier vers la salle des obstacles", new Color(0.95f, 0.8f, 0.3f));
             AddStairs(arena, GalleryStairs, 2, "Escalier vers la galerie des mégas", new Color(0.85f, 0.5f, 1f));
-            AddStairs(arena, ZDemoStairs, 3, "Escalier vers la démo des capacités Z", new Color(1f, 0.55f, 0.2f));
-            AddStairs(arena, EliteStairs, 4, "Escalier vers la salle de l'élite", new Color(1f, 0.85f, 0.25f));
-            AddStairs(arena, BossStairs, 5, "Escalier vers la salle du boss", new Color(0.9f, 0.2f, 0.2f));
-            AddStairs(arena, RescueStairs, 6, "Escalier vers les démos de secours", new Color(0.3f, 0.9f, 0.5f));
+            AddStairs(arena, RoomsStairs, 3, "Escalier vers la galerie des salles", new Color(0.5f, 0.9f, 0.5f));
+            AddStairs(arena, IslandStairs, 4, "Escalier vers une île de test", new Color(1f, 0.6f, 0.2f));
+            AddStairs(arena, QuarterStairs, 5, "Escalier vers le quart d'île de test", new Color(0.3f, 0.85f, 0.75f));
+            AddStairs(arena, ZDemoStairs, ZDemoRoom, "Escalier vers la démo des capacités Z", new Color(1f, 0.4f, 0.1f));
+            AddStairs(arena, EliteStairs, EliteRoom, "Escalier vers la salle de l'élite", new Color(1f, 0.85f, 0.25f));
+            AddStairs(arena, BossStairs, BossRoom, "Escalier vers la salle du boss", new Color(0.9f, 0.2f, 0.2f));
+            AddStairs(arena, RescueStairs, RescueRoom, "Escalier vers les démos de secours", new Color(0.3f, 0.6f, 1f));
             AddStairs(arena, EncounterStairs, EncounterRoom, "Escalier vers l'observation des rencontres", new Color(0.9f, 0.9f, 0.9f));
         }
-        else AddStairs(arena, room switch { 1 or EncounterRoom => ObstacleStairs, 3 => ZDemoBackStairs, 4 => EliteBackStairs, 5 => BossBackStairs, 6 => RescueBackStairs, _ => GalleryBackStairs }, 0,
+        else if (room == 4 || room == 5)
+            AddStairs(arena, FreeNear(arena, arena.CellOf(arena.SpawnPoint)) - Centre(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
+        else if (room == 3) AddStairs(arena, BackStairsNearSpawn(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
+        else AddStairs(arena, room switch { 1 or EncounterRoom => ObstacleStairs, ZDemoRoom => ZDemoBackStairs, EliteRoom => EliteBackStairs, BossRoom => BossBackStairs, RescueRoom => RescueBackStairs, _ => GalleryBackStairs }, 0,
             "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
     }
@@ -410,7 +429,7 @@ public class TerrainSandbox : MonoBehaviour
         var outer = go.AddComponent<SpriteRenderer>();
         outer.sprite = Shapes.Square;
         outer.color = new Color(0.1f, 0.1f, 0.12f);
-        outer.sortingOrder = 0;
+        outer.sortingOrder = -1; // under the light square inside (a tie would hide it)
         var inner = new GameObject("Marches").AddComponent<SpriteRenderer>();
         inner.transform.SetParent(go.transform, false);
         inner.transform.localScale = Vector3.one * 0.6f;
@@ -418,6 +437,36 @@ public class TerrainSandbox : MonoBehaviour
         inner.color = colour;
         inner.sortingOrder = 0;
         stairs.Add((go, target));
+    }
+
+    // The first free tile (no wall, no water) about 3 tiles from a cell, for the way back on an island.
+    static Vector2 FreeNear(DungeonGenerator arena, Vector2Int cell)
+    {
+        for (int r = 3; r <= 10; r++)
+            for (int dx = -r; dx <= r; dx++)
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    int x = cell.x + dx, y = cell.y + dy;
+                    if (arena.Walkable(x, y) && Obstacles.At(x, y) == null) return arena.CentreOf(x, y);
+                }
+        return arena.CentreOf(cell.x, cell.y);
+    }
+
+    // A room of the gallery may be small or full of walls: the way back is laid on the first free tile found a few
+    // tiles from the spawn point (as an offset from the centre).
+    static Vector2 BackStairsNearSpawn(DungeonGenerator arena)
+    {
+        var centre = arena.CellOf(Centre(arena));
+        for (int r = 3; r <= 8; r++)
+            for (int dx = -r; dx <= r; dx++)
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    int x = centre.x + dx, y = centre.y + dy;
+                    if (arena.Walkable(x, y) && Obstacles.At(x, y) == null) return arena.CentreOf(x, y) - Centre(arena);
+                }
+        return Vector2.zero;
     }
 
     List<Vector2Int> KeptClear(DungeonGenerator arena)
@@ -454,6 +503,41 @@ public class TerrainSandbox : MonoBehaviour
         if (fighter != null) Destroy(fighter.gameObject);
         fighter = null;
         fighterBack = 0f;
+        RestoreItems();
+        var demos = GetComponent<RescueDemos>();
+        if (room != RescueRoom && demos != null) Destroy(demos);
+        // The room gallery builds a room of the catalogue; the other rooms are the sandbox's own open arena.
+        if (sandboxDecor == null) sandboxDecor = arena.tileset;
+        if (island != null) island.End();
+        if (room == 4 || room == 5)
+        {
+            // A test island: four quarters of biomes around the sealed central zone; or the test quarter.
+            if (island == null)
+            {
+                island = gameObject.AddComponent<IslandRun>();
+                island.Built += PlaceStairs; // the way back, near where the team arrives in each zone
+                island.revealAll = true; // test island: the whole mini-map at once
+            }
+            if (room == 5)
+            {
+                island.Begin(IslandPlan.QuarterTestPlan(quarterSeed, quarterRock));
+                quarterSeed = 0; // R draws a new one
+            }
+            else island.Begin(rng);
+            PlaceStairs();
+            return;
+        }
+        if (room == 3)
+        {
+            var types = RoomCatalog.Types;
+            shownRoom = RoomCatalog.Pick(roomType > 0 && roomType <= types.Count ? types[roomType - 1].key : null, rng);
+            arena.room = shownRoom;
+        }
+        else
+        {
+            arena.room = null;
+            arena.tileset = sandboxDecor;
+        }
         arena.Generate(); // also clears terrain and obstacles, and moves the team object to the centre
         drawn = new List<string>();
         if ((room == 1 || room == EncounterRoom) && Obstacles.Current != null)
@@ -466,17 +550,14 @@ public class TerrainSandbox : MonoBehaviour
         if (room == 0) SpawnEmitters();
         if (room == 0) PlaceShowcase(arena);
         if (room == 1) SpawnDummies();
-        RestoreItems();
-        if (room == 3)
+        if (room == ZDemoRoom)
         {
             SpawnZDemo();
             Ultimates.DemoMoves = true;
         }
-        if (room == 4) BuildRiver(arena);
-        if (room == 4 || room == 5) SpawnFighter();
-        var demos = GetComponent<RescueDemos>();
-        if (room == 6 && demos == null) gameObject.AddComponent<RescueDemos>();
-        if (room != 6 && demos != null) Destroy(demos);
+        if (room == EliteRoom) BuildRiver(arena);
+        if (room == EliteRoom || room == BossRoom) SpawnFighter();
+        if (room == RescueRoom && demos == null) gameObject.AddComponent<RescueDemos>();
         var lab = GetComponent<EncounterLab>();
         if (room == EncounterRoom && lab == null) gameObject.AddComponent<EncounterLab>();
         if (room != EncounterRoom && lab != null) Destroy(lab);
@@ -494,14 +575,27 @@ public class TerrainSandbox : MonoBehaviour
             pendingRoom = -1;
             fadeInUntil = Time.unscaledTime + FadeTime;
         }
-        if (room == 3 && pendingRoom < 0) UpdateZDemo(); // input: read each frame
-        if ((room != 1 && room != 4 && room != EncounterRoom) || pendingRoom >= 0) return;
+        if (room == ZDemoRoom && pendingRoom < 0) UpdateZDemo(); // input: read each frame
+        if ((room != 1 && room != 3 && room != 4 && room != 5 && room != EliteRoom && room != EncounterRoom) || pendingRoom >= 0) return;
         var pad = Gamepad.current;
         var kb = Keyboard.current;
         if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame))
         {
-            if (room == 4) bridge = !bridge;
+            if (room == EliteRoom) bridge = !bridge;
             Switch(room);
+        }
+        // Test quarter: C or d-pad down draws the same quarter with the other rock for its cliffs.
+        if (room == 5 && ((kb != null && kb.cKey.wasPressedThisFrame) || (pad != null && pad.dpad.down.wasPressedThisFrame)))
+        {
+            quarterSeed = IslandPlan.LastQuarterSeed;
+            quarterRock++;
+            Switch(5);
+        }
+        // Room gallery: N or d-pad up picks the type of room shown (any, then each type in turn).
+        if (room == 3 && ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame)))
+        {
+            roomType = (roomType + 1) % (RoomCatalog.Types.Count + 1);
+            Switch(3);
         }
     }
 
@@ -523,14 +617,16 @@ public class TerrainSandbox : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        string line = room == 0 ? "Escalier jaune (en haut à droite) : salle des obstacles     Escalier violet (en bas à droite) : galerie des mégas     Escalier orange (en haut à gauche) : démo des capacités Z     Escalier vert (à droite) : démos de secours     Escalier blanc (en bas) : observation des rencontres"
-            : room == 3 ? ZDemoLine()
-            : room == 6 ? (GetComponent<RescueDemos>() is { } rescue ? rescue.Line() : "Démos de secours")
+        string line = room == 0 ? "Escaliers : jaune (en haut à droite) obstacles, violet (en bas à droite) mégas, vert (en bas à gauche) salles, orange (en bas) île, turquoise (en haut) quart d'île, orange foncé (en haut à gauche) capacités Z, doré (à gauche) élite, rouge (en haut, à droite du turquoise) boss, bleu (à droite) secours, blanc (en bas, à gauche de l'orange) rencontres"
+            : room == ZDemoRoom ? ZDemoLine()
+            : room == RescueRoom ? (GetComponent<RescueDemos>() is { } rescue ? rescue.Line() : "Démos de secours")
             : room == EncounterRoom ? (GetComponent<EncounterLab>() is { } lab ? lab.Line(drawn) : "Observation des rencontres")
-            : room == 4 ? $"Salle de l'élite : rivière {(bridge ? "avec un pont (en mêlée sur le pont, l'élite le brûle)" : "sans pont (l'élite la gèle pour venir)")}     R ou Select : {(bridge ? "sans" : "avec")} pont     Escalier (en haut à gauche) : retour"
-            : room == 5 ? $"Salle du boss : {fighter?.Stats?.name ?? "boss"} {(fighter != null ? $"{Mathf.CeilToInt(fighter.hp)}/{Mathf.CeilToInt(fighter.maxHp)} PV" : "(revient bientôt)")} : téracristal ou capacité Z selon la situation     Escalier (en haut) : retour"
-
+            : room == EliteRoom ? $"Salle de l'élite : rivière {(bridge ? "avec un pont (en mêlée sur le pont, l'élite le brûle)" : "sans pont (l'élite la gèle pour venir)")}     R ou Select : {(bridge ? "sans" : "avec")} pont     Escalier (en haut à gauche) : retour"
+            : room == BossRoom ? $"Salle du boss : {fighter?.Stats?.name ?? "boss"} {(fighter != null ? $"{Mathf.CeilToInt(fighter.hp)}/{Mathf.CeilToInt(fighter.maxHp)} PV" : "(revient bientôt)")} : téracristal ou capacité Z selon la situation     Escalier (en haut) : retour"
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
+            : room == 4 ? $"Île de test : {(island?.Quarter >= 0 ? $"{island.Plan.themes[island.Quarter].name} (quartier {System.Array.IndexOf(island.Plan.order, island.Quarter) + 1}/4) — {island.Biome?.name}" : "hors des quartiers")}     R ou Select : nouvelle île     Escalier (à l'arrivée) : retour"
+            : room == 5 ? $"Quart d'île de test : {island?.Biome?.name ?? "—"}     R ou Select : nouveau tirage     C ou croix bas : autre roche     Escalier (à l'arrivée) : retour"
+            : room == 3 ? $"{shownRoom?.Describe() ?? "Aucune salle dans rooms.json"}     Type : {(roomType > 0 && roomType <= RoomCatalog.Types.Count ? RoomCatalog.Types[roomType - 1].name : "tous")} (N, croix haut)     R ou Select : autre salle     Escalier : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     Cibles immobiles (reviennent après un K.O.)     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         // Top centre, between the stage box and the lots panel, wrapped; the banners go below it (HudLayout).
         roomLine ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
@@ -608,7 +704,11 @@ public class TerrainSandbox : MonoBehaviour
     {
         var team = FindAnyObjectByType<PlayerController>();
         var walker = team != null ? team.Controlled : null;
-        if (walker != null && pendingRoom < 0)
+        // In a secret room of the test island the way back to the sandbox is put away (SecretStairs has its own).
+        bool away = island != null && island.Away;
+        foreach (var (go, _) in stairs)
+            if (go != null && go.activeSelf == away) go.SetActive(!away);
+        if (walker != null && pendingRoom < 0 && !away)
         {
             bool onAny = false;
             foreach (var (go, target) in stairs)

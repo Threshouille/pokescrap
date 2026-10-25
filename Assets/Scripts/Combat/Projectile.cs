@@ -13,6 +13,7 @@ public class Projectile : MonoBehaviour
 
     Team team;
     Combatant owner;
+    int level; // the level of ground it was shot from: it flies over the cliffs no higher (DungeonGenerator.ShotPasses)
     MoveDef move;
     float damage; // raw, before the target's defence
     float radius, baseRadius;
@@ -64,6 +65,7 @@ public class Projectile : MonoBehaviour
         var projectile = go.AddComponent<Projectile>();
         projectile.team = owner.team;
         projectile.owner = owner;
+        projectile.level = DungeonGenerator.Current != null && owner != null ? DungeonGenerator.Current.HeightAt(owner.transform.position) : 0;
         projectile.move = move;
         projectile.damage = owner.DamageOf(move);
         projectile.radius = projectile.baseRadius = move.radius * owner.projectileSizeMul;
@@ -297,8 +299,9 @@ public class Projectile : MonoBehaviour
                 return true;
             }
 
-            // A wall.
+            // A wall: a cliff no higher than where it was shot from is flown over.
             if (returning) continue;
+            if (FliesOver(h, from, delta / length)) continue;
             if (move.path == "boomerang")
             {
                 transform.position = from;
@@ -322,6 +325,23 @@ public class Projectile : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    // The wall hit is a cliff no higher than the level it was shot from.
+    bool FliesOver(RaycastHit2D h, Vector2 from, Vector2 direction)
+    {
+        var grid = DungeonGenerator.Current;
+        if (grid == null) return false;
+        Vector2 p;
+        if (h.distance > 0f) p = h.point + direction * 0.05f;
+        else
+        {
+            // Already touching it: the nearest point of the wall, a little inside.
+            Vector2 near = h.collider.ClosestPoint(from);
+            p = near == from ? from : near + (near - from).normalized * 0.05f;
+        }
+        var cell = grid.CellOf(p);
+        return grid.ShotPasses(cell.x, cell.y, level);
     }
 
     // Arc: hits every opponent within the splash radius where it lands.

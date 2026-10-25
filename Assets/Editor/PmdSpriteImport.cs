@@ -12,12 +12,14 @@ public class PmdSpriteImport : AssetPostprocessor
     const string EffectRoot = "Assets/Resources/Effects";
     const string PortraitRoot = "Assets/Resources/Portraits";
     const string ObstacleTileRoot = "Assets/Resources/ObstacleTiles";
+    const string CliffRoot = "Assets/Resources/Cliffs";
+    const string MapPropRoot = "Assets/Resources/MapProps"; // decor elements cut from the story maps (extract_map_props.py) // cliff pieces cut from the story maps (extract_cliffs.py)
     const string ItemRoot = "Assets/Resources/Items";
     const string AnimSetRoot = "Assets/Resources/" + PokemonRoster.AnimSetPath;
 
     void OnPreprocessTexture()
     {
-        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/") || assetPath.StartsWith(ItemRoot + "/"))
+        if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/") || assetPath.StartsWith(CliffRoot + "/") || assetPath.StartsWith(MapPropRoot + "/") || assetPath.StartsWith(ItemRoot + "/"))
             Configure((TextureImporter)assetImporter);
     }
 
@@ -47,6 +49,7 @@ public class PmdSpriteImport : AssetPostprocessor
     [MenuItem("Pokescrap/Build Tilesets")]
     public static void BuildTilesets()
     {
+        var built = new System.Collections.Generic.List<DungeonTileset>();
         foreach (var folder in AssetDatabase.GetSubFolders(TilesetRoot))
         {
             var jsonPath = folder + "/tileset.json";
@@ -66,7 +69,20 @@ public class PmdSpriteImport : AssetPostprocessor
             if (int.TryParse(Path.GetFileName(folder), out int romId)) tileset.romId = romId;
             EditorUtility.SetDirty(tileset);
             Debug.Log($"{assetPath}: {tileset.wall.Length / 3} wall masks");
+            built.Add(tileset);
         }
+        // Every décor by ROM number, for the room generator (TilesetRoster.Get).
+        var rosterPath = $"Assets/Resources/{TilesetRoster.ResourcePath}.asset";
+        var roster = AssetDatabase.LoadAssetAtPath<TilesetRoster>(rosterPath);
+        if (roster == null)
+        {
+            roster = ScriptableObject.CreateInstance<TilesetRoster>();
+            AssetDatabase.CreateAsset(roster, rosterPath);
+        }
+        built.Sort((a, b) => a.romId.CompareTo(b.romId));
+        roster.tilesets = built;
+        EditorUtility.SetDirty(roster);
+        Debug.Log($"{rosterPath}: {built.Count} décors");
         AssetDatabase.SaveAssets();
     }
 

@@ -18,7 +18,7 @@ public class AllyAI : MonoBehaviour
     const float ShotLookahead = 0.5f; // seconds: a shot arriving within this is dodged
     const float PursuitMin = 3f, PursuitMax = 6f; // melee: dodges toward a target this far away...
     const float PursuitHealth = 0.5f; // ...when above this share of its HP (the dodge stays for defence otherwise)
-    const int SafeSearch = 6; // tiles around the leader searched for a safe spot when it stands in danger
+    const int SafeSearch = 12; // tiles around the leader searched for a safe spot (in danger, or out of reach)
     const float EdgeLook = 0.6f; // tiles ahead checked before a step while following
 
     [Tooltip("The Pokémon the player controls (the team object follows it)")]
@@ -54,6 +54,10 @@ public class AllyAI : MonoBehaviour
     bool cautious; // low on health: stays by the leader
     Vector2 lastLeader, leaderVelocity; // the leader's smoothed velocity, to tell when it falls back
     bool leaderSeen;
+    // On a large map the path search stops at its limit and gives a partial path, so a river with no way across
+    // still looks "reachable": an ally that stops getting closer for StuckTime seconds looks for a repair anyway.
+    const float StuckTime = 1.5f, StuckProgress = 0.3f;
+    float stuckSince = -1f, stuckDistance;
 
     void Awake()
     {
@@ -123,7 +127,8 @@ public class AllyAI : MonoBehaviour
             Vector2 toGoal = goal - position;
             float near = goal == (Vector2)leader.position ? followDistance : 0.3f;
             Vector2 follow = toGoal.magnitude > near ? navigator.Direction(position, goal, combatant, avoid: true) : Vector2.zero;
-            if (follow == Vector2.zero && toGoal.magnitude > near && !navigator.Reachable && TryRepair(position, leader.position)) return;
+            bool cutOff = follow == Vector2.zero && !navigator.Reachable;
+            if (toGoal.magnitude > near && (cutOff || Stuck(toGoal.magnitude, near)) && TryRepair(position, leader.position)) return;
             follow = RoleTactics.Separate(combatant, grid, position, follow); // spread out around the leader
             // No safe way: waits at the edge rather than stepping into danger.
             if (follow != Vector2.zero && !navigator.SafePath && Dangerous(position + follow.normalized * EdgeLook)) follow = Vector2.zero;
@@ -240,6 +245,23 @@ public class AllyAI : MonoBehaviour
         return true;
     }
 
+    // Following without getting closer for StuckTime seconds (distance to the goal down by less than StuckProgress).
+    bool Stuck(float distance, float near)
+    {
+        if (distance <= near + 0.5f)
+        {
+            stuckSince = -1f;
+            return false;
+        }
+        if (stuckSince < 0f || distance < stuckDistance - StuckProgress)
+        {
+            stuckSince = Time.time;
+            stuckDistance = distance;
+            return false;
+        }
+        return Time.time - stuckSince >= StuckTime;
+    }
+
     /// True when standing there would hurt this ally: a harmful zone, terrain or electric arc.
     bool Dangerous(Vector2 point) =>
         Zone.Inside(point, combatant.team, RoleTactics.ZoneMargin) || Terrain.Hazard(point, combatant) || Pylons.Hazard(point, combatant);
@@ -248,7 +270,8 @@ public class AllyAI : MonoBehaviour
     // when there is none within reach).
     Vector2 SafeSpotNear(Vector2 target, DungeonGenerator grid)
     {
-        if (grid == null || !Dangerous(target)) return target;
+        // Also when the leader stands where this ally cannot (a flyer over water, lava or void).
+        if (grid == null || (!Dangerous(target) && !Obstacles.BlocksAt(target, combatant))) return target;
         var cell = grid.CellOf(target);
         for (int r = 1; r <= SafeSearch; r++)
         {

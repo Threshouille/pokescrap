@@ -1,13 +1,13 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 17/10/2026 (types, chiffres de dégâts, évolution manuelle faits ; **suite : reprendre les autres attaques au cas par cas**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
+Dernière mise à jour : 24/10/2026, 2e session (**composition du quart d'île : falaises, hauteur, végétation ; voir la section ci-dessous**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
 
 ## Méthode de travail avec Owen
 
 - Owen écrit en français ; réponses courtes, économie de tokens (voir `CLAUDE.md`).
 - **Avant toute nouvelle tâche, présenter un plan détaillé et attendre son accord** (Pokémon, attaques, valeurs, comportements, ce qui est provisoire, questions ouvertes). Ne pas coder dans le même tour. Signaler explicitement tout écart au plan validé.
 - Il aime être contredit quand c'est justifié : donner un avis argumenté, pas seulement exécuter.
-- Après chaque tâche : tester dans Unity (unityMCP), mettre à jour GDD / ROADMAP / CLAUDE.md, committer ; dépôt public GitHub sans contenu de la ROM (voir `README.md` et `.gitignore`). Une branche par tâche (depuis `main` à jour, poussée sur `origin`), fusionnée dans `main` une fois validée en jeu.
+- Après chaque tâche : tester dans Unity (unityMCP), mettre à jour GDD / ROADMAP / CLAUDE.md, committer ; dépôt public GitHub sans contenu de la ROM (voir `README.md` et `.gitignore`). Une branche `feature/<nom>` par tâche, depuis `dev` à jour (convention de Robin, l'autre développeur ; pseudo GitHub WinstonBlewUp), poussée sur `origin`, fusionnée dans `dev` une fois validée en jeu par Owen. Ne pas toucher à `main`.
 - Effets visuels : je rédige un prompt pour Claude Design (contraintes : pixel art strict, 24 px = 1 case, une ligne d'images orientée vers la droite, `effects.json`), Owen dépose l'archive `.zip` à la racine, je l'extrais dans `Design/effects_vN/`, je contrôle (tailles, alpha 0/255, ≤ 6 couleurs), je fusionne dans `Assets/Resources/Effects/`.
 
 ## Où en est le projet
@@ -34,6 +34,66 @@ Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, pu
 - **Étapes** : décor 1 (cristaux roses, ennemis niv. 1), décor 20 (sable, niv. 5), décor 12 (volcan, boss niv. 10).
 - **Commandes clavier** (19/10/2026) : ZQSD / flèches déplacement, U / I / O / P attaques 1 à 4 (mêmes touches en AZERTY et QWERTY ; un bouton de souris maintenu vise le curseur), Ctrl gauche esquive, Tab changer de Pokémon ; au menu des attaques, ← / → changent le filtre de type. Le HUD affiche U I O P sans manette branchée.
 - **Commandes manette** : stick gauche déplacement, stick droit visée, R1/R2/L1/L2 attaques, croix gauche/droite changer de Pokémon ; écran d'amélioration : croix ou stick + ✕, ○ pour revenir de l'écran de remplacement ; fin de partie : ✕ rejouer, ○ menu.
+
+## Fusion de dev dans `feature/quart-ile` (24/10/2026, Robin)
+
+dev (objets spéciaux, ultimes ennemis, secours et soins) fusionné dans la branche d'Owen ; salles de dev renumérotées
+6 à 9 dans le terrain de test (démo Z, élite, boss, secours). Corrigé : sur le quart d'île, les alliés ne refaisaient
+pas un pont (chemin partiel à la limite de l'A* = cible « atteignable ») ; un allié qui ne se rapproche plus cherche
+maintenant une réparation. Banc en batch : 39/39. « Hauteur » échouait aussi sur la version poussée par Owen
+(`e5de12e`) : ennemi à 7 cases, la portée exacte de Puis. Cachée, donc hors de portée au moindre décalage ; ramené à
+5 cases et une attaque typée.
+
+## Session en cours : composition du quart d'île (branche `feature/quart-ile`, 23-24/10/2026)
+
+Branche partie de `feature/salles` (Robin : salles, île flottante ; Owen : zones séparées), **ni l'une ni l'autre
+fusionnées dans `dev`**. But : composer un quartier de l'île principale avec les assets de DM. Salle de test : escalier
+turquoise du terrain de test (salle 5) ; R / Select : nouveau tirage. Code : `Assets/Scripts/Dungeon/IslandQuarterTest.cs`
+(génération), `IslandPlan.cs` (données par case), `DungeonGenerator.GenerateIsland` / `Draw` (rendu), `IslandRun.cs`
+(décor, marqueurs, mini-carte) ; réglages `Assets/Resources/Data/quarter_test.json`. Détails techniques dans `CLAUDE.md`
+(paragraphes « Quart d'île de test », « Cartes de l'histoire », « Éléments de décor »).
+
+Fait et validé par Owen : quart en éventail sans murs, rivière large et sinueuse (pointe = centre de l'île → côte),
+jungle (décor 44) et prairie fleurie (décor 5) de part et d'autre, 3 ponts ; route principale (terre du décor 35 +
+pierres clairsemées du décor 30) entre deux portails (marqueurs inertes) par le pont du milieu, colonnes brisées
+(obstacle `column`, rocher du décor 46) ; relief vu de 3/4 : paroi sud de 2 cases par palier, rebord fin ailleurs,
+escaliers de 3 colonnes, montagne en lacets, rebords à sens unique (validés), grotte au sommet sous un toit qui
+s'efface (validée, sol du décor 9).
+
+Repris et validé par Owen le 24/10 (2e session) :
+1. **Falaises** : plateaux aux contours droits (rectangles sur une grille de 3 cases, encoches bouchées) ; morceaux
+   refaits dans `cliff_styles.json` : prairie = rebord de la carte 224 + bas de paroi pris dans la carte 226 (zone orange
+   sans pli rose : les plis sont des angles, les enchaîner donnait « une suite de coins »), roche = carte 23 (paroi
+   régulière, entrée de grotte) au lieu de la 26 (gros blocs qui ne se découpent pas) ; colonnes posées dans l'ordre puis
+   en miroir (sans couture) ; sol de la carte effacé en haut des morceaux, bas de paroi en vague, ombre portée au pied
+   (remplace les cases assombries `footShadow`) ; dos, côtés et coins fabriqués à partir de la bande du rebord, extrémités
+   de paroi avec rebord et coin du bas arrondi seulement contre un terrain plus bas ; plus de bordure du décor autour des
+   falaises ; escaliers sans bande de terre ; toit de la grotte jusqu'à la roche.
+2. **Collisions et hauteur** : collisions à l'épaisseur dessinée des rebords ; les tirs d'un palier passent les
+   falaises de ce palier ou plus basses, s'écrasent sur les plus hautes ; IA idem (`ShotClear`) ; scénario de banc
+   « Hauteur : … » (passe).
+3. **Décor** : cases sombres sous le décor corrigées (`blocker` caché n'est plus peint) ; retirés : buissons 877, 879,
+   905, haie `grass_909` ; décor épars réduit (fleurs, buissons, rochers) ; taches par sous-biome : champs de fleurs,
+   fougeraies, éboulis, forêts en massif plein avec sentiers et clairière (`IslandPlan.clearings` pour le level design).
+
+Escalier secret (25/10, validé par Owen en jeu) : caché dans une clairière ou sous un rocher fissuré, salle vide du
+catalogue et retour au même endroit ; le contenu des salles (trésor, embuscade, gardien) et les thèmes logiques
+(population des Pokémon par biome) sont pour Robin (GDD « Escaliers secrets »).
+
+Reste à faire :
+- Arbres transparents quand un Pokémon passe derrière (on marche sous les couronnes en lisière) ; plus de variété
+  d'arbres (couche du dessous des cartes, à détourer).
+- La roche n'a pas d'escaliers à elle (elle emprunte ceux de la prairie, roses) : en chercher dans la carte 24.
+- Banc d'essai lancé dans l'éditeur (24/10) : 23/25, les deux échecs sont des pires images à ~100 ms (« Niveau : pas de
+  gel… », « Île : … ») alors que l'éditeur tournait sans le focus ; à relancer en batch (`setup.py --ai-scenarios`,
+  Unity fermé) pour confirmer que ce n'est pas une régression.
+- Les IA ne cherchent pas encore les hauteurs ; idées de level design autour des clairières.
+- Attention : un rendu de contrôle par `execute_code` dans l'éditeur laisse des objets dans la scène ouverte (`Obstacles`,
+  « Tuiles d'obstacles » à la racine) qui reviennent en jeu : recharger `SampleScene` sans enregistrer après coup, et
+  jamais pendant que Owen est en Play.
+
+Abandonné : la refonte visuelle organique (branche `feature/refonte-visuelle`, non fusionnée, gardée pour mémoire :
+shader de sol, vitrine, assets Claude Design) — Owen préfère les assets de DM en cases carrées.
 
 ## Prochaine session : attaques au cas par cas
 
@@ -70,6 +130,42 @@ d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : b
   ennemi au corps à corps ; pylônes vus avec 60 % de chances par cycle ; métal ignoré par les IA. `Navigator` ne
   relance plus l'A* à chaque pas vers une cible inaccessible (problème connu, corrigé). Banc : 14 scénarios.
 
+## Salles (branche `feature/salles`, 22/10/2026, Robin)
+
+Étape 1 faite : catalogue `rooms.json` (types, thèmes, variantes, tailles), générateur (plans de murs, décors de la ROM,
+liquide du décor), galerie des salles dans le terrain de test, `RoomCheck` (84 salles, 0 problème). Le point de départ
+est encore le centre (spawnClear réduit à 2 dans les salles) : les portes le remplaceront à l'étape 2.
+Retour de Robin (22/10/2026) : les obstacles des salles « ne marchaient pas ». Diagnostic (banc + captures `RoomShots`) :
+la mécanique marchait, mais le liquide de certains décors trompait (eau violette, sol d'eau, glace = sol) et des salles
+sortaient vides ; corrigé (aspect standard, décors écartés, nouvel essai). Banc : 22/22.
+Étage façon Isaac fait puis remplacé (22/10/2026, demande de Robin) par des **niveaux continus** façon Minecraft
+Dungeons : phase 1 faite (`LevelPlan`, `LevelRun`, zones naturelles, chemins sinueux et renfoncements, branches,
+boucles, mini-carte avec brouillard ; l'escalier orange mène désormais à l'île) ; `LevelCheck` 20 niveaux sans problème,
+exploration ≈ 2 à 4,5 min sans combat ; banc 22/22. Suite (GDD) : 2) sous-biomes (`biomes.json`, décor par case,
+transitions sur frontières naturelles), 3) passages secrets, 4) rencontres. Puis brancher les niveaux sur la vraie partie.
+**Nouvelle direction (22/10/2026)** : une run = une île flottante (GDD « L'île flottante ») ; les niveaux continus
+serviront aux chaînes d'îlots. Étapes 1 et 2 faites (données seulement) : `IslandPlan`, `IslandFeatures`, `island.json`,
+`biomes.json`, aperçu `IslandCheck`. Étape 3 faite : île jouable (escalier orange du terrain de test), décor par case,
+haies aux changements de décor, ciel autour ; pire image 24 ms en courant avec les alliés (les pics de 108 ms venaient de
+la réparation de chemin, rendue locale). Banc 24/24. Suite : 4) chaînes d'îlots, 5) sceaux et engrenages, 6) centre,
+7) rencontres.
+**Composition d'un quartier (23/10/2026, Owen, `feature/quart-ile`)** : salle de test d'un quart d'île « nature
+luxuriante » (escalier turquoise) : grande zone sans murs, rivière large et sinueuse de la pointe (centre de l'île) à
+la côte, jungle (décor 44) d'un côté, prairie fleurie (décor 5) de l'autre, 3 ponts. Point de départ pour composer les
+quartiers de l'île principale.
+**Zones séparées (22/10/2026, Owen)** : chaque quartier et le centre sont des cartes à part, murées, avec écran de
+chargement aux passages (dans les deux sens ; dernier quartier → centre). `IslandCheck.Run` : 4 îles, zones toutes
+accessibles depuis leur arrivée ; construction d'un quartier ≈ 0,9 s. Limite : une zone revisitée est reconstruite
+telle qu'à l'origine (pont brûlé, rivière gelée non gardés).
+Gels des grands niveaux corrigés par une session parallèle (pire image 167 → 31 ms ; banc 23/23), à confirmer en jeu.
+Retour de Robin sur l'étage de test : plus d'obstacles (pylônes dans les labyrinthes…) et obstacles fondus dans le décor
+(capture : vide standard bordé de bleu sur la Grotte Abîme aux murs noirs). Fait : liquide du décor par thème
+(`liquidDecors`), rochers découpés dans chaque décor, décor 26 écarté, plus d'éléments par variante.
+Décors de la ROM utiles, par donjon d'origine : lave 57/58 (Cratère Obscur), 110 (Caverne Brasier), 123 (Volcan Géant) ;
+glace 88, 111, 137, 139, 140 ; eau 4, 39, 52, 96, 113, 126 ; forêt 5, 10, 35, 44, 128 ; caverne 1, 9, 22, 49, 103, 130 ;
+désert 17, 19, 20, 85, 133 ; électrique 14 (Plaines Elek), 127 (Registeel) ; néant 26, 55 (Faille Spatiale, liquide
+noir), 59, 99 ; ruines 28, 29, 30, 45/46 (Tour du Temps) ; labyrinthe 102 (Grotte Labyrinthe).
+
 ## Objets spéciaux (branche `feature/objets`, 23/10/2026, Robin)
 
 Faits : `items.json`, collection et équipement dans la sauvegarde, encoches et écran des objets au menu, ultimes (méga
@@ -86,6 +182,12 @@ coup), à vérifier en jeu.
 - Archives qui ne servent plus (Owen peut les supprimer) : `Jeu d'action 2D pixel art*.zip`, `Groudon.zip`, `Statuts.zip` à la racine ; `Design/Attaquesbasedistance.zip`, `Design/CaC.zip`, `Design/Evolution.zip`, `Design/Jeu d'action 2D pixel art.zip`. Garder l'archive de la ROM.
 
 ## Problèmes connus et points à surveiller
+
+- Corrigé le 22/10/2026 : gels sur les grands niveaux quand le Pokémon joué survolait l'eau, la lave ou le vide (Ptéra) :
+  les alliés, sans chemin, lançaient l'A* jusqu'à sa limite puis la réparation de chemin (Dijkstra quadratique sur
+  toute la carte, toutes les 0,5 s). Correctifs : cible de suivi praticable, chemin partiel à la limite de l'A*,
+  réparation à tas binaire bornée, redessin incrémental des obstacles et du terrain. Sonde au banc (« Niveau : pas de
+  gel… ») : pire image 167 ms → 31 ms sur un niveau 360×268. Reste à confirmer en jeu par Robin.
 
 - Analyse du code (17/10/2026), corrigé : gardes du boss qui rapportaient expérience et recrues, ✕ / Espace qui esquivaient ou attaquaient en fermant un menu (entrées ignorées 0,25 s), ennemi seul forcé en soutien, écran de fin qui se fermait aussitôt (1 s avant d'accepter une touche), recul ignoré pendant l'annonce d'un ennemi, attaque possible en pleine ruée ou esquive. Restent, mineurs : les zones ne déclenchent ni drain ni recul ; tuiles non détruites à chaque `Generate()` ; Attaque / Attaque Spé proposées même sans attaque de cette catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
 

@@ -544,7 +544,8 @@ public class Combatant : MonoBehaviour
     {
         if (body == null) return;
         velocity = velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this) + Obstacles.Pull(this) // magnets drag Acier
-            + Climate.WindPush(this); // a storm's wind carries the Vol
+            + Climate.WindPush(this) // a storm's wind carries the Vol
+            + Obstacles.LedgePush(this); // a ledge carries it down
         velocity = Obstacles.Clamp(this, body.position, velocity);
         float accel = Terrain.SlideAccel(this), ground = Obstacles.SlideAccel(this);
         if (ground > 0f) accel = accel > 0f ? Mathf.Min(accel, ground) : ground;
