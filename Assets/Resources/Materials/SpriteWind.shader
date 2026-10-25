@@ -1,6 +1,7 @@
 // URP 2D's Sprite-Lit-Default with wind (Wind.cs): the rows of pixels shift sideways by whole pixels, nothing at the foot
 // of the sprite and _WindAmp pixels at its top, swinging with the global _WindStrength / _WindSpeed and leaning with
-// _WindLean (a storm). Its phase follows the world position, so that neighbours do not swing together. The sprite needs
+// _WindLean (a storm). Each element has its own phase (_WindPhase, a property block set by Wind.Sway), so that
+// neighbours do not swing together; it bends evenly from its foot, step by step. The sprite needs
 // a transparent margin of a few pixels at its sides and top (Tools/pmd/extract_map_props.py).
 Shader "Pokescrap/Sprite-Lit-Wind"
 {
@@ -52,7 +53,6 @@ Shader "Pokescrap/Sprite-Lit-Wind"
             {
                 COMMON_2D_LIT_OUTPUTS
                 half4 color        : COLOR;
-                float windX        : TEXCOORD2;
             };
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/Lit2DCommon.hlsl"
@@ -64,6 +64,7 @@ Shader "Pokescrap/Sprite-Lit-Wind"
 
             float4 _MainTex_TexelSize;
             float _WindStrength, _WindSpeed, _WindLean, _WindMax;
+            float _WindPhase; // per element (MaterialPropertyBlock)
 
             Varyings LitVertex(Attributes input)
             {
@@ -73,7 +74,6 @@ Shader "Pokescrap/Sprite-Lit-Wind"
 
                 Varyings o = CommonLitVertex(input);
                 o.color = input.color * _Color * unity_SpriteColor;
-                o.windX = TransformObjectToWorld(input.positionOS).x;
                 return o;
             }
 
@@ -82,9 +82,9 @@ Shader "Pokescrap/Sprite-Lit-Wind"
                 // Height in the sprite (its texture holds just it: 0 at the foot, 1 at the top), pixel row by row.
                 float rows = _MainTex_TexelSize.w;
                 float h = saturate(floor(input.uv.y * rows) / max(rows - 1.0, 1.0));
-                float t = _Time.y * _WindSpeed + input.windX * 0.25;
+                float t = _Time.y * _WindSpeed + _WindPhase;
                 float sway = sin(t) * 0.7 + sin(t * 2.3 + 1.7) * 0.3;
-                float shift = (sway * _WindStrength + _WindLean) * _WindAmp * h * h;
+                float shift = (sway * _WindStrength + _WindLean) * _WindAmp * h;
                 shift = clamp(round(shift), -_WindMax, _WindMax);
                 input.uv.x -= shift * _MainTex_TexelSize.x;
                 return CommonLitFragment(input, input.color);

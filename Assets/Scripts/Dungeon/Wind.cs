@@ -25,7 +25,9 @@ public class Wind : MonoBehaviour
     static readonly Dictionary<float, Material> materials = new(); // by amplitude
 
     static readonly int Strength = Shader.PropertyToID("_WindStrength"), Speed = Shader.PropertyToID("_WindSpeed"),
-        Lean = Shader.PropertyToID("_WindLean"), Max = Shader.PropertyToID("_WindMax"), Amp = Shader.PropertyToID("_WindAmp");
+        Lean = Shader.PropertyToID("_WindLean"), Max = Shader.PropertyToID("_WindMax"), Amp = Shader.PropertyToID("_WindAmp"),
+        Phase = Shader.PropertyToID("_WindPhase");
+    static MaterialPropertyBlock block;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset()
@@ -47,6 +49,19 @@ public class Wind : MonoBehaviour
             if (props != null) foreach (var p in JsonUtility.FromJson<MapPropFile>(props.text).props) groupOf[p.key] = p.group;
             return data;
         }
+    }
+
+    /// Makes that renderer of a decor element (map_props.json key) sway, with a phase of its own (from where it stands:
+    /// the same each time); nothing for an element that stays still.
+    public static void Sway(SpriteRenderer renderer, string key)
+    {
+        var material = For(key);
+        if (material == null || renderer == null) return;
+        renderer.sharedMaterial = material;
+        block ??= new MaterialPropertyBlock();
+        Vector2 at = renderer.transform.position;
+        block.SetFloat(Phase, Mathf.Repeat(at.x * 0.37f + at.y * 0.61f, Mathf.PI * 2f));
+        renderer.SetPropertyBlock(block);
     }
 
     /// The material swaying that decor element (map_props.json key), or null when it stays still.

@@ -159,7 +159,7 @@ public class IslandRun : MonoBehaviour
             go.transform.position = Cell(tile) + (at - tile - new Vector2(0.5f, 0.5f));
             var r = go.AddComponent<SpriteRenderer>();
             r.sprite = sprite;
-            if (Wind.For(key) is { } swaying) r.sharedMaterial = swaying; // trees, bushes and flowers sway
+            Wind.Sway(r, key); // trees, bushes and flowers sway
             r.sortingOrder = 1; // the Pokémon's
             r.spriteSortPoint = SpriteSortPoint.Pivot;
         }
