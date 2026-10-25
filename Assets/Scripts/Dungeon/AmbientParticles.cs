@@ -65,6 +65,7 @@ public class AmbientParticles : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.maxParticles = Mathf.Max(1, e.max);
         main.startSpeed = 0f;
+        main.startSize3D = true; // a sheet's frames keep their own width and height
         var emission = ps.emission;
         emission.enabled = false;
         var shape = ps.shape;
@@ -97,10 +98,12 @@ public class AmbientParticles : MonoBehaviour
         tiles.enabled = true;
         tiles.mode = ParticleSystemAnimationMode.Sprites;
         foreach (var f in frames) tiles.AddSprite(f);
-        if (sheet != null && sheet.loop && frames.Count > 1)
+        // A looping sheet plays over and over, one with durations plays once over the life (a bubble that bursts),
+        // the others are variants (one at random).
+        if (sheet != null && frames.Count > 1 && Total(sheet) > 0)
         {
             tiles.frameOverTime = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0f, 1f, 1f));
-            tiles.cycleCount = Mathf.Max(1, Mathf.RoundToInt(e.life[0] * 1000f / Mathf.Max(1, Total(sheet))));
+            tiles.cycleCount = sheet.loop ? Mathf.Max(1, Mathf.RoundToInt(e.life[0] * 1000f / Mathf.Max(1, Total(sheet)))) : 1;
         }
         else
         {
@@ -229,16 +232,25 @@ public class AmbientParticles : MonoBehaviour
         // Still water barely moves.
         if (e.motion == "flow" && velocity == Vector2.zero) velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 0.05f;
         // A sheet keeps its own colours; a fallback shape takes one of the effect's.
-        var colour = EffectLibrary.Get(e.sheet) != null ? Color.white : e.palette[rng.Next(e.palette.Length)];
+        var sheet = EffectLibrary.Get(e.sheet);
+        var colour = sheet != null ? Color.white : e.palette[rng.Next(e.palette.Length)];
         colour.a *= e.alpha;
+        // A sheet at its own pixel size (sharp pixel art); a fallback shape at the effect's size.
+        float size = Mathf.Lerp(e.size[0], e.size[Mathf.Min(1, e.size.Length - 1)], (float)rng.NextDouble());
+        var size3 = sheet != null
+            ? new Vector3(sheet.frame_width, sheet.frame_height, EffectLibrary.PixelsPerUnit) / EffectLibrary.PixelsPerUnit
+            : new Vector3(size, size, 1f);
+        // Foam lies along the current; spinning things start at any angle (particles turn clockwise).
+        float rotation = e.motion == "flow" && velocity.sqrMagnitude > 0.01f ? -Mathf.Atan2(velocity.y, velocity.x) * Mathf.Rad2Deg
+            : e.shape == "diamond" && sheet == null ? 45f : (float)rng.NextDouble() * (e.spin > 0f ? 360f : 0f);
         var p = new ParticleSystem.EmitParams
         {
             position = at,
             velocity = velocity,
             startLifetime = Mathf.Lerp(e.life[0], e.life[Mathf.Min(1, e.life.Length - 1)], (float)rng.NextDouble()),
-            startSize = Mathf.Lerp(e.size[0], e.size[Mathf.Min(1, e.size.Length - 1)], (float)rng.NextDouble()),
+            startSize3D = size3,
             startColor = colour,
-            rotation = e.shape == "diamond" && EffectLibrary.Get(e.sheet) == null ? 45f : (float)rng.NextDouble() * (e.spin > 0f ? 360f : 0f),
+            rotation = rotation,
             angularVelocity = e.spin * ((float)rng.NextDouble() * 2f - 1f),
         };
         e.system.Emit(p, 1);
