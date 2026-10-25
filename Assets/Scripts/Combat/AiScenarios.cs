@@ -115,7 +115,8 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Élite : brûle le pont sous un adversaire au corps à corps", EliteBurnsBridge());
         yield return Scenario("Ultime ennemi : se téracristallise dans un type qui résiste", EnemyTera());
         yield return Scenario("Ultime ennemi : capacité Z quand l'équipe est groupée", EnemyZ());
-        yield return Scenario("Ultime ennemi : méga-évolue quand un adversaire approche", EnemyMega());
+        yield return Scenario("Ultime ennemi : méga-évolue à mi-PV, pas avant", EnemyMega());
+        yield return Scenario("Seconde phase : seuil infranchissable d'un coup, soin, recharges plus courtes", SecondPhase());
         yield return Scenario("Ultime ennemi : Téra Spectre pour traverser un mur de rochers", EnemyTeraCrosses());
         yield return Scenario("Objets : le Téracristal change le type", TeraChangesType());
         yield return Scenario("Objets : une méga-gemme obtenue ne retombe plus", StonesStayUnique());
@@ -575,8 +576,8 @@ public class AiScenarios : MonoBehaviour
             $"{ultimate.LastUsed} : type {(tera >= 0 ? GameData.TypeName(tera) : "aucun")}, attaques de l'équipe ×{before:0.00} → ×{after:0.00}");
     }
 
-    // An enemy whose line has a mega (sprites included) carries its stone: once the team is near, it mega evolves,
-    // takes the mega's form and sprites.
+    // An enemy whose line has a mega (sprites included) carries its stone: not at full health, but once down to half
+    // its HP it mega evolves, takes the mega's form and sprites.
     IEnumerator EnemyMega()
     {
         var (leader, ally) = Place(new Vector2(-3f, 0f), new Vector2(-3f, 2f), settle: false);
@@ -593,11 +594,45 @@ public class AiScenarios : MonoBehaviour
         placed.Add(foe);
         var ultimate = foe.gameObject.AddComponent<EnemyUltimate>();
         ultimate.Carry(SpecialItems.Family.Mega, -1, mega);
+        bool early = ultimate.Decide();
+        foe.hp = foe.maxHp * 0.45f;
         bool used = ultimate.Decide();
         yield return new WaitForSeconds(0.5f);
         bool form = foe.Mega == mega && foe.Stats.name == mega.name;
         Restore(kept, leader, ally);
-        Report(used && ultimate.LastUsed == "mega" && form, $"{(used ? ultimate.LastUsed : "rien")} : {foe.Stats.name}");
+        Report(!early && used && ultimate.LastUsed == "mega" && form,
+            $"PV pleins : {(early ? "méga trop tôt" : "rien")}, à mi-PV : {(used ? ultimate.LastUsed : "rien")} : {foe.Stats.name}");
+    }
+
+    // An elite with a mega stone at 80 % takes a blow of 60 %: it stops at half its HP, mega evolves on its own, heals
+    // and recharges faster.
+    IEnumerator SecondPhase()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, 0f), new Vector2(-3f, 2f), settle: false);
+        var kept = Sturdy(leader, ally);
+        MegaDef mega = null;
+        foreach (var st in SpecialItems.Stones)
+        {
+            var m = GameData.Mega(st.mega);
+            if (m != null && PokemonRoster.Has(m.id) && PokemonRoster.Has(m.@base)) { mega = m; break; }
+        }
+        var spawner = FindAnyObjectByType<EnemySpawner>();
+        var foe = mega != null && spawner != null ? spawner.SpawnFighter(mega.@base, null, Centre + new Vector2(2f, 0f), false, false, 5, 1000f) : null;
+        if (foe == null) { Restore(kept, leader, ally); Report(false, "pas de Pokémon à méga"); yield break; }
+        placed.Add(foe);
+        foe.gameObject.AddComponent<EliteMark>();
+        var ultimate = foe.gameObject.AddComponent<EnemyUltimate>();
+        ultimate.Carry(SpecialItems.Family.Mega, -1, mega);
+        float cooldown = foe.cooldownMul;
+        foe.hp = foe.maxHp * 0.8f;
+        foe.TakeFixedDamage(foe.maxHp * 0.6f);
+        float floored = foe.hp / foe.maxHp;
+        yield return new WaitForSeconds(1f);
+        float after = foe.hp / foe.maxHp;
+        bool faster = foe.cooldownMul < cooldown * 0.9f;
+        Restore(kept, leader, ally);
+        Report(Mathf.Abs(floored - 0.5f) < 0.02f && ultimate.LastUsed == "mega" && after > 0.6f && faster && foe.phaseFloorShare == 0f,
+            $"après le coup : {floored:P0} des PV, {(ultimate.LastUsed == "mega" ? "méga" : "pas de méga")}, puis {after:P0}, recharges ×{foe.cooldownMul / cooldown:0.00}");
     }
 
     // A wall of rocks from wall to wall between an elite and the team: only a Spectre goes through. It picks the
@@ -686,7 +721,11 @@ public class AiScenarios : MonoBehaviour
     const int Salameche = 4, Rattata = 19, Soin = 117;
     Combatant third; // third team member, added for the rescue scenarios
 
-    static void KnockOut(Combatant c) => c.TakeFixedDamage(c.hp + 1f);
+    static void KnockOut(Combatant c)
+    {
+        c.phaseFloorShare = 0f; // no second phase in the way
+        c.TakeFixedDamage(c.hp + 1f);
+    }
 
     // The third member is knocked out far from the controlled Pokémon, nobody around: the ally walks to it and stands
     // on it until it is back.
@@ -991,7 +1030,7 @@ public class AiScenarios : MonoBehaviour
         string name = c != null ? c.Stats.name : null; // the champion is gone once knocked out
         Loot.DropsInSandbox = true;
         if (c != null) c.Hold(null); // a Focus Sash would keep it standing
-        if (c != null) c.TakeFixedDamage(c.hp + 1f);
+        if (c != null) KnockOut(c);
         yield return new WaitForFixedUpdate();
         Loot.DropsInSandbox = false;
         bool dropped = System.Array.Exists(FindObjectsByType<Transform>(), t => t.name.StartsWith("Objet :"));
@@ -1021,7 +1060,7 @@ public class AiScenarios : MonoBehaviour
         for (int i = 0; i < spawned.Count; i++)
         {
             spawned[i].Hold(null); // a Focus Sash would keep it standing
-            spawned[i].TakeFixedDamage(spawned[i].hp + 1f);
+            KnockOut(spawned[i]);
             yield return new WaitForFixedUpdate();
             if (i < spawned.Count - 1 && Dropped()) early = true;
         }
@@ -1122,7 +1161,7 @@ public class AiScenarios : MonoBehaviour
         bag.Clear();
         var foe = Enemy(BatchTeam[1], new Vector2(0f, 0f));
         Loot.Mark(foe);
-        foe.TakeFixedDamage(foe.hp + 1f);
+        KnockOut(foe);
         yield return new WaitForFixedUpdate();
         Transform drop = null;
         foreach (var t in FindObjectsByType<Transform>())
@@ -1214,7 +1253,7 @@ public class AiScenarios : MonoBehaviour
         Place(new Vector2(-6f, 0f), new Vector2(-6f, 3f), settle: false);
         var foe = Enemy(BatchTeam[1], new Vector2(3f, 0f));
         foe.Hold(HeldItems.Get("life_orb"));
-        foe.TakeFixedDamage(foe.hp + 1f);
+        KnockOut(foe);
         yield return new WaitForFixedUpdate();
         bool dropped = System.Array.Exists(FindObjectsByType<Transform>(), t => t != null && t.name == "Objet tenu : Orbe Vie");
         FindAnyObjectByType<Loot>().ClearGround();

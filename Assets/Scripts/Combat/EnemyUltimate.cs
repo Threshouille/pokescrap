@@ -50,10 +50,19 @@ public class EnemyUltimate : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (used || Time.time < nextCheck || self == null || !self.IsAlive || self.IsEvolving || !self.CanAttack) return;
+        if (used || self == null || !self.IsAlive || self.IsEvolving) return;
+        if (Item == SpecialItems.Family.None) ChooseItem(); // early, so that the HP floor of its second phase holds
+        // Down to its second phase's threshold: right away, even stunned (the floor keeps it there until then).
+        bool phase = PhaseReady && (Item == SpecialItems.Family.Mega || Item == SpecialItems.Family.Tera);
+        if (!phase && (Time.time < nextCheck || !self.CanAttack)) return;
         nextCheck = Time.time + SpecialItems.Enemy.checkEvery;
         Decide();
     }
+
+    /// Down to the share of its HP where a mega or a Tera opens its second phase.
+    public bool PhaseReady => self.hp <= self.maxHp * SpecialItems.Enemy.phaseHealth + 0.5f;
+
+    bool Major => self.IsElite || GetComponent<BossAI>() != null;
 
     /// Gives it that item instead of the one it would pick (tests).
     public void Carry(SpecialItems.Family family, int type, MegaDef mega = null)
@@ -61,6 +70,9 @@ public class EnemyUltimate : MonoBehaviour
         Item = family;
         ItemType = type;
         ItemMega = mega;
+        // Elites and bosses can't be taken past their second phase in one blow.
+        bool phased = family == SpecialItems.Family.Mega || family == SpecialItems.Family.Tera;
+        if (self != null) self.phaseFloorShare = phased && Major && !used ? SpecialItems.Enemy.phaseHealth : 0f;
     }
 
     /// The mega evolutions of its current form that have sprites.
@@ -94,13 +106,13 @@ public class EnemyUltimate : MonoBehaviour
         if (Item == SpecialItems.Family.None) ChooseItem();
         var s = SpecialItems.Enemy;
         if (Item == SpecialItems.Family.Mega && ItemMega != null && self.Mega == null
-            && (self.hp <= self.maxHp * s.teraHealth || Nearest(s.megaRange) != null))
+            && PhaseReady)
         {
             MegaUp(ItemMega);
             return true;
         }
         if (Item == SpecialItems.Family.Tera && self.TeraType < 0
-            && (self.hp <= self.maxHp * s.teraHealth || Crosses(ItemType) || (TeraForTerrain && Nearest(s.zRange) != null)))
+            && (PhaseReady || Crosses(ItemType) || (TeraForTerrain && Nearest(s.zRange) != null)))
         {
             Tera(ItemType);
             return true;
@@ -206,6 +218,29 @@ public class EnemyUltimate : MonoBehaviour
         Ultimates.Aura(self, pose, Color.white);
         EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
         progression?.Announce($"{name} ennemi méga-évolue en {mega.name} !", Notice.Elite);
+        SecondPhase();
+    }
+
+    /// Its second phase: heals (elites and bosses more), recharges faster, pushes the opponents away from the change.
+    void SecondPhase()
+    {
+        var s = SpecialItems.Enemy;
+        self.phaseFloorShare = 0f;
+        float share = GetComponent<BossAI>() != null ? s.phaseHealBoss : self.IsElite ? s.phaseHeal : s.phaseHealRanked;
+        self.Heal(self.maxHp * share);
+        self.cooldownMul *= s.phaseCooldownMul;
+        float radius = SaveData.Settings.shockwaveRadius;
+        Vector2 centre = transform.position;
+        var wave = EffectPlayer.Spawn("evolution_onde", centre, Vector2.right, size: 2f * radius);
+        if (wave == null) Shapes.Pulse(centre, radius, Color.white);
+        foreach (var c in Combatant.All.ToArray())
+        {
+            if (c == null || !c.IsAlive || c.team == self.team) continue;
+            Vector2 away = (Vector2)c.transform.position - centre;
+            if (away.magnitude > radius) continue;
+            if (away == Vector2.zero) away = Vector2.right;
+            c.Knockback(away.normalized * s.phaseKnockback / Combatant.KnockbackTime, Combatant.KnockbackTime);
+        }
     }
 
     // Types of the damaging moves of the living opponents (each move counts once per Pokémon).
@@ -236,6 +271,7 @@ public class EnemyUltimate : MonoBehaviour
         if (EffectLibrary.Get("tera_eclat") != null) EffectPlayer.Spawn("tera_eclat", transform.position, Vector2.right);
         else EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
         progression?.Announce($"{self.Stats.name} ennemi se téracristallise : type {GameData.TypeName(type)} !", Notice.Elite);
+        SecondPhase();
     }
 
     // ---- Z move ----

@@ -512,7 +512,6 @@
  "enemy": {
   "startDelay": 4,
   "checkEvery": 0.5,
-  "teraHealth": 0.75,
   "teraMinGain": 0.2,
   "zMinTargets": 2,
   "zRange": 8,
@@ -520,11 +519,10 @@
   "level": 1,
   "zMaxShare": 0.4,
   "megaChance": 0.6,
-  "megaRange": 6,
   "teraCrossBonus": 0.5,
   "teraTerrainBonus": 0.6,
   "terrainRadius": 8,
-  "terrainMinTiles": 4
+  "terrainMinTiles": 4, "phaseHealth": 0.5, "phaseHeal": 0.3, "phaseHealBoss": 0.2, "phaseHealRanked": 0.1, "phaseCooldownMul": 0.8, "phaseKnockback": 3
  },
- "_comment_enemy": "enemy : ultimes des élites et des boss (EnemyUltimate). Chacun porte un seul objet, donc un seul ultime, une seule fois, choisi quand il examine le combat pour la première fois d'après l'équipe du joueur : un Téra-Éclat si un type réduit d'au moins teraMinGain le multiplicateur moyen de leurs attaques contre lui (utilisé quand ses PV tombent sous teraHealth), sinon le cristal Z de sa plus forte attaque (utilisé quand au moins zMinTargets adversaires sont à moins de zRange cases, ou qu'un seul perdrait zKillShare de ses PV restants ; au plus zMaxShare des PV max de chaque cible ; son terrain n'agit jamais sur l'équipe du lanceur). startDelay : secondes avant le premier examen, checkEvery : entre deux ; level : niveau de l'objet. Méga-gemme : quand la lignée de l'ennemi a une méga avec ses sprites, il la porte avec la probabilité megaChance et méga-évolue dès qu'un adversaire est à moins de megaRange cases (ou sous teraHealth). Téra et terrain : un type qui franchit l'obstacle (eau, lave, vide, rocher…) entre l'ennemi et sa cible gagne teraCrossBonus dans le choix, et l'ennemi se téracristallise dès qu'il en est bloqué. Téra et déplacement : parmi les obstacles qui l'arrêtent à moins de terrainRadius cases (au moins terrainMinTiles cases), la part qu'un type lui ferait franchir (Eau ou Vol sur l'eau, Feu ou Vol sur la lave, Vol ou Spectre sur le vide, Spectre dans les rochers) vaut jusqu'à teraTerrainBonus dans le choix ; un Téra choisi surtout pour le terrain est utilisé dès qu'un adversaire est à moins de zRange cases."
+ "_comment_enemy": "enemy : ultimes des élites et des boss (EnemyUltimate). Chacun porte un seul objet, donc un seul ultime, une seule fois, choisi quand il examine le combat pour la première fois d'après l'équipe du joueur : un Téra-Éclat si un type réduit d'au moins teraMinGain le multiplicateur moyen de leurs attaques contre lui (utilisé quand ses PV tombent sous phaseHealth), sinon le cristal Z de sa plus forte attaque (utilisé quand au moins zMinTargets adversaires sont à moins de zRange cases, ou qu'un seul perdrait zKillShare de ses PV restants ; au plus zMaxShare des PV max de chaque cible ; son terrain n'agit jamais sur l'équipe du lanceur). startDelay : secondes avant le premier examen, checkEvery : entre deux ; level : niveau de l'objet. Méga-gemme : quand la lignée de l'ennemi a une méga avec ses sprites, il la porte avec la probabilité megaChance et méga-évolue quand ses PV tombent sous phaseHealth. Téra et terrain : un type qui franchit l'obstacle (eau, lave, vide, rocher…) entre l'ennemi et sa cible gagne teraCrossBonus dans le choix, et l'ennemi se téracristallise dès qu'il en est bloqué. Téra et déplacement : parmi les obstacles qui l'arrêtent à moins de terrainRadius cases (au moins terrainMinTiles cases), la part qu'un type lui ferait franchir (Eau ou Vol sur l'eau, Feu ou Vol sur la lave, Vol ou Spectre sur le vide, Spectre dans les rochers) vaut jusqu'à teraTerrainBonus dans le choix ; un Téra choisi surtout pour le terrain est utilisé dès qu'un adversaire est à moins de zRange cases. Seconde phase (méga ou Téra) : sous phaseHealth de ses PV ; une élite ou un boss ne peut pas franchir ce seuil d'un seul coup (Combatant.phaseFloorShare) ; à la transformation il regagne phaseHeal de ses PV max (boss : phaseHealBoss, ennemi d'un rang à objet : phaseHealRanked), ses recharges × phaseCooldownMul, et une onde repousse les adversaires proches (phaseKnockback cases, rayon shockwaveRadius de meta.json). La capacité Z ne soigne pas."
 }

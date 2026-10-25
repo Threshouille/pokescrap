@@ -73,6 +73,11 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   seul ultime, une seule fois ; l'objet est choisi d'après l'équipe du joueur : Téracristal défensif quand ils sont blessés et qu'un type encaisse mieux les attaques
   de l'équipe, capacité Z quand l'équipe est groupée ou qu'une cible est presque K.O. (bandeau d'alerte pendant la pose,
   dégâts plafonnés). Le terrain d'une capacité Z n'agit jamais sur l'équipe de son lanceur. Les élites modifient aussi le terrain comme les alliés (gèlent une rivière, brûlent un pont).
+- Seconde phase (décidé le 25/10/2026, Robin) : la méga et la Téra d'un ennemi ouvrent une seconde phase à 50 % de ses
+  PV (plus jamais au premier contact) ; une élite ou un boss ne peut pas franchir ce seuil d'un seul coup. À la
+  transformation (immobile et invincible un instant, onde qui repousse l'équipe) : +30 % des PV max (boss +20 %, ennemi
+  d'un rang à objet +10 %), recharges × 0,8, en plus des statistiques ou du type. La capacité Z ne soigne pas ; la méga
+  et la Téra du joueur non plus. En contrepartie, le champion passe de 6 à 5 fois les PV.
 - Obtention (à affiner) : boss (méga-gemme non possédée, compatible avec l'équipe en priorité), coffre de fin d'étape
   (Z ou Téra pondérés vers les types de l'équipe), rare ennemi d'élite ; plus tard défis, quêtes, îlots, boutique.
 

@@ -1327,8 +1327,14 @@ public class Combatant : MonoBehaviour
         healFlashUntil = Time.time + 2f * HitFlashTime;
     }
 
+    /// An elite or a boss keeping its second phase (EnemyUltimate): a blow that would cross this share of its HP stops
+    /// there; 0 when it has none (or has used it).
+    public float phaseFloorShare;
+
     void LoseHp(float amount)
     {
+        float floor = maxHp * phaseFloorShare;
+        if (phaseFloorShare > 0f && hp > floor && hp - amount < floor) amount = hp - floor;
         // A Focus Sash: a blow that would knock it out leaves it 1 HP, once, and the sash is gone.
         if (Held != null && Held.sash && hp > 1f && hp - amount <= 0f)
         {
