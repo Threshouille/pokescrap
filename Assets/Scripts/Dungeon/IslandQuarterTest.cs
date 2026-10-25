@@ -725,6 +725,7 @@ public partial class IslandPlan
             }
             else if (decor[i] == rockDecor) decor[i] = 0;
         }
+        if (caveMask != null) MarkCaveDoor(r.cave);
         // The ground at the foot of a face, in its shadow (drawn in the face's style).
         for (int i = 0; i < n - size; i++)
             if (cliffStyle[i] == 0 && region[i] == 0 && AtFoot(i)) cliffStyle[i] = cliffStyle[i + size];

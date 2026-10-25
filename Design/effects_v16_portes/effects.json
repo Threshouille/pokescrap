@@ -1,0 +1,255 @@
+{
+  "seal_door": {
+    "file": "seal_door.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4"
+    ]
+  },
+  "seal_door_lava": {
+    "file": "seal_door_lava.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 3,
+    "frame_duration_ms": [
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#1a1010",
+      "#6a1810",
+      "#d03018",
+      "#ff8a30",
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4"
+    ]
+  },
+  "seal_door_fumaroles": {
+    "file": "seal_door_fumaroles.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 6,
+    "frame_duration_ms": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      100
+    ],
+    "loop": true,
+    "palette": [
+      "#3a2a20",
+      "#6a4a32",
+      "#9a7050",
+      "#6a1810",
+      "#d03018",
+      "#ff8a30",
+      "#c8c0b4",
+      "#ffffff"
+    ]
+  },
+  "seal_door_ice": {
+    "file": "seal_door_ice.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 3,
+    "frame_duration_ms": [
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a6aa0",
+      "#7ab0e0",
+      "#c0e4ff",
+      "#ffffff",
+      "#6ab0e8"
+    ]
+  },
+  "seal_door_icicles": {
+    "file": "seal_door_icicles.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a6aa0",
+      "#7ab0e0",
+      "#c0e4ff",
+      "#ffffff"
+    ]
+  },
+  "seal_door_sea": {
+    "file": "seal_door_sea.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 4,
+    "frame_duration_ms": [
+      150,
+      150,
+      150,
+      150
+    ],
+    "loop": true,
+    "palette": [
+      "#1a3a6a",
+      "#2a6ab0",
+      "#6ab0e8",
+      "#e0f4ff"
+    ]
+  },
+  "seal_door_vines": {
+    "file": "seal_door_vines.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#1a3a1a",
+      "#3a6a2a",
+      "#6aa03a",
+      "#e05a8a",
+      "#a03060",
+      "#f0dca0"
+    ]
+  },
+  "seal_door_tree": {
+    "file": "seal_door_tree.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 4,
+    "frame_duration_ms": [
+      300,
+      300,
+      300,
+      300
+    ],
+    "loop": true,
+    "palette": [
+      "#3a2410",
+      "#6a4420",
+      "#9a6a3a",
+      "#ffffff"
+    ]
+  },
+  "seal_door_flowers": {
+    "file": "seal_door_flowers.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#1a3a1a",
+      "#3a6a2a",
+      "#6aa03a",
+      "#a03060",
+      "#e05a8a",
+      "#f8a0c0",
+      "#a07010",
+      "#f0c030",
+      "#fff0a0"
+    ]
+  },
+  "seal_door_sand": {
+    "file": "seal_door_sand.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#a07a40",
+      "#d0b070",
+      "#f0dca0",
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4"
+    ]
+  },
+  "seal_door_runes": {
+    "file": "seal_door_runes.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 2,
+    "frame_duration_ms": [
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#4a4a5a",
+      "#8a8a9a",
+      "#acacb8",
+      "#6a7aff",
+      "#c0c8ff"
+    ]
+  },
+  "seal_door_lock": {
+    "file": "seal_door_lock.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a2410",
+      "#6a4420",
+      "#9a6a3a",
+      "#2a2a30",
+      "#4a4a52",
+      "#6a6a74",
+      "#9a9aa4"
+    ]
+  },
+  "seal_door_shells": {
+    "file": "seal_door_shells.png",
+    "frame_width": 72,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a2a20",
+      "#6a4a32",
+      "#9a7050",
+      "#c8a078",
+      "#c04a5a",
+      "#f0909a",
+      "#7a5058",
+      "#c89aa0",
+      "#f0d0d4",
+      "#ffffff"
+    ]
+  }
+}

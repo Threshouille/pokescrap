@@ -34,7 +34,7 @@ public class CaveSeal : MonoBehaviour
     CaveSeals.Seal seal;
     readonly List<Part> parts = new();
     GameObject root;
-    SpriteRenderer mark;
+    SpriteRenderer door, mark;
     float markSince;
     int hits;
     float teamNear;
@@ -96,11 +96,18 @@ public class CaveSeal : MonoBehaviour
             BuildPart(part);
             parts.Add(part);
         }
-        // The mark of every sealed cave, on its door.
+        // The door's sheet over its 3 × 2 tiles, the mark of every sealed cave at its top: over the walls (-1), under
+        // the Pokémon.
+        var front = new GameObject("Porte");
+        front.transform.SetParent(root.transform, false);
+        front.transform.position = island.Cell(plan.sealedCaveFront + Vector2Int.up) + Vector2.up * 0.5f;
+        front.AddComponent<SortingGroup>().sortingOrder = 0;
+        door = new GameObject("Planche").AddComponent<SpriteRenderer>();
+        door.transform.SetParent(front.transform, false);
         mark = new GameObject("Repère").AddComponent<SpriteRenderer>();
-        mark.transform.SetParent(root.transform, false);
-        mark.transform.position = island.Cell(plan.sealedCaveFront + Vector2Int.up) + Vector2.up * 0.1f;
-        mark.sortingOrder = 0; // over the walls (-1), under the Pokémon
+        mark.transform.SetParent(front.transform, false);
+        mark.transform.localPosition = Vector2.up * 0.75f;
+        mark.sortingOrder = 1;
         markSince = Time.time;
     }
 
@@ -190,9 +197,14 @@ public class CaveSeal : MonoBehaviour
         if (root == null || seal == null) return;
         if (root.activeSelf == island.Away) root.SetActive(!island.Away); // not in another room
         bool open = Plan != null && Plan.caveOpen;
-        if (mark != null)
+        if (mark != null) mark.sprite = open ? null : FrameOf("seal_mark", Time.time - markSince, 0, out _);
+        if (door != null)
         {
-            mark.sprite = open ? null : FrameOf("seal_mark", Time.time - markSince, 0, out _);
+            // A looping door plays; the others show how worn they are (hits), the runes lit while a reader is near.
+            var sheet = EffectLibrary.Get(seal.door);
+            int stage = seal.kind == "team" ? (teamNear > 0f ? 1 : 0) : hits;
+            door.sprite = open || sheet == null ? null
+                : sheet.loop ? FrameOf(seal.door, Time.time - markSince, 0, out _) : sheet.Frame(Mathf.Clamp(stage, 0, sheet.frame_count - 1));
         }
         var icons = Icons();
         var icon = icons.Count > 0 ? icons[(int)(Time.time / CycleTime) % icons.Count] : null;
@@ -307,6 +319,10 @@ public class CaveSeal : MonoBehaviour
             float d = Vector2.Distance(at, p.root.transform.position + Vector3.up * 0.3f);
             if (d <= best) { best = d; hit = p; }
         }
+        // An element seal also takes the blows aimed at its door (they count on the stele).
+        if (hit == null && seal.kind == "element" && door != null && parts.Count > 0
+            && Mathf.Abs(at.x - door.transform.position.x) <= 1.5f + Mathf.Max(radius, 0f)
+            && Mathf.Abs(at.y - door.transform.position.y) <= 1f + Mathf.Max(radius, 0f)) hit = parts[0];
         if (hit == null) return;
         bool typed = System.Array.IndexOf(seal.types, move.type) >= 0;
         switch (seal.kind)

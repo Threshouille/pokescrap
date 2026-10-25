@@ -9,7 +9,7 @@ public class CaveSeals
     [Serializable]
     public class Seal
     {
-        public string key, name, kind = "element", hint;
+        public string key, name, kind = "element", hint, door = "seal_door"; // door: its sheet (Resources/Effects)
         public string[] biomes = new string[0]; // sub-biome or theme keys; none: anywhere
         public float weight = 1f;
         public int[] types = new int[0], pokemon = new int[0];
@@ -156,7 +156,7 @@ public partial class IslandPlan
         foreach (var p in sealedCaveRect.allPositionsWithin)
         {
             int i = Index(p.x, p.y);
-            if (face[i] > 1) continue;
+            if (face[i] > 1 || caveDoor.Contains(i)) continue; // the door stays in sight
             roof[i] = true;
             if (face[i] == 1 || wall[i]) continue;
             decor[i] = c.decor;
@@ -164,25 +164,31 @@ public partial class IslandPlan
         }
     }
 
-    /// Opens the door: its face tiles become the cave's mouth (walkable, dark). Returns the tiles changed (the door and
-    /// the row at its foot, whose shadow goes).
+    /// The door drawn as the cave's mouth (dark, cut in the face) from the start, still a wall: the seal's sheet
+    /// (CaveSeal) shuts it, and the dark mouth shows where it does not cover it all.
+    void MarkCaveDoor(Cave c)
+    {
+        int left = int.MaxValue, right = int.MinValue;
+        foreach (int i in caveDoor) { left = Mathf.Min(left, i % size); right = Mathf.Max(right, i % size); }
+        foreach (int i in caveDoor)
+        {
+            cut[i] = 2;
+            cutPart[i] = (sbyte)(i % size == left ? -1 : i % size == right ? 1 : 0);
+            decor[i] = c.decor;
+            shadeOverride[i] = c.mouthShade;
+        }
+    }
+
+    /// Opens the door: its tiles become walkable. Returns them, to be drawn again.
     public List<int> OpenCave()
     {
         var changed = new List<int>();
         if (caveOpen || caveDoor.Count == 0) return changed;
         caveOpen = true;
-        var c = relief?.cave ?? new Cave();
-        int left = int.MaxValue, right = int.MinValue;
-        foreach (int i in caveDoor) { left = Mathf.Min(left, i % size); right = Mathf.Max(right, i % size); }
         foreach (int i in caveDoor)
         {
             wall[i] = false;
-            cut[i] = 2;
-            cutPart[i] = (sbyte)(i % size == left ? -1 : i % size == right ? 1 : 0);
-            decor[i] = c.decor;
-            shadeOverride[i] = c.mouthShade;
             changed.Add(i);
-            if (i - size >= 0 && !caveDoor.Contains(i - size)) changed.Add(i - size);
         }
         return changed;
     }
