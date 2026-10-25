@@ -87,6 +87,7 @@ public class DamageNumber : MonoBehaviour
             glyph.transform.SetParent(go.transform, false);
             glyph.transform.localPosition = new Vector3(left + i * GlyphSpacing, 0f, 0f);
             var renderer = glyph.AddComponent<SpriteRenderer>();
+            Unlit.Apply(renderer); // keeps its colours at night (DayNight)
             renderer.sprite = SpriteOf(text[i]);
             renderer.color = color;
             renderer.sortingOrder = SortingOrder;

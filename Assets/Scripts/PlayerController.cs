@@ -90,11 +90,17 @@ public class PlayerController : MonoBehaviour
         aimArrow = new GameObject("AimArrow").transform;
         aimArrow.localScale = Vector3.one * ArrowSize;
         var arrowRenderer = aimArrow.gameObject.AddComponent<SpriteRenderer>();
+        Unlit.Apply(arrowRenderer); // keeps its colours at night (DayNight)
         arrowRenderer.sprite = Shapes.Arrow;
         arrowRenderer.color = ArrowColor;
         arrowRenderer.sortingOrder = 0; // above the floor, under the Pokémon
         aimArrow.gameObject.SetActive(false);
         gameObject.AddComponent<Progression>();
+        gameObject.AddComponent<DayNight>();
+        gameObject.AddComponent<PointLights>();
+        gameObject.AddComponent<AmbientParticles>();
+        gameObject.AddComponent<Wind>();
+        gameObject.AddComponent<DayNightEffects>();
         gameObject.AddComponent<Evolution>();
         gameObject.AddComponent<Ultimates>();
         gameObject.AddComponent<Bag>(); // the team's shared consumables
@@ -228,6 +234,7 @@ public class PlayerController : MonoBehaviour
     static SpriteRenderer MakeRing(string name, Color color)
     {
         var ring = new GameObject(name).AddComponent<SpriteRenderer>();
+        Unlit.Apply(ring); // keeps its colours at night (DayNight)
         ring.sprite = Shapes.Ring;
         ring.color = color;
         ring.sortingOrder = 0; // on the ground: the Pokémon (order 1) are always drawn over it
@@ -414,6 +421,7 @@ public class PlayerController : MonoBehaviour
         bar.localPosition = new Vector3(0f, GaugeY, 0f);
         bar.localScale = new Vector3(GaugeWidth, GaugeHeight, 1f);
         var renderer = bar.gameObject.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.sprite = Shapes.Square;
         renderer.color = color;
         renderer.sortingOrder = order;

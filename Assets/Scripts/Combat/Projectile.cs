@@ -15,6 +15,7 @@ public class Projectile : MonoBehaviour
     Combatant owner;
     int level; // the level of ground it was shot from: it flies over the cliffs no higher (DungeonGenerator.ShotPasses)
     MoveDef move;
+    public MoveDef Move => move;
     float damage; // raw, before the target's defence
     float radius, baseRadius;
     Vector3 baseScale;
@@ -55,6 +56,7 @@ public class Projectile : MonoBehaviour
         {
             go.transform.localScale = Vector3.one * move.radius * 2f;
             var renderer = go.AddComponent<SpriteRenderer>();
+            Unlit.Apply(renderer); // keeps its colours at night (DayNight)
             renderer.sprite = Shapes.Circle;
             renderer.color = GameData.TypeColor(move.type);
             renderer.sortingOrder = 2;

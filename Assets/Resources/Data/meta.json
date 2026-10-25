@@ -74,6 +74,5 @@
   "megaCastTime": 1.5,
   "evolutionCardChance": 0.5,
   "statTieMargin": 0.1,
-  "nightColor": "#0a1440",
-  "nightAlpha": 0.3
+  "postProcessing": true
 }

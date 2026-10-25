@@ -1,0 +1,47 @@
+{
+ "comment": "Wind in the vegetation (Wind.cs, shader Pokescrap/Sprite-Lit-Wind; GDD, 'Jour et nuit'): the decor elements of map_props.json sway, `amplitude` pixels at the top of the sprite for each group (it bends evenly from its foot, a pixel step at a time) (0: still; a group not listed: default). calm: strength of the breeze; storm: strength while a storm blows (Climate.WindNow), lean: pixels they lean towards it (× amplitude); speed: radians a second of the swing; max: pixels at most (the transparent margin of the sprites, extract_map_props.py). The leaves (ambient.json, `wind`) drift with the storms too.",
+ "calm": 0.8,
+ "storm": 2.0,
+ "lean": 0.8,
+ "speed": 1.6,
+ "max": 3,
+ "default": 2,
+ "groups": [
+  {
+   "group": "tree",
+   "amplitude": 2
+  },
+  {
+   "group": "jungle_big",
+   "amplitude": 2
+  },
+  {
+   "group": "jungle_palm",
+   "amplitude": 2.5
+  },
+  {
+   "group": "jungle_fern",
+   "amplitude": 3
+  },
+  {
+   "group": "meadow_bush",
+   "amplitude": 2
+  },
+  {
+   "group": "meadow_flowers",
+   "amplitude": 3
+  },
+  {
+   "group": "meadow_rock",
+   "amplitude": 0
+  },
+  {
+   "group": "jungle_rock",
+   "amplitude": 0
+  },
+  {
+   "group": "stump",
+   "amplitude": 0
+  }
+ ]
+}

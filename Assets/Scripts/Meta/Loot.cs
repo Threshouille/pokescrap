@@ -176,6 +176,7 @@ public class Loot : MonoBehaviour
         var go = new GameObject($"{(item.consumable != null ? "Consommable" : item.held != null ? "Objet tenu" : "Objet")} : {Describe(item, 0)}");
         go.transform.position = at;
         var r = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(r); // keeps its colours at night (DayNight)
         r.sortingOrder = 2;
         var bagItem = item.consumable != null ? BagItems.Get(item.consumable) : null;
         var heldItem = item.held != null ? HeldItems.Get(item.held) : null;
@@ -203,6 +204,7 @@ public class Loot : MonoBehaviour
         {
             // Its tier: a thin ring of the tier's colour under it (bronze, silver, gold), like the enemies' ranks.
             var ring = new GameObject("Tier").AddComponent<SpriteRenderer>();
+            Unlit.Apply(ring); // keeps its colours at night (DayNight)
             ring.transform.SetParent(go.transform, false);
             ring.transform.localPosition = new Vector3(0f, -0.35f, 0f);
             ring.transform.localScale = new Vector3(1.3f, 0.55f, 1f);
@@ -355,6 +357,7 @@ public class Loot : MonoBehaviour
     {
         var mark = c.gameObject.AddComponent<EliteMark>();
         var ring = new GameObject("Aura d'élite").AddComponent<SpriteRenderer>();
+        Unlit.Apply(ring); // keeps its colours at night (DayNight)
         ring.transform.SetParent(c.transform, false);
         ring.transform.localPosition = new Vector3(0f, -0.3f, 0f);
         ring.transform.localScale = new Vector3(1.1f, 0.5f, 1f);

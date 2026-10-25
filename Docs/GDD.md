@@ -163,7 +163,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Les Pokémon évoluent pendant la partie. On débloque toujours la première forme d'une lignée.
 - Évolution (plan validé par Owen le 17/10/2026, fait le même jour ; à tester à la manette) :
   - Manuelle : quand les conditions sont réunies (y compris par niveau), le joueur appuie sur Triangle. Animation : silhouettes blanches de l'ancienne et de la nouvelle forme qui alternent (environ 2,5 s, Pokémon immobile et invincible), puis onde de choc de 5 cases (recul de 2 cases, dégâts 15 + niveau).
-  - Jour et nuit alternent à chaque étape (évolutions de jour ou de nuit).
+  - Évolutions de jour ou de nuit : selon l'horloge du jour (voir « Jour et nuit »).
   - QI : +1 par seconde quand le Pokémon est contrôlé par le joueur (remplace le bonheur).
   - Genre et hasard (Chenipotte) tirés en début de partie.
   - Beauté (Barpau) : +1 par seconde sans être touché, −10 par coup reçu, évolution à 100.
@@ -287,6 +287,29 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Combats libres en général ; sortie bloquée (barrière de glace ou de ronces) pour les défis et le boss.
 - Ordre : 1) carte continue (zones, chemins, branches, mini-carte), 2) sous-biomes et transitions, 3) exploration,
   4) rencontres (ennemis par zone, défis, sous-boss, boss).
+
+### Jour et nuit (décidé le 25/10/2026, Owen ; branche `feature/jour-nuit`)
+- Un cycle de 10 minutes réelles (aube 1 min, jour 5, crépuscule 1, nuit 3), arrêté pendant les pauses ; une partie
+  commence à une heure tirée au hasard. Il remplace l'alternance jour / nuit par étape.
+- Éclairage : la lumière globale change de couleur et d'intensité selon la phase (orangé, blanc, rose-orangé, bleu
+  sombre mais jouable) ; barres de vie, nombres, visées, icônes et effets d'attaque restent non éclairés.
+- La nuit compte pour les évolutions de nuit et les sceaux de nuit des grottes.
+- **Pour Robin (rencontres)** : la nuit doit influer sur les Pokémon qui apparaissent : types Spectre et Ténèbres plus
+  fréquents, une liste de Pokémon nocturnes favorisés (Hoothoot, Nosferapti, Mimigal, Ténéfix, Feuforêve…), et
+  éventuellement des Pokémon de jour seulement ou de nuit seulement ; poids dans `encounters.json`, phase lue par
+  `DayNight.IsNight` (ou `DayNight.Now`).
+- Lumières ponctuelles (fait le 25/10/2026) : Pokémon Feu (et Loupio, Lanturn, Muciole, Lumivole), tirs et impacts Feu et
+  Électrik, lave et braises, braseros, repère et entrée des grottes, escaliers, arcs des pylônes ; presque invisibles le
+  jour, pleines la nuit.
+- Eau animée (fait le 25/10/2026) : l'animation de palette de la ROM (miroitement de l'eau, lueur de la lave, cristaux)
+  sur les sols, murs et obstacles des décors. Sens du courant des rivières : avec les particules.
+- Particules d'ambiance (fait le 25/10/2026, planches Claude Design) : lucioles (forêts,
+  prairie, crépuscule et nuit), feuilles, pétales, pollen, braises (volcan, lave), neige, poussière (désert, ruines),
+  courant des rivières (reflets qui descendent vers la côte), bulles de lave.
+- Vent dans la végétation (fait le 25/10/2026) : arbres, palmiers, buissons, fougères et fleurs ondulent au pixel près
+  (pied fixe), plus fort et penchés pendant une tempête ; les feuilles et la neige dérivent avec le vent.
+- Post-traitement (fait le 25/10/2026) : bloom (lave, feu, lucioles et lumières brillent la nuit), couleurs et vignette
+  par phase, en fondu avec l'horloge ; coupable dans `meta.json` (`postProcessing`).
 
 ### Types et environnement
 - La table des types est conservée (avantages et faiblesses), celle de la 4e génération (époque de la ROM).

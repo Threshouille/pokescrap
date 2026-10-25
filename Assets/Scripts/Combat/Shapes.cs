@@ -122,6 +122,7 @@ public static class Shapes
         go.transform.position = position;
         go.transform.localScale = Vector3.one * radius * 2f;
         var renderer = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.sprite = Circle;
         color.a = 0.35f;
         renderer.color = color;
@@ -136,6 +137,7 @@ public static class Shapes
         go.transform.position = position;
         go.transform.localScale = Vector3.one * radius * 2f;
         var renderer = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.sprite = ThinRing;
         color.a = 0.7f;
         renderer.color = color;

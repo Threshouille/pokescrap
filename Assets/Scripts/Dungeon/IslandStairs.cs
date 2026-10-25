@@ -77,6 +77,7 @@ public abstract class IslandStairs : MonoBehaviour
         inner.transform.localScale = Vector3.one * 0.6f;
         inner.sprite = Shapes.Square;
         inner.color = colour;
+        PointLights.Attach(go, "stairs");
         return go;
     }
 

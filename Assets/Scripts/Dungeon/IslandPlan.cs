@@ -48,6 +48,7 @@ public partial class IslandPlan
     [Serializable] class BiomeFile { public Theme[] themes = new Theme[0]; }
 
     public int size; // the map is size × size tiles
+    public Vector2 centre; // the island's centre, in tiles (the rivers run away from it)
     public int[] region; // Void, Border, Moat, Centre, or the quarter (0 to 3)
     public SubBiome[] biome; // per tile, null off the quarters
     public float[] altitude, moisture; // per tile, 0 to 1 (ranked within the quarter)
@@ -159,6 +160,7 @@ public partial class IslandPlan
         var all = new List<Theme>(Load<BiomeFile>("Data/biomes").themes);
         var s = settings;
         size = Mathf.CeilToInt(2f * (s.radius * (1f + s.coastNoise) + s.voidMargin));
+        centre = Vector2.one * size / 2f;
         int n = size * size;
         region = new int[n];
         biome = new SubBiome[n];

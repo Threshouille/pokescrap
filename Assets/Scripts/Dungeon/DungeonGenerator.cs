@@ -263,7 +263,7 @@ public class DungeonGenerator : MonoBehaviour
 
     bool[,] open;
     int size;
-    readonly Dictionary<(DungeonTileset, int, bool), Tile> tiles = new();
+    readonly Dictionary<(DungeonTileset, int, bool), TileBase> tiles = new();
     DungeonTileset[] cellDecor; // per tile when the map mixes décors (the island); null: "tileset" everywhere
     bool[] wallLook; // per tile: walkable but drawn as a wall, without collider (a ledge); may be null
     // A roof over some tiles (a cave in a mountain), drawn above the Pokémon; it fades while the controlled Pokémon is
@@ -295,9 +295,13 @@ public class DungeonGenerator : MonoBehaviour
     // walls (-1), the marks on the ground (0) and the Pokémon (1): a tie with them makes the sprites flicker.
     const int FloorOrder = -6;
 
+    /// Goes up at each Generate (what was computed from the map, like the rivers' flow, is to be done again).
+    public static int Generation { get; private set; }
+
     public void Generate()
     {
         Current = this;
+        Generation++;
         if (floorMap.GetComponent<TilemapRenderer>() is { } floor) floor.sortingOrder = FloorOrder;
         int s = seed != 0 ? seed : room != null ? room.seed : 0; // a room of a floor is laid out the same way each time
         var rng = new System.Random(s != 0 ? s : System.Environment.TickCount);
@@ -689,9 +693,17 @@ public class DungeonGenerator : MonoBehaviour
         return true;
     }
 
-    Tile GetTile(DungeonTileset decor, int chunk, bool solid)
+    // A chunk of a décor as a tile: animated when the décor's palette animation changes it (ChunkAnimation).
+    TileBase GetTile(DungeonTileset decor, int chunk, bool solid)
     {
-        if (tiles.TryGetValue((decor, chunk, solid), out var tile) && tile != null) return tile;
+        if (tiles.TryGetValue((decor, chunk, solid), out var found) && found != null) return found;
+        if (decor.Animation is { } anim && anim.Has(chunk))
+        {
+            found = anim.Tile(chunk, solid);
+            tiles[(decor, chunk, solid)] = found;
+            return found;
+        }
+        Tile tile;
         int chunkSize = decor.chunkSize, cell = chunkSize + 2 * decor.padding;
         var rect = new Rect(chunk % decor.columns * cell + decor.padding,
             decor.texture.height - (chunk / decor.columns + 1) * cell + decor.padding, chunkSize, chunkSize);

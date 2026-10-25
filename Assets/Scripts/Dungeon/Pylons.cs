@@ -50,6 +50,7 @@ public class Pylons : MonoBehaviour
         public float phaseAt; // start of the current cycle
         public float overchargedUntil, groundedUntil;
         public SpriteRenderer line;
+        public UnityEngine.Rendering.Universal.Light2D glow; // lights around while the arc is active (PointLights)
         public readonly HashSet<Combatant> hit = new();
         public bool wasActive;
     }
@@ -96,9 +97,15 @@ public class Pylons : MonoBehaviour
         var go = new GameObject("Arc électrique");
         go.transform.SetParent(current.transform, false);
         pair.line = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(pair.line); // keeps its colours at night (DayNight)
         pair.line.sprite = Shapes.Square;
         pair.line.sortingOrder = 2; // over the Pokémon
         pair.line.enabled = false;
+        var middle = new GameObject("Lueur de l'arc");
+        middle.transform.SetParent(current.transform, false);
+        middle.transform.position = (pair.from + pair.to) / 2f;
+        pair.glow = PointLights.Attach(middle, "arc");
+        PointLights.Want(pair.glow, false);
         current.pairs.Add(pair);
     }
 
@@ -278,6 +285,7 @@ public class Pylons : MonoBehaviour
             Obstacles.OverrideSheet(p.b.x, p.b.y, look);
             bool warn = phase == Phase.Warn, on = phase == Phase.Active;
             p.line.enabled = warn || on;
+            PointLights.Want(p.glow, on);
             if (!p.line.enabled) continue;
             Vector2 ab = p.to - p.from;
             var sheet = on ? arcSheet : warnSheet;

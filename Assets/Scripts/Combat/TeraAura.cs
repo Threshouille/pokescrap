@@ -36,6 +36,7 @@ public class TeraAura : MonoBehaviour
             var go = new GameObject("Contour");
             go.transform.SetParent(transform, false);
             copies[i] = go.AddComponent<SpriteRenderer>();
+            Unlit.Apply(copies[i]); // keeps its colours at night (DayNight)
             copies[i].sharedMaterial = Evolution.Silhouette;
             copies[i].sortingOrder = 0; // just under the Pokémon (1), never its order
         }
@@ -55,6 +56,7 @@ public class TeraAura : MonoBehaviour
         var go = new GameObject(name);
         go.transform.SetParent(top, false);
         var r = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(r); // keeps its colours at night (DayNight)
         r.sprite = sprite;
         r.sortingOrder = order; // above the Pokémon
         float width = sprite != null ? sprite.bounds.size.x : 1f;

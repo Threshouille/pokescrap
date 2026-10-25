@@ -202,6 +202,7 @@ public class EnemyAI : MonoBehaviour
 
         telegraph = new GameObject("Telegraph");
         var renderer = telegraph.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.color = TelegraphColor;
         renderer.sortingOrder = 0; // above the floor, under the Pokémon
 

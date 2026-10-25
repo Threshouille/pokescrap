@@ -50,6 +50,7 @@ public class BossAI : MonoBehaviour
         go.transform.SetParent(transform, false);
         go.transform.localPosition = BubbleOffset;
         bubble = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(bubble); // keeps its colours at night (DayNight)
         bubble.sortingOrder = 13; // above everything attached to a Pokémon
         go.SetActive(false);
         stateSince = Time.time;

@@ -1474,6 +1474,7 @@ public class Combatant : MonoBehaviour
         icon = new GameObject("StatusIcon");
         icon.transform.SetParent(transform, false);
         var renderer = icon.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.sprite = Shapes.StatusIcon(key, StatusLibrary.Get(key)?.color);
         renderer.sortingOrder = 12; // above the health bar
         statusIcons[key] = icon;

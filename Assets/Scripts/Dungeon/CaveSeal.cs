@@ -19,6 +19,7 @@ public class CaveSeal : MonoBehaviour
     {
         public GameObject root;
         public SpriteRenderer body, icon;
+        public UnityEngine.Rendering.Universal.Light2D light; // braziers (PointLights)
         public string sheet; // the sheet playing on the body
         public float since; // when it started
         public string then; // the sheet after a one-shot one
@@ -35,6 +36,8 @@ public class CaveSeal : MonoBehaviour
     readonly List<Part> parts = new();
     GameObject root;
     SpriteRenderer door, mark;
+    UnityEngine.Rendering.Universal.Light2D markLight;
+    GameObject doorFront;
     float markSince;
     int hits;
     float teamNear;
@@ -108,7 +111,11 @@ public class CaveSeal : MonoBehaviour
         mark.transform.SetParent(front.transform, false);
         mark.transform.localPosition = Vector2.up * 0.75f;
         mark.sortingOrder = 1;
+        Unlit.Apply(mark); // it glows
         markSince = Time.time;
+        markLight = PointLights.Attach(mark.gameObject, "caveMark");
+        doorFront = front;
+        if (plan.caveOpen) PointLights.Attach(front, "caveMouth");
     }
 
     void BuildPart(Part p)
@@ -125,6 +132,11 @@ public class CaveSeal : MonoBehaviour
         float up = seal.kind == "sequence" ? 0.15f : 0.4f;
         p.body = Piece(p, "Corps", new Vector2(0f, up), 0);
         p.sheet = seal.kind switch { "braziers" => "seal_brazier", "sequence" => "seal_shells", _ => "seal_stele" };
+        if (seal.kind == "braziers")
+        {
+            p.light = PointLights.Attach(p.root, "brazier", new Vector2(0f, 0.8f));
+            PointLights.Want(p.light, false);
+        }
         if (seal.kind == "sequence") p.frame = p.rank;
         if (seal.kind is "braziers" or "sequence") return;
         // The stele's hollow holds the icon of what opens it.
@@ -198,6 +210,7 @@ public class CaveSeal : MonoBehaviour
         if (root.activeSelf == island.Away) root.SetActive(!island.Away); // not in another room
         bool open = Plan != null && Plan.caveOpen;
         if (mark != null) mark.sprite = open ? null : FrameOf("seal_mark", Time.time - markSince, 0, out _);
+        PointLights.Want(markLight, !open);
         if (door != null)
         {
             // A looping door plays; the others show how worn they are (hits), the runes lit while a reader is near.
@@ -215,8 +228,10 @@ public class CaveSeal : MonoBehaviour
             {
                 case "braziers":
                 {
-                    string want = open || Time.time < p.litUntil ? "seal_brazier_lit" : "seal_brazier";
+                    bool lit = open || Time.time < p.litUntil;
+                    string want = lit ? "seal_brazier_lit" : "seal_brazier";
                     if (p.sheet != want) Play(p, want);
+                    PointLights.Want(p.light, lit);
                     break;
                 }
                 case "plates":
@@ -256,7 +271,7 @@ public class CaveSeal : MonoBehaviour
             case "element":
                 if (!near) break;
                 if (Climate.Now is { } weather && System.Array.IndexOf(seal.weathers, weather.key) >= 0) Open();
-                else if (seal.night && FindAnyObjectByType<EnemySpawner>() is { Night: true }) Open();
+                else if (seal.night && DayNight.IsNight) Open();
                 break;
             case "team":
             {
@@ -367,6 +382,7 @@ public class CaveSeal : MonoBehaviour
         var changed = Plan.OpenCave();
         if (arena != null) arena.RedrawIsland(changed);
         CameraFollow.Shake(0.15f, 0.6f);
+        if (doorFront != null) PointLights.Attach(doorFront, "caveMouth");
         // The door crumbles: dust over its 3 × 2 tiles.
         var dust = EffectPlayer.Spawn("seal_dust", island.Cell(Plan.sealedCaveFront + Vector2Int.up) + Vector2.up * 0.5f, Vector2.right);
         if (dust != null) dust.GetComponent<SpriteRenderer>().sortingOrder = 2;
