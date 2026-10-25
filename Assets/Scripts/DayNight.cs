@@ -78,6 +78,19 @@ public class DayNight : MonoBehaviour
 
     public static bool IsNight => Now(out _) is { night: true };
 
+    /// How dark it is: 0 at the brightest phase's light, 1 at the darkest one (the point lights follow it).
+    public static float Darkness
+    {
+        get
+        {
+            float low = float.MaxValue, high = float.MinValue;
+            foreach (var p in Data.phases) { low = Mathf.Min(low, p.intensity); high = Mathf.Max(high, p.intensity); }
+            if (high <= low) return 0f;
+            Light(out _, out float intensity);
+            return Mathf.Clamp01((high - intensity) / (high - low));
+        }
+    }
+
     /// The phase's name and the time of day (a day = 24 hours from clockStart at the dawn), for the HUD.
     public static string Label
     {

@@ -1,0 +1,35 @@
+{
+ "comment": "Point lights (PointLights.cs; GDD, 'Jour et nuit'): their intensity × dayShare in full day, × 1 at the darkest of the night (DayNight.Darkness). Each glow: color, radius (tiles), intensity, flicker (share of the intensity that wavers). pokemonTypes: by type of the Pokémon (ROM type ids), pokemon: by id, before the types; moves: projectiles of that type, and a flash of flashTime seconds where they hit; obstacles / terrains: by key, one light per block of lavaGrid × lavaGrid tiles holding some; brazier, caveMark, caveMouth, stairs, arc: the sealed caves' braziers, mark and open mouth, the island's stairs, the pylons' active arc. Only within range tiles of the camera, at most maxLights at once (the nearest).",
+ "dayShare": 0.15,
+ "range": 16,
+ "maxLights": 48,
+ "scanEvery": 0.25,
+ "flashTime": 0.3,
+ "lavaGrid": 3,
+ "pokemonTypes": [
+  { "type": 2, "color": "#ffa040", "radius": 2.5, "intensity": 0.9, "flicker": 0.15 }
+ ],
+ "pokemon": [
+  { "id": 170, "color": "#80c8ff", "radius": 2.5, "intensity": 1.0, "flicker": 0.05 },
+  { "id": 171, "color": "#80c8ff", "radius": 3.5, "intensity": 1.1, "flicker": 0.05 },
+  { "id": 341, "color": "#ffe880", "radius": 2.0, "intensity": 0.8, "flicker": 0.2 },
+  { "id": 342, "color": "#ffe880", "radius": 2.0, "intensity": 0.8, "flicker": 0.2 }
+ ],
+ "moves": [
+  { "type": 2, "color": "#ff8a30", "radius": 2.0, "intensity": 1.0, "flicker": 0.2 },
+  { "type": 5, "color": "#fff07a", "radius": 2.0, "intensity": 1.0, "flicker": 0.3 }
+ ],
+ "obstacles": [
+  { "key": "lava", "color": "#ff6a20", "radius": 3.5, "intensity": 0.9, "flicker": 0.1 },
+  { "key": "burning_bridge", "color": "#ff8a30", "radius": 2.5, "intensity": 0.9, "flicker": 0.25 }
+ ],
+ "terrains": [
+  { "key": "embers", "color": "#ff7a30", "radius": 2.0, "intensity": 0.7, "flicker": 0.25 },
+  { "key": "hot_metal", "color": "#ff6a30", "radius": 1.8, "intensity": 0.5, "flicker": 0.1 }
+ ],
+ "brazier": { "color": "#ffa040", "radius": 3.5, "intensity": 1.1, "flicker": 0.2 },
+ "caveMark": { "color": "#b080ff", "radius": 1.8, "intensity": 0.7, "flicker": 0.1 },
+ "caveMouth": { "color": "#ffd890", "radius": 3.0, "intensity": 0.6, "flicker": 0.0 },
+ "stairs": { "color": "#a0e8ff", "radius": 1.8, "intensity": 0.6, "flicker": 0.0 },
+ "arc": { "color": "#fff07a", "radius": 4.0, "intensity": 1.2, "flicker": 0.4 }
+}

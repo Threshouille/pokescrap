@@ -298,7 +298,10 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   fréquents, une liste de Pokémon nocturnes favorisés (Hoothoot, Nosferapti, Mimigal, Ténéfix, Feuforêve…), et
   éventuellement des Pokémon de jour seulement ou de nuit seulement ; poids dans `encounters.json`, phase lue par
   `DayNight.IsNight` (ou `DayNight.Now`).
-- Suite prévue : lumières ponctuelles (braseros, lave, grottes, Pokémon de feu), post-traitement (bloom, couleurs,
+- Lumières ponctuelles (fait le 25/10/2026) : Pokémon Feu (et Loupio, Lanturn, Muciole, Lumivole), tirs et impacts Feu et
+  Électrik, lave et braises, braseros, repère et entrée des grottes, escaliers, arcs des pylônes ; presque invisibles le
+  jour, pleines la nuit.
+- Suite prévue : post-traitement (bloom, couleurs,
   vignette) par phase, eau animée (palette de la ROM ou shader, écume des berges), particules d'ambiance par biome et
   par phase (lucioles la nuit), vent dans la végétation.
 
