@@ -236,6 +236,9 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
     (`Recruitment`, taux de la ROM × `recruitMultiplier`), rochers et interactions (`obstacles.json`, `boulder*`),
     clairières des forêts du quart de test. Données à prévoir : un fichier du genre `secret_rooms.json` (probabilité,
     poids des cachettes et des contenus, vagues, niveaux, populations).
+  - Fait le 25/10/2026 (Owen) : escalier, cachettes (clairière, rocher fissuré brisé par Combat, Sol, Roche ou Acier),
+    salle vide du catalogue et retour, dans le quart de test (`secret_rooms.json`, `SecretStairs`). Reste (Robin) : le
+    contenu des salles (trésor, embuscade, gardien) et les thèmes logiques.
 
 ### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
 - Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue

@@ -76,6 +76,10 @@ Repris et validé par Owen le 24/10 (2e session) :
    905, haie `grass_909` ; décor épars réduit (fleurs, buissons, rochers) ; taches par sous-biome : champs de fleurs,
    fougeraies, éboulis, forêts en massif plein avec sentiers et clairière (`IslandPlan.clearings` pour le level design).
 
+Escalier secret (25/10, validé par Owen en jeu) : caché dans une clairière ou sous un rocher fissuré, salle vide du
+catalogue et retour au même endroit ; le contenu des salles (trésor, embuscade, gardien) et les thèmes logiques
+(population des Pokémon par biome) sont pour Robin (GDD « Escaliers secrets »).
+
 Reste à faire :
 - Arbres transparents quand un Pokémon passe derrière (on marche sous les couronnes en lisière) ; plus de variété
   d'arbres (couche du dessous des cartes, à détourer).

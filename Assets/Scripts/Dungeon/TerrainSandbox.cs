@@ -660,7 +660,11 @@ public class TerrainSandbox : MonoBehaviour
     {
         var team = FindAnyObjectByType<PlayerController>();
         var walker = team != null ? team.Controlled : null;
-        if (walker != null && pendingRoom < 0)
+        // In a secret room of the test island the way back to the sandbox is put away (SecretStairs has its own).
+        bool away = island != null && island.Away;
+        foreach (var (go, _) in stairs)
+            if (go != null && go.activeSelf == away) go.SetActive(!away);
+        if (walker != null && pendingRoom < 0 && !away)
         {
             bool onAny = false;
             foreach (var (go, target) in stairs)

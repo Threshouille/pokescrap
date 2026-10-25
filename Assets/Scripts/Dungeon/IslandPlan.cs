@@ -54,6 +54,8 @@ public partial class IslandPlan
     public int[] decor; // per tile: a ROM décor drawing it instead of its sub-biome's (a road), 0 for none; may be null
     public readonly List<Vector2Int> markers = new(); // landmarks shown as passage ends that lead nowhere yet (test quarter's portals)
     public readonly List<Vector2Int> caves = new(); // cave mouths (test quarter's mountain top), leading nowhere yet
+    public Vector2Int secret = new(-1, -1); // secret stairs (SecretStairs), -1 none
+    public string secretSpot; // where they hide: "clearing" or "rock" (under secret_rooms.json's rock, to break)
     public readonly List<Vector2> clearings = new(); // the clearings in the middle of the forests, in tiles (level design)
     public readonly List<(string key, Vector2 at)> decorProps = new(); // decor elements (Resources/MapProps/<key>) at their foot, in tiles
     public int[] height; // per tile: level of the ground (0 = plain, 1, 2... on hills), may be null

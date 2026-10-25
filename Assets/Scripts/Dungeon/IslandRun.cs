@@ -15,8 +15,12 @@ public class IslandRun : MonoBehaviour
 
     public IslandPlan Plan { get; private set; }
 
-    /// Tests: each zone's mini-map comes fully revealed, its passage ends shown (also with devMode in meta.json).
+    /// Tests: each zone's mini-map comes fully revealed, its passage ends shown (also with devMode in meta.json); the
+    /// secret stairs marked too.
     public bool revealAll;
+
+    /// The team is away from the island (a secret room, SecretStairs): no passage ends, no mini-map.
+    public bool Away { get; set; }
 
     /// Called once a zone is built (the team in place).
     public event System.Action Built;
@@ -63,7 +67,19 @@ public class IslandRun : MonoBehaviour
         map = new Texture2D(Plan.size, Plan.size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
         pixels = new Color32[Plan.size * Plan.size];
         revealed = new bool[pixels.Length];
+        Away = false;
+        if (GetComponent<SecretStairs>() == null) gameObject.AddComponent<SecretStairs>();
         Build(Plan.order[0], null);
+    }
+
+    /// Builds a zone again, the team at that island tile (back from a secret room).
+    public void Return(int zone, Vector2Int arrival)
+    {
+        arena.room = null;
+        arena.level = null;
+        arena.island = Plan;
+        Away = false;
+        Build(zone, arrival);
     }
 
     // Builds a zone and places the team at its arrival tile (island tile; the zone's default when null).
@@ -173,7 +189,7 @@ public class IslandRun : MonoBehaviour
     }
 
     // World position of an island tile of the current zone.
-    Vector2 Cell(Vector2Int tile)
+    public Vector2 Cell(Vector2Int tile)
     {
         var c = tile - arena.IslandOrigin + arena.Interior.min;
         return arena.CentreOf(c.x, c.y);
@@ -184,6 +200,8 @@ public class IslandRun : MonoBehaviour
 
     public void End()
     {
+        if (GetComponent<SecretStairs>() is { } secret) secret.Clear();
+        Away = false;
         if (propRoot != null) Destroy(propRoot.gameObject);
         foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
         exits.Clear();
@@ -204,7 +222,7 @@ public class IslandRun : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (Plan == null || team == null || team.Controlled == null || LoadingScreen.Busy) return;
+        if (Plan == null || Away || team == null || team.Controlled == null || LoadingScreen.Busy) return;
         // Passage ends: armed once the controlled Pokémon stands clear of them all.
         Vector2 at = team.Controlled.transform.position;
         float closest = float.MaxValue;
@@ -265,7 +283,7 @@ public class IslandRun : MonoBehaviour
 
     void OnGUI()
     {
-        if (Plan == null || map == null) return;
+        if (Plan == null || map == null || Away) return;
         if (dirty)
         {
             map.SetPixels32(pixels);
@@ -293,6 +311,12 @@ public class IslandRun : MonoBehaviour
         GUI.color = new Color(1f, 0.85f, 0.3f);
         foreach (var m in Plan.markers)
             if (revealed[Plan.Index(m.x, m.y)]) Dot(rect, scale, m - bounds.min, 3f * s);
+        // Tests: the secret stairs.
+        if ((revealAll || SaveData.Settings.devMode) && GetComponent<SecretStairs>() is { } secret && secret.Waiting(Zone))
+        {
+            GUI.color = new Color(0.3f, 1f, 0.9f);
+            Dot(rect, scale, Plan.secret - bounds.min, 3.5f * s);
+        }
         GUI.color = new Color(0.75f, 0.5f, 1f);
         foreach (var c in Plan.caves)
             if (revealed[Plan.Index(c.x, c.y)]) Dot(rect, scale, c - bounds.min, 3f * s);
