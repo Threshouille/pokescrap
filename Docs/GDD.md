@@ -303,6 +303,9 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   jour, pleines la nuit.
 - Eau animée (fait le 25/10/2026) : l'animation de palette de la ROM (miroitement de l'eau, lueur de la lave, cristaux)
   sur les sols, murs et obstacles des décors. Sens du courant des rivières : avec les particules.
+- Particules d'ambiance (fait le 25/10/2026, formes provisoires en attendant les planches) : lucioles (forêts,
+  prairie, crépuscule et nuit), feuilles, pétales, pollen, braises (volcan, lave), neige, poussière (désert, ruines),
+  courant des rivières (reflets qui descendent vers la côte), bulles de lave.
 - Suite prévue : post-traitement (bloom, couleurs,
   vignette) par phase, eau animée (palette de la ROM ou shader, écume des berges), particules d'ambiance par biome et
   par phase (lucioles la nuit), vent dans la végétation.

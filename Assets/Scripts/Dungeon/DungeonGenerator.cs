@@ -295,9 +295,13 @@ public class DungeonGenerator : MonoBehaviour
     // walls (-1), the marks on the ground (0) and the Pokémon (1): a tie with them makes the sprites flicker.
     const int FloorOrder = -6;
 
+    /// Goes up at each Generate (what was computed from the map, like the rivers' flow, is to be done again).
+    public static int Generation { get; private set; }
+
     public void Generate()
     {
         Current = this;
+        Generation++;
         if (floorMap.GetComponent<TilemapRenderer>() is { } floor) floor.sortingOrder = FloorOrder;
         int s = seed != 0 ? seed : room != null ? room.seed : 0; // a room of a floor is laid out the same way each time
         var rng = new System.Random(s != 0 ? s : System.Environment.TickCount);
@@ -573,6 +577,10 @@ public class DungeonGenerator : MonoBehaviour
     bool IsOpen(int x, int y) => open != null && x >= 0 && y >= 0 && x < size && y < size && open[x, y];
 
     public bool Walkable(int x, int y) => IsOpen(x, y);
+
+    /// The island's sky beyond the coast (nothing drawn there); false off the island.
+    public bool IsSky(int x, int y) =>
+        island != null && cellDecor != null && x >= 0 && y >= 0 && x < size && y < size && cellDecor[y * size + x] == null;
 
     public Vector2Int CellOf(Vector2 world)
     {
