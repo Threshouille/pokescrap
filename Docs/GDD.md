@@ -211,6 +211,31 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Végétation (décidé le 24/10/2026, Owen) : peu de décor épars (fleurs, buissons, rochers) ; les arbres servent aux
   forêts. Chaque sous-biome a des taches : champ de fleurs, fougeraie, éboulis, forêt. Une forêt est un massif plein
   traversé de sentiers vers une clairière centrale, pensé pour le level design (lisière praticable sous les couronnes).
+- Escaliers secrets (décidé le 25/10/2026, Owen ; génération à faire, Robin) : un escalier caché dans un quartier mène à
+  une salle à part (écran de chargement, comme un changement de zone), dont un escalier ramène exactement au même
+  endroit ; l'escalier secret disparaît ensuite. Tirage avec une probabilité, comme les Monster Houses de DM (0 ou 1
+  par quartier, pas systématique), surprise totale : aucun indice sur la mini-carte ni avant d'entrer.
+  - Cachettes retenues : au centre d'une clairière de forêt (`IslandPlan.clearings`) ; sous un rocher fissuré à briser
+    (obstacle dédié, brisé par les types Combat, Sol, Roche, Acier par exemple : à régler pour qu'une équipe sans ces
+    types n'en soit pas toujours privée). Idées écartées pour l'instant : fond de grotte, palier isolé atteint par un
+    rebord, escalier invisible révélé à l'approche.
+  - Contenus retenus : **trésor** (un coffre : cristal Z ou Téra-Éclat pondéré vers l'équipe, méga-gemme rare) ;
+    **embuscade** (façon Monster House : sortie fermée, 2 vagues ou plus, coffre à la fin) ; **gardien** (un seul
+    Pokémon rare et costaud, élite, taux de recrutement augmenté ; il garde un coffre). Poids de tirage à régler.
+  - Idées pour plus tard : faux trésor (coffre qui libère une embuscade, reconnaissable à un détail), source (soin,
+    réanimation, jauge méga), énigme de terrain (coffre derrière eau, lave ou lianes à franchir par les interactions),
+    défi (survivre à la lave qui monte, ramasser des éclats en temps limité), marchand Kecleon (quand les boutiques
+    existeront).
+  - Thèmes logiques (demande d'Owen pour Robin) : la salle prend le décor et les obstacles du sous-biome de l'escalier
+    (forêt → salle de forêt, montagne → grotte…) ; ses Pokémon (embuscade, gardien) sont tirés dans une population
+    cohérente avec ce sous-biome (et plus largement : peuplement des quartiers par biome, à définir dans les données).
+  - Briques déjà en place : catalogue de salles `rooms.json` (`RoomCatalog.Pick(type, rng, thème, variante)` ; types
+    `monster_house`, `subboss`, `rest`…), construction d'une zone et retour (`IslandRun.Build(zone, arrivée)`,
+    `LoadingScreen.Run`), coffre et objets (`Loot.SpawnChest`, `RollTyped`, `RollStone` ; rien n'est donné dans le
+    terrain de test), ennemis (`EnemySpawner.SpawnFighter`, `Loot.MakeElite`, `GameData.RandomMoves`), recrutement
+    (`Recruitment`, taux de la ROM × `recruitMultiplier`), rochers et interactions (`obstacles.json`, `boulder*`),
+    clairières des forêts du quart de test. Données à prévoir : un fichier du genre `secret_rooms.json` (probabilité,
+    poids des cachettes et des contenus, vagues, niveaux, populations).
 
 ### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
 - Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue
