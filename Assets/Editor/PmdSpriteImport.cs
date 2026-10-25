@@ -21,6 +21,8 @@ public class PmdSpriteImport : AssetPostprocessor
     {
         if (assetPath.StartsWith(Root + "/") || assetPath.StartsWith(TilesetRoot + "/") || assetPath.StartsWith(EffectRoot + "/") || assetPath.StartsWith(PortraitRoot + "/") || assetPath.StartsWith(ObstacleTileRoot + "/") || assetPath.StartsWith(CliffRoot + "/") || assetPath.StartsWith(MapPropRoot + "/") || assetPath.StartsWith(ItemRoot + "/"))
             Configure((TextureImporter)assetImporter);
+        // The palette animations of the décors (extract_tileset.py) can be wider than the default 2048 px.
+        if (assetPath.EndsWith("/anim.png")) ((TextureImporter)assetImporter).maxTextureSize = 8192;
     }
 
     static bool Configure(TextureImporter importer)
@@ -67,7 +69,12 @@ public class PmdSpriteImport : AssetPostprocessor
             JsonUtility.FromJsonOverwrite(File.ReadAllText(jsonPath), tileset);
             tileset.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
             // Its palette animation, when it has one (extract_tileset.py).
-            if (AssetImporter.GetAtPath(folder + "/anim.png") is TextureImporter animImporter && Configure(animImporter)) animImporter.SaveAndReimport();
+            if (AssetImporter.GetAtPath(folder + "/anim.png") is TextureImporter animImporter
+                && (Configure(animImporter) | animImporter.maxTextureSize < 8192))
+            {
+                animImporter.maxTextureSize = 8192;
+                animImporter.SaveAndReimport();
+            }
             tileset.anim = AssetDatabase.LoadAssetAtPath<Texture2D>(folder + "/anim.png");
             if (tileset.anim == null) tileset.animChunks = new int[0];
             if (int.TryParse(Path.GetFileName(folder), out int romId)) tileset.romId = romId;
