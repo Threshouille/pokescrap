@@ -12,4 +12,22 @@ public class DungeonTileset : ScriptableObject
     public int[] wall;
     public int[] floor;
     public int[] water;
+    // Palette animation (anim.png, see ChunkAnimation): the chunks that change, their frames, ms per frame.
+    public Texture2D anim;
+    public int[] animChunks = new int[0];
+    public int animFrames;
+    public float animFrameMs;
+
+    [System.NonSerialized] ChunkAnimation animation;
+    [System.NonSerialized] bool animationRead;
+
+    /// Its palette animation, or null.
+    public ChunkAnimation Animation
+    {
+        get
+        {
+            if (!animationRead) { animation = ChunkAnimation.Make(anim, animChunks, animFrames, animFrameMs, chunkSize, padding); animationRead = true; }
+            return animation;
+        }
+    }
 }

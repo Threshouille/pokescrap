@@ -301,6 +301,8 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Lumières ponctuelles (fait le 25/10/2026) : Pokémon Feu (et Loupio, Lanturn, Muciole, Lumivole), tirs et impacts Feu et
   Électrik, lave et braises, braseros, repère et entrée des grottes, escaliers, arcs des pylônes ; presque invisibles le
   jour, pleines la nuit.
+- Eau animée (fait le 25/10/2026) : l'animation de palette de la ROM (miroitement de l'eau, lueur de la lave, cristaux)
+  sur les sols, murs et obstacles des décors. Sens du courant des rivières : avec les particules.
 - Suite prévue : post-traitement (bloom, couleurs,
   vignette) par phase, eau animée (palette de la ROM ou shader, écume des berges), particules d'ambiance par biome et
   par phase (lucioles la nuit), vent dans la végétation.

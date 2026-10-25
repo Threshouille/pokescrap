@@ -263,7 +263,7 @@ public class DungeonGenerator : MonoBehaviour
 
     bool[,] open;
     int size;
-    readonly Dictionary<(DungeonTileset, int, bool), Tile> tiles = new();
+    readonly Dictionary<(DungeonTileset, int, bool), TileBase> tiles = new();
     DungeonTileset[] cellDecor; // per tile when the map mixes décors (the island); null: "tileset" everywhere
     bool[] wallLook; // per tile: walkable but drawn as a wall, without collider (a ledge); may be null
     // A roof over some tiles (a cave in a mountain), drawn above the Pokémon; it fades while the controlled Pokémon is
@@ -689,9 +689,17 @@ public class DungeonGenerator : MonoBehaviour
         return true;
     }
 
-    Tile GetTile(DungeonTileset decor, int chunk, bool solid)
+    // A chunk of a décor as a tile: animated when the décor's palette animation changes it (ChunkAnimation).
+    TileBase GetTile(DungeonTileset decor, int chunk, bool solid)
     {
-        if (tiles.TryGetValue((decor, chunk, solid), out var tile) && tile != null) return tile;
+        if (tiles.TryGetValue((decor, chunk, solid), out var found) && found != null) return found;
+        if (decor.Animation is { } anim && anim.Has(chunk))
+        {
+            found = anim.Tile(chunk, solid);
+            tiles[(decor, chunk, solid)] = found;
+            return found;
+        }
+        Tile tile;
         int chunkSize = decor.chunkSize, cell = chunkSize + 2 * decor.padding;
         var rect = new Rect(chunk % decor.columns * cell + decor.padding,
             decor.texture.height - (chunk / decor.columns + 1) * cell + decor.padding, chunkSize, chunkSize);

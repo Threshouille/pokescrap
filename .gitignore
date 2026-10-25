@@ -29,9 +29,11 @@ __pycache__/
 /Assets/Resources/Portraits/*.png
 /Assets/Resources/AnimSets/*.asset
 /Assets/Tilesets/*/chunks.png
+/Assets/Tilesets/*/anim.png
 /Assets/Tilesets/*/tileset.json
 /Assets/Tilesets/*/Tileset.asset
 /Assets/Resources/ObstacleTiles/*/chunks.png
+/Assets/Resources/ObstacleTiles/*/anim.png
 /Assets/Resources/ObstacleTiles/*/tileset.json
 /Assets/Resources/ObstacleTiles/rock_*.png
 # Special item icons (PokeAPI, Nikostera): downloaded by Tools/pmd/import_items.py

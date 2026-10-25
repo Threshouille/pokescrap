@@ -66,6 +66,10 @@ public class PmdSpriteImport : AssetPostprocessor
             }
             JsonUtility.FromJsonOverwrite(File.ReadAllText(jsonPath), tileset);
             tileset.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            // Its palette animation, when it has one (extract_tileset.py).
+            if (AssetImporter.GetAtPath(folder + "/anim.png") is TextureImporter animImporter && Configure(animImporter)) animImporter.SaveAndReimport();
+            tileset.anim = AssetDatabase.LoadAssetAtPath<Texture2D>(folder + "/anim.png");
+            if (tileset.anim == null) tileset.animChunks = new int[0];
             if (int.TryParse(Path.GetFileName(folder), out int romId)) tileset.romId = romId;
             EditorUtility.SetDirty(tileset);
             Debug.Log($"{assetPath}: {tileset.wall.Length / 3} wall masks");

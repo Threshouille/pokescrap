@@ -57,16 +57,23 @@ public class ObstacleDef
 /// depends on which of its 8 neighbours are of the same kind, like the arena's walls and floor.
 public class RomObstacleTiles
 {
-    [Serializable] class Layout { public int chunkSize = 24, columns = 16, padding; public int[] water; }
+    [Serializable] class Layout
+    {
+        public int chunkSize = 24, columns = 16, padding; public int[] water;
+        public int[] animChunks = new int[0]; public int animFrames; public float animFrameMs;
+    }
 
     readonly Texture2D texture;
     readonly Layout layout;
     readonly Dictionary<int, Sprite> sprites = new();
+    /// Its palette animation (the water's shimmer, the lava's glow), or null.
+    public readonly ChunkAnimation Animation;
 
-    RomObstacleTiles(Texture2D texture, Layout layout)
+    RomObstacleTiles(Texture2D texture, Layout layout, Texture2D anim)
     {
         this.texture = texture;
         this.layout = layout;
+        Animation = ChunkAnimation.Make(anim, layout.animChunks, layout.animFrames, layout.animFrameMs, layout.chunkSize, layout.padding);
     }
 
     static readonly Dictionary<int, RomObstacleTiles> loaded = new();
@@ -85,7 +92,11 @@ public class RomObstacleTiles
     {
         if (decor == null || decor.texture == null || decor.water == null || decor.water.Length < 256 * 3) return null;
         if (decors.TryGetValue(decor, out var found) && found != null) return found;
-        found = new RomObstacleTiles(decor.texture, new Layout { chunkSize = decor.chunkSize, columns = decor.columns, padding = decor.padding, water = decor.water });
+        found = new RomObstacleTiles(decor.texture, new Layout
+        {
+            chunkSize = decor.chunkSize, columns = decor.columns, padding = decor.padding, water = decor.water,
+            animChunks = decor.animChunks, animFrames = decor.animFrames, animFrameMs = decor.animFrameMs,
+        }, decor.anim);
         decors[decor] = found;
         return found;
     }
@@ -97,16 +108,19 @@ public class RomObstacleTiles
         if (loaded.TryGetValue(id, out var found)) return found;
         var texture = Resources.Load<Texture2D>($"ObstacleTiles/{id:000}/chunks");
         var json = Resources.Load<TextAsset>($"ObstacleTiles/{id:000}/tileset");
-        found = texture != null && json != null ? new RomObstacleTiles(texture, JsonUtility.FromJson<Layout>(json.text)) : null;
+        found = texture != null && json != null
+            ? new RomObstacleTiles(texture, JsonUtility.FromJson<Layout>(json.text), Resources.Load<Texture2D>($"ObstacleTiles/{id:000}/anim")) : null;
         if (found != null && (found.layout.water == null || found.layout.water.Length < 256 * 3)) found = null;
         loaded[id] = found;
         return found;
     }
 
     /// Mask bits (neighbour of the same kind): S=1 SE=2 E=4 NE=8 N=16 NW=32 W=64 SW=128; variation 0 to 2.
+    public int ChunkOf(int mask, int variation) => layout.water[mask * 3 + variation];
+
     public Sprite Tile(int mask, int variation)
     {
-        int chunk = layout.water[mask * 3 + variation];
+        int chunk = ChunkOf(mask, variation);
         if (sprites.TryGetValue(chunk, out var sprite) && sprite != null) return sprite;
         int size = layout.chunkSize, cell = size + 2 * layout.padding;
         var rect = new Rect(chunk % layout.columns * cell + layout.padding,
@@ -196,6 +210,9 @@ public class Obstacles : MonoBehaviour
     ObstacleDef[] under; // what a bridge (or another hand-drawn obstacle) spans: drawn beneath it
     SpriteRenderer[] baseTiles, topTiles; // ROM layer, then hand-made sheet, per tile (made when first needed)
     readonly HashSet<int> animated = new(); // tiles whose hand-made sheet has several frames
+    // Tiles whose ROM layer moves (palette animation: water, lava), and the frame each animation was last shown at.
+    readonly Dictionary<int, (ChunkAnimation anim, int chunk)> romAnimated = new();
+    readonly Dictionary<ChunkAnimation, int> romFrame = new(); // every animation in use (a handful)
     // Tiles to draw again at the next LateUpdate (a change and its 8 neighbours, whose banks depend on it), or all of
     // them after a rebuild; tiles with a timed change (revertAt). A level is a large map: never all tiles per frame.
     readonly HashSet<int> changed = new(), timed = new();
@@ -274,6 +291,8 @@ public class Obstacles : MonoBehaviour
         baseTiles = new SpriteRenderer[size * size];
         topTiles = new SpriteRenderer[size * size];
         animated.Clear();
+        romAnimated.Clear();
+        romFrame.Clear();
         sheetOverrides.Clear();
         decorTiles = null;
         reach = null;
@@ -986,6 +1005,31 @@ public class Obstacles : MonoBehaviour
             var sheet = sheetOverrides.TryGetValue(i, out var other) ? other : kind[i]?.sheet;
             if (topTiles[i] != null && sheet != null) topTiles[i].sprite = sheet.Frame(FrameAt(sheet));
         }
+        AnimateRomTiles();
+    }
+
+    // The ROM layer's palette animation: when an animation turns to its next frame, the tiles of it in sight change
+    // sprite (a river of thousands of tiles costs only what the camera sees).
+    void AnimateRomTiles()
+    {
+        var cam = Camera.main;
+        if (romAnimated.Count == 0 || cam == null || grid == null) return;
+        bool turned = false;
+        foreach (var (anim, shown) in romFrame)
+            if (shown != anim.FrameNow) { turned = true; break; }
+        if (!turned) return;
+        float h = cam.orthographicSize + 2f, w = h * cam.aspect + 2f;
+        Vector2 c = cam.transform.position;
+        var from = grid.CellOf(c - new Vector2(w, h));
+        var to = grid.CellOf(c + new Vector2(w, h));
+        for (int y = Mathf.Max(0, from.y); y <= Mathf.Min(size - 1, to.y); y++)
+            for (int x = Mathf.Max(0, from.x); x <= Mathf.Min(size - 1, to.x); x++)
+            {
+                int i = y * size + x;
+                if (!romAnimated.TryGetValue(i, out var a) || baseTiles[i] == null) continue;
+                baseTiles[i].sprite = a.anim.Frames(a.chunk)[a.anim.FrameNow];
+            }
+        foreach (var anim in new List<ChunkAnimation>(romFrame.Keys)) romFrame[anim] = anim.FrameNow;
     }
 
     // Draws tile i with sprites (ROM layer underneath, hand-made sheet on top); false when it has neither and the
@@ -1005,7 +1049,15 @@ public class Obstacles : MonoBehaviour
             ? (!def.ownRocks && grid != null && grid.tileset != null ? RockSprite(grid.tileset.romId) : null)
               ?? RockSprite(def.romRocks[(x * 7 + y * 13) % def.romRocks.Length].tileset) : null;
         Sprite flat = def != null && !def.hidden && sheet == null && rock == null && def.tileset < 0 ? FlatSprite(def) : null;
-        Show(baseTiles, i, rom != null ? rom.Tile(Mask(x, y, floorKind), (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0) : null, 0, 0f);
+        int mask = rom != null ? Mask(x, y, floorKind) : 0, variation = (x * 7 + y * 13) % 8 == 0 ? 1 + (x + y) % 2 : 0;
+        Show(baseTiles, i, rom != null ? rom.Tile(mask, variation) : null, 0, 0f);
+        int chunk = rom != null ? rom.ChunkOf(mask, variation) : -1;
+        if (rom?.Animation != null && rom.Animation.Has(chunk))
+        {
+            romAnimated[i] = (rom.Animation, chunk);
+            romFrame[rom.Animation] = -1; // shown again at the current frame
+        }
+        else romAnimated.Remove(i);
         float angle = def != null && def.Bridge && !SpansNorthSouth(x, y) ? 90f : 0f;
         Show(topTiles, i, sheet != null ? sheet.Frame(FrameAt(sheet)) : rock != null ? rock : flat, 1, angle, def?.spriteColor ?? Color.white);
         if (sheet != null && sheet.frame_count > 1) animated.Add(i);
