@@ -146,6 +146,8 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Objets tenus : un ennemi qui en tient un le lâche", EnemyDropsHeld());
         yield return Scenario("Objets tenus : tiers I à III et fusion au ramassage", HeldTiers());
         yield return Scenario("Objets : Explo et Casque Brut plafonnés contre un boss, Orbe Vie une fois par attaque", ItemLimits());
+        yield return Scenario("Interface : chaque objet a une description", ItemsDescribed());
+        yield return Scenario("Interface : bandeaux regroupés, trois au plus", BannersGrouped());
         yield return Scenario("Eau : poussé dedans, un Pokémon qui ne nage pas revient, un nageur y reste", PushedIntoWater());
         yield return Scenario("Ultime ennemi : Téra pour se déplacer sur la lave qui l'entoure", EnemyTeraForWater());
         yield return Scenario("Rencontres : une équipe a ses rôles et des types qui se combinent", TeamHasRoles());
@@ -1263,6 +1265,32 @@ public class AiScenarios : MonoBehaviour
         leader.Hold(null);
         leader.maxHp = leader.hp = keptHp;
         Report(blast && helmet && orb, $"Explo sur un boss : {(blast ? "5 %" : "autre")}, Casque Brut : {(helmet ? "2 %" : "autre")}, Orbe Vie : {(orb ? "une fois" : "plusieurs fois")}");
+        yield break;
+    }
+
+    // Every consumable and held item says what it does (the HUD shows it), tiers included.
+    IEnumerator ItemsDescribed()
+    {
+        var missing = new List<string>();
+        foreach (var i in BagItems.All)
+            if (string.IsNullOrEmpty(BagItems.Describe(i))) missing.Add(i.name);
+        foreach (var i in HeldItems.All)
+            if (string.IsNullOrEmpty(HeldItems.Describe(i))) missing.Add(i.name);
+        string band = HeldItems.Describe(HeldItems.AtTier(HeldItems.Get("choice_band"), 3));
+        Report(missing.Count == 0 && band.Contains("70"), missing.Count == 0 ? $"toutes décrites, ex. Bandeau Choix III : {band}" : $"sans description : {string.Join(", ", missing)}");
+        yield break;
+    }
+
+    // The same banner twice shows "×2" on one line; five different ones leave the last three.
+    IEnumerator BannersGrouped()
+    {
+        var progression = team.GetComponent<Progression>();
+        progression.Announce("Test : baie", Notice.Loot);
+        progression.Announce("Test : baie", Notice.Loot);
+        int twice = progression.TimesShown("Test : baie");
+        for (int k = 0; k < 5; k++) progression.Announce($"Test {k}");
+        int count = progression.BannerCount;
+        Report(twice == 2 && count == 3, $"même texte : ×{twice}, après cinq autres : {count} bandeau(x)");
         yield break;
     }
 

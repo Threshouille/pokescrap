@@ -12,7 +12,7 @@ public static class HeldItems
     [Serializable]
     public class Item
     {
-        public string key, name, letter, color, icon;
+        public string key, name, letter, color, icon, desc;
         public float attackMul = 1f, specialAttackMul = 1f, speedMul = 1f, cooldownMul = 1f, damageMul = 1f;
         public float regenShare, drainShare, recoilShare, contactShare, bossContactShare = -1f, weight = 1f;
         public bool sash, popOnHit, regenOutOfFight, tiered;
@@ -133,6 +133,33 @@ public static class HeldItems
         foreach (var i in Data.items)
             if ((roll -= i.weight) < 0) return i;
         return Data.items.Length > 0 ? Data.items[^1] : null;
+    }
+
+    static string Pct(float share) => $"{share * 100f:0.#} %";
+
+    /// What the item does, in a few words, from its values (so tiers and settings show as they are): "Attaque +50 %,
+    /// recharges +25 %". The data's "desc" replaces it when given.
+    public static string Describe(Item item)
+    {
+        if (item == null) return "";
+        if (!string.IsNullOrEmpty(item.desc)) return item.desc;
+        var parts = new List<string>();
+        void Mul(float mul, string what) { if (Mathf.Abs(mul - 1f) > 0.001f) parts.Add($"{what} {(mul > 1f ? "+" : "−")}{Pct(Mathf.Abs(mul - 1f))}"); }
+        Mul(item.attackMul, "Attaque");
+        Mul(item.specialAttackMul, "Attaque Spé");
+        Mul(item.speedMul, "vitesse");
+        Mul(item.damageMul, "dégâts");
+        Mul(item.cooldownMul, "recharges");
+        if (item.regenShare > 0f) parts.Add($"+{Pct(item.regenShare)} des PV par seconde{(item.regenOutOfFight ? " hors combat" : "")}");
+        if (item.drainShare > 0f) parts.Add($"regagne {Pct(item.drainShare)} des dégâts infligés");
+        if (item.recoilShare > 0f) parts.Add($"perd {Pct(item.recoilShare)} des PV par attaque");
+        if (item.contactShare > 0f) parts.Add($"l'attaquant au contact perd {Pct(item.contactShare)} de ses PV");
+        if (item.sash) parts.Add("survit une fois à un coup fatal");
+        var over = item.crosses.Select(k => k switch { "water" => "l'eau", "void" => "le vide", "lava" => "la lave", _ => null }).Where(n => n != null).ToList();
+        if (over.Count > 0) parts.Add((item.popOnHit ? "flotte au-dessus de " : "marche sur ") + string.Join(", ", over));
+        if (item.popOnHit) parts.Add("éclate au premier coup");
+        if (item.terrainImmune.Length > 0) parts.Add("insensible aux terrains au sol");
+        return string.Join(", ", parts);
     }
 
     /// Its held item lets it over that obstacle (a Balloon over water, Magma Boots on lava).

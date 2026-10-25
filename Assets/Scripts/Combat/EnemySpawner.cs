@@ -114,6 +114,7 @@ public class EnemySpawner : MonoBehaviour
 
     void BeginStage()
     {
+        lots.Clear();
         // At most one elite lot (champion or squad) per stage, during a wave drawn now.
         eliteWave = Current.waves != null && Current.waves.Length > 0 && rng.NextDouble() < Encounters.EliteChance(CurrentStage)
             ? rng.Next(Current.waves.Length) : -1;
@@ -350,10 +351,57 @@ public class EnemySpawner : MonoBehaviour
             group.members.Add(c);
             spawned.Add(c);
         }
+        if (spawned.Count > 0) lots.Add(new Lot { label = LotLabel(e), members = spawned, elite = e.category.elite });
         return spawned;
     }
 
     int eliteWave = -1; // the wave of this stage with an elite lot, or -1
+
+    // The lots on the field, for the wave panel (top right): its members, a line while any of them stands.
+    class Lot
+    {
+        public string label;
+        public List<Combatant> members;
+        public bool elite;
+        public int Alive => members.FindAll(m => m != null && m.IsAlive).Count;
+    }
+
+    readonly List<Lot> lots = new();
+
+    /// "Meute · Rattata", "Équipe", "Champion · Dracaufeu", "Meute + Solitaire · Rattata".
+    static string LotLabel(Encounters.Encounter e)
+    {
+        string name = e.category.name + (e.with != null ? " + " + e.with.name : "");
+        bool one = e.category.key is "pack" or "solo" or "champion";
+        return one && e.members.Count > 0 ? $"{name} · {GameData.Pokemon(e.members[0].pokemonId)?.name}" : name;
+    }
+
+    // Wave panel, top right under the weather's name: one line per lot still standing (how many of it are left), the
+    // elites in gold; how many enemies in all.
+    void DrawLots(float s)
+    {
+        lots.RemoveAll(l => l.Alive == 0);
+        if (lots.Count == 0) return;
+        float w = HudLayout.LotsWidth * s, line = 11f * s, pad = 6f * s;
+        int total = 0;
+        foreach (var l in lots) total += l.Alive;
+        float top = (Climate.Now != null ? HudLayout.Top + 14f : HudLayout.Top) * s;
+        var box = new Rect(Screen.width - w - HudLayout.Side * s, top, w, (lots.Count + 1) * line + 2f * pad);
+        HudLayout.Panel(box, s);
+        var bold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+        var row = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+        var count = new GUIStyle(text) { alignment = TextAnchor.MiddleRight };
+        GUI.Label(new Rect(box.x + pad, box.y + pad, w - 2f * pad, line), $"Ennemis de la vague · {total}", bold);
+        for (int i = 0; i < lots.Count; i++)
+        {
+            var r = new Rect(box.x + pad, box.y + pad + (i + 1) * line, w - 2f * pad, line);
+            bool elite = lots[i].elite;
+            row.normal.textColor = elite ? HudLayout.Gold : Color.white;
+            count.normal.textColor = elite ? HudLayout.Gold : HudLayout.Secondary;
+            GUI.Label(new Rect(r.x, r.y, r.width - 34f * s, r.height), lots[i].label, row);
+            GUI.Label(r, $"{lots[i].Alive} / {lots[i].members.Count}", count);
+        }
+    }
 
     /// The banner when an elite lot arrives.
     public void AnnounceElite(Encounters.Encounter elite)
@@ -361,7 +409,7 @@ public class EnemySpawner : MonoBehaviour
         var progression = team != null ? team.GetComponent<Progression>() : null;
         if (progression == null || elite.members.Count == 0) return;
         string leader = GameData.Pokemon(elite.members[0].pokemonId)?.name;
-        progression.Announce(elite.members.Count == 1 ? $"Un champion apparaît : {leader} !" : $"Une escouade d'élite approche, menée par {leader} !");
+        progression.Announce(elite.members.Count == 1 ? $"Un champion apparaît : {leader} !" : $"Une escouade d'élite approche, menée par {leader} !", Notice.Elite);
     }
 
     PmdAnimSet SupportCandidate()
@@ -472,13 +520,20 @@ public class EnemySpawner : MonoBehaviour
         bool defeat = team != null && team.GameOver;
         if (!Victory && !defeat)
         {
+            // Stage, top left: which one and where (day or night), then the wave.
             bool bossStage = Current.boss != null && !Run.Sandbox;
-            string where = Run.Sandbox ? "Terrain de test (dev) — Options : menu pause" : Night ? "Nuit — " : "Jour — ";
-            if (!Run.Sandbox) where += bossStage ? Current.name
-                : nextWaveAt > 0f ? $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length} terminée"
-                : $"{Current.name} — Vague {CurrentWave}/{Current.waves.Length}";
-            Fill(new Rect(cx - 110f * s, 4f * s, 220f * s, 12f * s), new Color(0f, 0f, 0f, 0.6f));
-            GUI.Label(new Rect(cx - 110f * s, 4f * s, 220f * s, 12f * s), where, label);
+            string place = Current.name.Contains("tape") ? Current.name : $"Étape {CurrentStage + 1} — {Current.name}";
+            string first = Run.Sandbox ? "Terrain de test (dev)" : $"{place} · {(Night ? "Nuit" : "Jour")}";
+            string second = Run.Sandbox ? "Options : menu pause" : bossStage ? "Boss"
+                : nextWaveAt > 0f ? $"Vague {CurrentWave} / {Current.waves.Length} terminée" : $"Vague {CurrentWave} / {Current.waves.Length}";
+            var stageBox = new Rect(HudLayout.Side * s, HudLayout.Top * s, HudLayout.StageWidth * s, 27f * s);
+            HudLayout.Panel(stageBox, s);
+            var leftBold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+            var leftSoft = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+            leftSoft.normal.textColor = HudLayout.Secondary;
+            GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 3f * s, stageBox.width - 12f * s, 10f * s), first, leftBold);
+            GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 14f * s, stageBox.width - 12f * s, 10f * s), second, leftSoft);
+            DrawLots(s);
 
             if (bossStage && boss != null && boss.IsAlive)
             {

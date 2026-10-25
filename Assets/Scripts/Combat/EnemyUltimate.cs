@@ -205,7 +205,7 @@ public class EnemyUltimate : MonoBehaviour
         self.BeginEvolution(pose);
         Ultimates.Aura(self, pose, Color.white);
         EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
-        progression?.Announce($"{name} ennemi méga-évolue en {mega.name} !");
+        progression?.Announce($"{name} ennemi méga-évolue en {mega.name} !", Notice.Elite);
     }
 
     // Types of the damaging moves of the living opponents (each move counts once per Pokémon).
@@ -235,7 +235,7 @@ public class EnemyUltimate : MonoBehaviour
         Ultimates.Aura(self, Ultimates.TeraPose, GameData.TypeColor(type));
         if (EffectLibrary.Get("tera_eclat") != null) EffectPlayer.Spawn("tera_eclat", transform.position, Vector2.right);
         else EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
-        progression?.Announce($"{self.Stats.name} ennemi se téracristallise : type {GameData.TypeName(type)} !");
+        progression?.Announce($"{self.Stats.name} ennemi se téracristallise : type {GameData.TypeName(type)} !", Notice.Elite);
     }
 
     // ---- Z move ----
@@ -262,7 +262,7 @@ public class EnemyUltimate : MonoBehaviour
         var z = Ultimates.ZVersion(baseMove, ItemType, s.level);
         self.BeginEvolution(SpecialItems.ZPose);
         Ultimates.Aura(self, SpecialItems.ZPose, GameData.TypeColor(ItemType));
-        progression?.Announce($"Attention : {self.Stats.name} ennemi prépare {z.name} !");
+        progression?.Announce($"Attention : {self.Stats.name} ennemi prépare {z.name} !", Notice.Alert);
         yield return new WaitForSeconds(SpecialItems.ZPose);
         if (self == null || !self.IsAlive) yield break;
         yield return Ultimates.StrikeZ(self, z, ItemType, s.level, s.zRange, s.zMaxShare);

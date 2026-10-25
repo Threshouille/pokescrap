@@ -514,6 +514,10 @@ public class TerrainSandbox : MonoBehaviour
                + "     ↑/↓ ou 1/2 : cristal     F ou L3 + R3 : lancer     Escalier (en haut à droite) : retour";
     }
 
+    GUIStyle roomLine;
+
+    void OnDestroy() => HudLayout.SandboxLine = 0f;
+
     void OnGUI()
     {
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
@@ -528,13 +532,18 @@ public class TerrainSandbox : MonoBehaviour
 
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     Cibles immobiles (reviennent après un K.O.)     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
-        var rect = new Rect(0f, 18f * s, Screen.width, 12f * s);
+        // Top centre, between the stage box and the lots panel, wrapped; the banners go below it (HudLayout).
+        roomLine ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
+        roomLine.fontSize = Mathf.RoundToInt(7f * s);
+        float width = HudLayout.CenterWidth(s);
+        var content = new GUIContent(line.Replace("     ", "  ·  "));
+        width = Mathf.Min(width, roomLine.CalcSize(content).x + 16f * s);
+        float height = roomLine.CalcHeight(content, width - 12f * s) + 6f * s;
+        var rect = new Rect(Screen.width / 2f - width / 2f, HudLayout.Top * s, width, height);
         var previous = GUI.color;
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        float width = Mathf.Min(Screen.width, Mathf.Max(400f * s, label.CalcSize(new GUIContent(line)).x + 16f * s));
-        GUI.DrawTexture(new Rect(Screen.width / 2f - width / 2f, rect.y, width, rect.height), Texture2D.whiteTexture);
-        GUI.color = previous;
-        GUI.Label(rect, line, label);
+        HudLayout.Panel(rect, s);
+        GUI.Label(new Rect(rect.x + 6f * s, rect.y + 3f * s, rect.width - 12f * s, rect.height - 6f * s), content, roomLine);
+        HudLayout.SandboxLine = height;
         GalleryLabels(s);
         // Fade between the rooms.
         float alpha = pendingRoom >= 0 ? Mathf.Clamp01((Time.unscaledTime - fadeOutAt) / FadeTime)

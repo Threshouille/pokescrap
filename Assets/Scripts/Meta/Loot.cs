@@ -274,11 +274,18 @@ public class Loot : MonoBehaviour
             item.inBag = true; // Grant only says so
             return true;
         }
-        if (Time.time >= fullSaidAt) { progression?.Announce("Sac plein"); fullSaidAt = Time.time + 3f; }
+        if (Time.time >= fullSaidAt) { progression?.Announce("Sac plein", Notice.Alert); fullSaidAt = Time.time + 3f; }
         return false;
     }
 
     float fullSaidAt;
+
+    // The HUD's card: what was picked up and what it does.
+    void Card(string title, string body, Sprite icon)
+    {
+        var hud = team != null ? team.GetComponent<TeamHud>() : null;
+        if (hud != null) hud.ShowCard(title, body, icon);
+    }
 
     void Grant(Item item)
     {
@@ -296,7 +303,8 @@ public class Loot : MonoBehaviour
                 Place(new Item { held = dropped.key, heldTier = dropped.tier }, (Vector2)taker.transform.position + Vector2.down * 0.6f);
                 drops[^1].notFor = taker;
             }
-            progression?.Announce($"{taker.Stats.name} tient {now.FullName}{(dropped != null ? $" (lâche {dropped.FullName})" : "")}");
+            progression?.Announce($"{taker.Stats.name} tient {now.FullName}{(dropped != null ? $" (lâche {dropped.FullName})" : "")}", Notice.Loot);
+            Card($"{taker.Stats.name} tient {now.FullName}", HeldItems.Describe(now), SpecialItems.Icon(now.icon));
             return;
         }
         if (item.consumable != null)
@@ -305,12 +313,13 @@ public class Loot : MonoBehaviour
             if (bagItem == null) return;
             var bag = team != null ? team.GetComponent<Bag>() : null;
             if (!item.inBag && (bag == null || !bag.Add(bagItem.key))) return; // picked up at the end of a stage: no room, lost
-            progression?.Announce($"{bagItem.name} ramassée !");
+            progression?.Announce($"{bagItem.name} ramassée", Notice.Loot);
+            Card($"{bagItem.name} (sac)", BagItems.Describe(bagItem), SpecialItems.Icon(bagItem.icon));
             return;
         }
         if (Run.Sandbox) // the test arena's showcase: shown, not written into the save
         {
-            progression?.Announce($"{Describe(item, 0)} (terrain de test : non enregistré)");
+            progression?.Announce($"{Describe(item, 0)} (terrain de test : non enregistré)", Notice.Loot);
             return;
         }
         int level = 0;
@@ -320,7 +329,7 @@ public class Loot : MonoBehaviour
             case SpecialItems.Family.Z: level = SaveData.AddZ(item.type); break;
             case SpecialItems.Family.Tera: level = SaveData.AddTera(item.type); break;
         }
-        progression?.Announce($"{Describe(item, level)} obtenu !");
+        progression?.Announce($"{Describe(item, level)} obtenu !", Notice.Loot);
     }
 
     static string Describe(Item item, int level) => item.consumable != null ? BagItems.Get(item.consumable)?.name ?? "Objet"

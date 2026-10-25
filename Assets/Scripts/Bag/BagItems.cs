@@ -10,7 +10,7 @@ public static class BagItems
     [Serializable]
     public class Item
     {
-        public string key, name, letter, color, effect, status, stat, icon;
+        public string key, name, letter, color, effect, status, stat, icon, desc;
         public float value, radius, duration, weight = 1f;
         public float bossValue = -1f, bossSlow; // a boss: its share of a Blast Seed; the Petrify Orb slows it instead
 
@@ -59,6 +59,28 @@ public static class BagItems
 
     /// Chance that an enemy of that rank ("elite" for an elite) drops a consumable.
     public static float DropChance(string rank) => Array.Find(Data.drops.byRank, r => r.rank == rank)?.chance ?? 0f;
+
+    static string Pct(float share) => $"{share * 100f:0.#} %";
+
+    /// What the consumable does, in a few words, from its values ("soigne 30 % des PV"); "desc" replaces it.
+    public static string Describe(Item item)
+    {
+        if (item == null) return "";
+        if (!string.IsNullOrEmpty(item.desc)) return item.desc;
+        string stat = item.stat switch { "attack" => "Attaque", "defense" => "Défense", "speed" => "vitesse", _ => item.stat };
+        return item.effect switch
+        {
+            "heal" => $"soigne {Pct(item.value)} des PV",
+            "cure" => $"guérit : {(StatusLibrary.Get(item.status)?.name ?? item.status).ToLowerInvariant()}",
+            "blast" => $"{Pct(item.value)} des PV aux ennemis près de la cible{(item.bossValue >= 0f ? $" ({Pct(item.bossValue)} pour un boss)" : "")}",
+            "sleep" => $"endort les ennemis à moins de {item.radius:0.#} cases ({item.duration:0} s)",
+            "revive" => $"relève un K.O. à {Pct(item.value)} des PV",
+            "boost" => $"{stat} +{Pct(item.value - 1f)} pendant {item.duration:0} s",
+            "stun" => $"fige les ennemis visibles {item.duration:0} s{(item.bossSlow > 0f ? " (ralentit un boss)" : "")}",
+            "freeze" => $"gèle l'eau de la salle {item.duration:0} s",
+            _ => "",
+        };
+    }
 
     /// A consumable drawn by weight.
     public static Item Roll(System.Random rng)

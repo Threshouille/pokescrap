@@ -176,7 +176,7 @@ public class Ultimates : MonoBehaviour
         if (!pressed) return;
         if (Ready) Trigger(team.Controlled);
         else if (Full && transforming == null && posing == null && KindOf(team.Controlled) == SpecialItems.Family.Z)
-            progression.Announce("Capacité Z : aucun ennemi en vue.");
+            progression.Announce("Capacité Z : aucun ennemi en vue", Notice.Alert);
     }
 
     /// Unleashes the member's ultimate (input, tests). False when it cannot.

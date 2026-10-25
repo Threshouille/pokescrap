@@ -88,7 +88,7 @@ Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false`
   L'escalier violet (en bas à droite) mène à la **galerie des mégas** : toutes les méga-évolutions de `megas.json`,
   immobiles et inoffensives ; celle dont on s'approche se tourne vers le Pokémon et joue ses
   animations l'une après l'autre, nom de l'animation affiché (`galleryColumns`, `gallerySpacing` dans `terrain_sandbox.json`).
-- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 55 scénarios (ne pas suivre
+- **Banc d'essai des IA** : dans le terrain de test, **B** retire les émetteurs puis joue 57 scénarios (ne pas suivre
   le Pokémon joué dans un danger, contourner une bande de danger, attendre au bord sans chemin sûr, sortir d'un
   terrain nocif, choisir la cible selon les types, finir un K.O., suivre le Pokémon joué qui recule, rester près de
   lui quand on est blessé, geler une rivière, faire pousser des nénuphars, refaire un pont brûlé, refroidir la lave,
@@ -235,6 +235,13 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 25/10/2026 — Interface en partie (Robin, branche `feature/interface`)
+- Objets lisibles : l'objet tenu du Pokémon joué et son effet au-dessus de son nom, l'objet des alliés en coin de leur
+  portrait, le nom et l'effet de l'objet choisi au-dessus du sac, une carte au ramassage (nom et effet).
+- Bandeaux en haut au centre : couleur par sorte (butin vert, alerte rouge, élite doré), « ×2 » au lieu de doublons,
+  trois au plus. Étape en haut à gauche (étape, jour / nuit, vague) ; **panneau des lots** en haut à droite (chaque lot
+  et ses restants, élites en doré).
 
 ### 24/10/2026 — Sac d'objets, étape 1 (Robin, branche `feature/sac`)
 - **Sac partagé** par l'équipe (4 emplacements, piles de 9, en bas à droite de l'écran), vidé à la fin de la partie :

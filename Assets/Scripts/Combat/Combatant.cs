@@ -434,22 +434,13 @@ public class Combatant : MonoBehaviour
         if (teraIcon != null) Destroy(teraIcon);
     }
 
-    const float TeraIconHeight = 1.15f, TeraIconSize = 0.55f; // tiles above the feet, width
     GameObject teraIcon;
 
-    // The Tera shard's icon above its head while Terastallized (the tint alone was easy to miss).
+    // Its Tera type at a glance: crystal hexagon under the feet, the shard above the head (TeraAura).
     void ShowTeraIcon(int type)
     {
         if (teraIcon != null) Destroy(teraIcon);
-        var icon = SpecialItems.Icon(SpecialItems.IconName(SpecialItems.Family.Tera, null, type));
-        if (icon == null) return;
-        teraIcon = new GameObject("Téra");
-        teraIcon.transform.SetParent(transform, false);
-        teraIcon.transform.localPosition = new Vector3(0f, TeraIconHeight, 0f);
-        teraIcon.transform.localScale = Vector3.one * TeraIconSize / Mathf.Max(0.01f, transform.lossyScale.x);
-        var r = teraIcon.AddComponent<SpriteRenderer>();
-        r.sprite = icon;
-        r.sortingOrder = 2; // above the Pokémon
+        teraIcon = TeraAura.Attach(this, type).gameObject;
     }
 
     /// Uses a move that is in none of its slots (a Z move): it borrows the first slot for the cast, whose own move

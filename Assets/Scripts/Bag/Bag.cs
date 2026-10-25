@@ -86,7 +86,11 @@ public class Bag : MonoBehaviour
         var kb = Keyboard.current;
         var pad = Gamepad.current;
         for (int i = 0; i < slots.Length && i < 4 && kb != null; i++)
-            if (kb[Key.Digit1 + i].wasPressedThisFrame) Use(i, team.Controlled);
+            if (kb[Key.Digit1 + i].wasPressedThisFrame)
+            {
+                Selected = i; // the HUD describes it
+                Use(i, team.Controlled);
+            }
         if (pad == null) return;
         if (pad.dpad.up.wasPressedThisFrame) Selected = (Selected + slots.Length - 1) % slots.Length;
         if (pad.dpad.down.wasPressedThisFrame) Selected = (Selected + 1) % slots.Length;
