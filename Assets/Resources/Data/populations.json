@@ -1,0 +1,33 @@
+{
+ "comment": "Populations of the island (Populations.cs, GDD « L'île flottante », peuplement) : which Pokémon live in each sub-biome (key of biomes.json, or of the test quarter's left / right). types : type name (as in typeColors) and weight; a Pokémon weighs as much as the best of its types (a heavier one is drawn more often). night : types added at night with levels.nightWeight. include / exclude : Pokémon ids forced in or kept out. The rest of the filter is the encounters' (sprites, two moves, recruitable, encounters.json exclude, evolution stage of maxDepthByStage) ; fewer than minPool Pokémon : the encounters' whole pool. Levels : stage (rarities, budget, evolution stage) = quarter × stagePerQuarter + distance × distanceStages, distance = 0 at the arrival, 1 at the farthest tile of the quarter ; level bonus = quarterBonus[quarter] + distance × distanceBonus.",
+ "minPool": 12,
+ "levels": { "stagePerQuarter": 1, "distanceStages": 1, "quarterBonus": [0, 4, 8, 12], "distanceBonus": 4, "nightWeight": 2 },
+ "habitats": [
+  { "key": "meadow", "name": "Prairie fleurie", "types": [{ "type": "Normal", "weight": 3 }, { "type": "Plante", "weight": 3 }, { "type": "Insecte", "weight": 2 }, { "type": "Vol", "weight": 2 }, { "type": "Électrik", "weight": 1 }], "night": ["Ténèbres", "Spectre"] },
+  { "key": "woods", "name": "Bois clair", "types": [{ "type": "Plante", "weight": 3 }, { "type": "Insecte", "weight": 3 }, { "type": "Normal", "weight": 2 }, { "type": "Vol", "weight": 1 }], "night": ["Ténèbres", "Spectre"] },
+  { "key": "deep", "name": "Forêt profonde", "types": [{ "type": "Plante", "weight": 2 }, { "type": "Insecte", "weight": 2 }, { "type": "Poison", "weight": 2 }, { "type": "Ténèbres", "weight": 1 }], "night": ["Spectre", "Ténèbres"] },
+  { "key": "jungle", "name": "Jungle", "types": [{ "type": "Plante", "weight": 3 }, { "type": "Insecte", "weight": 2 }, { "type": "Poison", "weight": 2 }, { "type": "Combat", "weight": 1 }, { "type": "Vol", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "highwood", "name": "Hauts bois", "types": [{ "type": "Vol", "weight": 3 }, { "type": "Plante", "weight": 2 }, { "type": "Normal", "weight": 1 }, { "type": "Insecte", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "basalt", "name": "Rivage de basalte", "types": [{ "type": "Roche", "weight": 3 }, { "type": "Eau", "weight": 2 }, { "type": "Feu", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "ash", "name": "Pentes de cendres", "types": [{ "type": "Feu", "weight": 3 }, { "type": "Sol", "weight": 2 }, { "type": "Roche", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "magma_caves", "name": "Grottes de magma", "types": [{ "type": "Feu", "weight": 3 }, { "type": "Roche", "weight": 2 }, { "type": "Acier", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "flows", "name": "Coulées", "types": [{ "type": "Feu", "weight": 3 }, { "type": "Roche", "weight": 2 }, { "type": "Sol", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "crater", "name": "Cratère", "types": [{ "type": "Feu", "weight": 3 }, { "type": "Roche", "weight": 2 }, { "type": "Dragon", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "tundra", "name": "Toundra", "types": [{ "type": "Glace", "weight": 3 }, { "type": "Normal", "weight": 1 }, { "type": "Sol", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "frozen_forest", "name": "Forêt glacée", "types": [{ "type": "Glace", "weight": 3 }, { "type": "Plante", "weight": 1 }, { "type": "Ténèbres", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "ice_fields", "name": "Champs de glace", "types": [{ "type": "Glace", "weight": 3 }, { "type": "Eau", "weight": 2 }], "night": ["Spectre"] },
+  { "key": "summit", "name": "Sommet", "types": [{ "type": "Glace", "weight": 2 }, { "type": "Vol", "weight": 2 }, { "type": "Roche", "weight": 1 }, { "type": "Dragon", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "beach", "name": "Plage", "types": [{ "type": "Eau", "weight": 3 }, { "type": "Sol", "weight": 1 }, { "type": "Normal", "weight": 1 }, { "type": "Vol", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "lagoon", "name": "Lagunes", "types": [{ "type": "Eau", "weight": 3 }, { "type": "Plante", "weight": 1 }, { "type": "Insecte", "weight": 1 }], "night": ["Poison"] },
+  { "key": "cliffs", "name": "Falaises", "types": [{ "type": "Vol", "weight": 3 }, { "type": "Roche", "weight": 2 }, { "type": "Eau", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "caves", "name": "Grottes marines", "types": [{ "type": "Eau", "weight": 2 }, { "type": "Roche", "weight": 2 }, { "type": "Poison", "weight": 1 }, { "type": "Spectre", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "dunes", "name": "Dunes", "types": [{ "type": "Sol", "weight": 3 }, { "type": "Roche", "weight": 1 }, { "type": "Insecte", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "oasis", "name": "Oasis", "types": [{ "type": "Eau", "weight": 2 }, { "type": "Plante", "weight": 2 }, { "type": "Insecte", "weight": 1 }, { "type": "Sol", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "canyon", "name": "Canyon", "types": [{ "type": "Roche", "weight": 3 }, { "type": "Sol", "weight": 2 }, { "type": "Combat", "weight": 1 }, { "type": "Vol", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "quicksand", "name": "Sables mouvants", "types": [{ "type": "Sol", "weight": 3 }, { "type": "Insecte", "weight": 2 }, { "type": "Spectre", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "outskirts", "name": "Abords", "types": [{ "type": "Normal", "weight": 2 }, { "type": "Combat", "weight": 2 }, { "type": "Psy", "weight": 1 }, { "type": "Roche", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "halls", "name": "Salles effondrées", "types": [{ "type": "Roche", "weight": 2 }, { "type": "Spectre", "weight": 2 }, { "type": "Psy", "weight": 2 }], "night": ["Spectre"] },
+  { "key": "overgrown", "name": "Ruines envahies", "types": [{ "type": "Plante", "weight": 2 }, { "type": "Spectre", "weight": 1 }, { "type": "Psy", "weight": 1 }, { "type": "Insecte", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "temple", "name": "Temple", "types": [{ "type": "Psy", "weight": 3 }, { "type": "Spectre", "weight": 2 }, { "type": "Acier", "weight": 1 }, { "type": "Dragon", "weight": 1 }], "night": ["Spectre"] }
+ ]
+}

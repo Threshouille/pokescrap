@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -169,6 +170,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Rencontres : les rangs montent avec l'étape", RanksRise());
         yield return Scenario("Rencontres : les Pokémon vont avec le décor", FitsDecor());
         yield return Scenario("Rencontres : apparition avec rang, anneau et objet", EncounterSpawns());
+        yield return Scenario("Peuplement : chaque sous-biome a sa population, plus forte en avançant", HabitatsPopulated());
 
         Clear();
         if (progression != null) progression.enabled = true;
@@ -469,33 +471,42 @@ public class AiScenarios : MonoBehaviour
         Report(now == to || (to == "burning_bridge" && now == "burnt_bridge"), $"{move.name} : {from} → {now}");
     }
 
-    // The ally (AI off) fires a straight Fire shot that ends its flight on a bridge tile: the bridge burns.
+    // The ally (AI off) fires a straight Fire shot that ends its flight on a bridge tile: the bridge burns. The river
+    // and its bridges are laid out anew each time: every bridge tile and eight directions are tried for a free tile
+    // at the shot's range with a clear line to it.
     IEnumerator FireShotBurnsBridge()
     {
         var (_, ally) = Place(Vector2.zero, Vector2.zero, settle: false);
-        var cell = FindCell("bridge");
         var fire = FindMove(2, m => m.family == "projectile" && m.path != "arc");
-        if (cell == null || fire == null) { Report(false, "pas de pont ou pas d'attaque Feu"); yield break; }
+        var bridges = FindCells("bridge");
+        if (bridges.Count == 0 || fire == null) { Report(false, "pas de pont ou pas d'attaque Feu"); yield break; }
         var grid = DungeonGenerator.Current;
-        Vector2 target = grid.CentreOf(cell.Value.x, cell.Value.y);
-        Vector2? stand = null;
-        foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+        Vector2Int? cell = null;
+        Vector2 target = Vector2.zero, stand = Vector2.zero;
+        foreach (var b in bridges)
         {
-            var at = grid.CellOf(target - d * fire.range);
-            if (grid.Walkable(at.x, at.y) && Obstacles.At(at.x, at.y) == null && grid.LineClear(grid.CentreOf(at.x, at.y), target, 0.2f))
+            target = grid.CentreOf(b.x, b.y);
+            for (int k = 0; k < 8 && cell == null; k++)
             {
-                stand = grid.CentreOf(at.x, at.y);
-                break;
+                var d = (Vector2)(Quaternion.Euler(0f, 0f, 45f * k) * Vector2.right);
+                var at = grid.CellOf(target - d * fire.range);
+                if (!grid.Walkable(at.x, at.y) || Obstacles.At(at.x, at.y) != null) continue;
+                var from = grid.CentreOf(at.x, at.y);
+                // The tile's centre must leave the shot ending on the bridge itself.
+                if (grid.CellOf(from + (target - from).normalized * fire.range) != b || !grid.LineClear(from, target, 0.2f)) continue;
+                cell = b;
+                stand = from;
             }
+            if (cell != null) break;
         }
-        if (stand == null) { Report(false, $"pas d'endroit à {fire.range:0} cases du pont"); yield break; }
+        if (cell == null) { Report(false, $"pas d'endroit à {fire.range:0} cases d'un des {bridges.Count} ponts"); yield break; }
         var ai = ally.GetComponent<AllyAI>();
         ai.enabled = false;
-        Teleport(ally, stand.Value);
+        Teleport(ally, stand);
         var kept = (MoveDef[])ally.Moves.Clone();
         ally.LearnMove(0, fire);
         yield return new WaitForFixedUpdate();
-        bool used = ally.TryUseMove(0, target - stand.Value, Vector2.Distance(target, stand.Value));
+        bool used = ally.TryUseMove(0, target - stand, Vector2.Distance(target, stand));
         yield return new WaitForSeconds(2f);
         for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, kept[i]);
         ai.enabled = true;
@@ -701,6 +712,16 @@ public class AiScenarios : MonoBehaviour
     }
 
     // First tile of that obstacle, scanning the room.
+    static List<Vector2Int> FindCells(string key)
+    {
+        var cells = new List<Vector2Int>();
+        var inside = DungeonGenerator.Current.Interior;
+        for (int x = inside.xMin; x < inside.xMax; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+                if (Obstacles.At(x, y)?.key == key) cells.Add(new Vector2Int(x, y));
+        return cells;
+    }
+
     static Vector2Int? FindCell(string key)
     {
         var inside = DungeonGenerator.Current.Interior;
@@ -1711,6 +1732,41 @@ public class AiScenarios : MonoBehaviour
         for (int k = 0; k < 5; k++) progression.Announce($"Test {k}");
         int count = progression.BannerCount;
         Report(twice == 2 && count == 3, $"même texte : ×{twice}, après cinq autres : {count} bandeau(x)");
+        yield break;
+    }
+
+    // Every sub-biome of populations.json has enough Pokémon of its types; lots drawn there are of those types (or
+    // forced in); the night brings its own types; stage and levels rise with the quarter and the distance.
+    IEnumerator HabitatsPopulated()
+    {
+        var unknown = Populations.UnknownTypes().ToList();
+        var rng = new System.Random(21);
+        var problems = new List<string>(unknown.Select(n => $"type inconnu {n}"));
+        var solo = Encounters.CategoryOf("solo");
+        int habitats = 0, members = 0;
+        foreach (var key in Populations.Habitats)
+        {
+            habitats++;
+            var where = new Populations.Where(key);
+            var pool = Encounters.Pool(1, -1, where);
+            if (pool.Count == 0 || !pool.All(id => Populations.Lives(key, id, false))) problems.Add($"{key} : trop peu de Pokémon (réservoir général)");
+            for (int k = 0; k < 6 && solo != null; k++)
+            {
+                var e = Encounters.Make(rng, solo, 1, -1, where: where);
+                foreach (var m in e?.members ?? new List<Encounters.Member>())
+                {
+                    members++;
+                    if (!Populations.Lives(key, m.pokemonId, false)) problems.Add($"{key} : {GameData.Pokemon(m.pokemonId)?.name} hors population");
+                }
+            }
+        }
+        bool rises = Populations.Stage(0, 0f) < Populations.Stage(3, 1f) && Populations.LevelBonus(0, 0f) < Populations.LevelBonus(1, 0f)
+                     && Populations.LevelBonus(0, 0f) < Populations.LevelBonus(0, 1f);
+        var meadow = Encounters.Pool(1, -1, new Populations.Where("meadow")).Distinct().Count();
+        var meadowNight = Encounters.Pool(1, -1, new Populations.Where("meadow", true)).Distinct().Count();
+        Report(problems.Count == 0 && rises && meadowNight > meadow,
+            problems.Count > 0 ? string.Join(", ", problems.Take(5))
+                : $"{habitats} sous-biomes, {members} Pokémon tirés dans leur population ; prairie : {meadow} espèces le jour, {meadowNight} la nuit ; étape {Populations.Stage(0, 0f)} → {Populations.Stage(3, 1f)}");
         yield break;
     }
 

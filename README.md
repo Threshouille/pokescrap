@@ -316,6 +316,10 @@ des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
 
+### 25/10/2026 — Peuplement de l'île, étape 1 : populations (Robin, branche `feature/peuplement`)
+- Chaque sous-biome de l'île a sa population (`populations.json` : types pondérés, types de la nuit), utilisée par les
+  rencontres à la place du décor ; niveau et rang qui montent avec le quartier et la distance à l'arrivée.
+
 ### 25/10/2026 — Seconde phase des ennemis (Robin, branche `feature/phases`)
 - La méga et la Téra d'un ennemi ouvrent une **seconde phase** à mi-PV (plus au premier contact) : une élite ou un boss ne
   passe pas ce seuil d'un seul coup ; transformation avec onde qui repousse, +30 % des PV (boss +20 %), recharges plus

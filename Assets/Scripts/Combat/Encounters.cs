@@ -82,7 +82,7 @@ public static class Encounters
     }
 
     /// An elite lot (champion or squad, by weight), or null when none fits.
-    public static Encounter Elite(System.Random rng, int stage, int decor)
+    public static Encounter Elite(System.Random rng, int stage, int decor, Populations.Where where = null)
     {
         var lots = Data.elites.lots.Where(l => CategoryOf(l.lot) != null && l.weight > 0f).ToList();
         if (lots.Count == 0) return null;
@@ -90,7 +90,7 @@ public static class Encounters
         var pick = lots[^1];
         foreach (var l in lots)
             if ((roll -= l.weight) < 0) { pick = l; break; }
-        return Make(rng, CategoryOf(pick.lot), stage, decor);
+        return Make(rng, CategoryOf(pick.lot), stage, decor, where: where);
     }
 
     /// One Pokémon of an encounter, as it will be spawned.
@@ -142,8 +142,9 @@ public static class Encounters
     /// The threat budget of a wave (stage and wave counted from 0).
     public static float BudgetOf(int stage, int wave) => Data.budget.start + Data.budget.perStage * stage + Data.budget.perWave * wave;
 
-    /// The encounters of a wave: drawn until its budget is spent (the first one always), at most maxGroups.
-    public static List<Encounter> Wave(System.Random rng, int stage, int wave, int decor)
+    /// The encounters of a wave: drawn until its budget is spent (the first one always), at most maxGroups. where: a
+    /// sub-biome of the island whose population replaces the décor's (Populations).
+    public static List<Encounter> Wave(System.Random rng, int stage, int wave, int decor, Populations.Where where = null)
     {
         var result = new List<Encounter>();
         float left = BudgetOf(stage, wave);
@@ -151,9 +152,9 @@ public static class Encounters
         {
             var category = PickCategory(rng, stage);
             if (category == null) break;
-            var e = Make(rng, category, stage, decor);
+            var e = Make(rng, category, stage, decor, where: where);
             if (e == null) continue;
-            Accompany(rng, e, stage, decor);
+            Accompany(rng, e, stage, decor, where);
             if (result.Count > 0 && e.cost > left) continue; // too dear for what is left: another one, maybe cheaper
             result.Add(e);
             left -= e.cost;
@@ -177,21 +178,21 @@ public static class Encounters
     public static IReadOnlyList<Combo> Combos => Data.combos;
 
     /// The lot that may come with this one (combos), drawn: its members join the encounter's group.
-    public static void Accompany(System.Random rng, Encounter e, int stage, int decor)
+    public static void Accompany(System.Random rng, Encounter e, int stage, int decor, Populations.Where where = null)
     {
         foreach (var combo in Data.combos)
         {
             if (combo.lot != e.category.key || rng.NextDouble() >= combo.chance) continue;
-            Join(rng, e, combo, stage, decor);
+            Join(rng, e, combo, stage, decor, where);
             return; // one companion lot at most
         }
     }
 
     /// Adds that combo's companion lot to the encounter (the encounter lab forces one).
-    public static bool Join(System.Random rng, Encounter e, Combo combo, int stage, int decor)
+    public static bool Join(System.Random rng, Encounter e, Combo combo, int stage, int decor, Populations.Where where = null)
     {
         var with = CategoryOf(combo.with);
-        var extra = with != null ? Make(rng, with, stage, decor, combo.rarities) : null;
+        var extra = with != null ? Make(rng, with, stage, decor, combo.rarities, where) : null;
         if (extra == null) return false;
         e.with = with;
         e.members.AddRange(extra.members);
@@ -201,9 +202,10 @@ public static class Encounters
 
     /// One encounter of that category, or null when no Pokémon fits.
     /// rarities: ranks allowed instead of the category's own (a combo's companion).
-    public static Encounter Make(System.Random rng, Category category, int stage, int decor, string[] rarities = null)
+    public static Encounter Make(System.Random rng, Category category, int stage, int decor, string[] rarities = null,
+        Populations.Where where = null)
     {
-        var pool = Pool(stage + category.depthBonus, decor);
+        var pool = Pool(stage + category.depthBonus, decor, where);
         if (pool.Count == 0) return null;
         var e = new Encounter { category = category };
         int count = rng.Next(category.size[0], category.size[Mathf.Min(1, category.size.Length - 1)] + 1);
@@ -291,14 +293,14 @@ public static class Encounters
     static readonly Dictionary<(int depth, int decor), List<int>> pools = new();
 
     /// The Pokémon that may appear: sprites, at least two moves, recruitable, not excluded, evolution stage allowed
-    /// at that stage, of a type of the décor (all types when the décor has too few).
-    public static List<int> Pool(int stage, int decor)
+    /// at that stage, of a type of the décor (all types when the décor has too few); on the island, those of the
+    /// sub-biome instead ("where", Populations: a Pokémon may come several times, by weight).
+    public static List<int> Pool(int stage, int decor, Populations.Where where = null)
     {
         int depth = Data.maxDepthByStage.Length > 0 ? Data.maxDepthByStage[Mathf.Clamp(stage, 0, Data.maxDepthByStage.Length - 1)] : 9;
+        var all = AllAt(depth);
+        if (where != null && Populations.Pool(depth, where.habitat, where.night, all) is { } lives) return lives;
         if (pools.TryGetValue((depth, decor), out var cached)) return cached;
-        var all = GameData.AllPokemon.Where(p => p.recruitRate > 0f && !GameData.IsDev(p.id) && Array.IndexOf(Data.exclude, p.id) < 0
-                                               && Depth(p) <= depth && PokemonRoster.Has(p.id) && GameData.MovePool(p.id).Count >= 2)
-            .Select(p => p.id).ToList();
         var d = Array.Find(Data.decors, x => x.tileset == decor);
         var fitting = d == null ? all : all.Where(id => GameData.Pokemon(id).types.Intersect(d.types).Any()).ToList();
         var result = fitting.Count >= Data.minPool ? fitting : all;
@@ -306,8 +308,23 @@ public static class Encounters
         return result;
     }
 
+    static readonly Dictionary<int, List<int>> everyone = new();
+
+    // Every Pokémon allowed at that evolution stage, whatever the place.
+    static List<int> AllAt(int depth)
+    {
+        if (everyone.TryGetValue(depth, out var cached)) return cached;
+        return everyone[depth] = GameData.AllPokemon.Where(p => p.recruitRate > 0f && !GameData.IsDev(p.id) && Array.IndexOf(Data.exclude, p.id) < 0
+                                                              && Depth(p) <= depth && PokemonRoster.Has(p.id) && GameData.MovePool(p.id).Count >= 2)
+            .Select(p => p.id).ToList();
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetPools() => pools.Clear();
+    static void ResetPools()
+    {
+        pools.Clear();
+        everyone.Clear();
+    }
 
     /// Evolution stage: 0 for a first form, 1 for its evolution...
     public static int Depth(PokemonStats p)

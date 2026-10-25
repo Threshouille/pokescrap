@@ -216,6 +216,14 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Végétation (décidé le 24/10/2026, Owen) : peu de décor épars (fleurs, buissons, rochers) ; les arbres servent aux
   forêts. Chaque sous-biome a des taches : champ de fleurs, fougeraie, éboulis, forêt. Une forêt est un massif plein
   traversé de sentiers vers une clairière centrale, pensé pour le level design (lisière praticable sous les couronnes).
+- Peuplement des quartiers (décidé le 25/10/2026, Robin) : mélange de camps (surtout des gangs, parfois une équipe
+  ou un solitaire ; endormis jusqu'à l'approche ou une attaque, laisse autour du camp), de patrouilles (surtout des
+  meutes, plus rares) et de points d'apparition spontanée selon des conditions (nuit, météo, temps passé, équipe
+  proche mais hors de vue) ; densité moyenne (8 à 12 rencontres par quartier au départ) ; un groupe battu ne revient
+  pas, mais un autre lot peut réapparaître à sa place au bout d'un moment. Populations par sous-biome
+  (`populations.json` : types pondérés, types de la nuit), plus fortes avec le quartier et la distance à l'arrivée.
+  Étapes : 1) populations (fait le 25/10/2026) ; 2) camps, patrouilles, apparitions et retour sur la carte ; 3) contenu
+  des escaliers secrets et des grottes (trésor, embuscade, gardien, décor du sous-biome) ; 4) tests.
 - Escaliers secrets (décidé le 25/10/2026, Owen ; génération à faire, Robin) : un escalier caché dans un quartier mène à
   une salle à part (écran de chargement, comme un changement de zone), dont un escalier ramène exactement au même
   endroit ; l'escalier secret disparaît ensuite. Tirage avec une probabilité, comme les Monster Houses de DM (0 ou 1
