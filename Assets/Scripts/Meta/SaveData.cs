@@ -119,8 +119,6 @@ public static class SaveData
         public float megaBossFill = 0.5f; // share of the gauge a boss gives
         public float megaTime = 50f; // seconds before the Pokémon goes back to its form
         public float megaCastTime = 1.5f; // silhouettes alternate, the Pokémon stands still and cannot be hurt
-        public string nightColor = "#0a1440";
-        public float nightAlpha = 0.3f;
     }
 
     static File data;

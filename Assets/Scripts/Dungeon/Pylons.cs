@@ -96,6 +96,7 @@ public class Pylons : MonoBehaviour
         var go = new GameObject("Arc électrique");
         go.transform.SetParent(current.transform, false);
         pair.line = go.AddComponent<SpriteRenderer>();
+        Unlit.Apply(pair.line); // keeps its colours at night (DayNight)
         pair.line.sprite = Shapes.Square;
         pair.line.sortingOrder = 2; // over the Pokémon
         pair.line.enabled = false;

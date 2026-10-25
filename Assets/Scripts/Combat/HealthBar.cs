@@ -24,6 +24,7 @@ public class HealthBar : MonoBehaviour
         bar.localPosition = new Vector3(0f, OffsetY, 0f);
         bar.localScale = new Vector3(Width, Height, 1f);
         var renderer = bar.gameObject.AddComponent<SpriteRenderer>();
+        Unlit.Apply(renderer); // keeps its colours at night (DayNight)
         renderer.sprite = Shapes.Square;
         renderer.color = color;
         renderer.sortingOrder = order;

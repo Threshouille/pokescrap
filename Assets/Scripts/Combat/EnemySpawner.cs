@@ -78,8 +78,7 @@ public class EnemySpawner : MonoBehaviour
 
     Stage Current => stages[CurrentStage];
     /// Day and night alternate from one stage to the next (some evolutions need one or the other).
-    public bool Night => CurrentStage % 2 == 1;
-    SpriteRenderer nightShade;
+    public bool Night => DayNight.IsNight; // the clock of the day (DayNight)
 
     void Awake()
     {
@@ -121,32 +120,9 @@ public class EnemySpawner : MonoBehaviour
         CurrentWave = 0;
         nextWaveAt = 0f;
         boss = null;
-        ShowNight();
         if (Run.Sandbox && !sandboxWaves) return;
         if (Current.boss != null && !Run.Sandbox) boss = Spawn(Current.boss, SpawnPoint(), true);
         SpawnNextWave();
-    }
-
-    // A dark veil over the arena at night, under health bars and numbers.
-    void ShowNight()
-    {
-        var cam = Camera.main;
-        if (nightShade == null && cam != null)
-        {
-            var go = new GameObject("NightShade");
-            go.transform.SetParent(cam.transform, false);
-            go.transform.localPosition = new Vector3(0f, 0f, 1f);
-            go.transform.localScale = new Vector3(200f, 200f, 1f);
-            nightShade = go.AddComponent<SpriteRenderer>();
-            nightShade.sprite = Shapes.Square;
-            nightShade.sortingOrder = 2; // above the floor and the Pokémon
-        }
-        if (nightShade == null) return;
-        var settings = SaveData.Settings;
-        ColorUtility.TryParseHtmlString(settings.nightColor, out var color);
-        color.a = settings.nightAlpha;
-        nightShade.color = color;
-        nightShade.gameObject.SetActive(Night);
     }
 
     void FixedUpdate()
@@ -523,7 +499,7 @@ public class EnemySpawner : MonoBehaviour
             // Stage, top left: which one and where (day or night), then the wave.
             bool bossStage = Current.boss != null && !Run.Sandbox;
             string place = Current.name.Contains("tape") ? Current.name : $"Étape {CurrentStage + 1} — {Current.name}";
-            string first = Run.Sandbox ? "Terrain de test (dev)" : $"{place} · {(Night ? "Nuit" : "Jour")}";
+            string first = Run.Sandbox ? $"Terrain de test (dev) · {DayNight.Label}" : $"{place} · {DayNight.Label}";
             string second = Run.Sandbox ? "Options : menu pause" : bossStage ? "Boss"
                 : nextWaveAt > 0f ? $"Vague {CurrentWave} / {Current.waves.Length} terminée" : $"Vague {CurrentWave} / {Current.waves.Length}";
             var stageBox = new Rect(HudLayout.Side * s, HudLayout.Top * s, HudLayout.StageWidth * s, 27f * s);

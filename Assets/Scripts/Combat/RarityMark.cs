@@ -19,6 +19,7 @@ public class RarityMark : MonoBehaviour
         mark.Rarity = rarity;
         if (!rarity.Shown) return;
         var ring = new GameObject("Rang").AddComponent<SpriteRenderer>();
+        Unlit.Apply(ring); // keeps its colours at night (DayNight)
         ring.transform.SetParent(c.transform, false);
         ring.transform.localPosition = new Vector3(0f, -0.32f, 0f);
         ring.transform.localScale = new Vector3(0.9f, 0.4f, 1f);

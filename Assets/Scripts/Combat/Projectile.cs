@@ -55,6 +55,7 @@ public class Projectile : MonoBehaviour
         {
             go.transform.localScale = Vector3.one * move.radius * 2f;
             var renderer = go.AddComponent<SpriteRenderer>();
+            Unlit.Apply(renderer); // keeps its colours at night (DayNight)
             renderer.sprite = Shapes.Circle;
             renderer.color = GameData.TypeColor(move.type);
             renderer.sortingOrder = 2;

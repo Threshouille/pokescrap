@@ -108,6 +108,7 @@ public class CaveSeal : MonoBehaviour
         mark.transform.SetParent(front.transform, false);
         mark.transform.localPosition = Vector2.up * 0.75f;
         mark.sortingOrder = 1;
+        Unlit.Apply(mark); // it glows
         markSince = Time.time;
     }
 
@@ -256,7 +257,7 @@ public class CaveSeal : MonoBehaviour
             case "element":
                 if (!near) break;
                 if (Climate.Now is { } weather && System.Array.IndexOf(seal.weathers, weather.key) >= 0) Open();
-                else if (seal.night && FindAnyObjectByType<EnemySpawner>() is { Night: true }) Open();
+                else if (seal.night && DayNight.IsNight) Open();
                 break;
             case "team":
             {
