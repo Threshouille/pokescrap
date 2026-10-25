@@ -71,6 +71,7 @@ public class IslandRun : MonoBehaviour
         if (GetComponent<SecretStairs>() == null) gameObject.AddComponent<SecretStairs>();
         if (GetComponent<CaveSeal>() == null) gameObject.AddComponent<CaveSeal>();
         if (GetComponent<CaveStairs>() == null) gameObject.AddComponent<CaveStairs>();
+        if (GetComponent<IslandPopulation>() == null) gameObject.AddComponent<IslandPopulation>();
         Build(Plan.order[0], null);
     }
 
@@ -148,6 +149,7 @@ public class IslandRun : MonoBehaviour
     {
         if (propRoot != null) Destroy(propRoot.gameObject);
         propRoot = new GameObject("Éléments de décor").transform;
+        var fade = propRoot.gameObject.AddComponent<PropFade>(); // trees see-through over the team
         foreach (var (key, at) in Plan.decorProps)
         {
             var tile = Vector2Int.FloorToInt(at);
@@ -161,6 +163,7 @@ public class IslandRun : MonoBehaviour
             r.sprite = sprite;
             r.sortingOrder = 1; // the Pokémon's
             r.spriteSortPoint = SpriteSortPoint.Pivot;
+            fade.Add(r);
         }
     }
 
@@ -205,6 +208,7 @@ public class IslandRun : MonoBehaviour
         if (GetComponent<SecretStairs>() is { } secret) secret.Clear();
         if (GetComponent<CaveSeal>() is { } cave) cave.Clear();
         if (GetComponent<CaveStairs>() is { } caveStairs) caveStairs.Clear();
+        if (GetComponent<IslandPopulation>() is { } population) population.Clear();
         Away = false;
         if (propRoot != null) Destroy(propRoot.gameObject);
         foreach (var e in exits) if (e.marker != null) Destroy(e.marker);

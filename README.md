@@ -316,9 +316,18 @@ des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
 
-### 25/10/2026 — Peuplement de l'île, étape 1 : populations (Robin, branche `feature/peuplement`)
+### 25/10/2026 — Peuplement de l'île, étapes 1 à 3 : populations, camps et rondes, salles (Robin, branche `feature/peuplement`)
 - Chaque sous-biome de l'île a sa population (`populations.json` : types pondérés, types de la nuit), utilisée par les
   rencontres à la place du décor ; niveau et rang qui montent avec le quartier et la distance à l'arrivée.
+- Étape 2 : les quartiers sont peuplés (`island_population.json`) : camps (surtout des gangs) et rondes (surtout des
+  meutes) au repos jusqu'à l'approche de l'équipe, qui reviennent à leur place si on les sème ; points d'apparition
+  (nuit, météo, temps passé, équipe proche hors de vue) ; un camp battu reçoit un autre lot au bout de 4 min.
+- Étape 3 : les salles des escaliers secrets et des grottes scellées ont un contenu (`room_contents.json`) : trésor,
+  embuscade (sortie fermée, 2 ou 3 vagues, coffre) ou gardien (élite endormie près d'un coffre, plus facile à
+  recruter), dans le décor et avec les Pokémon du sous-biome. Les arbres deviennent transparents devant l'équipe.
+- Coffres aux couleurs de Donjon Mystère (PMDCollab : doré, bleu pour l'embuscade, rouge pour le gardien ; relancer
+  `python3 -I Tools/pmd/import_items.py .`). L'électricité et le poison ne gagnent plus que 5 cases d'eau autour du
+  point touché.
 
 ### 25/10/2026 — Seconde phase des ennemis (Robin, branche `feature/phases`)
 - La méga et la Téra d'un ennemi ouvrent une **seconde phase** à mi-PV (plus au premier contact) : une élite ou un boss ne

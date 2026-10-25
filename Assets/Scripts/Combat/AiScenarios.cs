@@ -171,6 +171,8 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Rencontres : les Pokémon vont avec le décor", FitsDecor());
         yield return Scenario("Rencontres : apparition avec rang, anneau et objet", EncounterSpawns());
         yield return Scenario("Peuplement : chaque sous-biome a sa population, plus forte en avançant", HabitatsPopulated());
+        yield return Scenario("Peuplement : camps et rondes au repos, réveil, laisse, retour d'un autre lot", QuarterPopulated());
+        yield return Scenario("Salles de l'île : trésor, embuscade à sortie fermée, gardien sur son coffre", IslandRoomContents());
 
         Clear();
         if (progression != null) progression.enabled = true;
@@ -1768,6 +1770,146 @@ public class AiScenarios : MonoBehaviour
             problems.Count > 0 ? string.Join(", ", problems.Take(5))
                 : $"{habitats} sous-biomes, {members} Pokémon tirés dans leur population ; prairie : {meadow} espèces le jour, {meadowNight} la nuit ; étape {Populations.Stage(0, 0f)} → {Populations.Stage(3, 1f)}");
         yield break;
+    }
+
+    // The test quarter with its population: camps, patrols and spawn points placed on open land; the camps' lots live
+    // in their sub-biome. A camp rests while the team is far, wakes when it comes close, goes back to rest once the team
+    // has run off; a patrol walks its round; a beaten camp gets another lot later, out of the team's sight.
+    IEnumerator QuarterPopulated()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var run = gameObject.AddComponent<IslandRun>();
+        run.Begin(IslandPlan.QuarterTestPlan(17));
+        var population = GetComponent<IslandPopulation>();
+        yield return new WaitForSeconds(0.5f);
+        var places = population != null ? population.places : new List<IslandPopulation.Place>();
+        var camps = places.Where(p => p.sort == IslandPopulation.Sort.Camp).ToList();
+        var patrols = places.Where(p => p.sort == IslandPopulation.Sort.Patrol).ToList();
+        int spawns = places.Count(p => p.sort == IslandPopulation.Sort.Spawn);
+        bool fitting = camps.All(c => c.lot != null && c.lot.members.All(m => Populations.Lives(c.habitat, m.pokemonId, false) || m.lot != c.lot.category));
+        string result = $"{camps.Count} camps, {patrols.Count} rondes, {spawns} points d'apparition";
+        bool ok = camps.Count > 0 && patrols.Count > 0 && fitting;
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var camp = camps.FirstOrDefault(c => c.spawned.Count > 0);
+        if (ok && camp != null)
+        {
+            var group = camp.spawned[0].GetComponent<EnemyAI>().group;
+            Vector2 home = run.Cell(camp.tile);
+            // The spot farthest from the camp: far, and out of sight.
+            Vector2 far = places.Select(p => run.Cell(p.tile)).OrderByDescending(t => Vector2.Distance(t, home)).First();
+            foreach (var m in members) Teleport(m, far);
+            yield return new WaitForSeconds(1f);
+            bool restsFar = !group.Engaged;
+            foreach (var m in members) Teleport(m, home + Vector2.right * 3f);
+            yield return new WaitForSeconds(1f);
+            bool wakes = group.Engaged;
+            foreach (var m in members) Teleport(m, far);
+            yield return new WaitForSeconds(group.roam.giveUp + 1.5f);
+            bool backToRest = !group.Engaged;
+            // A patrol walks its round while the team is away.
+            bool walks = false;
+            var patrol = patrols.FirstOrDefault(p => p.spawned.Count > 0);
+            if (patrol != null)
+            {
+                Vector2 before = patrol.spawned[0].transform.position;
+                yield return new WaitForSeconds(3f);
+                walks = patrol.spawned[0] != null && Vector2.Distance(before, patrol.spawned[0].transform.position) > 1f;
+            }
+            // Beaten, then free again: another lot comes while the team is far.
+            foreach (var c in camp.spawned.ToList()) if (c != null) KnockOut(c);
+            yield return new WaitForSeconds(0.5f);
+            bool beaten = camp.Beaten && camp.lot == null;
+            camp.freeAt = 0f;
+            yield return new WaitForSeconds(0.5f);
+            bool back = camp.lot != null && camp.spawned.Count > 0;
+            ok = restsFar && wakes && backToRest && (patrol == null || walks) && beaten && back;
+            result += $" ; camp : au repos de loin {restsFar}, réveillé {wakes}, revenu au repos {backToRest} ; ronde {(patrol == null ? "aucune en jeu" : walks ? "en marche" : "immobile")} ; battu {beaten}, autre lot {back}";
+        }
+        else if (camp == null) { ok = false; result += " ; aucun camp en jeu"; }
+        Restore(kept, members);
+        run.End();
+        foreach (var c in new MonoBehaviour[] { GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+            if (c != null) Destroy(c);
+        arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
+        Report(ok, result);
+    }
+
+    // The test quarter's secret stairs (in a clearing) are taken three times, with each content forced: a treasure (a
+    // chest, the sub-biome's look), an ambush (the way out shut until its waves are beaten, then a chest), a guardian
+    // (an elite easier to recruit, asleep by a chest).
+    IEnumerator IslandRoomContents()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        IslandPlan plan = null;
+        for (int seed = 1; seed <= 40 && plan == null; seed++)
+        {
+            var p = IslandPlan.QuarterTestPlan(seed);
+            if (p.secret.x >= 0 && p.secretSpot == "clearing") plan = p;
+        }
+        if (plan == null) { Report(false, "pas de quart de test avec un escalier secret en clairière"); yield break; }
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var run = gameObject.AddComponent<IslandRun>();
+        var loot = FindAnyObjectByType<Loot>();
+        var lines = new List<string>();
+        bool ok = true;
+        foreach (var key in new[] { RoomContent.Treasures, RoomContent.Ambushes, RoomContent.Guardians })
+        {
+            run.End();
+            run.Begin(plan);
+            var stairs = GetComponent<SecretStairs>();
+            stairs.forceContent = key;
+            yield return new WaitForSecondsRealtime(0.5f);
+            foreach (var m in members) Teleport(m, run.Cell(plan.secret));
+            float until = Time.realtimeSinceStartup + 6f;
+            while ((stairs.Content == null || LoadingScreen.Busy) && Time.realtimeSinceStartup < until) yield return null;
+            yield return new WaitForSeconds(0.5f);
+            var content = stairs.Content;
+            if (content == null) { ok = false; lines.Add($"{key} : salle jamais atteinte"); continue; }
+            bool chest = loot != null && loot.ChestAt != null;
+            string line = $"{key} : salle {arena.room?.theme?.key}/{arena.tileset?.romId}";
+            if (key == RoomContent.Ambushes)
+            {
+                bool shut = content.Locked;
+                int beaten = 0;
+                float end = Time.time + 25f;
+                while (!content.Done && Time.time < end)
+                {
+                    foreach (var c in Combatant.All.ToList())
+                        if (c != null && c.IsAlive && c.team == Team.Enemy) { KnockOut(c); beaten++; }
+                    yield return new WaitForSeconds(0.5f);
+                }
+                yield return new WaitForSeconds(0.3f);
+                chest = loot != null && loot.ChestAt != null;
+                ok &= shut && content.Done && !content.Locked && beaten > 0 && chest;
+                line += $", sortie fermée {shut}, {beaten} ennemis battus, rouverte {!content.Locked}, coffre {chest}";
+            }
+            else if (key == RoomContent.Guardians)
+            {
+                var guard = Combatant.All.FirstOrDefault(c => c != null && c.IsAlive && c.team == Team.Enemy && c.GetComponent<RecruitBonus>() != null);
+                bool resting = guard != null && guard.GetComponent<EnemyAI>().group is { Engaged: false };
+                ok &= guard != null && guard.IsElite && chest && resting;
+                line += $", gardien {(guard != null ? guard.Stats.name : "absent")} (élite {guard != null && guard.IsElite}, endormi {resting}), coffre {chest}";
+            }
+            else
+            {
+                ok &= chest && !content.Locked;
+                line += $", coffre {chest}";
+            }
+            lines.Add(line);
+        }
+        Restore(kept, members);
+        run.End();
+        if (loot != null) loot.RemoveChest();
+        foreach (var c in new MonoBehaviour[] { GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+            if (c != null) Destroy(c);
+        arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
+        Report(ok, string.Join(" ; ", lines));
     }
 
     // Typical populated zones: whole waves at each stage, every lot following its rules; the log shows one zone per

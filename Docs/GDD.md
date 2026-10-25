@@ -222,8 +222,10 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   proche mais hors de vue) ; densité moyenne (8 à 12 rencontres par quartier au départ) ; un groupe battu ne revient
   pas, mais un autre lot peut réapparaître à sa place au bout d'un moment. Populations par sous-biome
   (`populations.json` : types pondérés, types de la nuit), plus fortes avec le quartier et la distance à l'arrivée.
-  Étapes : 1) populations (fait le 25/10/2026) ; 2) camps, patrouilles, apparitions et retour sur la carte ; 3) contenu
-  des escaliers secrets et des grottes (trésor, embuscade, gardien, décor du sous-biome) ; 4) tests.
+  Étapes : 1) populations (fait le 25/10/2026) ; 2) camps, patrouilles, apparitions et retour sur la carte (fait le
+  25/10/2026, `island_population.json`) ; 3) contenu
+  des escaliers secrets et des grottes (trésor, embuscade, gardien, décor du sous-biome ; fait le 25/10/2026,
+  `room_contents.json`) ; 4) tests.
 - Escaliers secrets (décidé le 25/10/2026, Owen ; génération à faire, Robin) : un escalier caché dans un quartier mène à
   une salle à part (écran de chargement, comme un changement de zone), dont un escalier ramène exactement au même
   endroit ; l'escalier secret disparaît ensuite. Tirage avec une probabilité, comme les Monster Houses de DM (0 ou 1

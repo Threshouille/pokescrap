@@ -481,7 +481,7 @@
   ]
  },
  "zPose": 0.8,
- "loot": {
+ "loot": { "chestIcon": "pmd_Chest_Gold",
   "bossMega": 1.0,
   "bossOther": 0.6,
   "eliteChance": 0.033,

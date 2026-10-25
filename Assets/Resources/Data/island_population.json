@@ -1,0 +1,15 @@
+{
+ "comment": "Peuplement d'un quartier de l'île (IslandPopulation.cs, GDD « L'île flottante », peuplement). Lieux tirés à la création de l'île, sur la terre praticable du quartier, à au moins arrivalClear cases de l'arrivée et keepClear des passages, portails, grottes et escaliers : camps (count : de… à…, spacing cases entre deux ; d'abord les clairières des forêts puis les hauteurs ; lots : poids par catégorie d'encounters.json, une catégorie au-dessus de l'étape du lieu (minStage) n'est pas tirée), patrouilles (ronde de points cases autour du départ, sur son palier), points d'apparition (sans groupe au départ ; un lot apparaît quand une de leurs conditions est vraie — night : la nuit, weather : une météo en cours, time : après timeInZone s passées dans la zone, near : toujours —, l'équipe entre near[0] et near[1] cases, hors de l'écran ; pas plus d'un groupe par point, cooldown s entre deux). Groupes au repos : wake (cases) les réveille, leash (cases autour de leur camp) et giveUp (s) les ramènent. Retour : un camp ou une patrouille battu reçoit un autre lot après respawn s, si l'équipe est à plus de respawnDistance cases et hors de l'écran. Niveau : baseLevel + Populations.LevelBonus ; étape : Populations.Stage.",
+ "baseLevel": 2,
+ "arrivalClear": 18,
+ "keepClear": 6,
+ "respawn": 240,
+ "respawnDistance": 20,
+ "camps": { "count": [6, 8], "spacing": 14, "wake": 6, "leash": 14, "giveUp": 4,
+   "lots": [{ "key": "gang", "weight": 3 }, { "key": "team", "weight": 1 }, { "key": "solo", "weight": 1 }] },
+ "patrols": { "count": [1, 2], "spacing": 20, "points": 3, "radius": 12, "wake": 5, "leash": 18, "giveUp": 5,
+   "lots": [{ "key": "pack", "weight": 4 }, { "key": "team", "weight": 1 }, { "key": "solo", "weight": 1 }] },
+ "spawns": { "count": [3, 4], "spacing": 16, "near": [10, 22], "cooldown": 90, "timeInZone": 120, "wake": 0, "leash": 26, "giveUp": 6,
+   "conditions": ["night", "weather", "time", "near"],
+   "lots": [{ "key": "pack", "weight": 2 }, { "key": "solo", "weight": 1 }, { "key": "team", "weight": 1 }] }
+}

@@ -59,6 +59,10 @@ def main():
     for name in ("bag_items.json", "held_items.json"):
         data = json.loads((root / "Assets/Resources/Data" / name).read_text(encoding="utf-8"))
         wanted += [(i["icon"], ["pmd:" + RAWASSET]) for i in data["items"] if i.get("icon", "").startswith("pmd_")]
+    # Chests: the stage's (items.json loot.chestIcon) and the island rooms' (room_contents.json, chestIcon of each content).
+    rooms = json.loads((root / "Assets/Resources/Data/room_contents.json").read_text(encoding="utf-8"))
+    chests = {items.get("loot", {}).get("chestIcon", "")} | {c.get("chestIcon", "") for c in rooms.values() if isinstance(c, dict)}
+    wanted += [(c, ["pmd:" + RAWASSET]) for c in sorted(chests) if c.startswith("pmd_")]
     out = root / "Assets/Resources/Items"
     out.mkdir(parents=True, exist_ok=True)
     fetched = missing = 0

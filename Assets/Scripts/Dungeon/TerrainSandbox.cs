@@ -509,6 +509,8 @@ public class TerrainSandbox : MonoBehaviour
         // The room gallery builds a room of the catalogue; the other rooms are the sandbox's own open arena.
         if (sandboxDecor == null) sandboxDecor = arena.tileset;
         if (island != null) island.End();
+        // What lies on the ground (the showcase of room 0) stays behind, the test island included.
+        if (GetComponent<Loot>() is { } ground) ground.ClearGround();
         if (room == 4 || room == 5)
         {
             // A test island: four quarters of biomes around the sealed central zone; or the test quarter.
@@ -545,8 +547,6 @@ public class TerrainSandbox : MonoBehaviour
             var asset = Resources.Load<TextAsset>("Data/obstacle_room");
             if (asset != null) drawn = Obstacles.Current.Generate(JsonUtility.FromJson<Obstacles.Room>(asset.text), rng, KeptClear(arena));
         }
-        var loot = GetComponent<Loot>();
-        if (loot != null) loot.ClearGround();
         if (room == 0) SpawnEmitters();
         if (room == 0) PlaceShowcase(arena);
         if (room == 1) SpawnDummies();

@@ -27,6 +27,7 @@ public class Recruitment : MonoBehaviour
         var baseForm = GameData.Pokemon(PokemonRoster.FirstPlayableForm(combatant.Stats.id));
         if (baseForm == null || SaveData.IsUnlocked(baseForm.id)) return;
         float chance = baseForm.recruitRate * SaveData.Settings.recruitMultiplier / 100f;
+        if (combatant.GetComponent<RecruitBonus>() is { } bonus) chance *= bonus.multiplier;
         if (chance <= 0f || rng.NextDouble() >= chance) return;
 
         SaveData.Unlock(baseForm.id);

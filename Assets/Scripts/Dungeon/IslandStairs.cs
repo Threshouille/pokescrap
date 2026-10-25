@@ -22,6 +22,13 @@ public abstract class IslandStairs : MonoBehaviour
     protected abstract string RoomName { get; }
     protected abstract Color Colour { get; }
     protected abstract SecretRooms.Room Room { get; }
+    /// Its kind for room_contents.json: "secret" or "cave".
+    protected abstract string Kind { get; }
+
+    /// What waits in its room (RoomContent), drawn on the first visit.
+    public RoomContent Content { get; private set; }
+    /// Tests: the content its room will have (treasure, ambush, guardian), instead of a draw.
+    public string forceContent;
     /// Gone once used (the secret stairs), or there for good.
     protected virtual bool OneUse => false;
     /// Hidden for now (under a cracked rock, behind a shut door).
@@ -50,6 +57,8 @@ public abstract class IslandStairs : MonoBehaviour
         if (back != null) Destroy(back);
         stairs = back = null;
         used = inRoom = false;
+        Content?.Leave();
+        Content = null;
     }
 
     void OnBuilt()
@@ -94,6 +103,14 @@ public abstract class IslandStairs : MonoBehaviour
             if (target.activeSelf == hidden) target.SetActive(!hidden);
             if (hidden) return;
         }
+        if (inRoom && Content != null)
+        {
+            // The room's content plays; an ambush shuts the way back until it is over (the stairs go grey).
+            Content.Tick(at);
+            var light = back.GetComponentsInChildren<SpriteRenderer>()[^1];
+            light.color = Content.Locked ? ShutColour : BackColour;
+            if (Content.Locked) return;
+        }
         float d = Vector2.Distance(at, target.transform.position);
         if (armed && d <= Reach)
         {
@@ -107,9 +124,20 @@ public abstract class IslandStairs : MonoBehaviour
 
     void Enter()
     {
+        if (Content == null)
+        {
+            int i = Plan.Index(Tile.x, Tile.y);
+            var biome = Plan.biome[i];
+            var arrival = Plan.Arrival(zone);
+            var bounds = Plan.ZoneBounds(zone);
+            float far = Mathf.Max(1f, new Vector2(bounds.width, bounds.height).magnitude);
+            Content = RoomContent.Draw(Kind, biome?.key, biome != null && biome.tilesets.Length > 0 ? biome.tilesets[0] : 0,
+                Mathf.Max(0, System.Array.IndexOf(Plan.order, zone)), Vector2.Distance(Tile, arrival) / far, rng, forceContent);
+        }
         var r = Room;
         string theme = string.IsNullOrEmpty(r.theme) ? null : r.theme, variant = string.IsNullOrEmpty(r.variant) ? null : r.variant;
-        var room = RoomCatalog.Pick(r.type, rng, theme, variant) ?? RoomCatalog.Pick(null, rng);
+        // Played already (stairs that stay): the plain room of the data.
+        var room = (Content.Done ? null : Content.Room()) ?? RoomCatalog.Pick(r.type, rng, theme, variant) ?? RoomCatalog.Pick(null, rng);
         if (stairs != null) Destroy(stairs);
         stairs = null;
         inRoom = true;
@@ -126,9 +154,12 @@ public abstract class IslandStairs : MonoBehaviour
         var cell = spawn;
         foreach (var d in new[] { new Vector2Int(0, -2), new Vector2Int(2, 0), new Vector2Int(-2, 0), new Vector2Int(0, 2) })
             if (arena.Walkable(spawn.x + d.x, spawn.y + d.y) && Obstacles.At(spawn.x + d.x, spawn.y + d.y) == null) { cell = spawn + d; break; }
-        back = Marker("Escalier de retour", arena.CentreOf(cell.x, cell.y), new Color(1f, 0.85f, 0.3f));
+        back = Marker("Escalier de retour", arena.CentreOf(cell.x, cell.y), BackColour);
         armed = cell != spawn;
+        Content.Begin(arena, FindAnyObjectByType<EnemySpawner>(), arena.SpawnPoint);
     }
+
+    static readonly Color BackColour = new(1f, 0.85f, 0.3f), ShutColour = new(0.35f, 0.35f, 0.38f);
 
     void GoBack()
     {
@@ -136,6 +167,7 @@ public abstract class IslandStairs : MonoBehaviour
         back = null;
         inRoom = false;
         used = OneUse;
+        Content?.Leave();
         foreach (var zoneArea in FindObjectsByType<global::Zone>()) Destroy(zoneArea.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         island.Return(zone, Tile);

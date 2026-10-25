@@ -46,6 +46,7 @@ public static class SpecialItems
     public class LootSettings
     {
         public float bossMega = 1f, bossOther = 0.6f, eliteChance = 0.033f, eliteDrop = 0.5f, eliteHealth = 2f, teamTypeWeight = 3f;
+        public string chestIcon = "pmd_Chest_Gold"; // the chest's sprite (Resources/Items), else a drawn box
     }
 
     [Serializable]

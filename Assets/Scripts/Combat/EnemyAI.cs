@@ -16,6 +16,7 @@ public class EnemyAI : MonoBehaviour
     const float RepairInterval = 0.5f;
     const float FleeDistance = 2.5f; // ranged and support: dodge away from an opponent this close
     const float RushMin = 3f, RushMax = 6f; // melee: dodge toward a target this far away
+    const float RestReach = 0.6f, RestPace = 0.55f; // at rest: tiles from its place; share of its walking speed
     static readonly Color TelegraphColor = new(1f, 0.15f, 0.15f, 0.35f);
 
     [Tooltip("Share of the Pokémon's own speed used while moving")]
@@ -98,6 +99,13 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
+        // A group of the island at rest (IslandPopulation): it keeps to its camp or walks its round.
+        if (group != null && !group.Fighting())
+        {
+            Rest(position);
+            return;
+        }
+
         bool canAttack = Time.time >= nextAttackAt;
         var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target(), canAttack);
         if (TryDodge(decision, position, grid)) return;
@@ -167,6 +175,18 @@ public class EnemyAI : MonoBehaviour
         animator.direction = PmdAnimator.DirectionIndex(direction);
         animator.Play("Walk");
         return true;
+    }
+
+    // At rest: to its place at the camp or along the round, walking slower than in a fight; idle once there.
+    void Rest(Vector2 position)
+    {
+        Vector2 goal = group.RestPoint(combatant);
+        if (Vector2.Distance(position, goal) < RestReach)
+        {
+            Move(Vector2.zero, walking != Vector2.zero ? walking : Vector2.down);
+            return;
+        }
+        Move(navigator.Direction(position, goal, combatant) * RestPace, goal - position);
     }
 
     void Move(Vector2 direction, Vector2 lookAt)

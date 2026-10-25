@@ -1,0 +1,26 @@
+{
+ "comment": "Contenu des salles derrière les escaliers de l'île (RoomContent.cs, GDD « Escaliers secrets » et « Grottes scellées ») : tiré à la première entrée, une seule fois (la grotte scellée garde son escalier, sa salle reste vide ensuite). contents : poids des contenus par sorte d'escalier (secret, cave). Chaque contenu prend un type de salle de rooms.json (roomType). Décor et obstacles du sous-biome de l'escalier : themes donne le thème de rooms.json par sous-biome (repli : le thème de son thème d'île, sinon n'importe lequel) ; le décor est celui du sous-biome s'il est dans le thème. Les Pokémon viennent de la population du sous-biome (Populations), au niveau du quartier (baseLevel + Populations.LevelBonus) et à son étape + stageBonus. treasure : un coffre (cristal Z ou Téra-Éclat pondéré vers l'équipe, objet tenu et consommables comme le coffre de fin d'étape, méga-gemme avec stoneChance). ambush : sortie fermée, waves vagues (de… à…) de lots (poids par catégorie), la suivante pause s après la précédente, coffre à la fin. chestIcon : sprite du coffre (Resources/Items, PMDCollab, import_items.py). guardian : un lot (champion), endormi sur le coffre (wake, leash), recrutement × recruitBonus.",
+ "baseLevel": 2,
+ "contents": {
+  "secret": [{ "key": "treasure", "weight": 2 }, { "key": "ambush", "weight": 2 }, { "key": "guardian", "weight": 1 }],
+  "cave": [{ "key": "treasure", "weight": 1 }, { "key": "ambush", "weight": 1 }, { "key": "guardian", "weight": 2 }]
+ },
+ "treasure": { "chestIcon": "pmd_Chest_Gold", "roomType": "rest", "stoneChance": 0.15 },
+ "ambush": { "chestIcon": "pmd_Chest_Blue", "roomType": "monster_house", "waves": [2, 3], "pause": 2, "lotsPerWave": [1, 2], "stageBonus": 1, "minDistance": 5,
+   "lots": [{ "key": "pack", "weight": 2 }, { "key": "team", "weight": 1 }, { "key": "solo", "weight": 1 }], "stoneChance": 0.1 },
+ "guardian": { "chestIcon": "pmd_Chest_Red", "roomType": "subboss", "lot": "champion", "stageBonus": 1, "wake": 5, "leash": 10, "recruitBonus": 3, "stoneChance": 0.25 },
+ "themes": [
+  { "subBiome": "meadow", "theme": "forest" }, { "subBiome": "woods", "theme": "forest" }, { "subBiome": "deep", "theme": "forest" },
+  { "subBiome": "jungle", "theme": "forest" }, { "subBiome": "highwood", "theme": "forest" },
+  { "subBiome": "basalt", "theme": "lava" }, { "subBiome": "ash", "theme": "lava" }, { "subBiome": "magma_caves", "theme": "lava" },
+  { "subBiome": "flows", "theme": "lava" }, { "subBiome": "crater", "theme": "lava" },
+  { "subBiome": "tundra", "theme": "ice" }, { "subBiome": "frozen_forest", "theme": "ice" }, { "subBiome": "ice_fields", "theme": "ice" },
+  { "subBiome": "summit", "theme": "ice" },
+  { "subBiome": "beach", "theme": "water" }, { "subBiome": "lagoon", "theme": "water" }, { "subBiome": "cliffs", "theme": "water" },
+  { "subBiome": "caves", "theme": "cave" },
+  { "subBiome": "dunes", "theme": "desert" }, { "subBiome": "oasis", "theme": "desert" }, { "subBiome": "canyon", "theme": "desert" },
+  { "subBiome": "quicksand", "theme": "desert" },
+  { "subBiome": "outskirts", "theme": "ruins" }, { "subBiome": "halls", "theme": "ruins" }, { "subBiome": "overgrown", "theme": "ruins" },
+  { "subBiome": "temple", "theme": "ruins" }
+ ]
+}
