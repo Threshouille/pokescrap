@@ -77,7 +77,9 @@ public partial class IslandPlan
 {
     public Vector2Int sealedCave = new(-1, -1); // the sealed cave's stairs (inside, at the back), -1 none
     public Vector2Int sealedCaveFront = new(-1, -1); // the ground in front of its door
-    public Vector2Int caveMechanism = new(-1, -1); // the mechanism that opens it, in front of the door
+    public Vector2Int caveMechanism = new(-1, -1); // the mechanism that opens it, in front of the door (the middle one)
+    public readonly List<Vector2Int> caveParts = new(); // its parts in a row (braziers, plates, shells; else the mechanism)
+    public float caveProgress; // seconds spent near it ('time' seals)
     public RectInt sealedCaveRect; // its tiles: the plateau and its face
     public readonly List<int> caveDoor = new(); // the face tiles that open (3 middle columns)
     public bool caveOpen;
@@ -86,8 +88,8 @@ public partial class IslandPlan
     /// A sealed cave (LayRelief), drawn with a chance (chanceOverride when not negative): a plateau of one level,
     /// width × depth tiles (a rock rim around a hollow under a roof), its face below it, on flat open ground with
     /// clearance tiles from what the relief keeps away from (dist) and `front` rows of open ground before the face;
-    /// far enough from the landing. Raises the plateau; returns its tiles (plateau and face), or null.
-    bool[] ReserveCave(System.Random rng, float chanceOverride, int[] dist, int faceRows)
+    /// far enough from the landing; its seal fits the sub-biome in front (forcedSeal: that one, for tests). Raises the plateau; returns its tiles (plateau and face), or null.
+    bool[] ReserveCave(System.Random rng, float chanceOverride, int[] dist, int faceRows, string forcedSeal = null)
     {
         var d = CaveSeals.Data;
         float chance = chanceOverride >= 0f ? chanceOverride : d.chance;
@@ -124,10 +126,21 @@ public partial class IslandPlan
             for (int x = door.x - 1; x <= door.x + 1; x++)
                 for (int y = y0 - faceRows; y < y0; y++) caveDoor.Add(Index(x, y));
             caveOpen = false;
+            caveProgress = 0f;
             int f = Index(sealedCaveFront.x, sealedCaveFront.y);
-            var seal = CaveSeals.Pick(biome[f]?.key, themes[0]?.key, rng);
+            var seal = CaveSeals.Get(forcedSeal) ?? CaveSeals.Pick(biome[f]?.key, themes[0]?.key, rng);
             caveSeal = seal?.key;
-            obstacle[Index(caveMechanism.x, caveMechanism.y)] = d.mechanism;
+            // Its parts in a row across the door (a few, apart; spread more for the braziers), solid but the plates.
+            caveParts.Clear();
+            bool many = seal != null && seal.kind is "braziers" or "plates" or "sequence";
+            int count = many ? Mathf.Clamp(seal.count, 1, w / 2 + 1) : 1, spacing = seal?.kind == "braziers" ? 3 : 2;
+            while (count > 1 && (count - 1) * spacing > w - 1) spacing--;
+            for (int k = 0; k < count; k++)
+            {
+                var part = caveMechanism + Vector2Int.right * Mathf.RoundToInt((k - (count - 1) / 2f) * spacing);
+                caveParts.Add(part);
+                if (seal?.kind != "plates") obstacle[Index(part.x, part.y)] = d.mechanism;
+            }
             return mask;
         }
         return null;

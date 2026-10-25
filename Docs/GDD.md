@@ -259,6 +259,13 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
     de caméra, dissipation, escalier qui apparaît, signalé sur la mini-carte) ; bulle d'indice optionnelle à l'approche.
     Entrée tirée des éléments des cartes de l'histoire (`map_props`, entrée de grotte du style `rock`) ; états du sceau
     en planches Claude Design (comme `obstacle_*`).
+  - Forme retenue (Owen) : une petite grotte comme celle du sommet des montagnes, sur un plateau isolé (pas creusée
+    dans une falaise ni une colline) ; la porte est une partie de sa paroi qui disparaît ; un mécanisme devant la grotte
+    fait comprendre l'énigme. L'escalier reste après usage.
+  - Plaques de pression : seuls les Pokémon joués par des humains comptent, jamais les IA (énigme pour jouer entre amis).
+  - Fait le 25/10/2026 : génération, porte, mécanisme provisoire, conditions type d'attaque, météo, équipe, braseros,
+    plaques, coquillages, temps ; escalier vers une salle vide. Reste : nuit sur l'île, clé, gardien, nettoyer le
+    quartier, planches Claude Design, contenu des salles.
   - Étapes : 1) données (`cave_seals.json`) et placement dans `IslandPlan` ; 2) `CaveSeal` (conditions type d'attaque,
     météo, braseros ou plaques ; repère et icône) ; 3) escalier vers une salle du catalogue (comme `SecretStairs`) ;
     4) nuit sur l'île, clé, gardien, planches.

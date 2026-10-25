@@ -15,6 +15,7 @@ public partial class IslandPlan
         public int seed;
         public float secretChance = -1f; // chance of secret stairs here (-1: secret_rooms.json's)
         public float caveChance = -1f; // chance of a sealed cave here (-1: cave_seals.json's)
+        public string caveSeal = ""; // tests: the seal of the cave (cave_seals.json key), drawn when empty
         public string themeName = "Nature luxuriante";
         public float radius = 120f, coastNoise = 0.1f, coastScale = 0.025f, sideNoise = 5f;
         public int voidMargin = 16;
@@ -506,7 +507,7 @@ public partial class IslandPlan
             }
         }
         // The sealed cave: a plateau of its own (its stairs, ledges and access left to its door).
-        var caveMask = ReserveCave(rng, t.caveChance, dist, r.faceRows);
+        var caveMask = ReserveCave(rng, t.caveChance, dist, r.faceRows, t.caveSeal);
         bool InCave(int i) => caveMask != null && caveMask[i];
 
         // Cliffs, as seen in 3/4 view: the side of each level facing the camera (south) is a face faceRows tiles tall
@@ -864,7 +865,7 @@ public partial class IslandPlan
             if (keep) queue.Enqueue(i);
         }
         var landmarks = new List<Vector2Int>(markers) { start };
-        if (sealedCave.x >= 0) { landmarks.Add(sealedCaveFront); landmarks.Add(caveMechanism); }
+        if (sealedCave.x >= 0) { landmarks.Add(sealedCaveFront); landmarks.AddRange(caveParts); }
         foreach (var m in landmarks) Stamp(m, 3.5f, i => { if (dist[i] != 0) { dist[i] = 0; queue.Enqueue(i); } });
         while (queue.Count > 0)
         {
