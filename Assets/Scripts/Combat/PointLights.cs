@@ -43,7 +43,9 @@ public class PointLights : MonoBehaviour
 
     readonly Dictionary<Combatant, (Light2D light, Glow glow)> bodies = new();
     readonly HashSet<Projectile> shots = new();
-    readonly List<Light2D> lavaPool = new();
+    readonly Dictionary<Vector2Int, Light2D> lavaLights = new(); // by block: a block keeps its light while the camera moves
+    readonly List<Light2D> lavaFree = new();
+    readonly HashSet<Vector2Int> lavaSeen = new();
     float nextScan;
     bool showCount;
     int shining;
@@ -166,7 +168,7 @@ public class PointLights : MonoBehaviour
     void ScanLava(Vector2 centre, float range)
     {
         var grid = DungeonGenerator.Current;
-        int used = 0;
+        lavaSeen.Clear();
         if (grid != null && (Data.obstacles.Length > 0 || Data.terrains.Length > 0))
         {
             int step = Mathf.Max(1, Data.lavaGrid);
@@ -175,32 +177,56 @@ public class PointLights : MonoBehaviour
             for (int bx = from.x - Mod(from.x, step); bx <= to.x; bx += step)
                 for (int by = from.y - Mod(from.y, step); by <= to.y; by += step)
                 {
+                    // The light sits in the middle of the block's glowing tiles, not of the block.
                     Glow glow = null;
-                    for (int x = bx; x < bx + step && glow == null; x++)
-                        for (int y = by; y < by + step && glow == null; y++)
+                    Vector2 sum = Vector2.zero;
+                    int glowing = 0;
+                    for (int x = bx; x < bx + step; x++)
+                        for (int y = by; y < by + step; y++)
                         {
+                            Glow here = null;
                             var o = Obstacles.At(x, y);
-                            if (o != null) glow = Find(Data.obstacles, g => g.key == o.key);
-                            if (glow == null && Terrain.At(grid.CentreOf(x, y)) is { } t) glow = Find(Data.terrains, g => g.key == t.key);
+                            if (o != null) here = Find(Data.obstacles, g => g.key == o.key);
+                            if (here == null && Terrain.At(grid.CentreOf(x, y)) is { } t) here = Find(Data.terrains, g => g.key == t.key);
+                            if (here == null) continue;
+                            glow ??= here;
+                            sum += grid.CentreOf(x, y);
+                            glowing++;
                         }
                     if (glow == null) continue;
-                    Light2D light;
-                    if (used < lavaPool.Count && lavaPool[used] != null) light = lavaPool[used];
-                    else
+                    var block = new Vector2Int(bx, by);
+                    lavaSeen.Add(block);
+                    if (!lavaLights.TryGetValue(block, out var light) || light == null)
                     {
-                        light = Make(transform, glow, Vector2.zero);
-                        if (used < lavaPool.Count) lavaPool[used] = light; else lavaPool.Add(light);
+                        light = null;
+                        while (light == null && lavaFree.Count > 0)
+                        {
+                            light = lavaFree[^1];
+                            lavaFree.RemoveAt(lavaFree.Count - 1);
+                        }
+                        if (light == null) light = Make(null, glow, Vector2.zero); // at the scene's root: this object follows the team
+                        lavaLights[block] = light;
                     }
                     var e = byLight[light];
                     e.glow = glow;
                     e.wanted = true;
                     light.color = glow.colour;
                     light.pointLightOuterRadius = glow.radius;
-                    light.transform.position = (grid.CentreOf(bx, by) + grid.CentreOf(bx + step - 1, by + step - 1)) / 2f;
-                    used++;
+                    light.transform.position = sum / glowing;
                 }
         }
-        for (int k = used; k < lavaPool.Count; k++) Want(lavaPool[k], false);
+        // Blocks out of range or without lava any more give their light back.
+        var gone = new List<Vector2Int>();
+        foreach (var (block, light) in lavaLights)
+            if (!lavaSeen.Contains(block)) gone.Add(block);
+        foreach (var block in gone)
+        {
+            var light = lavaLights[block];
+            lavaLights.Remove(block);
+            if (light == null) continue;
+            Want(light, false);
+            lavaFree.Add(light);
+        }
     }
 
     static int Mod(int a, int m) => ((a % m) + m) % m;
