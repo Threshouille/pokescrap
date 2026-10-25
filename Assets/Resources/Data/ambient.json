@@ -1,5 +1,5 @@
 {
- "comment": "Ambient particles (AmbientParticles.cs; GDD, 'Jour et nuit'): each effect is born on the tiles in sight that match one of `where` (island: sub-biome or theme keys of biomes.json; arenas: 'decor:<ROM décor>'; anywhere: 'obstacle:<key>', 'terrain:<key>'), `density` a second per 100 such tiles, during `phases` (daynight.json keys; none: always). motion: fall, rise, drift (along `drift`, tiles/s), wander, flow (down the rivers, towards the sky at the coast). speed (tiles/s), sway (noise), spin (degrees/s), life [min, max] s, size [min, max] tiles (fallback shape only: a sheet keeps its pixel size), colors (one at random, for the fallback shape: a sheet keeps its own colours), alpha, blink (on/off pulses over its life), grow (size at the end × that), lit (darker at night; else keeps its colours: fireflies, embers), order (sorting order: 2 over the Pokémon, -4 on the water). sheet: a sheet of Resources/Effects (frames at random, or playing when it loops), else the fallback shape (dot, square, diamond). Within range tiles of the camera; max particles per effect. props: born in the crowns of these map_props.json groups (trees) in sight, density a second per 100 of them, instead of tiles. light: a glow of lights.json on up to `lights` of its particles at once, blinking with them (fireflies). The current runs away from the island's centre (the arena's), along the water.",
+ "comment": "Ambient particles (AmbientParticles.cs; GDD, 'Jour et nuit'): each effect is born on the tiles in sight that match one of `where` (island: sub-biome or theme keys of biomes.json; arenas: 'decor:<ROM décor>'; anywhere: 'obstacle:<key>', 'terrain:<key>'), `density` a second per 100 such tiles, during `phases` (daynight.json keys; none: always). motion: fall, rise, drift (along `drift`, tiles/s), wander, flow (down the rivers, towards the sky at the coast). speed (tiles/s), sway (noise), spin (degrees/s), life [min, max] s, size [min, max] tiles (fallback shape only: a sheet keeps its pixel size), colors (one at random, for the fallback shape: a sheet keeps its own colours), alpha, blink (on/off pulses over its life), grow (size at the end × that), lit (darker at night; else keeps its colours: fireflies, embers), order (sorting order: 2 over the Pokémon, -4 on the water). sheet: a sheet of Resources/Effects (frames at random, or playing when it loops), else the fallback shape (dot, square, diamond). Within range tiles of the camera; max particles per effect. props: born in the crowns of these map_props.json groups (trees) in sight, density a second per 100 of them, instead of tiles. light: a glow of lights.json on up to `lights` of its particles at once, blinking with them (fireflies). The current runs away from the island's centre (the arena's), along the water. wind: share of a storm's wind (Climate.WindNow) added to their motion (leaves, snow).",
  "range": 14,
  "sampleEvery": 0.5,
  "effects": [
@@ -78,7 +78,8 @@
     "tree",
     "jungle_palm",
     "jungle_big"
-   ]
+   ],
+   "wind": 1.0
   },
   {
    "key": "petals",
@@ -221,7 +222,8 @@
    "lit": true,
    "order": 2,
    "sheet": "particle_snow",
-   "shape": "dot"
+   "shape": "dot",
+   "wind": 0.6
   },
   {
    "key": "dust",

@@ -17,7 +17,7 @@ public class AmbientParticles : MonoBehaviour
         public string[] where = new string[0], phases = new string[0], colors = new string[0], props = new string[0];
         public string light; // a glow of lights.json on some of its particles (fireflies)
         public int lights;
-        public float density = 1f, speed = 0.5f, sway, spin, alpha = 1f, blink, grow = 1f;
+        public float density = 1f, speed = 0.5f, sway, spin, alpha = 1f, blink, grow = 1f, wind; // wind: share of a storm's wind added
         public float[] life = { 2f, 4f }, size = { 0.1f, 0.2f }, drift = { 0f, 0f };
         public int max = 100, order = 2;
         public bool lit = true;
@@ -295,6 +295,7 @@ public class AmbientParticles : MonoBehaviour
             "flow" => FlowAt(grid, cell) * e.speed,
             _ => new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * e.speed,
         };
+        velocity += Climate.WindNow * e.wind;
         // Still water barely moves.
         if (e.motion == "flow" && velocity == Vector2.zero) velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 0.05f;
         // A sheet keeps its own colours; a fallback shape takes one of the effect's.

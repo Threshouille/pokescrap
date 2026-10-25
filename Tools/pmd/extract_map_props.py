@@ -19,6 +19,9 @@ from find_map_props import upper_layer  # noqa: E402
 from extract_cliffs import layer_image  # noqa: E402
 
 
+MARGIN = 3  # px of transparent margin at the sides and top (the wind sways the elements)
+
+
 def cut_out(image, prop):
     """Detours a piece of the lower layer (clearTop, cutSides), cropped to what is left."""
     if not prop.get("clearTop") and not prop.get("cutSides"):
@@ -67,6 +70,11 @@ def main(data_dir, catalog, out_dir, preview=None):
                                               level.get_bpas(data), 0) if lower else upper_layer(level, data)
         x, y, w, h = prop["rect"]
         image = cut_out(layers[name, lower].crop((x, y, x + w, y + h)), prop)
+        # A transparent margin at the sides and top: room for the wind to sway it (shader Pokescrap/Sprite-Lit-Wind);
+        # its foot stays the middle of its bottom edge.
+        padded = Image.new("RGBA", (image.width + 2 * MARGIN, image.height + MARGIN))
+        padded.paste(image, (MARGIN, MARGIN))
+        image = padded
         image.save(out / f"{prop['key']}.png")
         images.append((prop, image))
     print(f"{len(images)} decor elements")
