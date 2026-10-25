@@ -114,6 +114,7 @@ public class MoveDef
     public float orbitRadius, orbitTime, orbitInterval; // tiles, seconds circling, seconds between two launches
     public bool followOwner; // zone that stays centred on the user as it moves (Blizzard)
     public float zoneAlpha; // opacity of the zone's sheet (1 when omitted)
+    public bool noAutoAim; // used by the player toward where they point, never toward the aimed target (Draco Météor)
     public bool aiIgnore; // zone the AIs neither avoid nor flee (Fatal-Foudre: its bolts find them anyway)
     public bool boltOnFoes; // zone bolts strike a random opponent inside the zone (a random spot when there is none)
     public bool zoneRing; // a faint white ring shows the edge of the zone while it lasts

@@ -200,7 +200,14 @@ public class Zone : MonoBehaviour
             target.ApplyEffects(move, true, owner);
             if (!tick) continue;
             if (move.impactOnTargets) EffectPlayer.Spawn(move.impactEffect, target.transform.position, Vector2.right);
-            target.TakeHit(damage, move, out _);
+            if (!target.TakeHit(damage, move, out _)) continue;
+            if (move.knockback > 0f)
+            {
+                // Thrown away from the centre of the impact.
+                Vector2 away = (Vector2)target.transform.position - (Vector2)transform.position;
+                float time = move.knockbackTime > 0f ? move.knockbackTime : Combatant.KnockbackTime;
+                target.Knockback((away.sqrMagnitude > 0.0001f ? away.normalized : Vector2.right) * move.knockback / time, time);
+            }
         }
     }
 }
@@ -218,7 +225,11 @@ public class SkyFall : MonoBehaviour
     {
         var go = new GameObject(move.name + " (chute)");
         Vector2 direction = -Drop.normalized;
-        if (!EffectPlayer.Attach(go, move.fallEffect, direction))
+        if (EffectPlayer.Attach(go, move.fallEffect, direction))
+        {
+            if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
+        }
+        else
         {
             go.transform.localScale = Vector3.one * move.radius;
             var renderer = go.AddComponent<SpriteRenderer>();

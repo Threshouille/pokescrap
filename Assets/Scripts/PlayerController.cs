@@ -185,6 +185,7 @@ public class PlayerController : MonoBehaviour
         {
             m.ai.enabled = (m != Current || autoPilot) && m.combatant.IsAlive;
             m.combatant.LiveAim = Vector2.zero; // the AI aims for itself
+            m.combatant.RawAim = Vector2.zero;
             m.combatant.AimTarget = null;
         }
     }
@@ -270,6 +271,7 @@ public class PlayerController : MonoBehaviour
         Vector2 shoot = target != null && target.transform.position != member.combatant.transform.position
             ? ((Vector2)(target.transform.position - member.combatant.transform.position)).normalized : facing;
         member.combatant.LiveAim = shoot; // moves leaving after a cast follow the aim
+        member.combatant.RawAim = facing; // where the player points, target ignored (noAutoAim moves)
         ShowTargetRing(target);
 
         bool acting = Time.unscaledTime >= inputBlockedUntil;

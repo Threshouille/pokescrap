@@ -95,6 +95,8 @@ public class Combatant : MonoBehaviour
     /// Where the player controlling this Pokémon aims right now (zero for an AI). A shot that leaves after a cast
     /// or a delay follows it, rather than the direction it was aimed at when the move started.
     public Vector2 LiveAim { get; set; }
+    /// Where the controlling player points, without turning toward the target (zero for an AI): noAutoAim moves.
+    public Vector2 RawAim { get; set; }
     /// Opponent the controlling player is aiming at (red circle), or null; always null for an AI. The player's moves
     /// go toward it: shots lead it, arc shots land on it, zones are laid on it.
     public Combatant AimTarget { get; set; }
@@ -656,6 +658,7 @@ public class Combatant : MonoBehaviour
     {
         var move = Moves[slot];
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
+        if (move.noAutoAim && RawAim != Vector2.zero) direction = RawAim; // the player's own direction, not the target's
         attackCount++; // a new attack (a Life Orb takes its toll once per attack)
 
         if (move.family == "heal")
@@ -1138,7 +1141,8 @@ public class Combatant : MonoBehaviour
 
         if (castMove != null && Time.time >= castUntil)
         {
-            var aim = LiveAim != Vector2.zero ? Steer(LiveAim.normalized) : castDirection;
+            Vector2 live = castMove.noAutoAim && RawAim != Vector2.zero ? RawAim : LiveAim;
+            var aim = live != Vector2.zero ? Steer(live.normalized) : castDirection;
             if (CanAttack && castMove.family == "melee") Melee(castMove, aim);
             else if (CanAttack && castMove.family == "zone") PlaceZone(castMove, aim, castDistance);
             else if (CanAttack) Shoot(castMove, aim, castDistance);
