@@ -14,6 +14,7 @@ public partial class IslandPlan
     {
         public int seed;
         public float secretChance = -1f; // chance of secret stairs here (-1: secret_rooms.json's)
+        public float caveChance = -1f; // chance of a sealed cave here (-1: cave_seals.json's)
         public string themeName = "Nature luxuriante";
         public float radius = 120f, coastNoise = 0.1f, coastScale = 0.025f, sideNoise = 5f;
         public int voidMargin = 16;
@@ -143,6 +144,7 @@ public partial class IslandPlan
         plan.LayRelief(t, rng, rock);
         plan.ScatterProps(t, rng);
         plan.PlaceSecret(rng, t.secretChance);
+        plan.PlaceCave(rng, t.caveChance);
         return plan;
     }
 

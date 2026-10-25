@@ -239,6 +239,29 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Fait le 25/10/2026 (Owen) : escalier, cachettes (clairière, rocher fissuré brisé par Combat, Sol, Roche ou Acier),
     salle vide du catalogue et retour, dans le quart de test (`secret_rooms.json`, `SecretStairs`). Reste (Robin) : le
     contenu des salles (trésor, embuscade, gardien) et les thèmes logiques.
+- Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
+  sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
+  (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.
+  - Sceau tiré d'après le biome quand c'est possible (sinon un sceau générique) :
+    volcan : coulée de lave figée (Eau ou Glace la change en pierre qui se fissure), fumerolles (éteintes par la pluie) ;
+    glacier : mur de glace (Feu ou Zénith, fond en 3 états), stalactites (Roche ou Combat les font tomber) ;
+    côte : grotte marine noyée (marée basse la nuit, ou Plante qui absorbe), coquillages à frapper par ordre de taille ;
+    forêt : racines ou lianes (Feu, Insecte, Plante), arbre creux endormi (s'éveille la nuit) ;
+    désert : entrée ensevelie (Vol ou Tempêtesable), cadran solaire (Zénith) ;
+    ruines : porte à runes (un Zarbi ou une Psy dans l'équipe), braseros (Feu sur chacun, ils s'éteignent après
+    quelques secondes), plaques de pression (les 3 Pokémon dessus en même temps).
+    Génériques : gardien (élite devant l'entrée), clé (coffre ou élite du quartier), nettoyer le quartier, temps passé.
+  - Faisabilité : la plupart des sceaux tirés sont réalisables par l'équipe (types, attaques apprises) ; quelques-uns
+    rares peuvent ne pas l'être (raison de rejouer).
+  - Lisibilité (point délicat) : un repère commun à toutes les grottes scellées (même symbole, même lueur) ; l'icône de
+    la condition gravée sur le sceau (icônes de types, soleil, lune, nuage) ; progression visible (états successifs,
+    secousse, particules ; « cling » ou petit nuage gris quand l'attaque n'a pas d'effet) ; ouverture marquée (secousse
+    de caméra, dissipation, escalier qui apparaît, signalé sur la mini-carte) ; bulle d'indice optionnelle à l'approche.
+    Entrée tirée des éléments des cartes de l'histoire (`map_props`, entrée de grotte du style `rock`) ; états du sceau
+    en planches Claude Design (comme `obstacle_*`).
+  - Étapes : 1) données (`cave_seals.json`) et placement dans `IslandPlan` ; 2) `CaveSeal` (conditions type d'attaque,
+    météo, braseros ou plaques ; repère et icône) ; 3) escalier vers une salle du catalogue (comme `SecretStairs`) ;
+    4) nuit sur l'île, clé, gardien, planches.
 
 ### Niveaux continus (décidé le 22/10/2026, Robin) — devenu la base des chaînes d'îlots — remplace l'étage façon Isaac
 - Génération plus organique, semi-ouverte, proche de Minecraft Dungeons : un niveau = une seule grande carte parcourue

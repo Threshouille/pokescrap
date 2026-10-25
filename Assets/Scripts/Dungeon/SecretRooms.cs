@@ -70,13 +70,6 @@ public partial class IslandPlan
             }
         }
         // A cracked rock on open ground: nothing around it (it never closes a way), off roads, cliffs and caves.
-        bool Free(int x, int y)
-        {
-            if (!InMap(x, y)) return false;
-            int i = Index(x, y);
-            return region[i] == 0 && !wall[i] && obstacle[i] == null && (decor == null || decor[i] == 0)
-                && (cut == null || cut[i] == 0) && (roof == null || !roof[i]) && (cliffStyle == null || cliffStyle[i] == 0);
-        }
         for (int tries = 0; tries < 2000; tries++)
         {
             int x = rng.Next(size), y = rng.Next(size);
@@ -84,12 +77,21 @@ public partial class IslandPlan
             bool clear = true;
             for (int dy = -1; dy <= 1 && clear; dy++)
                 for (int dx = -1; dx <= 1 && clear; dx++)
-                    clear = Free(x + dx, y + dy);
+                    clear = FreeGround(x + dx, y + dy);
             if (!clear) continue;
             obstacle[Index(x, y)] = s.rock;
             secret = new Vector2Int(x, y);
             secretSpot = "rock";
             return;
         }
+    }
+
+    /// Open ground of a quarter: no wall, obstacle, road, cliff or cave.
+    bool FreeGround(int x, int y)
+    {
+        if (!InMap(x, y)) return false;
+        int i = Index(x, y);
+        return region[i] >= 0 && region[i] < 4 && !wall[i] && obstacle[i] == null && (decor == null || decor[i] == 0)
+            && (cut == null || cut[i] == 0) && (roof == null || !roof[i]) && (cliffStyle == null || cliffStyle[i] == 0);
     }
 }

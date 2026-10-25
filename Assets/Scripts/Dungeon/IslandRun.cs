@@ -317,6 +317,11 @@ public class IslandRun : MonoBehaviour
             GUI.color = new Color(0.3f, 1f, 0.9f);
             Dot(rect, scale, Plan.secret - bounds.min, 3.5f * s);
         }
+        if ((revealAll || SaveData.Settings.devMode) && Plan.sealedCave.x >= 0 && Plan.region[Plan.Index(Plan.sealedCave.x, Plan.sealedCave.y)] == Zone)
+        {
+            GUI.color = new Color(1f, 0.5f, 0f);
+            Dot(rect, scale, Plan.sealedCave - bounds.min, 3.5f * s);
+        }
         GUI.color = new Color(0.75f, 0.5f, 1f);
         foreach (var c in Plan.caves)
             if (revealed[Plan.Index(c.x, c.y)]) Dot(rect, scale, c - bounds.min, 3f * s);
