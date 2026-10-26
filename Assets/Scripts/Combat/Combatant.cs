@@ -5,7 +5,7 @@ using UnityEngine;
 public enum Team { Player, Enemy }
 
 /// Health, stats, moves, statuses and temporary modifiers of one Pokémon in the arena.
-public class Combatant : MonoBehaviour
+public partial class Combatant : MonoBehaviour
 {
     public const int MoveSlots = 4;
     const float HitFlashTime = 0.1f;
@@ -122,9 +122,10 @@ public class Combatant : MonoBehaviour
         return best;
     }
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
-    public bool IsCasting => castMove != null || blinkMove != null;
+    public bool IsCasting => castMove != null || blinkMove != null || chargeMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
-    public float CurrentSpeed => CanMove && !IsCasting && Time.time >= recoverUntil ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) : 0f;
+    public float CurrentSpeed => CanMove && !IsCasting && Time.time >= recoverUntil
+        ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul : 0f;
 
     class TimedModifier
     {
@@ -212,7 +213,11 @@ public class Combatant : MonoBehaviour
         if (spreadAngle < 0f) spreadAngle = UnityEngine.Random.value * Mathf.PI * 2f;
         all.Add(this);
     }
-    void OnDisable() => all.Remove(this);
+    void OnDisable()
+    {
+        all.Remove(this);
+        StopHeld(false); // its charging ball or draining link goes with it
+    }
 
     public static int CountAlive(Team team)
     {
@@ -658,8 +663,10 @@ public class Combatant : MonoBehaviour
     {
         var move = Moves[slot];
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
+        if (Holding) return false; // a held move is going on
         if (move.noAutoAim && RawAim != Vector2.zero) direction = RawAim; // the player's own direction, not the target's
         attackCount++; // a new attack (a Life Orb takes its toll once per attack)
+        if (StartHeld(slot, move, direction, out bool refused)) return !refused;
 
         if (move.family == "heal")
         {
@@ -1070,7 +1077,7 @@ public class Combatant : MonoBehaviour
     void FireProjectiles(MoveDef move, Vector2 direction, float distance)
     {
         int shots = Mathf.Max(1, move.count);
-        if (AimTarget != null && distance <= 0f) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
+        if (AimTarget != null && distance <= 0f && !move.noAutoAim) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
         for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
             for (int i = 0; i < shots; i++)
             {
@@ -1119,7 +1126,8 @@ public class Combatant : MonoBehaviour
                 && Nearest(team == Team.Player ? Team.Enemy : Team.Player, transform.position, 8f) == null);
             if (hp < maxHp && calm) Heal(maxHp * Held.regenShare);
         }
-        if (!UpdateStatuses()) { castMove = null; return; }
+        if (!UpdateStatuses()) { castMove = null; StopHeld(false); return; }
+        UpdateHeld();
 
         // Little jump in place while casting a move with a hop.
         float hop = castMove != null && castMove.hop > 0f
@@ -1456,7 +1464,8 @@ public class Combatant : MonoBehaviour
             // Hurt first, then what the current move asks for: running (or rolling) during a dash, its cast animation.
             string forced = IsHurt ? "Hurt"
                 : IsLunging && lungeMove != null ? (string.IsNullOrEmpty(lungeMove.dashAnim) ? "Walk" : lungeMove.dashAnim)
-                : castMove != null && !string.IsNullOrEmpty(castMove.castAnim) ? castMove.castAnim : null;
+                : castMove != null && !string.IsNullOrEmpty(castMove.castAnim) ? castMove.castAnim
+                : HeldAnim;
             animator.Forced = forced != null && animator.Has(forced) ? forced : null;
         }
 

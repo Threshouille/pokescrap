@@ -1,0 +1,122 @@
+{
+  "sheets": [
+    {
+      "file": "lance_flamme_vol.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "lance_flamme_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "ball_ombre_vol.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#140820",
+        "#2a0c3c",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2"
+      ]
+    },
+    {
+      "file": "ball_ombre_impact.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        65,
+        65,
+        65,
+        65
+      ],
+      "loop": false,
+      "palette": [
+        "#140820",
+        "#2a0c3c",
+        "#5b2585",
+        "#9447c2",
+        "#d39af2"
+      ]
+    },
+    {
+      "file": "mega_sangsue_lien.png",
+      "frame_width": 24,
+      "frame_height": 12,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#10260e",
+        "#2e6a1e",
+        "#58a832",
+        "#9edc5a",
+        "#e4ffb0"
+      ]
+    },
+    {
+      "file": "mega_sangsue_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        67,
+        67,
+        66
+      ],
+      "loop": false,
+      "palette": [
+        "#10260e",
+        "#2e6a1e",
+        "#58a832",
+        "#9edc5a",
+        "#e4ffb0"
+      ]
+    }
+  ]
+}

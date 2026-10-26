@@ -24,6 +24,8 @@ public class Projectile : MonoBehaviour
     float side; // +1 / -1: which way a curve bends, where an orbit starts
     float delay; // seconds before the shot leaves (bursts)
     float age; // seconds in flight (pulse)
+    float hoverUntil; // floating at the end of its course until then (hoverTime)
+    Vector2 hoverAt;
     Vector2 aimAtSpawn; // the shooter's live aim when the shot was created (zero for an AI)
     float hold; // seconds left waiting in place, harmless (move.hold)
     Combatant lockedTarget; // a waiting shot leaves toward it
@@ -42,7 +44,7 @@ public class Projectile : MonoBehaviour
     /// extraRange: tiles added to the range (shots of a volley landing further and further).
     /// at: where the shot appears (in front of the user by default); lockedTarget: where a waiting shot (move.hold) goes.
     public static void Spawn(Combatant owner, MoveDef move, Vector2 direction, int shotIndex = 0, float delay = 0f, float distance = -1f,
-        float extraRange = 0f, Vector2? at = null, Combatant lockedTarget = null)
+        float extraRange = 0f, Vector2? at = null, Combatant lockedTarget = null, float sizeMul = 1f, float damageMul = 1f)
     {
         var go = new GameObject(move.name);
         go.transform.position = at ?? (Vector2)(owner.transform.position + (Vector3)(direction * SpawnOffset));
@@ -62,15 +64,15 @@ public class Projectile : MonoBehaviour
             renderer.sortingOrder = 2;
         }
 
-        go.transform.localScale *= owner.projectileSizeMul; // "bigger projectiles" upgrades
+        go.transform.localScale *= owner.projectileSizeMul * sizeMul; // "bigger projectiles" upgrades, a charged shot
 
         var projectile = go.AddComponent<Projectile>();
         projectile.team = owner.team;
         projectile.owner = owner;
         projectile.level = DungeonGenerator.Current != null && owner != null ? DungeonGenerator.Current.HeightAt(owner.transform.position) : 0;
         projectile.move = move;
-        projectile.damage = owner.DamageOf(move);
-        projectile.radius = projectile.baseRadius = move.radius * owner.projectileSizeMul;
+        projectile.damage = owner.DamageOf(move) * damageMul;
+        projectile.radius = projectile.baseRadius = move.radius * owner.projectileSizeMul * sizeMul;
         projectile.baseScale = go.transform.localScale;
         float weather = Climate.ShotMul(move, direction); // rain shortens Fire shots, a storm's wind carries or holds
         projectile.speed = move.speed * owner.projectileSpeedMul * weather;
@@ -124,6 +126,11 @@ public class Projectile : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (hoverUntil > 0f)
+        {
+            Hover();
+            return;
+        }
         float dt = Time.fixedDeltaTime;
         if (delay > 0f)
         {
@@ -213,6 +220,13 @@ public class Projectile : MonoBehaviour
         transform.position = to;
 
         if (!done) return;
+        if (move.hoverTime > 0f)
+        {
+            // It stops and floats there a moment, still hitting what touches it.
+            hoverUntil = Time.time + move.hoverTime;
+            hoverAt = to;
+            return;
+        }
         if (!returning && move.path != "boomerang") Terrain.OnImpact(move, to, owner); // spent: lands where it stops
         if (move.path == "boomerang" && !returning)
         {
@@ -226,6 +240,25 @@ public class Projectile : MonoBehaviour
                 end.frame_width / (float)EffectLibrary.PixelsPerUnit * transform.localScale.x);
             Destroy(gameObject);
         }
+    }
+
+    // Floating where its course ended: bobs gently, hits what comes in, then fades away.
+    void Hover()
+    {
+        transform.position = hoverAt + Vector2.up * (0.08f * Mathf.Sin(Time.time * 6f));
+        foreach (var other in Physics2D.OverlapCircleAll(transform.position, radius))
+        {
+            if (other.isTrigger) continue;
+            var target = other.GetComponentInParent<Combatant>();
+            if (target == null || target.team == team || !target.IsAlive || !hit.Add(target)) continue;
+            Strike(target);
+            EffectPlayer.Spawn(move.impactEffect, target.transform.position, forward);
+            if (!move.pierce) { Destroy(gameObject); return; }
+        }
+        if (Time.time < hoverUntil) return;
+        Terrain.OnImpact(move, transform.position, owner);
+        EffectPlayer.Spawn(move.impactEffect, transform.position, forward);
+        Destroy(gameObject);
     }
 
     /// Point of the path after "distance" tiles along "forward".

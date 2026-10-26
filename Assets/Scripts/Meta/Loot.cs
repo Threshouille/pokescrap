@@ -258,11 +258,19 @@ public class Loot : MonoBehaviour
         Grant(d.item);
     }
 
-    /// The stage ends: the chest left closed is opened and everything on the ground picked up.
+    /// The stage ends: the chest left closed is opened and everything on the ground picked up. Only what lies there
+    /// now: a held item taken in place of another drops the old one, which must not be taken back (endless swap).
+    /// A held item other than the one the controlled Pokémon holds is left on the ground: no swap behind its back.
     public void CollectAll()
     {
         if (chest != null) OpenChest();
-        while (drops.Count > 0) Take(drops.Count - 1);
+        var holder = team != null ? team.Controlled : null;
+        foreach (var d in drops.ToArray())
+        {
+            if (d.item.held != null && holder != null && holder.Held != null && holder.Held.key != d.item.held) continue;
+            int index = drops.IndexOf(d);
+            if (index >= 0) Take(index);
+        }
     }
 
     // A consumable is picked up only when the bag has room for it (it stays on the ground otherwise).
