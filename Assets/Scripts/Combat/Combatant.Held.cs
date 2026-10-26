@@ -17,7 +17,9 @@ public partial class Combatant
     GameObject chargeOrb;
     Vector3 chargeOrbScale;
     Combatant linkTarget;
-    LineRenderer linkLine;
+    LineRenderer linkLine; // without a sheet
+    SpriteRenderer linkSprite; // the move's effect sheet, repeated along the link
+    float linkAnimTime;
 
     /// True while a held move is going on (no other move can start).
     public bool Holding => channelMove != null || chargeMove != null || linkMove != null;
@@ -118,8 +120,7 @@ public partial class Combatant
             StopHeld(true);
             return;
         }
-        linkLine.SetPosition(0, transform.position);
-        linkLine.SetPosition(1, linkTarget.transform.position);
+        PlaceLink();
         if (Time.time < nextHeldTick) return;
         nextHeldTick += linkMove.linkInterval;
         EffectPlayer.Spawn(linkMove.impactEffect, linkTarget.transform.position, Vector2.right);
@@ -161,6 +162,7 @@ public partial class Combatant
         linkTarget = null;
         if (chargeOrb != null) Destroy(chargeOrb);
         if (linkLine != null) Destroy(linkLine.gameObject);
+        if (linkSprite != null) Destroy(linkSprite.gameObject);
     }
 
     // The ball growing in front of the user while it charges (its flight sheet, or a disc of the type's colour).
@@ -195,19 +197,62 @@ public partial class Combatant
         chargeOrb.transform.localScale = chargeOrbScale * size;
     }
 
-    // A line in the colour of the move's type between the user and its target (a sheet can replace it later).
+    // The link between the user and its target: the move's sheet repeated along it (a line of the type's colour
+    // without one), animated by hand since a tiled sprite cannot play through EffectPlayer.
     void ShowLink(MoveDef move)
     {
         var go = new GameObject(move.name + " (lien)");
-        linkLine = go.AddComponent<LineRenderer>();
-        linkLine.material = new Material(Shader.Find("Sprites/Default"));
-        var colour = GameData.TypeColor(move.type);
-        linkLine.startColor = linkLine.endColor = colour;
-        linkLine.startWidth = 0.14f;
-        linkLine.endWidth = 0.08f;
-        linkLine.positionCount = 2;
-        linkLine.sortingOrder = 2;
-        linkLine.SetPosition(0, transform.position);
-        linkLine.SetPosition(1, linkTarget.transform.position);
+        var sheet = EffectLibrary.Get(move.effect);
+        if (sheet != null)
+        {
+            linkSprite = go.AddComponent<SpriteRenderer>();
+            linkSprite.sprite = sheet.Frame(0);
+            linkSprite.drawMode = SpriteDrawMode.Tiled;
+            linkSprite.sortingOrder = 2;
+            Unlit.Apply(linkSprite);
+            linkAnimTime = 0f;
+        }
+        else
+        {
+            linkLine = go.AddComponent<LineRenderer>();
+            linkLine.material = new Material(Shader.Find("Sprites/Default"));
+            var colour = GameData.TypeColor(move.type);
+            linkLine.startColor = linkLine.endColor = colour;
+            linkLine.startWidth = 0.14f;
+            linkLine.endWidth = 0.08f;
+            linkLine.positionCount = 2;
+            linkLine.sortingOrder = 2;
+        }
+        PlaceLink();
+    }
+
+    void PlaceLink()
+    {
+        Vector2 from = transform.position, to = linkTarget.transform.position;
+        if (linkLine != null)
+        {
+            linkLine.SetPosition(0, from);
+            linkLine.SetPosition(1, to);
+            return;
+        }
+        if (linkSprite == null) return;
+        var sheet = EffectLibrary.Get(linkMove.effect);
+        Vector2 along = to - from;
+        var t = linkSprite.transform;
+        t.position = (from + to) / 2f;
+        t.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(along.y, along.x) * Mathf.Rad2Deg);
+        linkSprite.size = new Vector2(along.magnitude, sheet.frame_height / (float)EffectLibrary.PixelsPerUnit);
+        // Frames in turn, with their own durations.
+        linkAnimTime += Time.fixedDeltaTime * 1000f;
+        float total = 0f;
+        foreach (int ms in sheet.frame_duration_ms) total += Mathf.Max(1, ms);
+        float at = linkAnimTime % Mathf.Max(1f, total);
+        int frame = 0;
+        for (; frame < sheet.frame_count - 1; frame++)
+        {
+            at -= Mathf.Max(1, sheet.frame_duration_ms[frame]);
+            if (at < 0f) break;
+        }
+        linkSprite.sprite = sheet.Frame(frame);
     }
 }
