@@ -10,6 +10,7 @@ public class ObstacleDef
     public string key;
     public string name;
     public bool solid; // blocks everyone and every shot, like a wall
+    public bool noCollider; // solid to the paths only: what stops a Pokémon is a collider of its own (a tree's trunk)
     public bool fall; // a Pokémon that gets in falls, unless its movement type is in passTypes
     public int[] passTypes = new int[0]; // ROM movement types: 2 float, 3 through walls, 4 lava, 5 swim
     public int[] passPokemonTypes = new int[0]; // Pokémon types that cross it too (Eau through water, Spectre through rocks)
@@ -393,7 +394,7 @@ public class Obstacles : MonoBehaviour
     void UpdateSolid(int x, int y, ObstacleDef def)
     {
         int i = y * size + x;
-        bool solid = def != null && def.solid;
+        bool solid = def != null && def.solid && !def.noCollider;
         if (solids.TryGetValue(i, out var go))
         {
             if (solid) return;
@@ -574,6 +575,7 @@ public class Obstacles : MonoBehaviour
         var ahead = At(position + dir * EdgeLook);
         if (ahead != null && ahead.OneWay && ahead == At(position)) return false; // along the ledge it stands on
         if (ahead != null && ahead.OneWay) return !(Mathf.RoundToInt(dir.x) == ahead.oneWay[0] && Mathf.RoundToInt(dir.y) == ahead.oneWay[1]);
+        if (ahead != null && ahead.noCollider) return false; // its own collider stops the Pokémon, where it is drawn
         return WouldBlock(ahead, c);
     }
 
