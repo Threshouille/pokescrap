@@ -366,7 +366,7 @@ public class Climate : MonoBehaviour
     {
         var w = Now;
         if (w == null) return;
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
+        float s = HudLayout.Scale;
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleRight };
         label.fontSize = Mathf.RoundToInt(8f * s);
         string wind = "";

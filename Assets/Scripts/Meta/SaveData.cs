@@ -140,6 +140,10 @@ public static class SaveData
             {
                 var asset = Resources.Load<TextAsset>("Data/meta");
                 meta = asset != null ? JsonUtility.FromJson<Meta>(asset.text) : new Meta();
+                // The dev profile (everything unlocked, dev characters, test arena) on top, in the editor and development
+                // builds only: meta.json keeps the values of the game.
+                var dev = Debug.isDebugBuild ? Resources.Load<TextAsset>("Data/meta_dev") : null;
+                if (dev != null) JsonUtility.FromJsonOverwrite(dev.text, meta);
             }
             return meta;
         }
