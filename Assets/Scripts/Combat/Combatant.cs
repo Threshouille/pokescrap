@@ -148,8 +148,8 @@ public partial class Combatant : MonoBehaviour
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
     public bool IsCasting => castMove != null || blinkMove != null || chargeMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
-    public float CurrentSpeed => CanMove && !IsCasting && Time.time >= recoverUntil
-        ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul : 0f;
+    public float CurrentSpeed => CanMove && !IsCasting && !BodyRoots && Time.time >= recoverUntil
+        ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul * BodySpeedMul : 0f;
 
     class TimedModifier
     {
@@ -241,6 +241,8 @@ public partial class Combatant : MonoBehaviour
     {
         all.Remove(this);
         StopHeld(false); // its charging ball or draining link goes with it
+        EndBody();
+        EndLift();
     }
 
     public static int CountAlive(Team team)
@@ -688,7 +690,7 @@ public partial class Combatant : MonoBehaviour
     {
         var move = Moves[slot];
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
-        if (Holding) return false; // a held move is going on
+        if (Holding || InBody) return false; // a held move or a body move is going on
         if (move.noAutoAim && RawAim != Vector2.zero) direction = RawAim; // the player's own direction, not the target's
         attackCount++; // a new attack (a Life Orb takes its toll once per attack)
         if (StartHeld(slot, move, direction, out bool refused)) return !refused;
@@ -807,6 +809,7 @@ public partial class Combatant : MonoBehaviour
     void Melee(MoveDef move, Vector2 direction)
     {
         direction = MeleeAutoAim(direction);
+        if (StartBody(move, direction)) return;
         sweepBack = false;
         if (move.teleport)
         {
@@ -925,6 +928,7 @@ public partial class Combatant : MonoBehaviour
             Vector2 to = (Vector2)target.transform.position - at;
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
+            HitSource = this;
             if (target.TakeHit(DamageOf(move) * factor, move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
@@ -1151,8 +1155,9 @@ public partial class Combatant : MonoBehaviour
                 && Nearest(team == Team.Player ? Team.Enemy : Team.Player, transform.position, 8f) == null);
             if (hp < maxHp && calm) Heal(maxHp * Held.regenShare);
         }
-        if (!UpdateStatuses()) { castMove = null; StopHeld(false); return; }
+        if (!UpdateStatuses()) { castMove = null; StopHeld(false); EndBody(); EndLift(); return; }
         UpdateHeld();
+        UpdateBody();
 
         // Little jump in place while casting a move with a hop.
         float hop = castMove != null && castMove.hop > 0f
@@ -1189,6 +1194,7 @@ public partial class Combatant : MonoBehaviour
             {
                 if (target == null || !target.IsAlive) continue;
                 EffectPlayer.Spawn(delayedMove.impactEffect, target.transform.position, delayedDirection);
+                HitSource = this;
                 if (!target.TakeHit(DamageOf(delayedMove), delayedMove, out float dealt, hitCap)) continue;
                 target.Stun(StunOf(delayedMove));
                 target.ApplyEffects(delayedMove, false, this);
@@ -1261,6 +1267,7 @@ public partial class Combatant : MonoBehaviour
         }
         body.linearVelocity = lungeDirection * lungeSpeed;
         if (!lungeBouncing) Terrain.OnDash(lungeMove, body.position, this);
+        if (GrabFirst() || (bodyMove != null && bodyMove.body == "grab")) return; // Frappe Atlas seizes instead of hitting
         if (lungeBouncing || lungeMove.lungeHarmless || lungeMove.family != "melee") return;
         if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
         {
@@ -1325,6 +1332,7 @@ public partial class Combatant : MonoBehaviour
                 continue;
             }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
+            HitSource = this;
             if (target.TakeHit(DamageOf(move), move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
@@ -1377,6 +1385,7 @@ public partial class Combatant : MonoBehaviour
     {
         dealt = 0f;
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
+        if (BodyIgnoresHit()) return false; // untouchable, or Coup Bas answers it
         if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
@@ -1496,7 +1505,7 @@ public partial class Combatant : MonoBehaviour
             string forced = IsHurt ? "Hurt"
                 : IsLunging && lungeMove != null ? (string.IsNullOrEmpty(lungeMove.dashAnim) ? "Walk" : lungeMove.dashAnim)
                 : castMove != null && !string.IsNullOrEmpty(castMove.castAnim) ? castMove.castAnim
-                : HeldAnim;
+                : HeldAnim ?? BodyAnim;
             animator.Forced = forced != null && animator.Has(forced) ? forced : null;
         }
 
@@ -1506,6 +1515,7 @@ public partial class Combatant : MonoBehaviour
             tint = Color.Lerp(tint, Color.Lerp(Color.white, GameData.TypeColor(TeraType), 0.55f), 0.35f + 0.25f * Mathf.Sin(Time.time * 4f));
         if (spriteRenderer != null)
             spriteRenderer.color = IsEvolving ? Color.white
+                : bodyMove != null && bodyMove.body == "liquid" ? new Color(0.75f, 0.55f, 1f, 0.6f) // turned to liquid
                 : Time.time < flashUntil ? new Color(1f, 0.4f, 0.4f)
                 : Time.time < healFlashUntil ? HealTint
                 : Time.time < invulnerableUntil ? new Color(1f, 1f, 1f, 0.5f) // half transparent while protected

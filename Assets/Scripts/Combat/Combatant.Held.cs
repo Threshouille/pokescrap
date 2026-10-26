@@ -124,7 +124,7 @@ public partial class Combatant
         if (Time.time < nextHeldTick) return;
         nextHeldTick += linkMove.linkInterval;
         EffectPlayer.Spawn(linkMove.impactEffect, linkTarget.transform.position, Vector2.right);
-        if (linkTarget.TakeHit(DamageOf(linkMove), linkMove, out float dealt))
+        if (linkTarget.TakeHit(DamageOf(linkMove), linkMove, out float dealt, hitCap))
         {
             linkTarget.ApplyEffects(linkMove, false, this);
             if (dealt > 0f) Heal(dealt * (linkMove.drain > 0f ? linkMove.drain : 1f));
