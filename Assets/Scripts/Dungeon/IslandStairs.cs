@@ -220,7 +220,8 @@ public abstract class IslandStairs : MonoBehaviour
         var r = Room;
         string theme = string.IsNullOrEmpty(r.theme) ? null : r.theme, variant = string.IsNullOrEmpty(r.variant) ? null : r.variant;
         // Played already (stairs that stay): the plain room of the data.
-        var room = (Content.Done ? null : Content.Room()) ?? RoomCatalog.Pick(r.type, rng, theme, variant) ?? RoomCatalog.Pick(null, rng);
+        // The room of its content, the same one each time (played already: empty).
+        var room = Content.Room() ?? RoomCatalog.Pick(r.type, rng, theme, variant) ?? RoomCatalog.Pick(null, rng);
         if (stairs != null) Destroy(stairs);
         stairs = null;
         inRoom = true;

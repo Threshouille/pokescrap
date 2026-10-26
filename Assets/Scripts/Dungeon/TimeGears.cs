@@ -239,14 +239,15 @@ public class TimeGears : MonoBehaviour
             var heights = top > 0 ? land.Where(t => Height(t) == top).ToList() : new List<Vector2Int>();
             var glades = plan.clearings.Select(c => Vector2Int.RoundToInt(c)).Where(c => plan.region[plan.Index(c.x, c.y)] == q).ToList();
             var deep = land.Where(t => Vector2.Distance(t, arrival) >= Data.boss.dungeonShare * far && ClearOfCamps(t, 6f)).ToList();
-            quarter.dungeonTile = caves.Count > 0 ? caves[rng.Next(caves.Count)]
-                : heights.Count > 0 ? heights.OrderBy(t => Vector2.Distance(t, Centroid(heights))).First()
-                : glades.Count > 0 ? glades[rng.Next(glades.Count)]
-                : (deep.Count > 0 ? deep : land)[rng.Next((deep.Count > 0 ? deep : land).Count)];
+            // Each landmark on the free tile nearest to it, far from the other dungeons (secret stairs, sealed cave).
+            var spots = caves.Select(c => FreeNear(plan, q, c)).Concat(heights.Count > 0 ? new[] { FreeNear(plan, q, Vector2Int.RoundToInt(Centroid(heights))) } : new Vector2Int[0])
+                .Concat(glades.Select(c => FreeNear(plan, q, c))).Where(t => t.x >= 0).ToList();
+            var fallback = (deep.Count > 0 ? deep : land).Where(t => Free(plan, q, t)).ToList();
+            quarter.dungeonTile = spots.Count > 0 ? spots[0] : fallback.Count > 0 ? fallback[rng.Next(fallback.Count)] : land[rng.Next(land.Count)];
             // The islet's bridge: from the coast, far from the arrival and the dungeon, straight out over the sky.
             var coast = land.Where(t => ByTheSky(plan, t) && Vector2.Distance(t, arrival) >= Data.boss.portalShare * far
                                         && Vector2.Distance(t, quarter.dungeonTile) >= 15f).OrderByDescending(t => Vector2.Distance(t, arrival)).ToList();
-            foreach (var t in coast.Take(60))
+            foreach (var t in coast.Where(t => Free(plan, q, t)).Take(60))
                 if (LayBridge(plan, q, t, quarter)) break;
             if (!quarter.HasBridge)
             {
@@ -277,6 +278,46 @@ public class TimeGears : MonoBehaviour
         }
         quarter.distance = 0.5f;
         return quarter;
+    }
+
+    const float DungeonGap = 6f; // tiles between the key dungeon and another dungeon's entrance
+
+    // A tile to stand on: in the quarter, no wall, no obstacle (a blocking decor element is one), no decor element
+    // drawn on it, and away from the other dungeons and the passages.
+    static bool Free(IslandPlan plan, int q, Vector2Int t)
+    {
+        if (t.x < 0 || t.y < 0 || t.x >= plan.size || t.y >= plan.size) return false;
+        int i = plan.Index(t.x, t.y);
+        if (plan.region[i] != q || plan.wall[i] || plan.obstacle[i] != null) return false;
+        if (plan.wallLook != null && plan.wallLook[i]) return false;
+        Vector2 centre = t + new Vector2(0.5f, 0.5f);
+        if (plan.decorProps.Any(p => Vector2.Distance(p.at, centre) < 1.2f)) return false;
+        var others = new List<Vector2Int>(plan.markers);
+        if (plan.secret.x >= 0) others.Add(plan.secret);
+        if (plan.sealedCave.x >= 0) others.Add(plan.sealedCave);
+        foreach (var p in plan.passages) { others.Add(p.a); others.Add(p.b); }
+        return others.All(o => Vector2.Distance(o, t) >= DungeonGap);
+    }
+
+    // The free tile nearest to a landmark, on its own level when it can (-1, -1: none within reach).
+    static Vector2Int FreeNear(IslandPlan plan, int q, Vector2Int at)
+    {
+        int level = plan.height != null && at.x >= 0 && at.y >= 0 && at.x < plan.size && at.y < plan.size ? plan.height[plan.Index(at.x, at.y)] : 0;
+        Vector2Int best = new(-1, -1);
+        for (int r = 0; r <= 6; r++)
+        {
+            for (int dx = -r; dx <= r; dx++)
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    var t = at + new Vector2Int(dx, dy);
+                    if (!Free(plan, q, t)) continue;
+                    if (plan.height == null || plan.height[plan.Index(t.x, t.y)] == level) return t;
+                    if (best.x < 0) best = t;
+                }
+            if (best.x >= 0 && r >= 2) return best;
+        }
+        return best;
     }
 
     static Vector2 Centroid(List<Vector2Int> tiles)

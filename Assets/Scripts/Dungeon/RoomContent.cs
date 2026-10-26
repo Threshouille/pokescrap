@@ -135,6 +135,17 @@ public class RoomContent
     /// Its room: the content's room type, in the sub-biome's theme and décor when the catalogue has them.
     public RoomInstance Room()
     {
+        // Made once, with its own seed: coming back (a boss beaten, a room left) finds the same room.
+        if (made != null) return made;
+        made = Pick();
+        if (made != null && made.seed == 0) made.seed = rng.Next(1, int.MaxValue);
+        return made;
+    }
+
+    RoomInstance made;
+
+    RoomInstance Pick()
+    {
         string type = key == Bosses ? bossRoomType : key == Ambushes ? Data.ambush.roomType : key == Guardians ? Data.guardian.roomType : Data.treasure.roomType;
         string themeKey = theme ?? (key == Bosses ? null : Array.Find(Data.themes, t => t.subBiome == habitat)?.theme);
         var room = (themeKey != null ? RoomCatalog.Pick(type, rng, themeKey, variant) : null) ?? (themeKey != null ? RoomCatalog.Pick(type, rng, themeKey) : null)
