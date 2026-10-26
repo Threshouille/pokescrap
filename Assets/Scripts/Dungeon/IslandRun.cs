@@ -224,7 +224,8 @@ public class IslandRun : MonoBehaviour
     }
 
     // Island tile under a world position.
-    Vector2Int TileOf(Vector2 position) => arena.CellOf(position) - arena.Interior.min + arena.IslandOrigin;
+    /// The island tile under a world position.
+    public Vector2Int TileOf(Vector2 position) => arena.CellOf(position) - arena.Interior.min + arena.IslandOrigin;
 
     public void End()
     {

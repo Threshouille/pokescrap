@@ -63,6 +63,17 @@ public abstract class IslandStairs : MonoBehaviour
     protected virtual bool ShowMarker => true;
     /// Story art under the stairs (a seal stone), or null.
     protected virtual Sprite Look => null;
+    /// Story art in place of the stairs, played in a loop (a rift on the ground), or null; its size and seconds a frame.
+    protected virtual Sprite[] Frames => null;
+    protected virtual float FramesScale => 1f;
+    protected virtual float FrameTime => 0.1f;
+    SpriteRenderer looping;
+    Sprite[] loop;
+
+    /// The team's leader at "at" has walked onto them ("d": tiles from their tile); a whole place (a cave) can be.
+    protected virtual bool Reached(Vector2 at, float d) => d <= Reach;
+    /// The leader has stepped off them again (they can be taken once more).
+    protected virtual bool SteppedOff(Vector2 at, float d) => d > Leave;
 
     /// Hidden for now (under a cracked rock, behind a shut door).
     protected virtual bool Hidden(Vector2Int cell) => false;
@@ -113,9 +124,19 @@ public abstract class IslandStairs : MonoBehaviour
         if (!Waiting(island.Zone)) return;
         zone = island.Zone;
         stairs = Marker(StairsName, island.Cell(Tile), Colour);
-        if (!ShowMarker)
+        loop = ShowMarker ? Frames : null;
+        if (!ShowMarker || loop != null)
             foreach (var r in stairs.GetComponentsInChildren<SpriteRenderer>()) Destroy(r);
-        else if (Look != null)
+        if (loop != null)
+        {
+            // The story's art alone, on the ground, in a loop (LateUpdate).
+            looping = new GameObject("Décor").AddComponent<SpriteRenderer>();
+            looping.transform.SetParent(stairs.transform, false);
+            looping.transform.localScale = Vector3.one * FramesScale;
+            looping.sprite = loop[0];
+            looping.sortingOrder = 0; // a mark on the ground, under the Pokémon
+        }
+        else if (ShowMarker && Look != null)
         {
             // The story's art under the stairs, the stairs a little smaller on it.
             var look = new GameObject("Décor").AddComponent<SpriteRenderer>();
@@ -142,6 +163,11 @@ public abstract class IslandStairs : MonoBehaviour
         inner.sprite = Shapes.Square;
         inner.color = colour;
         return go;
+    }
+
+    void LateUpdate()
+    {
+        if (looping != null && loop != null) looping.sprite = loop[(int)(Time.time / FrameTime) % loop.Length];
     }
 
     void FixedUpdate()
@@ -180,20 +206,21 @@ public abstract class IslandStairs : MonoBehaviour
             }
         }
         float d = Vector2.Distance(at, target.transform.position);
-        if (!inRoom && d <= Reach && Locked(out string why))
+        bool there = inRoom ? d <= Reach : Reached(at, d);
+        if (!inRoom && there && Locked(out string why))
         {
             if (Time.time - refusedAt > 2f && team.GetComponent<Progression>() is { } progression) progression.Announce(why, Notice.Alert);
             refusedAt = Time.time;
             return;
         }
-        if (armed && d <= Reach)
+        if (armed && there)
         {
             armed = false;
             if (inRoom) LoadingScreen.Run(Plan.ZoneName(zone), GoBack);
             else LoadingScreen.Run(RoomName, () => EnterRoom(0));
             return;
         }
-        if (d > Leave && (next == null || Vector2.Distance(at, next.transform.position) > Leave)) armed = true;
+        if ((inRoom ? d > Leave : SteppedOff(at, d)) && (next == null || Vector2.Distance(at, next.transform.position) > Leave)) armed = true;
     }
 
     void EnterRoom(int index)

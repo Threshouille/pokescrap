@@ -93,6 +93,9 @@ public class TimeGears : MonoBehaviour
         public bool gear, bossBeaten, hasKey;
         public bool gateOpened; // its portal's opening was seen: open from then on
         public Vector2Int dungeonTile = new(-1, -1), portalTile = new(-1, -1); // the key dungeon's entrance, the islet's portal
+        /// The key dungeon is the mountain's cave: walking under its roof leads in (no rift), back out at caveExit.
+        public HashSet<int> cave;
+        public Vector2Int caveExit = new(-1, -1);
         /// The rope bridge to the islet: its tiles (2 wide, from the coast), its direction, the gate (first row), where
         /// it takes the team to the arena (near its end), the islet seen beyond it. None: a portal on the coast.
         public readonly List<Vector2Int> bridge = new();
@@ -246,6 +249,8 @@ public class TimeGears : MonoBehaviour
                 .Concat(glades.Select(c => FreeNear(plan, q, c))).Where(t => t.x >= 0 && walk[plan.Index(t.x, t.y)]).ToList();
             var fallback = (deep.Count > 0 ? deep : land).Where(t => Free(plan, q, t) && walk[plan.Index(t.x, t.y)]).ToList();
             quarter.dungeonTile = spots.Count > 0 ? spots[0] : fallback.Count > 0 ? fallback[rng.Next(fallback.Count)] : land[rng.Next(land.Count)];
+            // The mountain's cave itself: the dungeon is wherever its roof is.
+            if (caves.Count > 0) CaveEntrance(plan, quarter, caves[0], walk, arrival);
             // The islet's bridge: from the coast, far from the arrival and the dungeon, straight out over the sky.
             var coast = land.Where(t => ByTheSky(plan, t) && Vector2.Distance(t, arrival) >= Data.boss.portalShare * far
                                         && Vector2.Distance(t, quarter.dungeonTile) >= 15f).OrderByDescending(t => Vector2.Distance(t, arrival)).ToList();
@@ -382,6 +387,37 @@ public class TimeGears : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    // The roofed tiles of the cave around "inside" (its whole hollow) and the open tile in front of its mouth nearest to
+    // the arrival, reached on foot; nothing when the cave has no roof or no way in.
+    static void CaveEntrance(IslandPlan plan, Quarter quarter, Vector2Int inside, bool[] walk, Vector2Int arrival)
+    {
+        if (plan.roof == null || !plan.roof[plan.Index(inside.x, inside.y)]) return;
+        var cave = new HashSet<int> { plan.Index(inside.x, inside.y) };
+        var queue = new Queue<Vector2Int>();
+        queue.Enqueue(inside);
+        var steps = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+        var exit = new Vector2Int(-1, -1);
+        while (queue.Count > 0)
+        {
+            var t = queue.Dequeue();
+            foreach (var d in steps)
+            {
+                var n = t + d;
+                if (n.x < 0 || n.y < 0 || n.x >= plan.size || n.y >= plan.size) continue;
+                int i = plan.Index(n.x, n.y);
+                if (plan.roof[i])
+                {
+                    if (cave.Add(i)) queue.Enqueue(n);
+                }
+                else if (walk[i] && (exit.x < 0 || Vector2.Distance(n, arrival) < Vector2.Distance(exit, arrival))) exit = n;
+            }
+        }
+        if (exit.x < 0) return;
+        quarter.cave = cave;
+        quarter.caveExit = exit;
+        quarter.dungeonTile = inside;
     }
 
     // The quarter's tiles any Pokémon reaches on foot from its arrival: no wall, no obstacle in the way of anyone (water,

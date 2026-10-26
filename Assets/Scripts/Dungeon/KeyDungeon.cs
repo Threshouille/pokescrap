@@ -18,6 +18,22 @@ public class KeyDungeon : IslandStairs
     protected override SecretRooms.Room Room => new() { type = "rest" };
     protected override string Kind => "key";
     protected override int Floors => TimeGears.DungeonRooms.Length;
+    // The mountain's cave when it has one: going under its roof leads in, the team comes back in front of its mouth.
+    bool InCave => Quarter?.cave != null;
+    protected override bool ShowMarker => !InCave;
+    protected override Vector2Int ReturnTile => InCave ? Quarter.caveExit : Tile;
+    protected override bool Reached(Vector2 at, float d) => InCave ? UnderRoof(at) : base.Reached(at, d);
+    protected override bool SteppedOff(Vector2 at, float d) => InCave ? !UnderRoof(at) : base.SteppedOff(at, d);
+    bool UnderRoof(Vector2 at)
+    {
+        var t = island.TileOf(at);
+        return t.x >= 0 && t.y >= 0 && t.x < Plan.size && t.y < Plan.size && Quarter.cave.Contains(Plan.Index(t.x, t.y));
+    }
+
+    // Otherwise a rift on the ground (story art).
+    protected override Sprite[] Frames => RomArt.Frames("GroundObjects/rift_frames", 4);
+    protected override float FramesScale => 0.8f;
+    protected override float FrameTime => 6f / 60f;
 
     protected override RoomContent Stored(int room) => Quarter != null && room < Quarter.rooms.Length - 1 ? Quarter.rooms[room] : null;
     protected override void Store(int room, RoomContent content) { if (Quarter != null && room < Quarter.rooms.Length - 1) Quarter.rooms[room] = content; }

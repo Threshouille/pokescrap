@@ -7,22 +7,18 @@ branches, axes de refonte et questions de conception (page partagée par Robin).
 ## Reprise (26/10/2026, Robin) : où on s'est arrêté
 
 Branche `feature/engrenages` (contient `feature/peuplement` et `refacto/socle`), **pas poussée**, pas fusionnée dans
-`dev`. Dernier commit : 5ee3e72 (cinématiques de boss). Non commité depuis : accès à l'îlot du boss (donjon de la clé sur
-le point d'intérêt, pont de corde tiré de la ROM, portail scellé, rochers flottants, objets importants à l'écran),
-extraction d'art de la ROM (`extract_ground_objects.py`, `extract_bridge.py`, `ground_objects.json`), filtre du banc.
-
-Retours du dernier test (Robin) :
-- Pont de corde : bien.
-- Portail de lumière à l'entrée du pont : « un peu foireux » (taille, placement ou rendu à revoir).
-- Dalle de sceau sous l'entrée du donjon de la clé : retirée (mal intégrée dans une grotte) ; une entrée sur mesure
-  est prévue plus tard.
+`dev`. Accès à l'îlot du boss terminé et validé en jeu : donjon de la clé sur le point d'intérêt, entrée = grotte
+du sommet (y entrer mène au donjon), sinon faille dimensionnelle de la ROM (`rift`, animée), sur une case libre, accessible à pied et loin des autres donjons ; pont de
+corde vertical sur la côte arrondie, pied praticable par tous ; portail de lumière animé (scintille terne sans la clé,
+s'ouvre la première fois qu'on approche avec, puis tourbillon) ; arène et salles gardées telles quelles au retour ;
+plus de bulles numérotées pour les boss d'îlot. La clé reste la Clé de Donjon Mystère (`pmd_Key_White`).
 
 À faire ensuite :
-1. Corriger le portail du pont ; entrée sur mesure du donjon de la clé.
-2. Banc : `python3 Tools/setup.py --ai-scenarios Engrenages` (ciblé), puis banc complet avant toute fusion dans dev.
-3. Commit, puis boss plus dynamiques (ruée, renforts à mi-PV), passe d'équilibrage générale, puis l'aspect graphique.
-4. Plus tard : salle rouge du terrain de test qui tire le boss au hasard à l'entrée (N reste pour choisir) ; quêtes
-   du Tableau des missions ; asset de la clé (prompt `Design/prompt_cle_ilot.md`, engrenage déjà tiré de la ROM).
+1. Banc complet (pas lancé depuis la fusion de `refacto/socle`) avant toute fusion dans dev ; bilan de la tâche.
+2. Boss plus dynamiques (ruée, renforts à mi-PV), passe d'équilibrage générale, puis l'aspect graphique.
+3. Plus tard : salle rouge du terrain de test qui tire le boss au hasard à l'entrée (N reste pour choisir) ; quêtes
+   du Tableau des missions ; intégrer les branches d'Owen avec lui ; outils de dev dans un assembly à part ; boutique
+   Kecleon.
 
 ## Méthode de travail
 

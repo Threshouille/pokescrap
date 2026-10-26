@@ -2,7 +2,7 @@
 """Cut the story's scene objects listed in ground_objects.json (GROUND/<file>.wan of an Explorers of Sky ROM) into
 PNG images the game loads (Resources/GroundObjects/<key>.png): the first frame of each object's first animation,
 cropped to what it shows; with "frames": true, also <key>_frames.png, every frame of its first animation group on
-one row, each cell centred on the object's origin (its foot), so the game can play them with a centred pivot. Called
+one row ("anims": only those animations of the group, by index), each cell centred on the object's origin (its foot), so the game can play them with a centred pivot. Called
 by setup.py; the images are ROM art and stay out of the repository.
 
 Usage: Tools/.venv/bin/python -I extract_ground_objects.py <unpacked rom data dir> <ground_objects.json> <out_dir>
@@ -18,10 +18,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from render_ground_objects import first_frame  # noqa: E402
 
 
-def strip(wan):
-    """Every frame of the first animation group, in order, on one row of equal cells centred on the origin."""
+def strip(wan, anims=None):
+    """Every frame of the first animation group (or of those of its animations), in order, on one row of equal cells
+    centred on the origin."""
     cells = []
-    for anim in next(g for g in wan.anim_groups if g):
+    group = next(g for g in wan.anim_groups if g)
+    for anim in (group if anims is None else [group[k] for k in anims]):
         for f in anim.frames:
             image, (ox, oy) = wan.render_frame(wan.frames[f.frame_id])
             cells.append((image, ox - f.offset_x, oy - f.offset_y))
@@ -42,7 +44,7 @@ def main(data_dir, catalog, out_dir):
         image = first_frame(wan)
         image.crop(image.getbbox()).save(out / f"{o['key']}.png")
         if o.get("frames"):
-            sheet, count = strip(wan)
+            sheet, count = strip(wan, o.get("anims"))
             sheet.save(out / f"{o['key']}_frames.png")
             print(f"{o['key']} : {count} images")
     print(f"{len(objects)} objets de scène")

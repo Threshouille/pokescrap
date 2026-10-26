@@ -211,7 +211,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   pas sa seconde phase (surprise). Accès (26/10/2026) : le donjon de la clé est sur le point d'intérêt du
   quartier (grotte du sommet, plus haut plateau ou clairière) ; un pont de corde part de la côte vers l'îlot, aperçu
   au large (rochers flottants), fermé par un portail de lumière qui s'ouvre avec la clé ; avancer sur le pont mène
-  directement à l'arène. Objets importants à l'écran (engrenages, clé, fragments). Art tiré de la ROM. Équilibrage (26/10/2026) : niveau de l'équipe + 2 (jamais sous celui du
+  directement à l'arène. Objets importants à l'écran (engrenages, clé, fragments). Art tiré de la ROM : entrée du donjon = la grotte du sommet (y entrer mène au donjon), sinon une faille dimensionnelle au sol, portail animé qui s'ouvre à l'approche avec la clé, pont vertical sur la côte arrondie ; boss d'îlot sans bulles numérotées ; arène gardée après sa chute (pas de nouveau combat). Équilibrage (26/10/2026) : niveau de l'équipe + 2 (jamais sous celui du
   quartier), × 22 PV, un coup ne retire jamais plus de 35 % des PV max de sa cible, annonces de ses attaques de zone
   allongées de 0,3 s ; arène Vol : archipel de petites îles au-dessus du vide et de l'eau, beaucoup de ponts. À mi-PV, le combat s'arrête : la caméra se centre sur lui pendant qu'il
   méga-évolue (animation rapide, environ 1,5 s, personne ne bouge ni n'attaque), puis le combat reprend (26/10/2026). Roster limité par zone (26/10/2026) : forêt Altaria, Gardevoir, Gallame, Lockpin ;
@@ -230,7 +230,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   recoin le plus haut, indice sur la mini-carte. Quêtes du Tableau des missions : plus tard (un boss en attendant).
   - Retours de test (26/10/2026, Robin), à faire :
     - Fait le 26/10 : PV, barre en deux phases, arène sur mesure, gardien évolué et ses sbires, donjon au thème du
-      boss, roster par zone. Reste : l'asset de la clé et de l'engrenage (prompt `Design/prompt_cle_ilot.md`).
+      boss, roster par zone. Clé = Clé de Donjon Mystère, engrenage tiré de la ROM.
 - Zones séparées (décidé le 22/10/2026, Owen) : chaque quartier et le centre sont des instances à part (une carte
   chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
   passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts
