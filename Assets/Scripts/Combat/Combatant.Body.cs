@@ -28,8 +28,8 @@ public partial class Combatant
     float BodySpeedMul => bodyMove != null && (bodyMove.body == "liquid" || bodyMove.body == "spin") && bodyMove.bodySpeedMul > 0f
         ? bodyMove.bodySpeedMul : 1f;
     string BodyAnim => bodyMove == null ? null
+        : bodyMove.body == "spin" ? "Rotate" // whatever its cast looked like (Gyroballe hops first)
         : !string.IsNullOrEmpty(bodyMove.castAnim) ? bodyMove.castAnim
-        : bodyMove.body == "spin" ? "Rotate"
         : bodyMove.body == "leap" || bodyMove.body == "grab" ? "Idle" : null; // the PMD Hop bounces on the spot: a still pose, the sprite swells instead
 
     // Untouchable in the air and while liquid.
