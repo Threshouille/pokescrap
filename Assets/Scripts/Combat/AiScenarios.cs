@@ -1957,11 +1957,12 @@ public class AiScenarios : MonoBehaviour
         gears.ForceTestMode(TimeGears.Boss);
         yield return new WaitForSeconds(0.5f);
         var q = gears.Here;
+        var q0 = q;
         var dungeon = GetComponent<KeyDungeon>();
         var portal = GetComponent<BossPortal>();
         var loot = FindAnyObjectByType<Loot>();
         int legendaries = 0;
-        for (int k = 0; k < 2000; k++) { gears.PickBoss(plan, 0, out bool legend); if (legend) legendaries++; }
+        for (int k = 0; k < 600; k++) { gears.PickBoss("test", out bool legend); if (legend) legendaries++; }
         // The portal, without the key: nothing happens.
         IEnumerator Walk(Vector2? to)
         {
@@ -1991,8 +1992,14 @@ public class AiScenarios : MonoBehaviour
         yield return Walk(dungeon.StairsAt);
         bool inDungeon = dungeon.InRoom;
         yield return Clean(dungeon);
+        string dungeonTheme = arena.room?.theme?.key;
         yield return Walk(dungeon.NextAt);
         bool second = dungeon.InRoom && dungeon.Floor == 1;
+        // The guardian: evolved, ready to Terastallize, with two minions holding Z crystals.
+        var guards = Combatant.All.Where(c => c != null && c.IsAlive && c.team == Team.Enemy).ToList();
+        var guardian = guards.FirstOrDefault(c => c.IsElite);
+        bool guardianReady = guardian != null && Encounters.Depth(guardian.Stats) >= 1 && guardian.GetComponent<EnemyUltimate>()?.Item == SpecialItems.Family.Tera
+                             && guards.Count(c => c.GetComponent<EnemyUltimate>()?.Item == SpecialItems.Family.Z) == 2;
         yield return Clean(dungeon);
         yield return new WaitForSeconds(0.3f);
         bool key = q.hasKey;
@@ -2003,6 +2010,9 @@ public class AiScenarios : MonoBehaviour
         bool big = bosses.Count > 0 && bosses.All(c => c.transform.localScale.x >= 1.5f);
         bool phase = bosses.Count > 0 && bosses.All(c => c.GetComponent<EnemyUltimate>() is { } u && (u.Item == SpecialItems.Family.Mega || u.Item == SpecialItems.Family.Tera));
         string who = string.Join(" + ", bosses.Select(c => c.Stats.name));
+        // Its four moves are its fixed set (the bubbles 1 to 4 can be learnt).
+        bool fixedSet = bosses.Count > 0 && TimeGears.BossMoves(q.boss) is { } set
+                        && bosses[0].Moves.Where(m => m != null).Select(m => m.id).SequenceEqual(set.Take(Combatant.MoveSlots));
         bool locked = portal.Content != null && portal.Content.Locked;
         yield return Clean(portal);
         yield return new WaitForSeconds(0.3f);
@@ -2024,9 +2034,10 @@ public class AiScenarios : MonoBehaviour
         bool together = q.gear && q.fragments.All(f => f.taken) && run.hints.Count == 0;
         Restore(kept, members);
         EndIsland(run);
-        float rate = legendaries / 20f;
-        Report(shut && inDungeon && second && key && big && phase && locked && gear && rate > 1f && rate < 6f && fragments == 3 && hints == 3 && together,
-            $"portail fermé sans clé {shut} ; donjon {inDungeon}, 2e salle {second}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
+        float rate = legendaries / 6f;
+        bool themed = dungeonTheme == TimeGears.DungeonTheme(q0);
+        Report(shut && inDungeon && themed && second && guardianReady && key && big && phase && fixedSet && locked && gear && rate > 0.5f && rate < 7f && fragments == 3 && hints == 3 && together,
+            $"portail fermé sans clé {shut} ; donjon {inDungeon} (thème {dungeonTheme}, attendu {TimeGears.DungeonTheme(q0)}), 2e salle {second}, gardien {guardian?.Stats.name} prêt {guardianReady}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, jeu fixe {fixedSet}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
     }
 
     void EndIsland(IslandRun run)
@@ -2183,8 +2194,13 @@ public class AiScenarios : MonoBehaviour
         return null;
     }
 
+    /// Batch runs: only the scenarios whose name holds one of these words ("a|b"; empty or null: all of them).
+    public static string Filter;
+
     IEnumerator Scenario(string name, IEnumerator body)
     {
+        if (!string.IsNullOrEmpty(Filter) && !Filter.Split('|').Any(w => w.Length > 0 && name.Contains(w, System.StringComparison.OrdinalIgnoreCase)))
+            yield break;
         current = name;
         Clear();
         yield return new WaitForFixedUpdate();

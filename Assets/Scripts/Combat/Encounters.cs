@@ -299,7 +299,7 @@ public static class Encounters
     {
         int depth = Data.maxDepthByStage.Length > 0 ? Data.maxDepthByStage[Mathf.Clamp(stage, 0, Data.maxDepthByStage.Length - 1)] : 9;
         var all = AllAt(depth);
-        if (where != null && Populations.Pool(depth, where.habitat, where.night, all) is { } lives) return lives;
+        if (where != null && Populations.Pool(depth, where, all) is { } lives) return lives;
         if (pools.TryGetValue((depth, decor), out var cached)) return cached;
         var d = Array.Find(Data.decors, x => x.tileset == decor);
         var fitting = d == null ? all : all.Where(id => GameData.Pokemon(id).types.Intersect(d.types).Any()).ToList();
@@ -307,6 +307,9 @@ public static class Encounters
         pools[(depth, decor)] = result;
         return result;
     }
+
+    /// Kept out of every lot (legendaries, mythicals: encounters.json exclude).
+    public static bool Excluded(int pokemonId) => Array.IndexOf(Data.exclude, pokemonId) >= 0;
 
     static readonly Dictionary<int, List<int>> everyone = new();
 

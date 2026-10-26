@@ -320,8 +320,10 @@ obstacles retombent sur des cases de couleur.
 - Le passage vers le quartier suivant s'ouvre avec l'Engrenage du Temps du quartier, le centre avec les quatre
   (`time_gears.json`). Un quartier le donne par un boss ou par 3 fragments gardés (indices sur la mini-carte). Le boss
   attend sur un îlot, derrière un portail de la côte qui s'ouvre avec la clé trouvée au fond du donjon de la clé
-  (embuscade, puis gardien et coffre) ; grand, il méga-évolue à mi-PV (rarement, 3 %, le légendaire du thème, qui se
-  téracristallise). Compteur sous l'encadré d'étape. Quart de test : G change de mode.
+  (au thème et aux types du boss : embuscade, puis gardien évolué avec deux sbires à capacité Z, et le coffre de la
+  clé). Boss tiré dans le roster de la zone, grand, × 12 PV, barre en deux phases, méga-évolution à mi-PV (rarement,
+  3 %, le légendaire de la zone, qui se téracristallise), dans une arène faite pour son type (Vol : îlots et ponts
+  que deux sbires Feu brûlent). Compteur sous l'encadré d'étape. Quart de test : G change de mode.
 
 ### 25/10/2026 — Peuplement de l'île, étapes 1 à 3 : populations, camps et rondes, salles (Robin, branche `feature/peuplement`)
 - Chaque sous-biome de l'île a sa population (`populations.json` : types pondérés, types de la nuit), utilisée par les

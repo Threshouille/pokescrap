@@ -4,7 +4,8 @@
 Usage (from the project root, Unity closed):  python3 Tools/setup.py [--unity <path to the Unity executable>]
 Unity is looked for with --unity, then $UNITY_PATH, then in the Unity Hub folders (Linux, macOS, Windows).
 Only rerun the Unity build (e.g. after importing Pokémon):  python3 Tools/setup.py --unity-only [Class.Method]
-AI test bench (AiScenarios, a play session in batch mode):  python3 Tools/setup.py --ai-scenarios
+AI test bench (AiScenarios, a play session in batch mode):  python3 Tools/setup.py --ai-scenarios [word ...]
+  (with words: only the scenarios whose name holds one of them, e.g. --ai-scenarios Engrenages Peuplement)
 
 Needs Rom/eos_eu.nds (Pokémon Mystery Dungeon: Explorers of Sky, EU, dumped from your own cartridge).
 The repository keeps the .meta file of every generated asset: this script puts each asset back at the path of
@@ -260,18 +261,26 @@ def main():
     parser.add_argument("--force", action="store_true", help="redo every step")
     parser.add_argument("--unity-only", nargs="?", const="PmdSpriteImport.BuildEverything", metavar="METHOD",
                         help="only run a Unity batch method (default PmdSpriteImport.BuildEverything)")
-    parser.add_argument("--ai-scenarios", action="store_true",
-                        help="run the AI test bench in a batch play session (results in Logs/ai_scenarios.log)")
+    parser.add_argument("--ai-scenarios", nargs="*", metavar="WORD",
+                        help="run the AI test bench in a batch play session (results in Logs/ai_scenarios.log); "
+                             "with words, only the scenarios whose name holds one of them")
     args = parser.parse_args()
 
-    if args.ai_scenarios:
+    if args.ai_scenarios is not None:
         unity = find_unity(args.unity)
         if unity is None:
             sys.exit("Unity not found: pass --unity <path> or set UNITY_PATH.")
         log = ROOT / "Logs/ai_scenarios.log"
         step("AI test bench (batch play session)")
-        code = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT),
-                               "-executeMethod", "AiScenarioBatch.Run", "-logFile", str(log)]).returncode
+        # A frozen game (an endless loop) never reaches the bench's own time-out: Unity is stopped from here too.
+        try:
+            code = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT),
+                                   "-executeMethod", "AiScenarioBatch.Run", "-logFile", str(log),
+                                   *(["-aiScenarioFilter", "|".join(args.ai_scenarios)] if args.ai_scenarios else [])],
+                                  timeout=900).returncode
+        except subprocess.TimeoutExpired:
+            print("AISCENARIO FROZEN : Unity arrêté après 15 min sans fin du banc (boucle infinie ?)")
+            code = 98
         if log.exists():
             for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
                 if line.startswith("AISCENARIO"):

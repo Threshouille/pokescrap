@@ -35,22 +35,27 @@ public static class Populations
         public Habitat[] habitats = new Habitat[0];
     }
 
-    /// Where an encounter is drawn: a sub-biome, by day or by night.
+    /// Where an encounter is drawn: a sub-biome, by day or by night; or Pokémon of given types (ROM ids: a key
+    /// dungeon takes its boss's).
     public class Where
     {
         public string habitat;
         public bool night;
+        public int[] types;
         public Where(string habitat, bool night = false) { this.habitat = habitat; this.night = night; }
+        public Where(int[] types) { this.types = types; }
     }
 
     static File data;
     static readonly Dictionary<(int depth, string habitat, bool night), List<int>> pools = new();
+    static readonly Dictionary<(int depth, string types), List<int>> typePools = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset()
     {
         data = null;
         pools.Clear();
+        typePools.Clear();
     }
 
     static File Data
@@ -95,6 +100,16 @@ public static class Populations
     /// The Pokémon of that sub-biome among "all" (the encounters' filter at that evolution stage), each repeated as
     /// many times as its weight: a draw at random in the list follows the weights. Null when the habitat is unknown or
     /// too few of them fit (the encounters then use their own pool).
+    public static List<int> Pool(int depth, Where where, List<int> all)
+    {
+        if (where.types == null || where.types.Length == 0) return Pool(depth, where.habitat, where.night, all);
+        // By types: every Pokémon with one of them, once each.
+        string key = string.Join(",", where.types);
+        if (typePools.TryGetValue((depth, key), out var cached)) return cached;
+        var fitting = all.Where(id => GameData.Pokemon(id) is { } p && p.types.Intersect(where.types).Any()).ToList();
+        return typePools[(depth, key)] = fitting.Count >= Data.minPool / 3 ? fitting : null;
+    }
+
     public static List<int> Pool(int depth, string habitat, bool night, List<int> all)
     {
         if (pools.TryGetValue((depth, habitat, night), out var cached)) return cached;

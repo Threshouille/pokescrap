@@ -141,8 +141,8 @@ public abstract class IslandStairs : MonoBehaviour
         {
             // The room's content plays; an ambush shuts the way back until it is over (the stairs go grey).
             Content.Tick(at);
-            var light = back.GetComponentsInChildren<SpriteRenderer>()[^1];
-            light.color = Content.Locked ? ShutColour : BackColour;
+            // Shut: the way back is not there until the room is over.
+            if (back.activeSelf == Content.Locked) back.SetActive(!Content.Locked);
             if (Content.Done && !finishedHere)
             {
                 finishedHere = true;
@@ -238,7 +238,7 @@ public abstract class IslandStairs : MonoBehaviour
         return arena.SpawnPoint;
     }
 
-    static readonly Color BackColour = new(1f, 0.85f, 0.3f), ShutColour = new(0.35f, 0.35f, 0.38f);
+    static readonly Color BackColour = new(1f, 0.85f, 0.3f);
 
     void GoBack()
     {

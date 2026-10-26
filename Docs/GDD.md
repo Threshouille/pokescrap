@@ -207,21 +207,24 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   suivant fermé jusqu'à l'engrenage du quartier, centre avec les quatre. Le boss est sur un îlot à part, par un portail
   au bord de la côte qui ne s'ouvre qu'avec la clé de l'îlot, au fond d'un donjon propre au boss (une embuscade, puis un
   gardien près d'un coffre qui contient la clé) ; dans l'îlot, la sortie reste fermée jusqu'à sa chute (engrenage et
-  coffre). Le boss est plus grand qu'un Pokémon ordinaire (× 1,6) et méga-évolue à sa seconde phase : un Pokémon dont
-  la méga a ses sprites et qui vit dans un sous-biome du quartier (sinon n'importe lequel ; le duo Gardevoir + Gallame
-  en forêt) ; rarement (3 %) le légendaire du thème (volcan Groudon, glacier Artikodin, côte Kyogre, forêt Celebi,
-  désert Regirock, ruines Registeel), dont la seconde phase est un Téracristal d'un type avantageux (pour l'instant
-  celui qui encaisse le mieux les attaques de l'équipe ; à affiner). Fragments : 3 dans des sous-biomes différents,
-  gardés par une élite endormie ou cachés dans le recoin le plus haut, indice sur la mini-carte. Quêtes du Tableau des
-  missions : plus tard (un boss en attendant).
+  coffre). Le boss est plus grand qu'un Pokémon ordinaire (× 1,6), a plus de PV (× 12) et une barre en deux phases ;
+  il méga-évolue à sa seconde phase. Roster limité par zone (26/10/2026) : forêt Altaria, Gardevoir, Gallame, Lockpin ;
+  volcan Dracaufeu, Démolosse, Camérupt, Tyranocif ; glacier Oniglali, Absol, Altaria ; côte Ptéra, Airmure,
+  Dracaufeu ; désert Steelix, Mysdibule, Camérupt, Tyranocif ; ruines Alakazam, Ectoplasma, Branette, Ténéfix,
+  Charmina, Lucario. Légendaire à 3 % (Téracristal d'un type avantageux à sa seconde phase) : forêt Celebi, volcan
+  Groudon, côte Kyogre ; les trios légendaires (oiseaux, Regi, chiens, lacs) sont gardés pour les îlots secondaires,
+  les mégas légendaires pour le centre. Pas de duo. Pas de passif de zone : l'arène est pensée pour le boss (Vol :
+  îlots reliés par des ponts au-dessus du vide, 2 sbires Feu qui les brûlent ; Feu : archipel de lave, sbires Poison
+  ou Électrik qui piègent les zones qui ne brûlent pas ; Glace : patinoire ; Roche, Sol, Acier : éboulis ; Spectre,
+  Psy, Ténèbres : colonnade, sbires Spectre ; Normal, Combat : réseau électrique, sbires Électrik). Chaque boss a 4
+  attaques fixes, une par numéro de bulle (`movesets` de `time_gears.json`, choisies le 26/10/2026 : au moins une
+  attaque de statut ou de météo, des attaques de zone à éviter). Le donjon de la clé prend le thème et les Pokémon des types du boss ; son gardien est le
+  Pokémon le plus évolué de ces types, une élite qui se téracristallise (pas de méga), avec 2 sbires qui portent
+  chacun un cristal Z. Fragments : 3 dans des sous-biomes différents, gardés par une élite endormie ou cachés dans le
+  recoin le plus haut, indice sur la mini-carte. Quêtes du Tableau des missions : plus tard (un boss en attendant).
   - Retours de test (26/10/2026, Robin), à faire :
-    - Boss uniques : plus de PV, un passif de zone, barre de vie en deux phases, arène sur mesure qui favorise son
-      type (ex. Altaria : une arène pleine de ponts et 2 Pokémon qui peuvent les brûler pour gêner l'équipe).
-    - Gardien du donjon trop faible : un Pokémon évolué, avec une seconde phase lui aussi, accompagné de 2 sbires
-      qui ont chacun une capacité Z.
-    - Clé : un asset dédié ; rendre l'ensemble plus stable (prototype pour l'instant).
-    - Donjon lié au boss qu'il précède : thème du donjon d'après le boss (boss Vol → donjon Vol), quitte à limiter
-      le choix des boss.
+    - Fait le 26/10 : PV, barre en deux phases, arène sur mesure, gardien évolué et ses sbires, donjon au thème du
+      boss, roster par zone. Reste : l'asset de la clé et de l'engrenage (prompt `Design/prompt_cle_ilot.md`).
 - Zones séparées (décidé le 22/10/2026, Owen) : chaque quartier et le centre sont des instances à part (une carte
   chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
   passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts

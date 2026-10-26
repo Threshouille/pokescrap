@@ -1,8 +1,9 @@
 using UnityEngine;
 
 /// The key dungeon of a quarter whose gear comes from a boss (TimeGears): its entrance leads to rooms one after the
-/// other (time_gears.json boss.dungeonRooms: an ambush, then a guardian by a chest); the last one over gives the key
-/// of the boss's islet. Its rooms are kept per quarter. Added by IslandRun.
+/// other (time_gears.json boss.dungeonRooms: an ambush, then a guardian by a chest), in the theme of the boss's types
+/// and with Pokémon of those types; the last one over gives the key of the boss's islet. Its rooms are kept per
+/// quarter. Added by IslandRun.
 public class KeyDungeon : IslandStairs
 {
     TimeGears gears;
@@ -21,8 +22,16 @@ public class KeyDungeon : IslandStairs
     protected override RoomContent Stored(int room) => Quarter != null && room < Quarter.rooms.Length - 1 ? Quarter.rooms[room] : null;
     protected override void Store(int room, RoomContent content) { if (Quarter != null && room < Quarter.rooms.Length - 1) Quarter.rooms[room] = content; }
 
-    protected override RoomContent Make(int room, string habitat, int decor, int rank, float distance, System.Random random) =>
-        RoomContent.Draw(Kind, habitat, decor, rank, distance, random, TimeGears.DungeonRooms[Mathf.Clamp(room, 0, Floors - 1)]);
+    protected override RoomContent Make(int room, string habitat, int decor, int rank, float distance, System.Random random)
+    {
+        var q = Quarter;
+        var content = RoomContent.Draw(Kind, habitat, decor, rank, distance, random, TimeGears.DungeonRooms[Mathf.Clamp(room, 0, Floors - 1)]);
+        content.theme = TimeGears.DungeonTheme(q);
+        content.types = TimeGears.BossTypes(q);
+        content.clearFirst = true; // the chest of the key, and the way on, once the room's foes are beaten
+        if (room == Floors - 1) content.spawnGuardian = (spawner, at) => Gears.SpawnGuardian(q, spawner, at);
+        return content;
+    }
 
     protected override void Finished(int room, RoomContent content)
     {

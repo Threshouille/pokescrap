@@ -21,16 +21,18 @@ public class TimeGears : MonoBehaviour
     class BossSettings
     {
         public string roomType = "boss", keyIcon = "pmd_Key_White", chestIcon;
-        public float dungeonShare = 0.45f, portalShare = 0.5f, legendaryChance = 0.03f, optionWeight = 3f, scale = 1.6f;
-        public float health = 8f, stoneChance = 0.3f;
+        public float dungeonShare = 0.45f, portalShare = 0.5f, legendaryChance = 0.03f, scale = 1.6f;
+        public float health = 30f, stoneChance = 0.3f, damage = 4f, speed = 0.9f, recover = 0.6f;
         public int level = 3;
         public string[] dungeonRooms = { "ambush", "guardian" };
     }
 
-    /// One Pokémon of a boss: ids (the first with sprites), and its second phase: its mega, or a Tera shard.
-    [Serializable] public class Member { public int[] pokemon = new int[0]; public bool mega, tera; }
-    [Serializable] public class Option { public float weight = 1f; public Member[] members = new Member[0]; }
-    [Serializable] class ThemeBosses { public string theme; public int[] legendary = new int[0]; public Option[] options = new Option[0]; }
+    [Serializable] class ThemeBosses { public string theme; public int[] roster = new int[0], legendary = new int[0]; }
+    [Serializable] class TypeTheme { public string[] types = new string[0]; public string theme; }
+    [Serializable] class Minions { public string[] types = new string[0]; public int count; }
+    [Serializable] class Arena { public string[] types = new string[0]; public string theme, variant; public Minions minions = new(); }
+    [Serializable] class Moveset { public int pokemon; public string name; public int[] moves = new int[0]; }
+    [Serializable] class GuardianSettings { public float health = 10f, damage = 1.5f; public int level = 4, minions = 2; }
 
     [Serializable]
     class FragmentSettings
@@ -49,6 +51,10 @@ public class TimeGears : MonoBehaviour
         public string questAs = "boss", testMode = "boss";
         public BossSettings boss = new();
         public ThemeBosses[] bosses = new ThemeBosses[0];
+        public TypeTheme[] dungeonThemes = new TypeTheme[0];
+        public GuardianSettings guardian = new();
+        public Arena[] arenas = new Arena[0];
+        public Moveset[] movesets = new Moveset[0];
         public FragmentSettings fragments = new();
     }
 
@@ -85,8 +91,8 @@ public class TimeGears : MonoBehaviour
         public string mode;
         public bool gear, bossBeaten, hasKey;
         public Vector2Int dungeonTile = new(-1, -1), portalTile = new(-1, -1); // the key dungeon's entrance, the islet's portal
-        public Option option; // the boss
-        public bool legendary;
+        public int boss; // the boss's Pokémon id (0: none)
+        public bool legendary; // it Terastallizes instead of mega evolving
         public int rank;
         public float distance; // the portal: 0 at the arrival, 1 at the farthest tile
         public readonly List<Fragment> fragments = new();
@@ -215,8 +221,8 @@ public class TimeGears : MonoBehaviour
             if (coast.Count == 0) coast = land;
             quarter.portalTile = coast.OrderByDescending(t => Vector2.Distance(t, arrival)).Take(Mathf.Max(1, coast.Count / 5)).OrderBy(_ => rng.Next()).First();
             quarter.distance = far > 0f ? Vector2.Distance(quarter.portalTile, arrival) / far : 1f;
-            quarter.option = PickBoss(plan, q, out quarter.legendary);
-            if (quarter.option == null) quarter.gear = true; // no boss at all: the way stays open
+            quarter.boss = PickBoss(plan.themes[q]?.key, out quarter.legendary);
+            if (quarter.boss <= 0) quarter.gear = true; // no boss at all: the way stays open
             return quarter;
         }
         // Fragments: in different sub-biomes when there are enough.
@@ -249,34 +255,50 @@ public class TimeGears : MonoBehaviour
         return false;
     }
 
-    /// The boss of a quarter: rarely the theme's legendary (it Terastallizes at its second phase), otherwise a Pokémon
-    /// whose mega has sprites and that lives in one of the quarter's sub-biomes (any of them when none does), or one
-    /// of the written options; it mega evolves at its second phase.
-    public Option PickBoss(IslandPlan plan, int q, out bool legendary)
+    /// The boss of a quarter of that theme: rarely its legendary (it Terastallizes at its second phase), otherwise one
+    /// of its roster whose mega has sprites (it mega evolves). 0 when the theme has none.
+    public int PickBoss(string theme, out bool legendary)
     {
-        var theme = Array.Find(Data.bosses, b => b.theme == plan.themes[q]?.key);
+        var bosses = Array.Find(Data.bosses, b => b.theme == theme) ?? Array.Find(Data.bosses, b => b.theme == "forest");
         legendary = false;
-        int legend = theme != null ? theme.legendary.FirstOrDefault(PokemonRoster.Has) : 0;
-        if (legend > 0 && rng.NextDouble() < Data.boss.legendaryChance)
+        if (bosses == null) return 0;
+        int legend = bosses.legendary.FirstOrDefault(PokemonRoster.Has);
+        var roster = bosses.roster.Where(id => PokemonRoster.Has(id) && GameData.MegasOf(id).Count > 0).ToList();
+        if (legend > 0 && (roster.Count == 0 || rng.NextDouble() < Data.boss.legendaryChance))
         {
             legendary = true;
-            return new Option { members = new[] { new Member { pokemon = new[] { legend }, tera = true } } };
+            return legend;
         }
-        var habitats = new HashSet<string>();
-        for (int i = 0; i < plan.region.Length; i++)
-            if (plan.region[i] == q && plan.biome[i] != null) habitats.Add(plan.biome[i].key);
-        var megas = GameData.AllMegas.Where(m => PokemonRoster.Has(m.@base)).ToList();
-        var fitting = megas.Where(m => habitats.Any(h => Populations.Lives(h, m.@base, false))).ToList();
-        var pool = (fitting.Count > 0 ? fitting : megas)
-            .Select(m => (option: new Option { members = new[] { new Member { pokemon = new[] { m.@base }, mega = true } } }, weight: 1f)).ToList();
-        foreach (var o in theme?.options ?? new Option[0])
-            if (o.members.All(m => Resolve(m) > 0)) pool.Add((o, o.weight * Data.boss.optionWeight));
-        if (pool.Count == 0) return null;
-        double roll = rng.NextDouble() * pool.Sum(p => p.weight);
-        foreach (var (option, weight) in pool)
-            if ((roll -= weight) < 0) return option;
-        return pool[^1].option;
+        return roster.Count > 0 ? roster[rng.Next(roster.Count)] : 0;
     }
+
+    /// The boss's types (ROM ids), in its own order.
+    public static int[] BossTypes(Quarter q) => q != null && GameData.Pokemon(q.boss) is { } p ? p.types : new int[0];
+
+    static int TypeId(string name)
+    {
+        for (int t = 0; t < 32; t++)
+            if (GameData.TypeName(t) == name) return t;
+        return -1;
+    }
+
+    // The first entry holding one of the boss's types, taken in the boss's own order (Altaria: Dragon, then Vol).
+    static T ByType<T>(T[] entries, Func<T, string[]> types, Quarter q) where T : class
+    {
+        foreach (int t in BossTypes(q))
+            foreach (var e in entries)
+                if (types(e).Any(n => TypeId(n) == t)) return e;
+        return entries.FirstOrDefault(e => types(e).Length == 0);
+    }
+
+    /// The key dungeon's room theme (rooms.json), from the boss's types.
+    public static string DungeonTheme(Quarter q) => ByType(Data.dungeonThemes, d => d.types, q)?.theme;
+
+    // The islet's arena, from the boss's types.
+    static Arena ArenaOf(Quarter q) => ByType(Data.arenas, a => a.types, q);
+
+    /// The islet's room theme and variant (rooms.json).
+    public static (string theme, string variant) ArenaRoom(Quarter q) => ArenaOf(q) is { } a ? (a.theme, a.variant) : (null, null);
 
     string PickGuard()
     {
@@ -288,12 +310,11 @@ public class TimeGears : MonoBehaviour
         return guards[^1].key;
     }
 
-    // The first id of the member that has sprites (0: none).
-    static int Resolve(Member m) => m.pokemon.FirstOrDefault(PokemonRoster.Has);
 
     // ---- Playing ----
 
-    int Level(Quarter q, int bonus) => Data.baseLevel + Populations.LevelBonus(q.rank, q.distance) + bonus;
+    // The quarter's level, or the team's when it is higher (a boss must not fall to a team that outgrew the island).
+    int Level(Quarter q, int bonus) => Mathf.Max(Data.baseLevel + Populations.LevelBonus(q.rank, q.distance), progression != null ? progression.Level : 1) + bonus;
 
     void SpawnZone()
     {
@@ -331,32 +352,136 @@ public class TimeGears : MonoBehaviour
         team?.GetComponent<TeamHud>()?.ShowCard("Clé de l'îlot", "Le portail au bord de la côte mène au gardien du quartier", SpecialItems.Icon(Data.boss.keyIcon));
     }
 
-    /// The boss of the islet: big, and its second phase ready (its mega, or a Tera shard of the type that takes the
-    /// team's moves best). Called by its room (RoomContent).
+    // A fighter of the island's rooms, at the level of the quarter: the strongest moves of its list unless it has
+    // hand-made ones.
+    Combatant Fighter(EnemySpawner by, int id, Vector2 at, bool isBoss, int level, float health)
+    {
+        at = OpenNear(at); // never inside a wall, a pillar or the void
+        int[] moves = isBoss ? BossMoves(id)
+            : GameData.HasLoadout(id) ? null : GameData.RandomMoves(id, Combatant.MoveSlots, rng, null, strong: true);
+        return by.SpawnFighter(id, moves, at, isBoss, false, level, health);
+    }
+
+    // The free tile nearest to a point of the room being played.
+    static Vector2 OpenNear(Vector2 point)
+    {
+        var arena = DungeonGenerator.Current;
+        if (arena == null) return point;
+        var c = arena.CellOf(point);
+        for (int r = 0; r < 10; r++)
+            for (int dx = -r; dx <= r; dx++)
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    int x = c.x + dx, y = c.y + dy;
+                    if (arena.Walkable(x, y) && Obstacles.Standable(x, y)) return arena.CentreOf(x, y);
+                }
+        return point;
+    }
+
+    /// A boss's four moves, always the same (its numbered announcements can be learnt): its moveset of the data, else
+    /// its hand-made loadout (null: Combatant.Init takes it), else its basic move and the three strongest damaging
+    /// moves of its list (no status move).
+    public static int[] BossMoves(int id)
+    {
+        if (Array.Find(Data.movesets, m => m.pokemon == id) is { } set && set.moves.Length > 0) return set.moves;
+        if (GameData.HasLoadout(id)) return null;
+        var moves = new List<int>();
+        var basic = GameData.BasicMoves(id, GameData.StatStyle(id)).FirstOrDefault();
+        if (basic != null) moves.Add(basic.id);
+        foreach (var m in GameData.MovePool(id).Where(m => !m.basic && m.power > 0).OrderByDescending(m => m.power).ThenBy(m => m.id))
+        {
+            if (moves.Count >= Combatant.MoveSlots) break;
+            if (!moves.Contains(m.id)) moves.Add(m.id);
+        }
+        return moves.ToArray();
+    }
+
+    // Pokémon of those types (ROM ids) at that evolution stage at most, a few of each.
+    static List<int> OfTypes(int[] types, int stage) =>
+        types.Length == 0 ? new List<int>() : Encounters.Pool(stage, -1, new Populations.Where(types)).Distinct().ToList();
+
+    /// The boss of the islet: big, and its second phase ready (its mega, or for the legendary a Tera shard of the type
+    /// that takes the team's moves best); with the arena's minions (elites: they change the décor against the team).
+    /// Called by its room (RoomContent).
     public List<Combatant> SpawnBoss(Quarter q, EnemySpawner by, Vector2 at)
     {
         boss.Clear();
-        if (q?.option == null || by == null) return new List<Combatant>(boss);
-        for (int i = 0; i < q.option.members.Length; i++)
+        var all = new List<Combatant>();
+        if (q == null || q.boss <= 0 || by == null) return all;
+        var c = Fighter(by, q.boss, at, true, Level(q, Data.boss.level), Data.boss.health);
+        if (c == null) return all;
+        c.transform.localScale = Vector3.one * Data.boss.scale;
+        c.damageFactor *= Data.boss.damage;
+        if (c.GetComponent<BossAI>() is { } ai)
         {
-            var m = q.option.members[i];
-            int id = Resolve(m);
-            var offset = q.option.members.Length > 1 ? new Vector2(i == 0 ? -1.5f : 1.5f, 0f) : Vector2.zero;
-            // A boss without hand-made moves takes the strongest of its list.
-            int[] moves = GameData.HasLoadout(id) ? null : GameData.RandomMoves(id, Combatant.MoveSlots, rng, null, strong: true);
-            var c = by.SpawnFighter(id, moves, at + offset, true, false, Level(q, Data.boss.level), Data.boss.health);
-            if (c == null) continue;
-            c.transform.localScale = Vector3.one * Data.boss.scale;
-            if (c.GetComponent<EnemyUltimate>() is { } ultimate)
-            {
-                if (m.mega && GameData.MegasOf(id).FirstOrDefault() is { } mega) ultimate.Carry(SpecialItems.Family.Mega, -1, mega);
-                else if (m.tera && ultimate.BestTeraType(out _) is int type and > 0) ultimate.Carry(SpecialItems.Family.Tera, type);
-            }
-            if (c.GetComponent<HealthBar>() == null) c.gameObject.AddComponent<HealthBar>();
-            boss.Add(c);
+            ai.seeksReach = true;
+            ai.speedFactor = Data.boss.speed;
+            ai.recoverTime = Data.boss.recover;
         }
-        progression?.Announce($"Le gardien du quartier : {string.Join(" et ", boss.Select(c => c.Stats.name))} !", Notice.Elite);
-        return new List<Combatant>(boss);
+        if (c.GetComponent<EnemyUltimate>() is { } ultimate)
+        {
+            if (!q.legendary && GameData.MegasOf(q.boss).FirstOrDefault() is { } mega) ultimate.Carry(SpecialItems.Family.Mega, -1, mega);
+            else if (ultimate.BestTeraType(out _) is int type and > 0) ultimate.Carry(SpecialItems.Family.Tera, type);
+        }
+        boss.Add(c);
+        all.Add(c);
+        var arena = ArenaOf(q);
+        var kinds = arena?.minions.types.Select(TypeId).Where(t => t > 0).ToArray() ?? new int[0];
+        var pool = OfTypes(kinds, Populations.Stage(q.rank, q.distance) + 1);
+        for (int k = 0; k < (arena?.minions.count ?? 0) && pool.Count > 0; k++)
+        {
+            var m = Fighter(by, pool[rng.Next(pool.Count)], at + new Vector2(k == 0 ? -3f : 3f, -2f), false, Level(q, 0), 1.5f);
+            if (m == null) continue;
+            m.gameObject.AddComponent<EliteMark>(); // burns the bridges, freezes the water... like the elites
+            all.Add(m);
+        }
+        progression?.Announce($"Le gardien du quartier : {c.Stats.name} !", Notice.Elite);
+        return all;
+    }
+
+    /// The key dungeon's guardian: an evolved Pokémon of the boss's types (the most evolved there is), an elite that
+    /// Terastallizes at its second phase, asleep by the chest with two minions, each with the Z crystal of its
+    /// strongest move. Called by the dungeon's last room (RoomContent).
+    public List<Combatant> SpawnGuardian(Quarter q, EnemySpawner by, Vector2 at)
+    {
+        var all = new List<Combatant>();
+        if (q == null || by == null) return all;
+        // Recruitable or not (most final forms are not, in the ROM), legendaries and the boss itself left out.
+        var types = BossTypes(q);
+        var pool = GameData.AllPokemon.Where(p => p.id != q.boss && p.types.Intersect(types).Any() && !GameData.IsDev(p.id) && !Encounters.Excluded(p.id)
+                                                  && PokemonRoster.Has(p.id) && GameData.MovePool(p.id).Count >= 2).Select(p => p.id).ToList();
+        if (pool.Count == 0) pool = OfTypes(types, 9);
+        if (pool.Count == 0) return all;
+        int deepest = pool.Max(id => Encounters.Depth(GameData.Pokemon(id)));
+        var evolved = pool.Where(id => Encounters.Depth(GameData.Pokemon(id)) == deepest).ToList();
+        var guardian = Fighter(by, evolved[rng.Next(evolved.Count)], at, false, Level(q, Data.guardian.level), Data.guardian.health);
+        if (guardian == null) return all;
+        Loot.Mark(guardian);
+        guardian.damageFactor *= Data.guardian.damage;
+        var tera = guardian.gameObject.AddComponent<EnemyUltimate>();
+        if (tera.BestTeraType(out _) is int type and > 0) tera.Carry(SpecialItems.Family.Tera, type);
+        all.Add(guardian);
+        var minions = OfTypes(BossTypes(q), Populations.Stage(q.rank, q.distance)).Where(id => !evolved.Contains(id)).ToList();
+        if (minions.Count == 0) minions = pool;
+        for (int k = 0; k < Data.guardian.minions; k++)
+        {
+            var m = Fighter(by, minions[rng.Next(minions.Count)], at + new Vector2(k == 0 ? -2f : 2f, -1.5f), false, Level(q, 0), 1.5f);
+            if (m == null) continue;
+            var z = m.gameObject.AddComponent<EnemyUltimate>();
+            var strongest = m.Moves.Where(x => x != null && x.power > 0).OrderByDescending(x => x.power).FirstOrDefault();
+            if (strongest != null) z.Carry(SpecialItems.Family.Z, strongest.type);
+            all.Add(m);
+        }
+        // One group: they rest together by the chest and wake together.
+        var group = new EnemyGroup();
+        foreach (var f in all)
+        {
+            group.members.Add(f);
+            if (f.GetComponent<EnemyAI>() is { } ai) ai.group = group;
+        }
+        group.Rest(new EnemyGroup.Roam { home = at, wake = RoomContent.GuardianWake, leash = RoomContent.GuardianLeash });
+        return all;
     }
 
     /// The islet's boss fell: the gear, and a chest.
@@ -456,12 +581,31 @@ public class TimeGears : MonoBehaviour
         GetComponent<BossPortal>()?.Refresh();
     }
 
-    GUIStyle label;
+    GUIStyle label, barLabel;
+    static readonly Color FirstPhase = new(0.85f, 0.2f, 0.2f), SecondPhase = new(0.75f, 0.3f, 0.95f);
+
+    // The islet's boss, top centre: its name, a mark at the threshold of its second phase, another colour once in it.
+    void BossBar(float s)
+    {
+        var b = boss.FirstOrDefault(c => c != null && c.IsAlive);
+        if (b == null) return;
+        var ultimate = b.GetComponent<EnemyUltimate>();
+        bool second = ultimate != null && !string.IsNullOrEmpty(ultimate.LastUsed);
+        var bar = new Rect(Screen.width / 2f - 110f * s, (Top + 2f) * s, 220f * s, 9f * s);
+        Fill(new Rect(bar.x - s, bar.y - s, bar.width + 2f * s, bar.height + 2f * s), new Color(0f, 0f, 0f, 0.8f));
+        Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(b.hp / b.maxHp), bar.height), second ? SecondPhase : FirstPhase);
+        if (!second) Fill(new Rect(bar.x + bar.width * SpecialItems.Enemy.phaseHealth - s, bar.y - 2f * s, 2f * s, bar.height + 4f * s), Color.white);
+        barLabel ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+        barLabel.fontSize = Mathf.RoundToInt(7f * s);
+        GUI.Label(bar, $"{b.Stats.name} · phase {(second ? 2 : 1)} / 2", barLabel);
+    }
 
     void OnGUI()
     {
-        if (madeFor == null || island.Away || Total == 0) return;
+        if (madeFor == null || Total == 0) return;
         float s = Scale;
+        BossBar(s);
+        if (island.Away) return;
         var box = new Rect(Side * s, (Top + 31f) * s, StageWidth * s, 14f * s);
         Panel(box, s);
         var q = Here;

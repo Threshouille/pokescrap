@@ -287,7 +287,22 @@ public class Loot : MonoBehaviour
     public void CollectAll()
     {
         if (chest != null) OpenChest();
-        while (drops.Count > 0) Take(drops.Count - 1);
+        // Once each: a held item goes to a member that holds none (or the same one), never in exchange for another,
+        // which would drop that one and start again; what nobody can take stays behind and goes.
+        foreach (var d in drops.ToList())
+        {
+            int index = drops.IndexOf(d);
+            if (index < 0) continue;
+            if (d.item.held == null) { Take(index); continue; }
+            var taker = team != null ? team.Members.FirstOrDefault(m => m != null && m.IsAlive && (m.Held == null || m.Held.key == d.item.held)) : null;
+            if (taker == null) continue;
+            drops.RemoveAt(index);
+            if (d.go != null) Destroy(d.go);
+            var now = HeldItems.Merge(taker.Held, HeldItems.AtTier(HeldItems.Get(d.item.held), d.item.heldTier), out _);
+            taker.Hold(now);
+            progression?.Announce($"{taker.Stats.name} tient {now.FullName}", Notice.Loot);
+        }
+        ClearGround();
     }
 
     // A consumable is picked up only when the bag has room for it (it stays on the ground otherwise).

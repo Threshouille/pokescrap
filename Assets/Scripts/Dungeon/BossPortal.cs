@@ -32,6 +32,7 @@ public class BossPortal : IslandStairs
         var q = Quarter;
         var content = RoomContent.Draw(Kind, habitat, decor, rank, distance, random, RoomContent.Bosses);
         content.bossRoomType = TimeGears.BossRoomType;
+        (content.theme, content.variant) = TimeGears.ArenaRoom(q); // an arena made for its types
         content.spawnBoss = (arena, spawner, at) => Gears.SpawnBoss(q, spawner, at);
         return content;
     }

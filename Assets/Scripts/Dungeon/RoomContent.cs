@@ -60,11 +60,27 @@ public class RoomContent
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset() => data = null;
 
+    /// How near a sleeping guardian wakes, and how far it follows (a key dungeon's guardian too).
+    public static float GuardianWake => Data.guardian.wake;
+    public static float GuardianLeash => Data.guardian.leash;
+
     public const string Treasures = "treasure", Ambushes = "ambush", Guardians = "guardian", Bosses = "boss";
 
     /// A boss room (the islet's, TimeGears): its foes, spawned by whoever made the content; the room's type.
     public Func<DungeonGenerator, EnemySpawner, Vector2, List<Combatant>> spawnBoss;
     public string bossRoomType = "boss";
+    /// A key dungeon's room (TimeGears, KeyDungeon): its guardian and company (instead of a champion of the
+    /// population); the room's theme and variant, and the types its Pokémon come from (instead of the sub-biome's).
+    public Func<EnemySpawner, Vector2, List<Combatant>> spawnGuardian;
+    /// The chest only comes once the room's foes are beaten, and the way out stays shut until then (a key dungeon).
+    public bool clearFirst;
+    Vector2 chestSpot;
+    bool chestOut;
+    public string theme, variant;
+    public int[] types;
+
+    // Where its Pokémon come from.
+    Populations.Where Habitat(bool night) => types != null && types.Length > 0 ? new Populations.Where(types) : new Populations.Where(habitat, night);
 
     /// Where the room's content ended (its chest, the team): the next room's stairs go there.
     public Vector2? EndAt { get; private set; }
@@ -79,8 +95,8 @@ public class RoomContent
 
     /// Played to the end (its chest given or the room cleared).
     public bool Done { get; private set; }
-    /// The way out is shut (an ambush or a boss fight still going).
-    public bool Locked => (key == Ambushes || key == Bosses) && started && !Done;
+    /// The way out is shut (an ambush or a boss fight still going; a room to clear first).
+    public bool Locked => started && !Done && (key == Ambushes || key == Bosses || (clearFirst && !chestOut));
 
     bool started;
     int wavesLeft;
@@ -120,8 +136,9 @@ public class RoomContent
     public RoomInstance Room()
     {
         string type = key == Bosses ? bossRoomType : key == Ambushes ? Data.ambush.roomType : key == Guardians ? Data.guardian.roomType : Data.treasure.roomType;
-        string theme = key == Bosses ? null : Array.Find(Data.themes, t => t.subBiome == habitat)?.theme; // an islet: the boss arenas
-        var room = (theme != null ? RoomCatalog.Pick(type, rng, theme) : null) ?? RoomCatalog.Pick(type, rng) ?? RoomCatalog.Pick(null, rng);
+        string themeKey = theme ?? (key == Bosses ? null : Array.Find(Data.themes, t => t.subBiome == habitat)?.theme);
+        var room = (themeKey != null ? RoomCatalog.Pick(type, rng, themeKey, variant) : null) ?? (themeKey != null ? RoomCatalog.Pick(type, rng, themeKey) : null)
+                   ?? RoomCatalog.Pick(type, rng) ?? RoomCatalog.Pick(null, rng);
         // The sub-biome's own décor when its theme draws it.
         if (room != null && decor > 0 && room.theme != null && Array.IndexOf(room.theme.tilesets, decor) >= 0 && TilesetRoster.Get(decor) != null)
             room.tileset = decor;
@@ -149,7 +166,8 @@ public class RoomContent
                 nextWaveAt = Time.time + Data.ambush.pause;
                 break;
             case Guardians:
-                // A few tiles beyond its waking reach: asleep when the team comes in, and in sight.
+                // A few tiles beyond its waking reach: asleep when the team comes in, and in sight. (The far spot
+                // below.)
                 float wanted = Data.guardian.wake + 4f;
                 far = arena.RandomOpenPosition(rng, Data.guardian.wake + 3f, arrival);
                 for (int k = 0; k < 40; k++)
@@ -157,9 +175,20 @@ public class RoomContent
                     Vector2 spot = arena.RandomOpenPosition(rng, Data.guardian.wake + 3f, arrival);
                     if (Mathf.Abs(Vector2.Distance(spot, arrival) - wanted) < Mathf.Abs(Vector2.Distance(far, arrival) - wanted)) far = spot;
                 }
-                loot?.SpawnChest(far, anywhere: true, Data.guardian.stoneChance, Data.guardian.chestIcon);
+                chestSpot = far;
+                chestOut = !clearFirst;
+                if (chestOut) loot?.SpawnChest(far, anywhere: true, Data.guardian.stoneChance, Data.guardian.chestIcon);
+                if (spawnGuardian != null && spawner != null)
+                {
+                    // A guardian made by the key dungeon (it rests by itself).
+                    enemies.AddRange(spawnGuardian(spawner, far));
+                    foreach (var c in enemies) c.gameObject.AddComponent<RecruitBonus>().multiplier = Data.guardian.recruitBonus;
+                    if (enemies.Count > 0 && UnityEngine.Object.FindAnyObjectByType<Progression>() is { } announcer)
+                        announcer.Announce($"Un gardien dort près du coffre : {enemies[0].Stats.name}", Notice.Elite);
+                    break;
+                }
                 var e = Encounters.CategoryOf(Data.guardian.lot) is { } lot
-                    ? Encounters.Make(rng, lot, Stage(Data.guardian.stageBonus), -1, where: new Populations.Where(habitat, spawner != null && spawner.Night))
+                    ? Encounters.Make(rng, lot, Stage(Data.guardian.stageBonus), -1, where: Habitat(spawner != null && spawner.Night))
                     : null;
                 if (e == null || spawner == null) { Done = loot == null || loot.ChestAt == null; break; }
                 enemies.AddRange(spawner.SpawnEncounter(e, far, Level));
@@ -206,6 +235,14 @@ public class RoomContent
             nextWaveAt = Time.time + Data.ambush.pause;
             return;
         }
+        // A room to clear first: its chest comes once the foes are beaten.
+        if (!chestOut)
+        {
+            if (enemies.Count > 0) return;
+            chestOut = true;
+            loot?.SpawnChest(chestSpot, anywhere: true, Data.guardian.stoneChance, Data.guardian.chestIcon);
+            return;
+        }
         // Treasure and guardian: done once the chest is opened.
         if (loot == null || loot.ChestAt == null)
         {
@@ -222,7 +259,7 @@ public class RoomContent
         int stage = Stage(a.stageBonus);
         var open = a.lots.Where(l => l.weight > 0f && Encounters.CategoryOf(l.key) is { } c && c.minStage <= stage).ToList();
         if (open.Count == 0) { wavesLeft = 0; return; }
-        var where = new Populations.Where(habitat, spawner.Night);
+        var where = Habitat(spawner.Night);
         for (int k = 0; k < lots; k++)
         {
             double roll = rng.NextDouble() * open.Sum(l => l.weight);
