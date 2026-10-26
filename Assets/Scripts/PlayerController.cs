@@ -185,6 +185,7 @@ public class PlayerController : MonoBehaviour
         {
             m.ai.enabled = (m != Current || autoPilot) && m.combatant.IsAlive;
             m.combatant.LiveAim = Vector2.zero; // the AI aims for itself
+            m.combatant.PlayerDriven = false;
             m.combatant.RawAim = Vector2.zero;
             m.combatant.AimTarget = null;
         }
@@ -251,6 +252,7 @@ public class PlayerController : MonoBehaviour
         if (autoPilot)
         {
             ShowTargetRing(null);
+            if (members.Count > 0) Current.combatant.PlayerDriven = false; // its AI holds moves for it
             return;
         }
 
@@ -275,6 +277,9 @@ public class PlayerController : MonoBehaviour
         ShowTargetRing(target);
 
         bool acting = Time.unscaledTime >= inputBlockedUntil;
+        // Held moves (Lance-Flamme, Ball'Ombre, Méga-Sangsue) last while their button stays down.
+        member.combatant.PlayerDriven = true;
+        for (int slot = 0; slot < Combatant.MoveSlots; slot++) member.combatant.HeldButtons[slot] = acting && SlotHeld(slot);
         if (acting && DodgePressed()) member.combatant.TryDodge(move != Vector2.zero ? move : facing);
 
         for (int slot = 0; acting && slot < Combatant.MoveSlots; slot++)

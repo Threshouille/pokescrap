@@ -114,6 +114,17 @@ public class MoveDef
     public float orbitRadius, orbitTime, orbitInterval; // tiles, seconds circling, seconds between two launches
     public bool followOwner; // zone that stays centred on the user as it moves (Blizzard)
     public float zoneAlpha; // opacity of the zone's sheet (1 when omitted)
+    public float channel; // seconds a held move lasts at most (Lance-Flamme: shots while the button is held)
+    public float channelInterval; // seconds between two shots of a held move
+    public float channelSpeedMul; // the user's speed while it holds the move (1 when omitted)
+    public float aiChannel; // seconds an AI holds it
+    public float chargeMax; // seconds to reach full charge while the button is held (Ball'Ombre: the user stands still)
+    public float chargeSize, chargeDamage; // size and damage multipliers at full charge (1 at no charge)
+    public float aiCharge; // seconds an AI charges
+    public float hoverTime; // projectile: seconds it stays where its course ends, still hitting
+    public float link; // seconds a draining link to the target lasts at most (Méga-Sangsue, while the button is held)
+    public float linkInterval; // seconds between two drains
+    public float linkBreak; // tiles: the link breaks beyond this distance
     public bool noAutoAim; // used by the player toward where they point, never toward the aimed target (Draco Météor)
     public bool aiIgnore; // zone the AIs neither avoid nor flee (Fatal-Foudre: its bolts find them anyway)
     public bool boltOnFoes; // zone bolts strike a random opponent inside the zone (a random spot when there is none)
