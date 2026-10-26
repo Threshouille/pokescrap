@@ -91,6 +91,7 @@ public class TimeGears : MonoBehaviour
     {
         public string mode;
         public bool gear, bossBeaten, hasKey;
+        public bool gateOpened; // its portal's opening was seen: open from then on
         public Vector2Int dungeonTile = new(-1, -1), portalTile = new(-1, -1); // the key dungeon's entrance, the islet's portal
         /// The rope bridge to the islet: its tiles (2 wide, from the coast), its direction, the gate (first row), where
         /// it takes the team to the arena (near its end), the islet seen beyond it. None: a portal on the coast.
@@ -232,6 +233,7 @@ public class TimeGears : MonoBehaviour
         int Height(Vector2Int t) => plan.height != null ? plan.height[plan.Index(t.x, t.y)] : 0;
         if (mode != Fragments)
         {
+            var walk = OnFoot(plan, q, arrival);
             // The key dungeon on the quarter's landmark: a cave's mouth (the mountain's), else the highest plateau,
             // else a forest's clearing, else somewhere far.
             var caves = plan.caves.Where(c => plan.region[plan.Index(c.x, c.y)] == q && c != plan.sealedCave).ToList();
@@ -241,14 +243,23 @@ public class TimeGears : MonoBehaviour
             var deep = land.Where(t => Vector2.Distance(t, arrival) >= Data.boss.dungeonShare * far && ClearOfCamps(t, 6f)).ToList();
             // Each landmark on the free tile nearest to it, far from the other dungeons (secret stairs, sealed cave).
             var spots = caves.Select(c => FreeNear(plan, q, c)).Concat(heights.Count > 0 ? new[] { FreeNear(plan, q, Vector2Int.RoundToInt(Centroid(heights))) } : new Vector2Int[0])
-                .Concat(glades.Select(c => FreeNear(plan, q, c))).Where(t => t.x >= 0).ToList();
-            var fallback = (deep.Count > 0 ? deep : land).Where(t => Free(plan, q, t)).ToList();
+                .Concat(glades.Select(c => FreeNear(plan, q, c))).Where(t => t.x >= 0 && walk[plan.Index(t.x, t.y)]).ToList();
+            var fallback = (deep.Count > 0 ? deep : land).Where(t => Free(plan, q, t) && walk[plan.Index(t.x, t.y)]).ToList();
             quarter.dungeonTile = spots.Count > 0 ? spots[0] : fallback.Count > 0 ? fallback[rng.Next(fallback.Count)] : land[rng.Next(land.Count)];
             // The islet's bridge: from the coast, far from the arrival and the dungeon, straight out over the sky.
             var coast = land.Where(t => ByTheSky(plan, t) && Vector2.Distance(t, arrival) >= Data.boss.portalShare * far
                                         && Vector2.Distance(t, quarter.dungeonTile) >= 15f).OrderByDescending(t => Vector2.Distance(t, arrival)).ToList();
-            foreach (var t in coast.Where(t => Free(plan, q, t)).Take(60))
-                if (LayBridge(plan, q, t, quarter)) break;
+            // Only on the round coast (far from the island's middle, not the quarter's straight sides), straight out;
+            // upright first: the portal is an arch seen from the front.
+            float reach = land.Max(t => Vector2.Distance(t, plan.hub));
+            var round = coast.Where(t => Free(plan, q, t) && Vector2.Distance(t, plan.hub) >= RoundCoast * reach).ToList();
+            // Upright and well out first, then upright a little aside, sideways only when nothing else fits.
+            foreach (var (upright, outward) in new[] { (true, Outward), (true, 0.15f), (false, Outward) })
+            {
+                foreach (var t in round)
+                    if (LayBridge(plan, q, t, quarter, upright, outward, walk)) break;
+                if (quarter.HasBridge) break;
+            }
             if (!quarter.HasBridge)
             {
                 if (coast.Count == 0) coast = land.Where(t => Vector2.Distance(t, quarter.dungeonTile) >= 15f).ToList();
@@ -329,10 +340,15 @@ public class TimeGears : MonoBehaviour
 
     // A rope bridge from that coast tile straight out over the sky, two tiles wide, in the first of the four
     // directions where the whole length is sky: true when laid (its tiles join the plan's sky bridges).
-    bool LayBridge(IslandPlan plan, int q, Vector2Int coast, Quarter quarter)
+    const int FootDepth = 4; // tiles of open ground before the bridge
+    const float RoundCoast = 0.8f, Outward = 0.5f; // share of the farthest land; cosine between the bridge and the way out
+
+    bool LayBridge(IslandPlan plan, int q, Vector2Int coast, Quarter quarter, bool upright, float least, bool[] walk)
     {
         int length = Data.boss.bridgeLength;
-        foreach (var dir in new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right }.OrderBy(_ => rng.Next()))
+        var outward = ((Vector2)coast - plan.hub).normalized;
+        var dirs = upright ? new[] { Vector2Int.up, Vector2Int.down } : new[] { Vector2Int.left, Vector2Int.right };
+        foreach (var dir in dirs.Where(d => Vector2.Dot(d, outward) >= least).OrderBy(_ => rng.Next()))
         {
             var side = new Vector2Int(Mathf.Abs(dir.y), Mathf.Abs(dir.x)); // the second tile of width
             var cells = new List<Vector2Int>();
@@ -345,8 +361,17 @@ public class TimeGears : MonoBehaviour
                     else cells.Add(c);
                 }
             // Its first row must touch the coast on both tiles (no gap to step over).
+            // Its foot: both columns, FootDepth tiles inland, open ground that anyone reaches on foot (no water at its end).
             var beside = coast + side;
             if (!sky || plan.region[plan.Index(beside.x, beside.y)] != q) continue;
+            bool foot = true;
+            for (int k = 0; k < FootDepth && foot; k++)
+                for (int w = 0; w < 2 && foot; w++)
+                {
+                    var c = coast - dir * k + side * w;
+                    foot = c.x >= 0 && c.y >= 0 && c.x < plan.size && c.y < plan.size && walk[plan.Index(c.x, c.y)];
+                }
+            if (!foot) continue;
             quarter.bridge.AddRange(cells);
             quarter.bridgeDir = dir;
             quarter.portalTile = coast;
@@ -357,6 +382,49 @@ public class TimeGears : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    // The quarter's tiles any Pokémon reaches on foot from its arrival: no wall, no obstacle in the way of anyone (water,
+    // lava, the void, quicksand, a ledge; a bridge over a river is fine).
+    static bool[] OnFoot(IslandPlan plan, int q, Vector2Int arrival)
+    {
+        var seen = new bool[plan.size * plan.size];
+        bool Open(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= plan.size || y >= plan.size) return false;
+            int i = plan.Index(x, y);
+            if (plan.region[i] != q || plan.wall[i] || (plan.wallLook != null && plan.wallLook[i])) return false;
+            var key = plan.obstacle[i];
+            if (key == null) return true;
+            var def = Obstacles.Def(key);
+            return def != null && !def.solid && !def.fall && def.sinkTime <= 0f && !def.OneWay;
+        }
+        var start = Open(arrival.x, arrival.y) ? arrival : FirstOpen();
+        Vector2Int FirstOpen()
+        {
+            for (int r = 1; r < 12; r++)
+                for (int dx = -r; dx <= r; dx++)
+                    for (int dy = -r; dy <= r; dy++)
+                        if (Open(arrival.x + dx, arrival.y + dy)) return arrival + new Vector2Int(dx, dy);
+            return arrival;
+        }
+        if (!Open(start.x, start.y)) return seen;
+        var queue = new Queue<Vector2Int>();
+        queue.Enqueue(start);
+        seen[plan.Index(start.x, start.y)] = true;
+        var steps = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+        while (queue.Count > 0)
+        {
+            var t = queue.Dequeue();
+            foreach (var d in steps)
+            {
+                var n = t + d;
+                if (!Open(n.x, n.y) || seen[plan.Index(n.x, n.y)]) continue;
+                seen[plan.Index(n.x, n.y)] = true;
+                queue.Enqueue(n);
+            }
+        }
+        return seen;
     }
 
     // An open tile with the sky (the island's edge) within two tiles: the coast.
@@ -685,6 +753,13 @@ public class TimeGears : MonoBehaviour
     GameObject gate;
     SpriteRenderer gateLight;
     float gateWarnedAt = -10f;
+    // The portal's frames (story art, light_portal_frames): the arch flickering (shut), its opening, the open swirl.
+    const int GateFrames = 12, GateLoop = 4;
+    const float GateFrameTime = 4f / 60f, GateOpenReach = 5f; // tiles: the key's holder this close opens it
+    static readonly Color GateShut = new(0.45f, 0.5f, 0.6f, 0.85f);
+    Sprite[] gateFrames;
+    int gatePhase; // 0 shut, 1 opening, 2 open
+    float gatePhaseAt;
 
     static float Angle(Vector2Int dir) => dir == Vector2Int.up ? 0f : dir == Vector2Int.down ? 180f : dir == Vector2Int.left ? 90f : -90f;
 
@@ -726,7 +801,8 @@ public class TimeGears : MonoBehaviour
         gate.transform.SetParent(bridgeRoot, false);
         gate.transform.position = island.Cell(q.gateTile) + side;
         gateLight = gate.AddComponent<SpriteRenderer>();
-        gateLight.sprite = RomArt.Get("GroundObjects/light_portal", new Vector2(0.5f, 0.1f));
+        gateFrames = RomArt.Frames("GroundObjects/light_portal_frames", GateFrames);
+        gateLight.sprite = gateFrames != null ? gateFrames[0] : RomArt.Get("GroundObjects/light_portal", new Vector2(0.5f, 0.1f));
         gateLight.sortingOrder = 1; // stands like a Pokémon (sorted by its foot)
         gateLight.spriteSortPoint = SpriteSortPoint.Pivot;
         var wall = gate.AddComponent<BoxCollider2D>();
@@ -738,7 +814,35 @@ public class TimeGears : MonoBehaviour
     {
         if (gate == null) return;
         gate.GetComponent<BoxCollider2D>().enabled = !q.hasKey;
-        if (gateLight != null) gateLight.color = q.hasKey ? Color.white : new Color(0.35f, 0.38f, 0.45f, 0.9f);
+        if (gateLight != null) gateLight.color = q.hasKey ? Color.white : GateShut;
+        gatePhase = q.gateOpened ? 2 : 0;
+        gatePhaseAt = Time.time;
+    }
+
+    // The portal plays its frames: the arch flickers, dull without the key; the first time the key's holder comes
+    // near, it opens (a flash, a light shake), then its swirl turns.
+    void AnimateGate()
+    {
+        var q = Here;
+        if (gate == null || gateLight == null || gateFrames == null || q == null) return;
+        var leader = team != null ? team.Controlled : null;
+        if (gatePhase == 0 && q.hasKey && !island.Away && leader != null && Vector2.Distance(leader.transform.position, gate.transform.position) < GateOpenReach)
+        {
+            gatePhase = 1;
+            gatePhaseAt = Time.time;
+            CameraFollow.Shake(0.1f, 0.25f);
+            EffectPlayer.Spawn("evolution_eclat", (Vector2)gate.transform.position + Vector2.up, Vector2.right);
+        }
+        int frame = (int)((Time.time - gatePhaseAt) / GateFrameTime);
+        if (gatePhase == 1 && frame >= GateLoop)
+        {
+            gatePhase = 2;
+            q.gateOpened = true;
+            gatePhaseAt = Time.time;
+            frame = 0;
+        }
+        int first = gatePhase * GateLoop;
+        gateLight.sprite = gateFrames[first + (gatePhase == 1 ? frame : frame % GateLoop)];
     }
 
     void FixedUpdate()
@@ -790,6 +894,7 @@ public class TimeGears : MonoBehaviour
     // Dev: G in the test quarter switches its way of giving the gear (boss, fragments).
     void Update()
     {
+        AnimateGate();
         if (!testPlan || !SaveData.Settings.devMode || madeFor == null || UnityEngine.InputSystem.Keyboard.current == null) return;
         if (!UnityEngine.InputSystem.Keyboard.current.gKey.wasPressedThisFrame) return;
         ForceTestMode(Data.testMode == Boss ? Fragments : Boss);

@@ -171,6 +171,7 @@ public partial class IslandPlan
 
         // The fan: from the point, between the two sides (wavering), up to the coast.
         var point = new Vector2(t.voidMargin, t.voidMargin);
+        hub = point;
         for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {

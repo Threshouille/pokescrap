@@ -49,6 +49,7 @@ public partial class IslandPlan
 
     public int size; // the map is size × size tiles
     public int[] region; // Void, Border, Moat, Centre, or the quarter (0 to 3)
+    public Vector2 hub; // the island's middle (the test quarter: its fan's point): a quarter's round coast faces away from it
     public SubBiome[] biome; // per tile, null off the quarters
     public float[] altitude, moisture; // per tile, 0 to 1 (ranked within the quarter)
     public int[] decor; // per tile: a ROM décor drawing it instead of its sub-biome's (a road), 0 for none; may be null
@@ -184,6 +185,7 @@ public partial class IslandPlan
         for (int i = 0; i < offsets.Length; i++) offsets[i] = new Vector2((float)rng.NextDouble() * 1000f, (float)rng.NextDouble() * 1000f);
 
         float c = size / 2f;
+        hub = new Vector2(c, c);
         // Peaks: in the middle of each quarter, two thirds of the way to the coast.
         var peaks = new Vector2[4];
         for (int q = 0; q < 4; q++)

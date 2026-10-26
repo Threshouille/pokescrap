@@ -188,8 +188,9 @@ public class BossAI : MonoBehaviour
         combatant.Drive(Vector2.zero);
         animator.direction = PmdAnimator.DirectionIndex(aim);
         animator.Play("Idle");
+        // An island boss has no numbers: it is read by its moves, its pauses and its size.
         bubble.sprite = Shapes.NumberBubble(slot + 1);
-        bubble.gameObject.SetActive(true);
+        bubble.gameObject.SetActive(!seeksReach);
         Enter(State.Announce, windup);
     }
 }
