@@ -49,16 +49,11 @@ public partial class Combatant
         switch (move.body)
         {
             case "leap":
-                // Onto the target when it is within reach, else as far as it goes toward the aim.
                 bodyFrom = transform.position;
-                Vector2 spot = bodyFrom + direction * move.range;
-                if (AimTarget != null && AimTarget.IsAlive && Vector2.Distance(AimTarget.transform.position, bodyFrom) <= move.range + 0.7f)
-                {
-                    // Lands just short of the target, not on it (bodies on top of each other fly apart).
-                    Vector2 to = (Vector2)AimTarget.transform.position - bodyFrom;
-                    spot = bodyFrom + to.normalized * Mathf.Max(0f, to.magnitude - 0.7f);
-                }
-                bodyTo = SafeLanding(bodyFrom, spot);
+                // Onto the target, which it follows through the air (only a last-moment dodge escapes it).
+                bodyTarget = AimTarget != null && AimTarget.IsAlive && Vector2.Distance(AimTarget.transform.position, bodyFrom) <= move.range + 0.7f
+                    ? AimTarget : FindAimTarget(this, direction, SaveData.Settings.aimCone, move.range + 0.7f, SaveData.Settings.aimDistanceWeight);
+                bodyTo = bodyTarget != null ? LeapSpot(bodyTarget.transform.position) : SafeLanding(bodyFrom, bodyFrom + direction * move.range);
                 PassThroughOpponents();
                 break;
             case "grab":
@@ -83,6 +78,15 @@ public partial class Combatant
         return true;
     }
 
+    const float LeapTrackShare = 0.85f; // share of the jump during which the landing spot follows the target
+
+    // Just short of the target (bodies landing on top of each other fly apart), and short of walls.
+    Vector2 LeapSpot(Vector2 target)
+    {
+        Vector2 to = target - bodyFrom;
+        return SafeLanding(bodyFrom, bodyFrom + (to.sqrMagnitude > 0.0001f ? to.normalized : Vector2.right) * Mathf.Max(0f, to.magnitude - 0.7f));
+    }
+
     // Where a leap can end: short of walls, on walkable ground.
     Vector2 SafeLanding(Vector2 from, Vector2 to)
     {
@@ -104,7 +108,9 @@ public partial class Combatant
         {
             case "leap":
             {
-                // Arc through the air (the sprite swells as it rises), then the landing hits all around.
+                // Arc through the air (the sprite swells as it rises), then the landing hits all around. The landing
+                // spot follows the target until the last moment of the jump.
+                if (bodyTarget != null && bodyTarget.IsAlive && t < LeapTrackShare) bodyTo = LeapSpot(bodyTarget.transform.position);
                 Vector2 at = Vector2.Lerp(bodyFrom, bodyTo, t);
                 if (body != null) body.position = at;
                 transform.localScale = bodyScale * (1f + 0.35f * Mathf.Sin(Mathf.PI * t));
@@ -128,8 +134,9 @@ public partial class Combatant
                     return;
                 }
                 // Both rise, the target held just above the user, then crash down.
-                transform.localScale = bodyScale * (1f + 0.4f * Mathf.Sin(Mathf.PI * t));
-                bodyTarget.transform.position = transform.position + Vector3.up * (0.6f + 0.8f * Mathf.Sin(Mathf.PI * t));
+                transform.localScale = bodyScale * (1f + 0.6f * Mathf.Sin(Mathf.PI * t));
+                bodyTarget.transform.localScale = bodyTarget.bodyScale * (1f + 0.4f * Mathf.Sin(Mathf.PI * t));
+                bodyTarget.transform.position = transform.position + Vector3.up * (0.6f + 2.2f * Mathf.Sin(Mathf.PI * t));
                 if (t < 1f) return;
                 bodyTarget.transform.position = transform.position + Vector3.up * 0.4f;
                 HitSource = this;
@@ -254,6 +261,7 @@ public partial class Combatant
             var c = other.GetComponentInParent<Combatant>();
             if (c == null || c.team == team || !c.IsAlive) continue;
             bodyTarget = c;
+            c.bodyScale = c.transform.localScale;
             lungeUntil = 0f; // the dash stops here
             if (body != null) body.linearVelocity = Vector2.zero;
             bodyStart = Time.time;
@@ -310,7 +318,7 @@ public partial class Combatant
         if (bodyMove == null) return;
         if (bodyMove.body == "leap" || bodyMove.body == "grab" || bodyMove.body == "liquid") EndDodge();
         transform.localScale = bodyScale;
-        if (bodyMove.body == "lift" && bodyTarget != null) bodyTarget.transform.localScale = bodyTarget.bodyScale;
+        if ((bodyMove.body == "lift" || bodyMove.body == "grab") && bodyTarget != null) bodyTarget.transform.localScale = bodyTarget.bodyScale;
         bodyMove = null;
         bodyTarget = null;
     }
