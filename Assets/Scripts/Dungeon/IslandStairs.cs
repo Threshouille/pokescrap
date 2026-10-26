@@ -55,6 +55,15 @@ public abstract class IslandStairs : MonoBehaviour
     public string forceContent;
     /// Gone once used (the secret stairs), or there for good.
     protected virtual bool OneUse => false;
+    /// The zone their tile belongs to (a bridge over the sky: its quarter's).
+    protected virtual int ZoneOf(Vector2Int tile) => Plan.region[Plan.Index(tile.x, tile.y)];
+    /// Where the team comes back from their rooms (their own tile by default).
+    protected virtual Vector2Int ReturnTile => Tile;
+    /// Drawn (stairs), or an unseen place to walk onto (a bridge leading on).
+    protected virtual bool ShowMarker => true;
+    /// Story art under the stairs (a seal stone), or null.
+    protected virtual Sprite Look => null;
+
     /// Hidden for now (under a cracked rock, behind a shut door).
     protected virtual bool Hidden(Vector2Int cell) => false;
 
@@ -64,7 +73,7 @@ public abstract class IslandStairs : MonoBehaviour
 
     /// The stairs still wait in that zone (the mini-map marks them in tests).
     public bool Waiting(int inZone) =>
-        Plan != null && !used && !inRoom && Tile.x >= 0 && Plan.region[Plan.Index(Tile.x, Tile.y)] == inZone;
+        Plan != null && !used && !inRoom && Tile.x >= 0 && ZoneOf(Tile) == inZone;
 
     void Awake()
     {
@@ -104,6 +113,18 @@ public abstract class IslandStairs : MonoBehaviour
         if (!Waiting(island.Zone)) return;
         zone = island.Zone;
         stairs = Marker(StairsName, island.Cell(Tile), Colour);
+        if (!ShowMarker)
+            foreach (var r in stairs.GetComponentsInChildren<SpriteRenderer>()) Destroy(r);
+        else if (Look != null)
+        {
+            // The story's art under the stairs, the stairs a little smaller on it.
+            var look = new GameObject("Décor").AddComponent<SpriteRenderer>();
+            look.transform.SetParent(stairs.transform, false);
+            look.sprite = Look;
+            look.sortingOrder = -2;
+            stairs.transform.localScale = Vector3.one * 0.7f;
+            look.transform.localScale = Vector3.one / 0.7f;
+        }
         armed = false;
     }
 
@@ -251,6 +272,6 @@ public abstract class IslandStairs : MonoBehaviour
         floor = 0;
         foreach (var zoneArea in FindObjectsByType<global::Zone>()) Destroy(zoneArea.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
-        island.Return(zone, Tile);
+        island.Return(zone, ReturnTile);
     }
 }

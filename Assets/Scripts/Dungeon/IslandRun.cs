@@ -91,6 +91,7 @@ public class IslandRun : MonoBehaviour
         gears = GetComponent<TimeGears>();
         if (gears == null) gears = gameObject.AddComponent<TimeGears>(); // after the population: its places are kept clear
         gears.Bind(this);
+        gears.Prepare(plan); // its bridges over the sky before the first zone is built
         // After the gears (their places are made first when a zone is built).
         if (GetComponent<KeyDungeon>() == null) gameObject.AddComponent<KeyDungeon>();
         if (GetComponent<BossPortal>() == null) gameObject.AddComponent<BossPortal>();

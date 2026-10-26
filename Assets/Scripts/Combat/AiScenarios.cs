@@ -1964,10 +1964,10 @@ public class AiScenarios : MonoBehaviour
         int legendaries = 0;
         for (int k = 0; k < 600; k++) { gears.PickBoss("test", out bool legend); if (legend) legendaries++; }
         // The portal, without the key: nothing happens.
-        IEnumerator Walk(Vector2? to)
+        IEnumerator Walk(Vector2? to, Vector2? from = null)
         {
             if (to == null) yield break;
-            foreach (var m in members) Teleport(m, to.Value + Vector2.down * 3f);
+            foreach (var m in members) Teleport(m, from ?? to.Value + Vector2.down * 3f);
             yield return new WaitForSeconds(0.3f);
             foreach (var m in members) Teleport(m, to.Value);
             float until = Time.realtimeSinceStartup + 6f;
@@ -1986,7 +1986,12 @@ public class AiScenarios : MonoBehaviour
                 yield return new WaitForSeconds(0.5f);
             }
         }
-        yield return Walk(portal.StairsAt);
+        // The islet's bridge, from the coast at its foot (the islet itself is only seen).
+        Vector2 coast = run.Cell(q.portalTile);
+        bool bridged = q.HasBridge;
+        bool landmark = plan.caves.Contains(q.dungeonTile) || (plan.height != null && plan.height[plan.Index(q.dungeonTile.x, q.dungeonTile.y)] > 0)
+                        || plan.clearings.Any(c => Vector2.Distance(c, q.dungeonTile) < 2f);
+        yield return Walk(portal.StairsAt, coast);
         bool shut = !portal.InRoom;
         // The key dungeon: room after room.
         yield return Walk(dungeon.StairsAt);
@@ -2004,8 +2009,8 @@ public class AiScenarios : MonoBehaviour
         yield return new WaitForSeconds(0.3f);
         bool key = q.hasKey;
         yield return Walk(dungeon.BackAt);
-        // The islet.
-        yield return Walk(portal.StairsAt);
+        // The islet: out on the bridge.
+        yield return Walk(portal.StairsAt, coast);
         var bosses = gears.BossInPlay.Where(c => c != null).ToList();
         bool big = bosses.Count > 0 && bosses.All(c => c.transform.localScale.x >= 1.5f);
         bool phase = bosses.Count > 0 && bosses.All(c => c.GetComponent<EnemyUltimate>() is { } u && (u.Item == SpecialItems.Family.Mega || u.Item == SpecialItems.Family.Tera));
@@ -2036,8 +2041,8 @@ public class AiScenarios : MonoBehaviour
         EndIsland(run);
         float rate = legendaries / 6f;
         bool themed = dungeonTheme == TimeGears.DungeonTheme(q0);
-        Report(shut && inDungeon && themed && second && guardianReady && key && big && phase && fixedSet && locked && gear && rate > 0.5f && rate < 7f && fragments == 3 && hints == 3 && together,
-            $"portail fermé sans clé {shut} ; donjon {inDungeon} (thème {dungeonTheme}, attendu {TimeGears.DungeonTheme(q0)}), 2e salle {second}, gardien {guardian?.Stats.name} prêt {guardianReady}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, jeu fixe {fixedSet}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
+        Report(bridged && landmark && shut && inDungeon && themed && second && guardianReady && key && big && phase && fixedSet && locked && gear && rate > 0.5f && rate < 7f && fragments == 3 && hints == 3 && together,
+            $"pont {bridged}, donjon sur un point d'intérêt {landmark}, portail fermé sans clé {shut} ; donjon {inDungeon} (thème {dungeonTheme}, attendu {TimeGears.DungeonTheme(q0)}), 2e salle {second}, gardien {guardian?.Stats.name} prêt {guardianReady}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, jeu fixe {fixedSet}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
     }
 
     void EndIsland(IslandRun run)

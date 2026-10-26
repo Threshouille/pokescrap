@@ -21,6 +21,7 @@ public class TimeGears : MonoBehaviour
     class BossSettings
     {
         public string roomType = "boss", keyIcon = "pmd_Key_White", chestIcon;
+        public int bridgeLength = 9; // tiles of rope bridge from the coast toward the islet
         public float dungeonShare = 0.45f, portalShare = 0.5f, legendaryChance = 0.03f, scale = 1.6f;
         public float health = 22f, stoneChance = 0.3f, damage = 4f, speed = 0.9f, recover = 0.6f, hitCap = 0.35f, areaWindup = 0.3f;
         public int level = 3;
@@ -91,6 +92,12 @@ public class TimeGears : MonoBehaviour
         public string mode;
         public bool gear, bossBeaten, hasKey;
         public Vector2Int dungeonTile = new(-1, -1), portalTile = new(-1, -1); // the key dungeon's entrance, the islet's portal
+        /// The rope bridge to the islet: its tiles (2 wide, from the coast), its direction, the gate (first row), where
+        /// it takes the team to the arena (near its end), the islet seen beyond it. None: a portal on the coast.
+        public readonly List<Vector2Int> bridge = new();
+        public Vector2Int bridgeDir, gateTile = new(-1, -1), triggerTile = new(-1, -1);
+        public Vector2 isletAt;
+        public bool HasBridge => bridge.Count > 0;
         public int boss; // the boss's Pokémon id (0: none)
         public bool legendary; // it Terastallizes instead of mega evolving
         public int rank;
@@ -125,6 +132,12 @@ public class TimeGears : MonoBehaviour
     {
         island = GetComponent<IslandRun>();
         if (island != null) island.Built += OnBuilt; // none in the test arena's boss room (SandboxBoss)
+    }
+
+    /// Makes the gears' places of a plan before its first zone is built (its sky bridges must be in the plan).
+    public void Prepare(IslandPlan plan)
+    {
+        if (plan != madeFor) Make(plan);
     }
 
     /// Follows that island (added before it, by the test arena's boss room).
@@ -219,15 +232,30 @@ public class TimeGears : MonoBehaviour
         int Height(Vector2Int t) => plan.height != null ? plan.height[plan.Index(t.x, t.y)] : 0;
         if (mode != Fragments)
         {
-            // The key dungeon's entrance: far from the arrival, clear of the camps; the portal: on the coast (open
-            // land by the sky), farther still, away from the dungeon.
+            // The key dungeon on the quarter's landmark: a cave's mouth (the mountain's), else the highest plateau,
+            // else a forest's clearing, else somewhere far.
+            var caves = plan.caves.Where(c => plan.region[plan.Index(c.x, c.y)] == q && c != plan.sealedCave).ToList();
+            int top = land.Max(Height);
+            var heights = top > 0 ? land.Where(t => Height(t) == top).ToList() : new List<Vector2Int>();
+            var glades = plan.clearings.Select(c => Vector2Int.RoundToInt(c)).Where(c => plan.region[plan.Index(c.x, c.y)] == q).ToList();
             var deep = land.Where(t => Vector2.Distance(t, arrival) >= Data.boss.dungeonShare * far && ClearOfCamps(t, 6f)).ToList();
-            quarter.dungeonTile = (deep.Count > 0 ? deep : land)[rng.Next((deep.Count > 0 ? deep : land).Count)];
+            quarter.dungeonTile = caves.Count > 0 ? caves[rng.Next(caves.Count)]
+                : heights.Count > 0 ? heights.OrderBy(t => Vector2.Distance(t, Centroid(heights))).First()
+                : glades.Count > 0 ? glades[rng.Next(glades.Count)]
+                : (deep.Count > 0 ? deep : land)[rng.Next((deep.Count > 0 ? deep : land).Count)];
+            // The islet's bridge: from the coast, far from the arrival and the dungeon, straight out over the sky.
             var coast = land.Where(t => ByTheSky(plan, t) && Vector2.Distance(t, arrival) >= Data.boss.portalShare * far
-                                        && Vector2.Distance(t, quarter.dungeonTile) >= 15f && ClearOfCamps(t, 6f)).ToList();
-            if (coast.Count == 0) coast = land.Where(t => Vector2.Distance(t, quarter.dungeonTile) >= 15f).ToList();
-            if (coast.Count == 0) coast = land;
-            quarter.portalTile = coast.OrderByDescending(t => Vector2.Distance(t, arrival)).Take(Mathf.Max(1, coast.Count / 5)).OrderBy(_ => rng.Next()).First();
+                                        && Vector2.Distance(t, quarter.dungeonTile) >= 15f).OrderByDescending(t => Vector2.Distance(t, arrival)).ToList();
+            foreach (var t in coast.Take(60))
+                if (LayBridge(plan, q, t, quarter)) break;
+            if (!quarter.HasBridge)
+            {
+                if (coast.Count == 0) coast = land.Where(t => Vector2.Distance(t, quarter.dungeonTile) >= 15f).ToList();
+                if (coast.Count == 0) coast = land;
+                quarter.portalTile = coast[rng.Next(Mathf.Max(1, coast.Count / 5))];
+            }
+            plan.reserved.Add(quarter.dungeonTile);
+            plan.reserved.Add(quarter.portalTile);
             quarter.distance = far > 0f ? Vector2.Distance(quarter.portalTile, arrival) / far : 1f;
             quarter.boss = PickBoss(plan.themes[q]?.key, out quarter.legendary);
             if (quarter.boss <= 0) quarter.gear = true; // no boss at all: the way stays open
@@ -249,6 +277,45 @@ public class TimeGears : MonoBehaviour
         }
         quarter.distance = 0.5f;
         return quarter;
+    }
+
+    static Vector2 Centroid(List<Vector2Int> tiles)
+    {
+        var sum = Vector2.zero;
+        foreach (var t in tiles) sum += t;
+        return tiles.Count > 0 ? sum / tiles.Count : Vector2.zero;
+    }
+
+    // A rope bridge from that coast tile straight out over the sky, two tiles wide, in the first of the four
+    // directions where the whole length is sky: true when laid (its tiles join the plan's sky bridges).
+    bool LayBridge(IslandPlan plan, int q, Vector2Int coast, Quarter quarter)
+    {
+        int length = Data.boss.bridgeLength;
+        foreach (var dir in new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right }.OrderBy(_ => rng.Next()))
+        {
+            var side = new Vector2Int(Mathf.Abs(dir.y), Mathf.Abs(dir.x)); // the second tile of width
+            var cells = new List<Vector2Int>();
+            bool sky = true;
+            for (int k = 1; k <= length && sky; k++)
+                for (int w = 0; w < 2 && sky; w++)
+                {
+                    var c = coast + dir * k + side * w;
+                    if (c.x < 1 || c.y < 1 || c.x >= plan.size - 1 || c.y >= plan.size - 1 || plan.region[plan.Index(c.x, c.y)] != IslandPlan.Void) sky = false;
+                    else cells.Add(c);
+                }
+            // Its first row must touch the coast on both tiles (no gap to step over).
+            var beside = coast + side;
+            if (!sky || plan.region[plan.Index(beside.x, beside.y)] != q) continue;
+            quarter.bridge.AddRange(cells);
+            quarter.bridgeDir = dir;
+            quarter.portalTile = coast;
+            quarter.gateTile = coast + dir;
+            quarter.triggerTile = coast + dir * (length - 1);
+            quarter.isletAt = (Vector2)(coast + dir * (length + 3)) + (Vector2)side * 0.5f;
+            foreach (var c in cells) plan.skyBridge[plan.Index(c.x, c.y)] = q;
+            return true;
+        }
+        return false;
     }
 
     // An open tile with the sky (the island's edge) within two tiles: the coast.
@@ -330,6 +397,7 @@ public class TimeGears : MonoBehaviour
         RefreshHints();
         var q = Here;
         if (q == null || spawner == null) return;
+        if (q.mode != Fragments && q.HasBridge) DrawBridge(q);
         foreach (var f in q.fragments)
         {
             if (f.taken) continue;
@@ -389,7 +457,8 @@ public class TimeGears : MonoBehaviour
     {
         if (q == null || q.hasKey) return;
         q.hasKey = true;
-        progression?.Announce("Clé de l'îlot obtenue : le portail de la côte s'ouvre", Notice.Elite);
+        SetGate(q);
+        progression?.Announce("Clé de l'îlot obtenue : le portail du pont s'ouvre", Notice.Elite);
         team?.GetComponent<TeamHud>()?.ShowCard("Clé de l'îlot", "Le portail au bord de la côte mène au boss du quartier", SpecialItems.Icon(Data.boss.keyIcon));
     }
 
@@ -545,7 +614,7 @@ public class TimeGears : MonoBehaviour
         go.transform.position = at;
         go.transform.localScale = Vector3.one * size;
         var r = go.AddComponent<SpriteRenderer>();
-        r.sprite = Shapes.Gear;
+        r.sprite = RomArt.Get("GroundObjects/time_gear") ?? Shapes.Gear; // the story's Time Gear
         r.sortingOrder = 2;
         return go;
     }
@@ -563,6 +632,72 @@ public class TimeGears : MonoBehaviour
             f.spawned.Clear();
         }
         pickups.Clear();
+        if (bridgeRoot != null) Destroy(bridgeRoot.gameObject);
+        bridgeRoot = null;
+        gate = null;
+    }
+
+    // ---- The islet's bridge (story art: the beach pier's planks, a light portal, Temporal Tower's floating rocks) ----
+
+    const int BridgeOrder = -4, IsletOrder = -5; // over the sky, under the Pokémon
+    Transform bridgeRoot;
+    GameObject gate;
+    SpriteRenderer gateLight;
+    float gateWarnedAt = -10f;
+
+    static float Angle(Vector2Int dir) => dir == Vector2Int.up ? 0f : dir == Vector2Int.down ? 180f : dir == Vector2Int.left ? 90f : -90f;
+
+    // The rope bridge over its tiles, the portal at its foot (shut without the key), the islet's rocks beyond.
+    void DrawBridge(Quarter q)
+    {
+        bridgeRoot = new GameObject("Îlot du boss").transform;
+        var side = new Vector2(Mathf.Abs(q.bridgeDir.y), Mathf.Abs(q.bridgeDir.x)) * 0.5f; // between its two tiles
+        var mid = RomArt.Get("Bridges/rope_bridge_mid");
+        var end = RomArt.Get("Bridges/rope_bridge_end");
+        int length = q.bridge.Count / 2;
+        for (int k = 1; k <= length; k++)
+        {
+            var piece = new GameObject($"Pont {k}").AddComponent<SpriteRenderer>();
+            piece.transform.SetParent(bridgeRoot, false);
+            piece.transform.position = island.Cell(q.portalTile + q.bridgeDir * k) + side;
+            // The far end keeps its posts, facing the islet.
+            piece.sprite = k == length && end != null ? end : mid;
+            piece.transform.rotation = Quaternion.Euler(0f, 0f, Angle(q.bridgeDir) + (k == length ? 180f : 0f));
+            piece.sortingOrder = BridgeOrder;
+        }
+        // The islet: a few floating rocks out in the sky, seen, not reached.
+        var rocks = new[] { ("GroundObjects/floating_rock", Vector2.zero, 1.6f), ("GroundObjects/floating_rock_b", new Vector2(-2.6f, -1.2f), 0.9f),
+                            ("GroundObjects/floating_rock_c", new Vector2(2.4f, 1.4f), 0.8f) };
+        Vector2 islet = island.Cell(Vector2Int.RoundToInt(q.isletAt)) + (q.isletAt - (Vector2)Vector2Int.RoundToInt(q.isletAt));
+        foreach (var (path, offset, size) in rocks)
+        {
+            var sprite = RomArt.Get(path);
+            if (sprite == null) continue;
+            var rock = new GameObject("Rocher flottant").AddComponent<SpriteRenderer>();
+            rock.transform.SetParent(bridgeRoot, false);
+            rock.transform.position = islet + offset;
+            rock.transform.localScale = Vector3.one * size;
+            rock.sprite = sprite;
+            rock.sortingOrder = IsletOrder;
+        }
+        // The portal at its foot: grey and shut until the team has the key.
+        gate = new GameObject("Portail de l'îlot");
+        gate.transform.SetParent(bridgeRoot, false);
+        gate.transform.position = island.Cell(q.gateTile) + side;
+        gateLight = gate.AddComponent<SpriteRenderer>();
+        gateLight.sprite = RomArt.Get("GroundObjects/light_portal", new Vector2(0.5f, 0.1f));
+        gateLight.sortingOrder = 1; // stands like a Pokémon (sorted by its foot)
+        gateLight.spriteSortPoint = SpriteSortPoint.Pivot;
+        var wall = gate.AddComponent<BoxCollider2D>();
+        wall.size = q.bridgeDir.x == 0 ? new Vector2(2f, 0.5f) : new Vector2(0.5f, 2f);
+        SetGate(q);
+    }
+
+    void SetGate(Quarter q)
+    {
+        if (gate == null) return;
+        gate.GetComponent<BoxCollider2D>().enabled = !q.hasKey;
+        if (gateLight != null) gateLight.color = q.hasKey ? Color.white : new Color(0.35f, 0.38f, 0.45f, 0.9f);
     }
 
     void FixedUpdate()
@@ -576,6 +711,11 @@ public class TimeGears : MonoBehaviour
             if (!f.guardBeaten && f.spawned.Count > 0 && f.spawned.All(c => c == null || !c.IsAlive)) f.guardBeaten = true;
         if (leader == null) return;
         Vector2 at = leader.transform.position;
+        if (gate != null && !q.hasKey && Vector2.Distance(at, gate.transform.position) < 1.6f && Time.time - gateWarnedAt > 2.5f)
+        {
+            gateWarnedAt = Time.time;
+            progression?.Announce("Le portail est scellé : il faut la clé de l'îlot, au fond du donjon de la clé", Notice.Alert);
+        }
         for (int i = pickups.Count - 1; i >= 0; i--)
         {
             var (go, f) = pickups[i];
@@ -594,7 +734,7 @@ public class TimeGears : MonoBehaviour
     {
         q.gear = true;
         progression?.Announce($"Engrenage du Temps obtenu ({Found} / {Total}) : le passage suivant s'ouvre", Notice.Elite);
-        team?.GetComponent<TeamHud>()?.ShowCard("Engrenage du Temps", Found >= Total ? "Le centre de l'île s'ouvre" : "Le passage vers le quartier suivant s'ouvre", Shapes.Gear);
+        team?.GetComponent<TeamHud>()?.ShowCard("Engrenage du Temps", Found >= Total ? "Le centre de l'île s'ouvre" : "Le passage vers le quartier suivant s'ouvre", RomArt.Get("GroundObjects/time_gear") ?? Shapes.Gear);
     }
 
     void RefreshHints()
@@ -621,7 +761,14 @@ public class TimeGears : MonoBehaviour
         if (!testPlan || madeFor == null) return;
         Data.testMode = mode;
         Despawn();
+        foreach (var k in madeFor.skyBridge.Where(e => e.Value == 0).Select(e => e.Key).ToList()) madeFor.skyBridge.Remove(k);
+        madeFor.reserved.Clear();
         quarters[0] = MakeQuarter(madeFor, 0, 0, mode, GetComponent<IslandPopulation>());
+        if (island != null && island.Plan == madeFor)
+        {
+            island.Return(island.Zone, madeFor.Arrival(island.Zone)); // its bridge over the sky must be built
+            return;
+        }
         SpawnZone();
         GetComponent<KeyDungeon>()?.Refresh();
         GetComponent<BossPortal>()?.Refresh();
@@ -665,5 +812,45 @@ public class TimeGears : MonoBehaviour
         label ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
         label.fontSize = Mathf.RoundToInt(7f * s);
         GUI.Label(new Rect(box.x + 6f * s, box.y, box.width - 12f * s, box.height), line, label);
+        KeyItems(new Rect(box.x, box.yMax + 3f * s, box.width, 16f * s), q, s);
+    }
+
+    // The important items, under the counter: a Time Gear per quarter (lit once found), the quarter's key (grey until
+    // found) or its fragments. Story art (GroundObjects, PMDCollab's key).
+    void KeyItems(Rect row, Quarter q, float s)
+    {
+        Panel(row, s);
+        float size = 12f * s, x = row.x + 4f * s, y = row.y + 2f * s;
+        var gear = RomArt.Get("GroundObjects/time_gear");
+        for (int k = 0; k < 4; k++)
+        {
+            var quarter = quarters[madeFor.order[k]];
+            if (quarter == null) continue;
+            Icon(new Rect(x, y, size, size), gear, quarter.gear ? 1f : 0.25f);
+            x += size + 2f * s;
+        }
+        if (q == null || q.gear) return;
+        x += 6f * s;
+        if (q.mode == Fragments)
+            foreach (var f in q.fragments)
+            {
+                Icon(new Rect(x, y + 2f * s, size * 0.7f, size * 0.7f), gear, f.taken ? 1f : 0.25f);
+                x += size * 0.7f + 2f * s;
+            }
+        else Icon(new Rect(x, y, size, size), SpecialItems.Icon(Data.boss.keyIcon), q.hasKey ? 1f : 0.25f);
+    }
+
+    static void Icon(Rect rect, Sprite sprite, float alpha)
+    {
+        if (sprite == null) return;
+        var t = sprite.texture;
+        var r = sprite.textureRect;
+        // Keep its proportions inside the square.
+        float scale = Mathf.Min(rect.width / r.width, rect.height / r.height);
+        var fit = new Rect(rect.center.x - r.width * scale / 2f, rect.center.y - r.height * scale / 2f, r.width * scale, r.height * scale);
+        var previous = GUI.color;
+        GUI.color = new Color(alpha < 1f ? 0.5f : 1f, alpha < 1f ? 0.5f : 1f, alpha < 1f ? 0.55f : 1f, Mathf.Max(alpha, 0.6f));
+        GUI.DrawTextureWithTexCoords(fit, t, new Rect(r.x / t.width, r.y / t.height, r.width / t.width, r.height / t.height));
+        GUI.color = previous;
     }
 }

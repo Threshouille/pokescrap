@@ -1,8 +1,9 @@
 using UnityEngine;
 
-/// The portal on the coast of a quarter whose gear comes from a boss (TimeGears): shut until the team has the key of
-/// the islet (KeyDungeon); then it leads to the islet, a boss arena where the way out stays shut until the boss
-/// falls, which gives the gear. Added by IslandRun.
+/// The way to the islet of a quarter whose gear comes from a boss (TimeGears): the rope bridge over the sky, behind a
+/// portal shut until the team has the key (KeyDungeon); walking out on it takes the team straight to the boss's arena
+/// (the islet seen at its end is only seen), where the way out stays shut until the boss falls, which gives the gear;
+/// back on the coast at the bridge's foot. Without room for a bridge, a portal on the coast. Added by IslandRun.
 public class BossPortal : IslandStairs
 {
     TimeGears gears;
@@ -10,7 +11,11 @@ public class BossPortal : IslandStairs
     TimeGears Gears => gears != null ? gears : gears = GetComponent<TimeGears>();
     TimeGears.Quarter Quarter => Gears != null ? Gears.Here : null;
 
-    protected override Vector2Int Tile => Quarter != null && Quarter.mode != TimeGears.Fragments ? Quarter.portalTile : new Vector2Int(-1, -1);
+    protected override Vector2Int Tile => Quarter == null || Quarter.mode == TimeGears.Fragments ? new Vector2Int(-1, -1)
+        : Quarter.HasBridge ? Quarter.triggerTile : Quarter.portalTile;
+    protected override int ZoneOf(Vector2Int tile) => Quarter != null && Quarter.HasBridge ? island.Zone : base.ZoneOf(tile);
+    protected override Vector2Int ReturnTile => Quarter != null ? Quarter.portalTile : Tile;
+    protected override bool ShowMarker => Quarter == null || !Quarter.HasBridge; // the bridge itself leads on
     protected override string StairsName => "Portail de l'îlot";
     protected override string RoomName => "Îlot du boss";
     protected override Color Colour => new(0.75f, 0.5f, 1f);

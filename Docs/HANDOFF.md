@@ -4,6 +4,26 @@ Dernière mise à jour : 26/10/2026 (Robin : socle technique fusionné dans `fea
 techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons). Bilan complet du 25/10 : avancement,
 branches, axes de refonte et questions de conception (page partagée par Robin).
 
+## Reprise (26/10/2026, Robin) : où on s'est arrêté
+
+Branche `feature/engrenages` (contient `feature/peuplement` et `refacto/socle`), **pas poussée**, pas fusionnée dans
+`dev`. Dernier commit : 5ee3e72 (cinématiques de boss). Non commité depuis : accès à l'îlot du boss (donjon de la clé sur
+le point d'intérêt, pont de corde tiré de la ROM, portail scellé, rochers flottants, objets importants à l'écran),
+extraction d'art de la ROM (`extract_ground_objects.py`, `extract_bridge.py`, `ground_objects.json`), filtre du banc.
+
+Retours du dernier test (Robin) :
+- Pont de corde : bien.
+- Portail de lumière à l'entrée du pont : « un peu foireux » (taille, placement ou rendu à revoir).
+- Dalle de sceau sous l'entrée du donjon de la clé : retirée (mal intégrée dans une grotte) ; une entrée sur mesure
+  est prévue plus tard.
+
+À faire ensuite :
+1. Corriger le portail du pont ; entrée sur mesure du donjon de la clé.
+2. Banc : `python3 Tools/setup.py --ai-scenarios Engrenages` (ciblé), puis banc complet avant toute fusion dans dev.
+3. Commit, puis boss plus dynamiques (ruée, renforts à mi-PV), passe d'équilibrage générale, puis l'aspect graphique.
+4. Plus tard : salle rouge du terrain de test qui tire le boss au hasard à l'entrée (N reste pour choisir) ; quêtes
+   du Tableau des missions ; asset de la clé (prompt `Design/prompt_cle_ilot.md`, engrenage déjà tiré de la ROM).
+
 ## Méthode de travail
 
 - Owen et Robin écrivent en français ; réponses courtes, économie de tokens (voir `CLAUDE.md`).

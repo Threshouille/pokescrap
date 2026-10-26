@@ -208,7 +208,10 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   au bord de la côte qui ne s'ouvre qu'avec la clé de l'îlot, au fond d'un donjon propre au boss (une embuscade, puis un
   gardien près d'un coffre qui contient la clé) ; dans l'îlot, la sortie reste fermée jusqu'à sa chute (engrenage et
   coffre). Le boss est plus grand qu'un Pokémon ordinaire (× 1,6), a plus de PV et une barre de vie qui n'annonce
-  pas sa seconde phase (surprise). Équilibrage (26/10/2026) : niveau de l'équipe + 2 (jamais sous celui du
+  pas sa seconde phase (surprise). Accès (26/10/2026) : le donjon de la clé est sur le point d'intérêt du
+  quartier (grotte du sommet, plus haut plateau ou clairière) ; un pont de corde part de la côte vers l'îlot, aperçu
+  au large (rochers flottants), fermé par un portail de lumière qui s'ouvre avec la clé ; avancer sur le pont mène
+  directement à l'arène. Objets importants à l'écran (engrenages, clé, fragments). Art tiré de la ROM. Équilibrage (26/10/2026) : niveau de l'équipe + 2 (jamais sous celui du
   quartier), × 22 PV, un coup ne retire jamais plus de 35 % des PV max de sa cible, annonces de ses attaques de zone
   allongées de 0,3 s ; arène Vol : archipel de petites îles au-dessus du vide et de l'eau, beaucoup de ponts. À mi-PV, le combat s'arrête : la caméra se centre sur lui pendant qu'il
   méga-évolue (animation rapide, environ 1,5 s, personne ne bouge ni n'attaque), puis le combat reprend (26/10/2026). Roster limité par zone (26/10/2026) : forêt Altaria, Gardevoir, Gallame, Lockpin ;

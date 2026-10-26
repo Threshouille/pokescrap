@@ -143,7 +143,7 @@ public class IslandPopulation : MonoBehaviour
     public static List<Vector2Int> Land(IslandPlan plan, int q, out Vector2Int arrival)
     {
         arrival = plan.Arrival(q);
-        var keep = new List<Vector2Int>(plan.markers.Concat(plan.caves));
+        var keep = new List<Vector2Int>(plan.markers.Concat(plan.caves).Concat(plan.reserved));
         foreach (var p in plan.passages) { if (p.from == q) keep.Add(p.a); if (p.to == q) keep.Add(p.b); }
         if (plan.secret.x >= 0) keep.Add(plan.secret);
         if (plan.sealedCave.x >= 0) keep.Add(plan.sealedCave);
