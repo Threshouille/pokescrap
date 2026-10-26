@@ -324,10 +324,31 @@ public class TerrainSandbox : MonoBehaviour
                 Obstacles.Place(x, y, bridge && Mathf.Abs(y - centre.y) <= 0 ? "bridge" : "water");
     }
 
+    // The boss room: the bosses of the first zone's roster (time_gears.json, "test"), as on their islet.
+    int bossIndex;
+    readonly List<Combatant> bossParty = new();
+    List<(int id, bool legendary)> BossRoster => TimeGears.Roster("test");
+    string arenaName => DungeonGenerator.Current != null && DungeonGenerator.Current.room != null && DungeonGenerator.Current.room.variant != null
+        ? DungeonGenerator.Current.room.variant.name : "—";
+
     void SpawnFighter()
     {
         var spawner = GetComponent<EnemySpawner>();
         var arena = DungeonGenerator.Current;
+        if (room == BossRoom)
+        {
+            var roster = BossRoster;
+            if (spawner == null || arena == null || roster.Count == 0) return;
+            var (id, legendary) = roster[bossIndex % roster.Count];
+            var gears = GetComponent<TimeGears>();
+            if (gears == null) gears = gameObject.AddComponent<TimeGears>();
+            foreach (var c in bossParty) if (c != null) Destroy(c.gameObject);
+            bossParty.Clear();
+            bossParty.AddRange(gears.SandboxBoss(id, legendary, spawner, arena.RandomOpenPosition(rng, 8f, arena.SpawnPoint)));
+            fighter = bossParty.Count > 0 ? bossParty[0] : null;
+            fighterBack = 0f;
+            return;
+        }
         var f = room == EliteRoom ? Settings().eliteRoom : Settings().bossRoom;
         if (spawner == null || arena == null || f.pokemon <= 0) return;
         fighter = spawner.SpawnFighter(f.pokemon, f.moves.Length > 0 ? f.moves : null, Centre(arena) + Vec(f.offset),
@@ -347,6 +368,7 @@ public class TerrainSandbox : MonoBehaviour
         }
         if (Time.time < fighterBack) return;
         if (fighter != null) Destroy(fighter.gameObject);
+        if (room == BossRoom) { Switch(BossRoom); return; } // the arena again, the minions too
         SpawnFighter();
     }
 
@@ -503,6 +525,8 @@ public class TerrainSandbox : MonoBehaviour
         if (fighter != null) Destroy(fighter.gameObject);
         fighter = null;
         fighterBack = 0f;
+        foreach (var c in bossParty) if (c != null) Destroy(c.gameObject); // the islet boss's minions
+        bossParty.Clear();
         RestoreItems();
         var demos = GetComponent<RescueDemos>();
         if (room != RescueRoom && demos != null) Destroy(demos);
@@ -529,7 +553,13 @@ public class TerrainSandbox : MonoBehaviour
             PlaceStairs();
             return;
         }
-        if (room == 3)
+        if (room == BossRoom && BossRoster.Count > 0)
+        {
+            // The arena made for this boss's types (islands and bridges for a Vol, lava for a Feu...).
+            var (id, legendary) = BossRoster[bossIndex % BossRoster.Count];
+            arena.room = TimeGears.ArenaFor(id, legendary, rng);
+        }
+        else if (room == 3)
         {
             var types = RoomCatalog.Types;
             shownRoom = RoomCatalog.Pick(roomType > 0 && roomType <= types.Count ? types[roomType - 1].key : null, rng);
@@ -576,7 +606,7 @@ public class TerrainSandbox : MonoBehaviour
             fadeInUntil = Time.unscaledTime + FadeTime;
         }
         if (room == ZDemoRoom && pendingRoom < 0) UpdateZDemo(); // input: read each frame
-        if ((room != 1 && room != 3 && room != 4 && room != 5 && room != EliteRoom && room != EncounterRoom) || pendingRoom >= 0) return;
+        if ((room != 1 && room != 3 && room != 4 && room != 5 && room != EliteRoom && room != BossRoom && room != EncounterRoom) || pendingRoom >= 0) return;
         var pad = Gamepad.current;
         var kb = Keyboard.current;
         if ((kb != null && kb.rKey.wasPressedThisFrame) || (pad != null && pad.selectButton.wasPressedThisFrame))
@@ -590,6 +620,12 @@ public class TerrainSandbox : MonoBehaviour
             quarterSeed = IslandPlan.LastQuarterSeed;
             quarterRock++;
             Switch(5);
+        }
+        // Boss room: N or d-pad up for the next boss of the roster (its own arena).
+        if (room == BossRoom && ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame)))
+        {
+            bossIndex++;
+            Switch(BossRoom);
         }
         // Room gallery: N or d-pad up picks the type of room shown (any, then each type in turn).
         if (room == 3 && ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame)))
@@ -622,7 +658,7 @@ public class TerrainSandbox : MonoBehaviour
             : room == RescueRoom ? (GetComponent<RescueDemos>() is { } rescue ? rescue.Line() : "Démos de secours")
             : room == EncounterRoom ? (GetComponent<EncounterLab>() is { } lab ? lab.Line(drawn) : "Observation des rencontres")
             : room == EliteRoom ? $"Salle de l'élite : rivière {(bridge ? "avec un pont (en mêlée sur le pont, l'élite le brûle)" : "sans pont (l'élite la gèle pour venir)")}     R ou Select : {(bridge ? "sans" : "avec")} pont     Escalier (en haut à gauche) : retour"
-            : room == BossRoom ? $"Salle du boss : {fighter?.Stats?.name ?? "boss"} {(fighter != null ? $"{Mathf.CeilToInt(fighter.hp)}/{Mathf.CeilToInt(fighter.maxHp)} PV" : "(revient bientôt)")} : téracristal ou capacité Z selon la situation     Escalier (en haut) : retour"
+            : room == BossRoom ? $"Boss d'îlot ({bossIndex % Mathf.Max(1, BossRoster.Count) + 1}/{BossRoster.Count}) : {fighter?.Stats?.name ?? "boss"}{(fighter == null || !fighter.IsAlive ? " (revient bientôt)" : "")} · arène {arenaName}     N ou ↑ : boss suivant     R ou Select : relancer     Escalier (en haut) : retour"
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : room == 4 ? $"Île de test : {(island?.Quarter >= 0 ? $"{island.Plan.themes[island.Quarter].name} (quartier {System.Array.IndexOf(island.Plan.order, island.Quarter) + 1}/4) — {island.Biome?.name}" : "hors des quartiers")}     R ou Select : nouvelle île     Escalier (à l'arrivée) : retour"
             : room == 5 ? $"Quart d'île de test : {island?.Biome?.name ?? "—"}     R ou Select : nouveau tirage     C ou croix bas : autre roche     Escalier (à l'arrivée) : retour"

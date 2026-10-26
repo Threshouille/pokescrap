@@ -26,7 +26,36 @@ public static class HudLayout
     /// Room left between the stage box and the lots panel.
     public static float CenterWidth(float s) => Mathf.Max(160f * s, Screen.width - 2f * (Side + LotsWidth + Side) * s);
 
-    public static float BannerTop(float s) => Top * s + (SandboxLine > 0f ? SandboxLine + 4f * s : 0f);
+    // Reserved this frame or the last one by what draws there (IMGUI calls the screens in no set order).
+    static float bossBar, rightColumn;
+    static int bossBarFrame = -10, rightColumnFrame = -10;
+
+    /// A boss bar takes this height at the top centre (EnemySpawner's stage boss, TimeGears' islet boss).
+    public static void ReserveBossBar(float height)
+    {
+        bossBar = height;
+        bossBarFrame = Time.frameCount;
+    }
+
+    /// The right column (the lots panel) ends this low: the island's mini-map goes below.
+    public static void ReserveRightColumn(float bottom)
+    {
+        rightColumn = bottom;
+        rightColumnFrame = Time.frameCount;
+    }
+
+    static float BossBarHeight => Time.frameCount - bossBarFrame <= 1 ? bossBar : 0f;
+
+    /// Where a boss bar goes: top centre, below the sandbox room line.
+    public static float BossBarTop(float s) => Top * s + (SandboxLine > 0f ? SandboxLine + 4f * s : 0f);
+
+    /// The top of the right column: below the weather's name when there is a weather.
+    public static float RightTop(float s) => (Climate.Now != null ? Top + 14f : Top) * s;
+
+    /// Below the right column (the island's mini-map).
+    public static float BelowRightColumn(float s) => Time.frameCount - rightColumnFrame <= 1 ? rightColumn + 4f * s : RightTop(s);
+
+    public static float BannerTop(float s) => BossBarTop(s) + (BossBarHeight > 0f ? BossBarHeight + 6f * s : 0f);
 
     /// Below the banners at their most (three of them).
     public static float BelowBanners(float s) => BannerTop(s) + 3f * (BannerHeight + BannerGap) * s + 2f * s;
@@ -42,6 +71,17 @@ public static class HudLayout
     }
 
     public static void Panel(Rect rect, float s) => Panel(rect, PanelColour, BorderColour, s);
+
+    /// A health bar's shown share, eased toward the real one: it fills up visibly (a boss's heal at its second phase)
+    /// at "fill" bars a second, and drops quickly. Moves once a frame (OnGUI runs several times).
+    public static float Ease(ref float shown, ref int frame, float target, float fill = 1f)
+    {
+        if (Event.current == null || Event.current.type != EventType.Repaint || frame == Time.frameCount) return shown;
+        frame = Time.frameCount;
+        if (shown < 0f || target < shown - 0.25f) shown = target; // a new bar, or a big blow: at once
+        else shown = Mathf.MoveTowards(shown, target, Time.unscaledDeltaTime * (target > shown ? fill : 3f));
+        return shown;
+    }
 
     /// A plain box of that colour (the current GUI.color is ignored).
     public static void Fill(Rect rect, Color color)

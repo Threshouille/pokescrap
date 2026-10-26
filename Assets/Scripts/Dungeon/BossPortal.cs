@@ -12,7 +12,7 @@ public class BossPortal : IslandStairs
 
     protected override Vector2Int Tile => Quarter != null && Quarter.mode != TimeGears.Fragments ? Quarter.portalTile : new Vector2Int(-1, -1);
     protected override string StairsName => "Portail de l'îlot";
-    protected override string RoomName => "Îlot du gardien";
+    protected override string RoomName => "Îlot du boss";
     protected override Color Colour => new(0.75f, 0.5f, 1f);
     protected override SecretRooms.Room Room => new() { type = TimeGears.BossRoomType };
     protected override string Kind => "boss";

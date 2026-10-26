@@ -29,6 +29,8 @@ public class BossAI : MonoBehaviour
     /// An island boss (TimeGears): it picks its move first and walks to that move's reach, circles its target while
     /// waiting, and its pause after a move shrinks with its recharges (its second phase).
     [System.NonSerialized] public bool seeksReach;
+    /// Seconds added to the announcement of its area moves (time to get out).
+    [System.NonSerialized] public float areaWindup;
     const float StrafeSwap = 2.5f; // seconds before it circles the other way
     int planned = -1;
 
@@ -51,6 +53,7 @@ public class BossAI : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
         animator = GetComponent<PmdAnimator>();
         combatant = GetComponent<Combatant>();
+        combatant.Died += BossDefeat.Play; // its fall on screen, the team healed
 
         var go = new GameObject("Bubble");
         go.transform.SetParent(transform, false);
@@ -179,7 +182,8 @@ public class BossAI : MonoBehaviour
         aim = toTarget.normalized;
         aimDistance = toTarget.magnitude;
         var move = combatant.Moves[slot];
-        float windup = (move.windup > 0f ? move.windup : DefaultWindup) * (Enraged ? enragedAnnounce : 1f);
+        float windup = (move.windup > 0f ? move.windup : DefaultWindup) * (Enraged ? enragedAnnounce : 1f)
+                       + (move.family == "zone" || move.family == "burst" ? areaWindup : 0f);
 
         combatant.Drive(Vector2.zero);
         animator.direction = PmdAnimator.DirectionIndex(aim);

@@ -77,7 +77,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   PV (plus jamais au premier contact) ; une élite ou un boss ne peut pas franchir ce seuil d'un seul coup. À la
   transformation (immobile et invincible un instant, onde qui repousse l'équipe) : +30 % des PV max (boss +20 %, ennemi
   d'un rang à objet +10 %), recharges × 0,8, en plus des statistiques ou du type. La capacité Z ne soigne pas ; la méga
-  et la Téra du joueur non plus. En contrepartie, le champion passe de 6 à 5 fois les PV.
+  et la Téra du joueur rendent 15 % des PV max (`ultimateHeal`, décidé le 26/10/2026). En contrepartie, le champion passe de 6 à 5 fois les PV.
 - Obtention (à affiner) : boss (méga-gemme non possédée, compatible avec l'équipe en priorité), coffre de fin d'étape
   (Z ou Téra pondérés vers les types de l'équipe), rare ennemi d'élite ; plus tard défis, quêtes, îlots, boutique.
 
@@ -207,8 +207,11 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   suivant fermé jusqu'à l'engrenage du quartier, centre avec les quatre. Le boss est sur un îlot à part, par un portail
   au bord de la côte qui ne s'ouvre qu'avec la clé de l'îlot, au fond d'un donjon propre au boss (une embuscade, puis un
   gardien près d'un coffre qui contient la clé) ; dans l'îlot, la sortie reste fermée jusqu'à sa chute (engrenage et
-  coffre). Le boss est plus grand qu'un Pokémon ordinaire (× 1,6), a plus de PV (× 12) et une barre en deux phases ;
-  il méga-évolue à sa seconde phase. Roster limité par zone (26/10/2026) : forêt Altaria, Gardevoir, Gallame, Lockpin ;
+  coffre). Le boss est plus grand qu'un Pokémon ordinaire (× 1,6), a plus de PV et une barre de vie qui n'annonce
+  pas sa seconde phase (surprise). Équilibrage (26/10/2026) : niveau de l'équipe + 2 (jamais sous celui du
+  quartier), × 22 PV, un coup ne retire jamais plus de 35 % des PV max de sa cible, annonces de ses attaques de zone
+  allongées de 0,3 s ; arène Vol : archipel de petites îles au-dessus du vide et de l'eau, beaucoup de ponts. À mi-PV, le combat s'arrête : la caméra se centre sur lui pendant qu'il
+  méga-évolue (animation rapide, environ 1,5 s, personne ne bouge ni n'attaque), puis le combat reprend (26/10/2026). Roster limité par zone (26/10/2026) : forêt Altaria, Gardevoir, Gallame, Lockpin ;
   volcan Dracaufeu, Démolosse, Camérupt, Tyranocif ; glacier Oniglali, Absol, Altaria ; côte Ptéra, Airmure,
   Dracaufeu ; désert Steelix, Mysdibule, Camérupt, Tyranocif ; ruines Alakazam, Ectoplasma, Branette, Ténéfix,
   Charmina, Lucario. Légendaire à 3 % (Téracristal d'un type avantageux à sa seconde phase) : forêt Celebi, volcan

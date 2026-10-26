@@ -90,6 +90,7 @@ public class IslandRun : MonoBehaviour
         if (GetComponent<IslandPopulation>() == null) gameObject.AddComponent<IslandPopulation>();
         gears = GetComponent<TimeGears>();
         if (gears == null) gears = gameObject.AddComponent<TimeGears>(); // after the population: its places are kept clear
+        gears.Bind(this);
         // After the gears (their places are made first when a zone is built).
         if (GetComponent<KeyDungeon>() == null) gameObject.AddComponent<KeyDungeon>();
         if (GetComponent<BossPortal>() == null) gameObject.AddComponent<BossPortal>();
@@ -336,7 +337,9 @@ public class IslandRun : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         // The current zone only.
         float scale = MapSize / Mathf.Max(bounds.width, bounds.height) * s;
-        var rect = new Rect(Screen.width - 8f * s - bounds.width * scale, 34f * s, bounds.width * scale, bounds.height * scale);
+        // Top right, below the lots panel (HudLayout): never over it.
+        var rect = new Rect(Screen.width - 8f * s - bounds.width * scale, Mathf.Max(HudLayout.RightTop(s), HudLayout.BelowRightColumn(s)),
+            bounds.width * scale, bounds.height * scale);
         var uv = new Rect(bounds.x / (float)Plan.size, bounds.y / (float)Plan.size, bounds.width / (float)Plan.size, bounds.height / (float)Plan.size);
         var previous = GUI.color;
         GUI.color = new Color(0f, 0f, 0f, 0.35f);

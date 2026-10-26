@@ -72,6 +72,7 @@
   "megaBossFill": 0.5,
   "megaTime": 50,
   "megaCastTime": 1.5,
+  "ultimateHeal": 0.15,
   "evolutionCardChance": 0.5,
   "statTieMargin": 0.1,
   "nightColor": "#0a1440",

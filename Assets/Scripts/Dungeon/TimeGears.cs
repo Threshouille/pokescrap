@@ -22,7 +22,7 @@ public class TimeGears : MonoBehaviour
     {
         public string roomType = "boss", keyIcon = "pmd_Key_White", chestIcon;
         public float dungeonShare = 0.45f, portalShare = 0.5f, legendaryChance = 0.03f, scale = 1.6f;
-        public float health = 30f, stoneChance = 0.3f, damage = 4f, speed = 0.9f, recover = 0.6f;
+        public float health = 22f, stoneChance = 0.3f, damage = 4f, speed = 0.9f, recover = 0.6f, hitCap = 0.35f, areaWindup = 0.3f;
         public int level = 3;
         public string[] dungeonRooms = { "ambush", "guardian" };
     }
@@ -124,6 +124,14 @@ public class TimeGears : MonoBehaviour
     void Awake()
     {
         island = GetComponent<IslandRun>();
+        if (island != null) island.Built += OnBuilt; // none in the test arena's boss room (SandboxBoss)
+    }
+
+    /// Follows that island (added before it, by the test arena's boss room).
+    public void Bind(IslandRun run)
+    {
+        if (island != null || run == null) return;
+        island = run;
         island.Built += OnBuilt;
     }
 
@@ -313,8 +321,9 @@ public class TimeGears : MonoBehaviour
 
     // ---- Playing ----
 
-    // The quarter's level, or the team's when it is higher (a boss must not fall to a team that outgrew the island).
-    int Level(Quarter q, int bonus) => Mathf.Max(Data.baseLevel + Populations.LevelBonus(q.rank, q.distance), progression != null ? progression.Level : 1) + bonus;
+    // The team's level plus a bonus, never under the quarter's (a boss follows the team, neither crushes it nor falls
+    // to a team that outgrew the island).
+    int Level(Quarter q, int bonus) => Mathf.Max(Data.baseLevel + Populations.LevelBonus(q.rank, q.distance), (progression != null ? progression.Level : 1) + bonus);
 
     void SpawnZone()
     {
@@ -337,6 +346,38 @@ public class TimeGears : MonoBehaviour
         }
     }
 
+    // ---- The test arena's boss room (TerrainSandbox) ----
+
+    /// The bosses of a zone's roster, then its legendary: the test arena shows them one after the other.
+    public static List<(int id, bool legendary)> Roster(string theme)
+    {
+        var bosses = Array.Find(Data.bosses, b => b.theme == theme);
+        var list = new List<(int, bool)>();
+        if (bosses == null) return list;
+        foreach (int id in bosses.roster)
+            if (PokemonRoster.Has(id) && GameData.MegasOf(id).Count > 0) list.Add((id, false));
+        int legend = bosses.legendary.FirstOrDefault(PokemonRoster.Has);
+        if (legend > 0) list.Add((legend, true));
+        return list;
+    }
+
+    // As in the first quarter, near its arrival: the boss follows the team's level only.
+    static Quarter SandboxQuarter(int id, bool legendary) => new() { mode = Boss, boss = id, legendary = legendary, rank = 0, distance = 0f };
+
+    /// The arena an islet would have for that boss.
+    public static RoomInstance ArenaFor(int id, bool legendary, System.Random random)
+    {
+        var (theme, variant) = ArenaRoom(SandboxQuarter(id, legendary));
+        return (theme != null ? RoomCatalog.Pick(Data.boss.roomType, random, theme, variant) : null) ?? RoomCatalog.Pick(Data.boss.roomType, random);
+    }
+
+    /// That boss as on its islet (with its minions), at the team's level: the test arena's boss room.
+    public List<Combatant> SandboxBoss(int id, bool legendary, EnemySpawner by, Vector2 at)
+    {
+        if (progression == null) progression = FindAnyObjectByType<Progression>();
+        return SpawnBoss(SandboxQuarter(id, legendary), by, at);
+    }
+
     // ---- The key dungeon and the islet (KeyDungeon, BossPortal) ----
 
     /// The rooms of a quarter's key dungeon, in order (room_contents.json keys).
@@ -349,7 +390,7 @@ public class TimeGears : MonoBehaviour
         if (q == null || q.hasKey) return;
         q.hasKey = true;
         progression?.Announce("Clé de l'îlot obtenue : le portail de la côte s'ouvre", Notice.Elite);
-        team?.GetComponent<TeamHud>()?.ShowCard("Clé de l'îlot", "Le portail au bord de la côte mène au gardien du quartier", SpecialItems.Icon(Data.boss.keyIcon));
+        team?.GetComponent<TeamHud>()?.ShowCard("Clé de l'îlot", "Le portail au bord de la côte mène au boss du quartier", SpecialItems.Icon(Data.boss.keyIcon));
     }
 
     // A fighter of the island's rooms, at the level of the quarter: the strongest moves of its list unless it has
@@ -413,11 +454,13 @@ public class TimeGears : MonoBehaviour
         if (c == null) return all;
         c.transform.localScale = Vector3.one * Data.boss.scale;
         c.damageFactor *= Data.boss.damage;
+        c.hitCap = Data.boss.hitCap; // never a whole bar in one blow
         if (c.GetComponent<BossAI>() is { } ai)
         {
             ai.seeksReach = true;
             ai.speedFactor = Data.boss.speed;
             ai.recoverTime = Data.boss.recover;
+            ai.areaWindup = Data.boss.areaWindup;
         }
         if (c.GetComponent<EnemyUltimate>() is { } ultimate)
         {
@@ -436,7 +479,7 @@ public class TimeGears : MonoBehaviour
             m.gameObject.AddComponent<EliteMark>(); // burns the bridges, freezes the water... like the elites
             all.Add(m);
         }
-        progression?.Announce($"Le gardien du quartier : {c.Stats.name} !", Notice.Elite);
+        progression?.Announce($"Le boss du quartier : {c.Stats.name} !", Notice.Elite);
         return all;
     }
 
@@ -460,6 +503,8 @@ public class TimeGears : MonoBehaviour
         Loot.Mark(guardian);
         guardian.damageFactor *= Data.guardian.damage;
         var tera = guardian.gameObject.AddComponent<EnemyUltimate>();
+        tera.cutScene = true; // its Tera on screen too, shorter than a boss's
+        guardian.Died += BossDefeat.PlayGuardian; // and its fall
         if (tera.BestTeraType(out _) is int type and > 0) tera.Carry(SpecialItems.Family.Tera, type);
         all.Add(guardian);
         var minions = OfTypes(BossTypes(q), Populations.Stage(q.rank, q.distance)).Where(id => !evolved.Contains(id)).ToList();
@@ -523,6 +568,7 @@ public class TimeGears : MonoBehaviour
     void FixedUpdate()
     {
         var q = Here;
+        if (island == null) return;
         if (island.Away && pickups.Count > 0) Despawn(); // into a room: back when the zone is built again
         if (q == null || island.Away || LoadingScreen.Busy) return;
         var leader = team != null ? team.Controlled : null;
@@ -582,29 +628,32 @@ public class TimeGears : MonoBehaviour
     }
 
     GUIStyle label, barLabel;
+    float barShown = -1f;
+    int barFrame;
     static readonly Color FirstPhase = new(0.85f, 0.2f, 0.2f), SecondPhase = new(0.75f, 0.3f, 0.95f);
 
-    // The islet's boss, top centre: its name, a mark at the threshold of its second phase, another colour once in it.
+    // The islet's boss, top centre: its name and health (another colour once it has changed).
     void BossBar(float s)
     {
         var b = boss.FirstOrDefault(c => c != null && c.IsAlive);
-        if (b == null) return;
+        if (b == null) { barShown = -1f; return; }
         var ultimate = b.GetComponent<EnemyUltimate>();
         bool second = ultimate != null && !string.IsNullOrEmpty(ultimate.LastUsed);
-        var bar = new Rect(Screen.width / 2f - 110f * s, (Top + 2f) * s, 220f * s, 9f * s);
+        var bar = new Rect(Screen.width / 2f - 110f * s, BossBarTop(s), 220f * s, 9f * s);
+        ReserveBossBar(11f * s);
         Fill(new Rect(bar.x - s, bar.y - s, bar.width + 2f * s, bar.height + 2f * s), new Color(0f, 0f, 0f, 0.8f));
-        Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(b.hp / b.maxHp), bar.height), second ? SecondPhase : FirstPhase);
-        if (!second) Fill(new Rect(bar.x + bar.width * SpecialItems.Enemy.phaseHealth - s, bar.y - 2f * s, 2f * s, bar.height + 4f * s), Color.white);
+        float shown = Ease(ref barShown, ref barFrame, Mathf.Clamp01(b.hp / b.maxHp), 0.25f); // its heal fills the bar over ~1 s
+        Fill(new Rect(bar.x, bar.y, bar.width * shown, bar.height), second ? SecondPhase : FirstPhase);
         barLabel ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
         barLabel.fontSize = Mathf.RoundToInt(7f * s);
-        GUI.Label(bar, $"{b.Stats.name} · phase {(second ? 2 : 1)} / 2", barLabel);
+        GUI.Label(bar, b.Stats.name, barLabel); // no hint of a second phase: it comes as a surprise
     }
 
     void OnGUI()
     {
-        if (madeFor == null || Total == 0) return;
         float s = Scale;
         BossBar(s);
+        if (madeFor == null || Total == 0) return;
         if (island.Away) return;
         var box = new Rect(Side * s, (Top + 31f) * s, StageWidth * s, 14f * s);
         Panel(box, s);
@@ -612,7 +661,7 @@ public class TimeGears : MonoBehaviour
         string line = $"Engrenages du Temps : {Found} / {Total}";
         if (q != null && !q.gear)
             line += q.mode == Fragments ? $" · fragments {q.fragments.Count(f => f.taken)} / {q.fragments.Count}"
-                : q.hasKey ? " · îlot du gardien" : " · clé dans le donjon";
+                : q.hasKey ? " · îlot du boss" : " · clé dans le donjon";
         label ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
         label.fontSize = Mathf.RoundToInt(7f * s);
         GUI.Label(new Rect(box.x + 6f * s, box.y, box.width - 12f * s, box.height), line, label);

@@ -386,9 +386,10 @@ public class EnemySpawner : MonoBehaviour
         float w = HudLayout.LotsWidth * s, line = 11f * s, pad = 6f * s;
         int total = 0;
         foreach (var l in lots) total += l.Alive;
-        float top = (Climate.Now != null ? HudLayout.Top + 14f : HudLayout.Top) * s;
+        float top = HudLayout.RightTop(s);
         var box = new Rect(Screen.width - w - HudLayout.Side * s, top, w, (lots.Count + 1) * line + 2f * pad);
         HudLayout.Panel(box, s);
+        HudLayout.ReserveRightColumn(box.yMax);
         var bold = Style("lots.title", 8f, bold: true, clip: true);
         var row = Style("lots.row", 8f, clip: true);
         var count = Style("lots.count", 8f, anchor: TextAnchor.MiddleRight);
@@ -505,6 +506,9 @@ public class EnemySpawner : MonoBehaviour
             Run.ToMenu();
     }
 
+    float bossShown = -1f; // the boss bar's eased share (HudLayout.Ease)
+    int bossFrame;
+
     // Provisional display: stage and wave, boss health, fades and end-of-run screens.
     void OnGUI()
     {
@@ -538,9 +542,11 @@ public class EnemySpawner : MonoBehaviour
 
             if (bossStage && boss != null && boss.IsAlive)
             {
-                var bar = new Rect(cx - 110f * s, 20f * s, 220f * s, 9f * s);
+                var bar = new Rect(cx - 110f * s, HudLayout.BossBarTop(s), 220f * s, 9f * s);
+                HudLayout.ReserveBossBar(11f * s);
                 Fill(new Rect(bar.x - s, bar.y - s, bar.width + 2f * s, bar.height + 2f * s), new Color(0f, 0f, 0f, 0.75f));
-                Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(boss.hp / boss.maxHp), bar.height), new Color(0.85f, 0.2f, 0.2f));
+                float shown = HudLayout.Ease(ref bossShown, ref bossFrame, Mathf.Clamp01(boss.hp / boss.maxHp), 0.25f);
+                Fill(new Rect(bar.x, bar.y, bar.width * shown, bar.height), new Color(0.85f, 0.2f, 0.2f));
                 GUI.Label(bar, boss.Stats?.name, label);
             }
 
