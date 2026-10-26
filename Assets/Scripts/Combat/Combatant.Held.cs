@@ -131,9 +131,12 @@ public partial class Combatant
         }
     }
 
-    // Where a stream aims now: the player's aim (toward the target), else the AI's target, else the first direction.
+    // Where a held move aims now: the player's aim (toward the target, or where they point for a noAutoAim move),
+    // else the AI's target, else the first direction.
     Vector2 CurrentAim()
     {
+        var move = channelMove ?? chargeMove ?? linkMove;
+        if (move != null && move.noAutoAim && RawAim != Vector2.zero) return RawAim.normalized;
         if (LiveAim != Vector2.zero) return LiveAim.normalized;
         var foe = FindAimTarget(this, heldAim, SaveData.Settings.aimCone, channelMove != null ? channelMove.range + 2f : 8f, SaveData.Settings.aimDistanceWeight);
         if (foe != null) heldAim = ((Vector2)(foe.transform.position - transform.position)).normalized;
@@ -145,7 +148,7 @@ public partial class Combatant
         var move = chargeMove;
         Vector2 direction = Steer(CurrentAim());
         float distance = -1f;
-        AutoAim(move, 1, ref direction, ref distance);
+        if (!move.noAutoAim) AutoAim(move, 1, ref direction, ref distance);
         float size = Mathf.Lerp(1f, move.chargeSize > 0f ? move.chargeSize : 1f, charged);
         float damage = Mathf.Lerp(1f, move.chargeDamage > 0f ? move.chargeDamage : 1f, charged);
         Projectile.Spawn(this, move, direction, 0, 0f, -1f, 0f, null, null, size, damage);
@@ -189,7 +192,7 @@ public partial class Combatant
     void PlaceChargeOrb(float charged)
     {
         if (chargeOrb == null) return;
-        Vector2 aim = LiveAim != Vector2.zero ? LiveAim.normalized : heldAim;
+        Vector2 aim = CurrentAim();
         chargeOrb.transform.position = transform.position + (Vector3)(aim * 0.6f);
         float size = Mathf.Lerp(0.6f, chargeMove.chargeSize > 0f ? chargeMove.chargeSize : 1f, charged);
         // Full charge: it throbs to say so.

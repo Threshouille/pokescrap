@@ -1077,7 +1077,7 @@ public partial class Combatant : MonoBehaviour
     void FireProjectiles(MoveDef move, Vector2 direction, float distance)
     {
         int shots = Mathf.Max(1, move.count);
-        if (AimTarget != null && distance <= 0f) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
+        if (AimTarget != null && distance <= 0f && !move.noAutoAim) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
         for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
             for (int i = 0; i < shots; i++)
             {
