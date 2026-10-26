@@ -4527,6 +4527,212 @@
         "#9edc5a",
         "#e4ffb0"
       ]
+    },
+    {
+      "file": "plaquage_onde.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#4a4434",
+        "#a89a74",
+        "#d8ccaa",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "plaquage_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        67,
+        67,
+        66
+      ],
+      "loop": false,
+      "palette": [
+        "#4a4434",
+        "#a89a74",
+        "#d8ccaa",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "frappe_atlas_trainee.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#3a1606",
+        "#a81c24",
+        "#ee4a3a",
+        "#ffc4b4"
+      ]
+    },
+    {
+      "file": "frappe_atlas_onde.png",
+      "frame_width": 80,
+      "frame_height": 80,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#a81c24",
+        "#ee4a3a",
+        "#ffc4b4"
+      ]
+    },
+    {
+      "file": "acidarmure_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        84,
+        83,
+        83
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "gyroballe_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        67,
+        67,
+        66
+      ],
+      "loop": false,
+      "palette": [
+        "#2a2e38",
+        "#6a7488",
+        "#aab4c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "psyko_impact.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        65,
+        65,
+        65,
+        65
+      ],
+      "loop": false,
+      "palette": [
+        "#2a0c3c",
+        "#7a2ea8",
+        "#d04ab0",
+        "#ff92d6"
+      ]
+    },
+    {
+      "file": "coup_bas_coup.png",
+      "frame_width": 24,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": false,
+      "palette": [
+        "#0c0810",
+        "#2a1c2c",
+        "#6a2028",
+        "#c84040"
+      ]
+    },
+    {
+      "file": "coup_bas_contre.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#0c0810",
+        "#2a1c2c",
+        "#6a2028",
+        "#c84040"
+      ]
+    },
+    {
+      "file": "coup_bas_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        67,
+        67,
+        66
+      ],
+      "loop": false,
+      "palette": [
+        "#0c0810",
+        "#2a1c2c",
+        "#6a2028",
+        "#c84040"
+      ]
+    },
+    {
+      "file": "coup_bas_trainee.png",
+      "frame_width": 40,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#0c0810",
+        "#2a1c2c",
+        "#6a2028",
+        "#c84040"
+      ]
     }
   ]
 }
