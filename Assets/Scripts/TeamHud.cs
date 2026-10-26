@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
+using static HudLayout;
 
 /// On-screen display, bottom left: portrait and health of the Pokémon the player controls, and its four moves,
 /// each greyed out while it recharges. The two allies are shown as small portraits above it.
 [RequireComponent(typeof(PlayerController))]
 public class TeamHud : MonoBehaviour
 {
-    const float ReferenceHeight = 360f; // the layout below is written for a screen this tall, then scaled up
     const float IconSize = 10f;
     const float SmallPortrait = 20f, SmallGap = 5f, SmallBar = 3f, HeldIcon = 9f;
     const float AllyColumn = SmallPortrait + 3f + HeldIcon; // allies left of the portrait, their held item beside them
@@ -56,7 +56,7 @@ public class TeamHud : MonoBehaviour
         var combatant = team.Controlled;
         if (combatant == null || combatant.Stats == null || team.GameOver) return;
 
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / ReferenceHeight));
+        float s = HudLayout.Scale;
         text ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = false };
         text.fontSize = Mathf.RoundToInt(7f * s);
 
@@ -322,13 +322,6 @@ public class TeamHud : MonoBehaviour
     static Rect Grow(Rect rect, float amount) =>
         new(rect.x - amount, rect.y - amount, rect.width + 2f * amount, rect.height + 2f * amount);
 
-    static void Fill(Rect rect, Color color)
-    {
-        var previous = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = previous;
-    }
 
     // White text with a one-pixel dark shadow, readable on any background.
     void Label(Rect rect, string content, TextAnchor anchor) => Label(rect, content, anchor, Color.white);

@@ -403,6 +403,19 @@ public static class GameData
     /// without a condition of their own (Munja, which comes with Ninjask) are left out.
     static MegaDef[] megas;
 
+    /// Every mega evolution that has its sprites and stats (an island boss is drawn among them).
+    public static List<MegaDef> AllMegas
+    {
+        get
+        {
+            Load();
+            var result = new List<MegaDef>();
+            foreach (var m in megas)
+                if (m.stats != null && m.baseStats != null && PokemonRoster.Has(m.id)) result.Add(m);
+            return result;
+        }
+    }
+
     /// A mega evolution by its id (megas.json), or null.
     public static MegaDef Mega(int id)
     {
@@ -515,6 +528,13 @@ public static class GameData
     }
 
     /// Starting moves of a Pokémon, in slot order (missing slots are null).
+    /// Whether it has hand-made starting moves (realtime_moves.json loadouts: the bosses' four).
+    public static bool HasLoadout(int pokemonId)
+    {
+        Load();
+        return loadouts.ContainsKey(pokemonId);
+    }
+
     public static MoveDef[] StartingMoves(int pokemonId, int slots)
     {
         Load();

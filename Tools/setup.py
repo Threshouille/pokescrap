@@ -4,7 +4,9 @@
 Usage (from the project root, Unity closed):  python3 Tools/setup.py [--unity <path to the Unity executable>]
 Unity is looked for with --unity, then $UNITY_PATH, then in the Unity Hub folders (Linux, macOS, Windows).
 Only rerun the Unity build (e.g. after importing Pokémon):  python3 Tools/setup.py --unity-only [Class.Method]
-AI test bench (AiScenarios, a play session in batch mode):  python3 Tools/setup.py --ai-scenarios
+AI test bench (AiScenarios, a play session in batch mode):  python3 Tools/setup.py --ai-scenarios [word ...]
+  (with words: only the scenarios whose name holds one of them, e.g. --ai-scenarios Engrenages Peuplement)
+Edit-mode tests (Assets/Editor/Tests, a few seconds):  python3 Tools/setup.py --edit-tests
 
 Needs Rom/eos_eu.nds (Pokémon Mystery Dungeon: Explorers of Sky, EU, dumped from your own cartridge).
 The repository keeps the .meta file of every generated asset: this script puts each asset back at the path of
@@ -36,8 +38,10 @@ TILESETS = ROOT / "Assets/Tilesets"
 OBSTACLE_TILES = ROOT / "Assets/Resources/ObstacleTiles"
 CLIFFS = ROOT / "Assets/Resources/Cliffs"
 MAP_PROPS = ROOT / "Assets/Resources/MapProps"
+BRIDGES = ROOT / "Assets/Resources/Bridges"
+GROUND_OBJECTS = ROOT / "Assets/Resources/GroundObjects"
 # Folders whose content comes from the ROM (only their .meta files are versioned).
-GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, MAP_PROPS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data",
+GENERATED = [SPRITES, PORTRAITS, ANIMSETS, TILESETS, OBSTACLE_TILES, CLIFFS, MAP_PROPS, BRIDGES, GROUND_OBJECTS, ROOT / "Assets/Data", ROOT / "Assets/Resources/Data",
              ROOT / "Assets/Resources/Items"]
 # ScriptableObjects rebuilt by Unity: a placeholder keeps their GUID until the Build menus fill them.
 PLACEHOLDERS = {ANIMSETS: "Assets/Scripts/Pmd/PmdAnimSet.cs", TILESETS: "Assets/Scripts/Dungeon/DungeonTileset.cs"}
@@ -153,6 +157,10 @@ def restore_cliffs():
     run(python(), "-I", PMD / "extract_cliffs.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/cliff_styles.json", CLIFFS)
     step("Decor elements (story maps)")
     run(python(), "-I", PMD / "extract_map_props.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/map_props.json", MAP_PROPS)
+    step("Rope bridge (story map S01P02A)")
+    run(python(), "-I", PMD / "extract_bridge.py", ROOT / "Rom/files/data", BRIDGES)
+    step("Scene objects (GROUND, ground_objects.json)")
+    run(python(), "-I", PMD / "extract_ground_objects.py", ROOT / "Rom/files/data", ROOT / "Assets/Resources/Data/ground_objects.json", GROUND_OBJECTS)
 
 
 def script_guid(script):
@@ -260,18 +268,48 @@ def main():
     parser.add_argument("--force", action="store_true", help="redo every step")
     parser.add_argument("--unity-only", nargs="?", const="PmdSpriteImport.BuildEverything", metavar="METHOD",
                         help="only run a Unity batch method (default PmdSpriteImport.BuildEverything)")
-    parser.add_argument("--ai-scenarios", action="store_true",
-                        help="run the AI test bench in a batch play session (results in Logs/ai_scenarios.log)")
+    parser.add_argument("--ai-scenarios", nargs="*", metavar="WORD",
+                        help="run the AI test bench in a batch play session (results in Logs/ai_scenarios.log); "
+                             "with words, only the scenarios whose name holds one of them")
+    parser.add_argument("--edit-tests", action="store_true",
+                        help="run the edit-mode tests in batch mode (results in Logs/edit_tests.xml)")
     args = parser.parse_args()
 
-    if args.ai_scenarios:
+    if args.edit_tests:
+        unity = find_unity(args.unity)
+        if unity is None:
+            sys.exit("Unity not found: pass --unity <path> or set UNITY_PATH.")
+        results, log = ROOT / "Logs/edit_tests.xml", ROOT / "Logs/edit_tests.log"
+        results.parent.mkdir(exist_ok=True)
+        step("Edit-mode tests (batch)")
+        code = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT), "-runTests",
+                               "-testPlatform", "EditMode", "-testResults", str(results), "-logFile", str(log)]).returncode
+        if results.exists():
+            import xml.etree.ElementTree as ET
+            root = ET.parse(results).getroot()
+            for case in root.iter("test-case"):
+                print(f"{case.get('result', '?'):8} {case.get('name')}")
+                failure = case.find("failure/message")
+                if failure is not None and failure.text:
+                    print("         " + failure.text.strip().replace("\n", "\n         "))
+            print(f"{root.get('passed')}/{root.get('total')} passed")
+        sys.exit(code)
+
+    if args.ai_scenarios is not None:
         unity = find_unity(args.unity)
         if unity is None:
             sys.exit("Unity not found: pass --unity <path> or set UNITY_PATH.")
         log = ROOT / "Logs/ai_scenarios.log"
         step("AI test bench (batch play session)")
-        code = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT),
-                               "-executeMethod", "AiScenarioBatch.Run", "-logFile", str(log)]).returncode
+        # A frozen game (an endless loop) never reaches the bench's own time-out: Unity is stopped from here too.
+        try:
+            code = subprocess.run([str(unity), "-batchmode", "-nographics", "-projectPath", str(ROOT),
+                                   "-executeMethod", "AiScenarioBatch.Run", "-logFile", str(log),
+                                   *(["-aiScenarioFilter", "|".join(args.ai_scenarios)] if args.ai_scenarios else [])],
+                                  timeout=900).returncode
+        except subprocess.TimeoutExpired:
+            print("AISCENARIO FROZEN : Unity arrêté après 15 min sans fin du banc (boucle infinie ?)")
+            code = 98
         if log.exists():
             for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
                 if line.startswith("AISCENARIO"):

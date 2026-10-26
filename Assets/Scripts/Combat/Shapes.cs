@@ -201,6 +201,32 @@ public static class Shapes
     }
     static Sprite ring;
 
+    /// A Time Gear (TimeGears), until a hand-made sheet exists: a toothed ring, teal with a gold rim.
+    public static Sprite Gear
+    {
+        get
+        {
+            if (gear != null) return gear;
+            const int size = 32;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+            float c = size / 2f;
+            for (int x = 0; x < size; x++)
+                for (int y = 0; y < size; y++)
+                {
+                    var p = new Vector2(x + 0.5f - c, y + 0.5f - c);
+                    float d = p.magnitude, a = Mathf.Atan2(p.y, p.x);
+                    float outer = Mathf.Repeat(a / (Mathf.PI * 2f) * 8f, 1f) < 0.5f ? 15f : 12f; // eight teeth
+                    Color col = Color.clear;
+                    if (d <= outer) col = d > outer - 1.5f ? new Color(0.98f, 0.82f, 0.3f) : new Color(0.25f, 0.75f, 0.7f);
+                    if (d <= 4.5f) col = d > 3f ? new Color(0.98f, 0.82f, 0.3f) : Color.clear; // the hub
+                    tex.SetPixel(x, y, col);
+                }
+            tex.Apply();
+            return gear = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        }
+    }
+    static Sprite gear;
+
     // Runtime sprites are destroyed when play mode ends while statics can survive: hence the null checks.
     public static Sprite Circle
     {

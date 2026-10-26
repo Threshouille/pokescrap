@@ -153,7 +153,7 @@ public class RockSource
 
 /// A move of type "byType" hitting obstacle "on", or terrain "byTerrain" laid on it or next to it: it turns into
 /// "becomes" ("" removes it) for "duration" seconds (0: for good), or paints terrain "paintTerrain" over the whole
-/// connected obstacle; "leaves": terrain painted where it was removed; "path": also along a projectile's flight;
+/// connected obstacle (or "floodRadius" tiles of it around the hit); "leaves": terrain painted where it was removed; "path": also along a projectile's flight;
 /// "spread": the change then runs along the connected tiles of "on" (and of "spreadOver"), spreadDelay s a tile.
 [Serializable]
 public class ObstacleInteraction
@@ -170,6 +170,7 @@ public class ObstacleInteraction
     public float radius = 0.8f;
     public string paintTerrain;
     public string floodKind; // paintTerrain over the obstacle of this kind next to the hit (a charged magnet: the metal around)
+    public int floodRadius; // paintTerrain only this many tiles along the obstacle from the hit (a river on the island), 0: all of it
     public string action; // a behaviour of its own instead (pylons: "overcharge", "ground")
     public string leaves;
 }
@@ -658,7 +659,7 @@ public class Obstacles : MonoBehaviour
         }
         if (!string.IsNullOrEmpty(it.paintTerrain))
         {
-            var target = string.IsNullOrEmpty(it.floodKind) ? Flood(hit, on) : FloodNext(hit, Def(it.floodKind));
+            var target = string.IsNullOrEmpty(it.floodKind) ? Flood(hit, on, it.floodRadius > 0 ? it.floodRadius : int.MaxValue) : FloodNext(hit, Def(it.floodKind));
             Terrain.PaintCells(target, it.paintTerrain, it.duration, caster);
             return;
         }
@@ -714,21 +715,22 @@ public class Obstacles : MonoBehaviour
     }
 
     // Every tile of the same obstacle connected to the given ones.
-    List<(int, int)> Flood(List<(int, int)> start, ObstacleDef on)
+    List<(int, int)> Flood(List<(int, int)> start, ObstacleDef on, int maxSteps = int.MaxValue)
     {
         var seen = new HashSet<int>();
-        var queue = new Queue<(int, int)>();
+        var queue = new Queue<(int x, int y, int steps)>();
         foreach (var c in start)
-            if (seen.Add(c.Item2 * size + c.Item1)) queue.Enqueue(c);
+            if (seen.Add(c.Item2 * size + c.Item1)) queue.Enqueue((c.Item1, c.Item2, 0));
         var result = new List<(int, int)>();
         while (queue.Count > 0 && result.Count < FloodLimit)
         {
-            var (x, y) = queue.Dequeue();
+            var (x, y, steps) = queue.Dequeue();
             result.Add((x, y));
+            if (steps >= maxSteps) continue;
             foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
             {
                 int nx = x + dx, ny = y + dy;
-                if (KindAt(nx, ny) == on && seen.Add(ny * size + nx)) queue.Enqueue((nx, ny));
+                if (KindAt(nx, ny) == on && seen.Add(ny * size + nx)) queue.Enqueue((nx, ny, steps + 1));
             }
         }
         return result;

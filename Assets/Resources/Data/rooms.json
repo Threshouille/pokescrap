@@ -1632,6 +1632,56 @@
        }
       ]
      }
+    },
+    {
+     "key": "archipelago",
+     "name": "Archipel suspendu",
+     "weight": 0.3,
+     "sizes": [
+      "large"
+     ],
+     "layout": {
+      "style": "open"
+     },
+     "obstacles": {
+      "features": [
+       6,
+       8
+      ],
+      "spawnClear": 2,
+      "pool": [
+       {
+        "type": "island",
+        "weight": 2,
+        "kind": "void",
+        "sizes": [
+         2,
+         2
+        ],
+        "width": 2,
+        "bridges": [
+         2,
+         4
+        ],
+        "bridgeKind": "bridge"
+       },
+       {
+        "type": "island",
+        "weight": 1,
+        "kind": "water",
+        "sizes": [
+         2,
+         2
+        ],
+        "width": 2,
+        "bridges": [
+         2,
+         3
+        ],
+        "bridgeKind": "bridge"
+       }
+      ]
+     }
     }
    ],
    "liquidDecors": [

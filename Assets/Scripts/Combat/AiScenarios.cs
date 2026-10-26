@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -169,6 +170,11 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Rencontres : les rangs montent avec l'étape", RanksRise());
         yield return Scenario("Rencontres : les Pokémon vont avec le décor", FitsDecor());
         yield return Scenario("Rencontres : apparition avec rang, anneau et objet", EncounterSpawns());
+        yield return Scenario("Peuplement : chaque sous-biome a sa population, plus forte en avançant", HabitatsPopulated());
+        yield return Scenario("Peuplement : camps et rondes au repos, réveil, laisse, retour d'un autre lot", QuarterPopulated());
+        yield return Scenario("Salles de l'île : trésor, embuscade à sortie fermée, gardien sur son coffre", IslandRoomContents());
+        yield return Scenario("Engrenages : passages fermés jusqu'à l'engrenage, centre avec les quatre", GearsLockPassages());
+        yield return Scenario("Engrenages : donjon de la clé, portail de l'îlot, boss grand et prêt à sa seconde phase ; fragments et indices", GearsFromBossAndFragments());
 
         Clear();
         if (progression != null) progression.enabled = true;
@@ -469,33 +475,42 @@ public class AiScenarios : MonoBehaviour
         Report(now == to || (to == "burning_bridge" && now == "burnt_bridge"), $"{move.name} : {from} → {now}");
     }
 
-    // The ally (AI off) fires a straight Fire shot that ends its flight on a bridge tile: the bridge burns.
+    // The ally (AI off) fires a straight Fire shot that ends its flight on a bridge tile: the bridge burns. The river
+    // and its bridges are laid out anew each time: every bridge tile and eight directions are tried for a free tile
+    // at the shot's range with a clear line to it.
     IEnumerator FireShotBurnsBridge()
     {
         var (_, ally) = Place(Vector2.zero, Vector2.zero, settle: false);
-        var cell = FindCell("bridge");
         var fire = FindMove(2, m => m.family == "projectile" && m.path != "arc");
-        if (cell == null || fire == null) { Report(false, "pas de pont ou pas d'attaque Feu"); yield break; }
+        var bridges = FindCells("bridge");
+        if (bridges.Count == 0 || fire == null) { Report(false, "pas de pont ou pas d'attaque Feu"); yield break; }
         var grid = DungeonGenerator.Current;
-        Vector2 target = grid.CentreOf(cell.Value.x, cell.Value.y);
-        Vector2? stand = null;
-        foreach (var d in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+        Vector2Int? cell = null;
+        Vector2 target = Vector2.zero, stand = Vector2.zero;
+        foreach (var b in bridges)
         {
-            var at = grid.CellOf(target - d * fire.range);
-            if (grid.Walkable(at.x, at.y) && Obstacles.At(at.x, at.y) == null && grid.LineClear(grid.CentreOf(at.x, at.y), target, 0.2f))
+            target = grid.CentreOf(b.x, b.y);
+            for (int k = 0; k < 8 && cell == null; k++)
             {
-                stand = grid.CentreOf(at.x, at.y);
-                break;
+                var d = (Vector2)(Quaternion.Euler(0f, 0f, 45f * k) * Vector2.right);
+                var at = grid.CellOf(target - d * fire.range);
+                if (!grid.Walkable(at.x, at.y) || Obstacles.At(at.x, at.y) != null) continue;
+                var from = grid.CentreOf(at.x, at.y);
+                // The tile's centre must leave the shot ending on the bridge itself.
+                if (grid.CellOf(from + (target - from).normalized * fire.range) != b || !grid.LineClear(from, target, 0.2f)) continue;
+                cell = b;
+                stand = from;
             }
+            if (cell != null) break;
         }
-        if (stand == null) { Report(false, $"pas d'endroit à {fire.range:0} cases du pont"); yield break; }
+        if (cell == null) { Report(false, $"pas d'endroit à {fire.range:0} cases d'un des {bridges.Count} ponts"); yield break; }
         var ai = ally.GetComponent<AllyAI>();
         ai.enabled = false;
-        Teleport(ally, stand.Value);
+        Teleport(ally, stand);
         var kept = (MoveDef[])ally.Moves.Clone();
         ally.LearnMove(0, fire);
         yield return new WaitForFixedUpdate();
-        bool used = ally.TryUseMove(0, target - stand.Value, Vector2.Distance(target, stand.Value));
+        bool used = ally.TryUseMove(0, target - stand, Vector2.Distance(target, stand));
         yield return new WaitForSeconds(2f);
         for (int i = 0; i < Combatant.MoveSlots; i++) ally.LearnMove(i, kept[i]);
         ai.enabled = true;
@@ -701,6 +716,16 @@ public class AiScenarios : MonoBehaviour
     }
 
     // First tile of that obstacle, scanning the room.
+    static List<Vector2Int> FindCells(string key)
+    {
+        var cells = new List<Vector2Int>();
+        var inside = DungeonGenerator.Current.Interior;
+        for (int x = inside.xMin; x < inside.xMax; x++)
+            for (int y = inside.yMin; y < inside.yMax; y++)
+                if (Obstacles.At(x, y)?.key == key) cells.Add(new Vector2Int(x, y));
+        return cells;
+    }
+
     static Vector2Int? FindCell(string key)
     {
         var inside = DungeonGenerator.Current.Interior;
@@ -1714,6 +1739,320 @@ public class AiScenarios : MonoBehaviour
         yield break;
     }
 
+    // Every sub-biome of populations.json has enough Pokémon of its types; lots drawn there are of those types (or
+    // forced in); the night brings its own types; stage and levels rise with the quarter and the distance.
+    IEnumerator HabitatsPopulated()
+    {
+        var unknown = Populations.UnknownTypes().ToList();
+        var rng = new System.Random(21);
+        var problems = new List<string>(unknown.Select(n => $"type inconnu {n}"));
+        var solo = Encounters.CategoryOf("solo");
+        int habitats = 0, members = 0;
+        foreach (var key in Populations.Habitats)
+        {
+            habitats++;
+            var where = new Populations.Where(key);
+            var pool = Encounters.Pool(1, -1, where);
+            if (pool.Count == 0 || !pool.All(id => Populations.Lives(key, id, false))) problems.Add($"{key} : trop peu de Pokémon (réservoir général)");
+            for (int k = 0; k < 6 && solo != null; k++)
+            {
+                var e = Encounters.Make(rng, solo, 1, -1, where: where);
+                foreach (var m in e?.members ?? new List<Encounters.Member>())
+                {
+                    members++;
+                    if (!Populations.Lives(key, m.pokemonId, false)) problems.Add($"{key} : {GameData.Pokemon(m.pokemonId)?.name} hors population");
+                }
+            }
+        }
+        bool rises = Populations.Stage(0, 0f) < Populations.Stage(3, 1f) && Populations.LevelBonus(0, 0f) < Populations.LevelBonus(1, 0f)
+                     && Populations.LevelBonus(0, 0f) < Populations.LevelBonus(0, 1f);
+        var meadow = Encounters.Pool(1, -1, new Populations.Where("meadow")).Distinct().Count();
+        var meadowNight = Encounters.Pool(1, -1, new Populations.Where("meadow", true)).Distinct().Count();
+        Report(problems.Count == 0 && rises && meadowNight > meadow,
+            problems.Count > 0 ? string.Join(", ", problems.Take(5))
+                : $"{habitats} sous-biomes, {members} Pokémon tirés dans leur population ; prairie : {meadow} espèces le jour, {meadowNight} la nuit ; étape {Populations.Stage(0, 0f)} → {Populations.Stage(3, 1f)}");
+        yield break;
+    }
+
+    // The test quarter with its population: camps, patrols and spawn points placed on open land; the camps' lots live
+    // in their sub-biome. A camp rests while the team is far, wakes when it comes close, goes back to rest once the team
+    // has run off; a patrol walks its round; a beaten camp gets another lot later, out of the team's sight.
+    IEnumerator QuarterPopulated()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var run = gameObject.AddComponent<IslandRun>();
+        run.Begin(IslandPlan.QuarterTestPlan(17));
+        var population = GetComponent<IslandPopulation>();
+        yield return new WaitForSeconds(0.5f);
+        var places = population != null ? population.places : new List<IslandPopulation.Place>();
+        var camps = places.Where(p => p.sort == IslandPopulation.Sort.Camp).ToList();
+        var patrols = places.Where(p => p.sort == IslandPopulation.Sort.Patrol).ToList();
+        int spawns = places.Count(p => p.sort == IslandPopulation.Sort.Spawn);
+        bool fitting = camps.All(c => c.lot != null && c.lot.members.All(m => Populations.Lives(c.habitat, m.pokemonId, false) || m.lot != c.lot.category));
+        string result = $"{camps.Count} camps, {patrols.Count} rondes, {spawns} points d'apparition";
+        bool ok = camps.Count > 0 && patrols.Count > 0 && fitting;
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var camp = camps.FirstOrDefault(c => c.spawned.Count > 0);
+        if (ok && camp != null)
+        {
+            var group = camp.spawned[0].GetComponent<EnemyAI>().group;
+            Vector2 home = run.Cell(camp.tile);
+            // The spot farthest from the camp: far, and out of sight.
+            Vector2 far = places.Select(p => run.Cell(p.tile)).OrderByDescending(t => Vector2.Distance(t, home)).First();
+            foreach (var m in members) Teleport(m, far);
+            yield return new WaitForSeconds(1f);
+            bool restsFar = !group.Engaged;
+            foreach (var m in members) Teleport(m, home + Vector2.right * 3f);
+            yield return new WaitForSeconds(1f);
+            bool wakes = group.Engaged;
+            foreach (var m in members) Teleport(m, far);
+            yield return new WaitForSeconds(group.roam.giveUp + 1.5f);
+            bool backToRest = !group.Engaged;
+            // A patrol walks its round while the team is away.
+            bool walks = false;
+            var patrol = patrols.FirstOrDefault(p => p.spawned.Count > 0);
+            if (patrol != null)
+            {
+                Vector2 before = patrol.spawned[0].transform.position;
+                yield return new WaitForSeconds(3f);
+                walks = patrol.spawned[0] != null && Vector2.Distance(before, patrol.spawned[0].transform.position) > 1f;
+            }
+            // Beaten, then free again: another lot comes while the team is far.
+            foreach (var c in camp.spawned.ToList()) if (c != null) KnockOut(c);
+            yield return new WaitForSeconds(0.5f);
+            bool beaten = camp.Beaten && camp.lot == null;
+            camp.freeAt = 0f;
+            yield return new WaitForSeconds(0.5f);
+            bool back = camp.lot != null && camp.spawned.Count > 0;
+            ok = restsFar && wakes && backToRest && (patrol == null || walks) && beaten && back;
+            result += $" ; camp : au repos de loin {restsFar}, réveillé {wakes}, revenu au repos {backToRest} ; ronde {(patrol == null ? "aucune en jeu" : walks ? "en marche" : "immobile")} ; battu {beaten}, autre lot {back}";
+        }
+        else if (camp == null) { ok = false; result += " ; aucun camp en jeu"; }
+        Restore(kept, members);
+        run.End();
+        foreach (var c in new MonoBehaviour[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>(), GetComponent<TimeGears>(), GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+            if (c != null) Destroy(c);
+        arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
+        Report(ok, result);
+    }
+
+    // The test quarter's secret stairs (in a clearing) are taken three times, with each content forced: a treasure (a
+    // chest, the sub-biome's look), an ambush (the way out shut until its waves are beaten, then a chest), a guardian
+    // (an elite easier to recruit, asleep by a chest).
+    IEnumerator IslandRoomContents()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        IslandPlan plan = null;
+        for (int seed = 1; seed <= 40 && plan == null; seed++)
+        {
+            var p = IslandPlan.QuarterTestPlan(seed);
+            if (p.secret.x >= 0 && p.secretSpot == "clearing") plan = p;
+        }
+        if (plan == null) { Report(false, "pas de quart de test avec un escalier secret en clairière"); yield break; }
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var run = gameObject.AddComponent<IslandRun>();
+        var loot = FindAnyObjectByType<Loot>();
+        var lines = new List<string>();
+        bool ok = true;
+        foreach (var key in new[] { RoomContent.Treasures, RoomContent.Ambushes, RoomContent.Guardians })
+        {
+            run.End();
+            run.Begin(plan);
+            var stairs = GetComponent<SecretStairs>();
+            stairs.forceContent = key;
+            yield return new WaitForSecondsRealtime(0.5f);
+            foreach (var m in members) Teleport(m, run.Cell(plan.secret));
+            float until = Time.realtimeSinceStartup + 6f;
+            while ((stairs.Content == null || LoadingScreen.Busy) && Time.realtimeSinceStartup < until) yield return null;
+            yield return new WaitForSeconds(0.5f);
+            var content = stairs.Content;
+            if (content == null) { ok = false; lines.Add($"{key} : salle jamais atteinte"); continue; }
+            bool chest = loot != null && loot.ChestAt != null;
+            string line = $"{key} : salle {arena.room?.theme?.key}/{arena.tileset?.romId}";
+            if (key == RoomContent.Ambushes)
+            {
+                bool shut = content.Locked;
+                int beaten = 0;
+                float end = Time.time + 25f;
+                while (!content.Done && Time.time < end)
+                {
+                    foreach (var c in Combatant.All.ToList())
+                        if (c != null && c.IsAlive && c.team == Team.Enemy) { KnockOut(c); beaten++; }
+                    yield return new WaitForSeconds(0.5f);
+                }
+                yield return new WaitForSeconds(0.3f);
+                chest = loot != null && loot.ChestAt != null;
+                ok &= shut && content.Done && !content.Locked && beaten > 0 && chest;
+                line += $", sortie fermée {shut}, {beaten} ennemis battus, rouverte {!content.Locked}, coffre {chest}";
+            }
+            else if (key == RoomContent.Guardians)
+            {
+                var guard = Combatant.All.FirstOrDefault(c => c != null && c.IsAlive && c.team == Team.Enemy && c.GetComponent<RecruitBonus>() != null);
+                bool resting = guard != null && guard.GetComponent<EnemyAI>().group is { Engaged: false };
+                ok &= guard != null && guard.IsElite && chest && resting;
+                line += $", gardien {(guard != null ? guard.Stats.name : "absent")} (élite {guard != null && guard.IsElite}, endormi {resting}), coffre {chest}";
+            }
+            else
+            {
+                ok &= chest && !content.Locked;
+                line += $", coffre {chest}";
+            }
+            lines.Add(line);
+        }
+        Restore(kept, members);
+        run.End();
+        if (loot != null) loot.RemoveChest();
+        foreach (var c in new MonoBehaviour[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>(), GetComponent<TimeGears>(), GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+            if (c != null) Destroy(c);
+        arena.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
+        Report(ok, string.Join(" ; ", lines));
+    }
+
+    // A whole island: each quarter has its way of giving its gear (the last one a boss); onward passages and the centre
+    // wait for the gears, the way back never does.
+    IEnumerator GearsLockPassages()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var run = gameObject.AddComponent<IslandRun>();
+        var plan = IslandPlan.Generate(new System.Random(77));
+        run.Begin(plan);
+        yield return new WaitForSeconds(0.3f);
+        var gears = GetComponent<TimeGears>();
+        var o = plan.order;
+        bool lastBoss = gears.quarters[o[3]] != null && gears.quarters[o[3]].mode == TimeGears.Boss;
+        bool shut = !gears.CanPass(o[0], o[1]) && !gears.CanPass(o[3], IslandPlan.Centre);
+        bool back = gears.CanPass(o[1], o[0]);
+        gears.quarters[o[0]].gear = true;
+        bool opens = gears.CanPass(o[0], o[1]) && !gears.CanPass(o[1], o[2]);
+        foreach (var q in gears.quarters) q.gear = true;
+        bool centre = gears.CanPass(o[3], IslandPlan.Centre);
+        string modes = string.Join(", ", o.Select(q => gears.quarters[q].mode));
+        EndIsland(run);
+        Report(lastBoss && shut && back && opens && centre,
+            $"modes {modes} ; fermés au départ {shut}, retour libre {back}, ouvert avec l'engrenage {opens}, centre avec les quatre {centre}");
+    }
+
+    // The test quarter with a boss: its islet's portal stays shut; the key dungeon's two rooms (an ambush, then a
+    // guardian by a chest) give the key; the islet's boss is big, ready to mega evolve (or Terastallize), and its fall
+    // gives the gear. The legendary comes about 3 % of the time. Then with fragments: three, each with a hint.
+    IEnumerator GearsFromBossAndFragments()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var run = gameObject.AddComponent<IslandRun>();
+        var plan = IslandPlan.QuarterTestPlan(23);
+        run.Begin(plan);
+        var gears = GetComponent<TimeGears>();
+        gears.ForceTestMode(TimeGears.Boss);
+        yield return new WaitForSeconds(0.5f);
+        var q = gears.Here;
+        var q0 = q;
+        var dungeon = GetComponent<KeyDungeon>();
+        var portal = GetComponent<BossPortal>();
+        var loot = FindAnyObjectByType<Loot>();
+        int legendaries = 0;
+        for (int k = 0; k < 600; k++) { gears.PickBoss("test", out bool legend); if (legend) legendaries++; }
+        // The portal, without the key: nothing happens.
+        IEnumerator Walk(Vector2? to, Vector2? from = null)
+        {
+            if (to == null) yield break;
+            foreach (var m in members) Teleport(m, from ?? to.Value + Vector2.down * 3f);
+            yield return new WaitForSeconds(0.3f);
+            foreach (var m in members) Teleport(m, to.Value);
+            float until = Time.realtimeSinceStartup + 6f;
+            yield return new WaitForSecondsRealtime(0.3f);
+            while (LoadingScreen.Busy && Time.realtimeSinceStartup < until) yield return null;
+            yield return new WaitForSeconds(0.5f);
+        }
+        IEnumerator Clean(IslandStairs stairs)
+        {
+            float end = Time.time + 25f;
+            while (stairs.Content != null && !stairs.Content.Done && Time.time < end)
+            {
+                foreach (var c in Combatant.All.ToList())
+                    if (c != null && c.IsAlive && c.team == Team.Enemy) KnockOut(c);
+                if (loot != null && loot.ChestAt is { } chest) foreach (var m in members) Teleport(m, chest);
+                yield return new WaitForSeconds(0.5f);
+            }
+        }
+        // The islet's bridge, from the coast at its foot (the islet itself is only seen).
+        Vector2 coast = run.Cell(q.portalTile);
+        bool bridged = q.HasBridge;
+        bool landmark = plan.caves.Contains(q.dungeonTile) || (plan.height != null && plan.height[plan.Index(q.dungeonTile.x, q.dungeonTile.y)] > 0)
+                        || plan.clearings.Any(c => Vector2.Distance(c, q.dungeonTile) < 2f);
+        yield return Walk(portal.StairsAt, coast);
+        bool shut = !portal.InRoom;
+        // The key dungeon: room after room.
+        yield return Walk(dungeon.StairsAt);
+        bool inDungeon = dungeon.InRoom;
+        yield return Clean(dungeon);
+        string dungeonTheme = arena.room?.theme?.key;
+        yield return Walk(dungeon.NextAt);
+        bool second = dungeon.InRoom && dungeon.Floor == 1;
+        // The guardian: evolved, ready to Terastallize, with two minions holding Z crystals.
+        var guards = Combatant.All.Where(c => c != null && c.IsAlive && c.team == Team.Enemy).ToList();
+        var guardian = guards.FirstOrDefault(c => c.IsElite);
+        bool guardianReady = guardian != null && Encounters.Depth(guardian.Stats) >= 1 && guardian.GetComponent<EnemyUltimate>()?.Item == SpecialItems.Family.Tera
+                             && guards.Count(c => c.GetComponent<EnemyUltimate>()?.Item == SpecialItems.Family.Z) == 2;
+        yield return Clean(dungeon);
+        yield return new WaitForSeconds(0.3f);
+        bool key = q.hasKey;
+        yield return Walk(dungeon.BackAt);
+        // The islet: out on the bridge.
+        yield return Walk(portal.StairsAt, coast);
+        var bosses = gears.BossInPlay.Where(c => c != null).ToList();
+        bool big = bosses.Count > 0 && bosses.All(c => c.transform.localScale.x >= 1.5f);
+        bool phase = bosses.Count > 0 && bosses.All(c => c.GetComponent<EnemyUltimate>() is { } u && (u.Item == SpecialItems.Family.Mega || u.Item == SpecialItems.Family.Tera));
+        string who = string.Join(" + ", bosses.Select(c => c.Stats.name));
+        // Its four moves are its fixed set (the bubbles 1 to 4 can be learnt).
+        bool fixedSet = bosses.Count > 0 && TimeGears.BossMoves(q.boss) is { } set
+                        && bosses[0].Moves.Where(m => m != null).Select(m => m.id).SequenceEqual(set.Take(Combatant.MoveSlots));
+        bool locked = portal.Content != null && portal.Content.Locked;
+        yield return Clean(portal);
+        yield return new WaitForSeconds(0.3f);
+        bool gear = q.gear && gears.Found == 1;
+        yield return Walk(portal.BackAt);
+        loot?.RemoveChest();
+        // Fragments (the team back at the arrival).
+        foreach (var m in members) Teleport(m, arena.SpawnPoint);
+        yield return new WaitForSeconds(0.2f);
+        gears.ForceTestMode(TimeGears.Fragments);
+        yield return new WaitForSeconds(0.3f);
+        q = gears.Here;
+        int fragments = q.fragments.Count, hints = run.hints.Count;
+        foreach (var f in q.fragments)
+        {
+            foreach (var m in members) Teleport(m, run.Cell(f.tile));
+            yield return new WaitForSeconds(0.3f);
+        }
+        bool together = q.gear && q.fragments.All(f => f.taken) && run.hints.Count == 0;
+        Restore(kept, members);
+        EndIsland(run);
+        float rate = legendaries / 6f;
+        bool themed = dungeonTheme == TimeGears.DungeonTheme(q0);
+        Report(bridged && landmark && shut && inDungeon && themed && second && guardianReady && key && big && phase && fixedSet && locked && gear && rate > 0.5f && rate < 7f && fragments == 3 && hints == 3 && together,
+            $"pont {bridged}, donjon sur un point d'intérêt {landmark}, portail fermé sans clé {shut} ; donjon {inDungeon} (thème {dungeonTheme}, attendu {TimeGears.DungeonTheme(q0)}), 2e salle {second}, gardien {guardian?.Stats.name} prêt {guardianReady}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, jeu fixe {fixedSet}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
+    }
+
+    void EndIsland(IslandRun run)
+    {
+        run.End();
+        foreach (var c in new MonoBehaviour[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>(), GetComponent<TimeGears>(), GetComponent<IslandPopulation>(), GetComponent<SecretStairs>(), GetComponent<CaveSeal>(), GetComponent<CaveStairs>(), run })
+            if (c != null) Destroy(c);
+        DungeonGenerator.Current.room = new RoomInstance(); // makes RestoreArena rebuild the test arena
+    }
+
     // Typical populated zones: whole waves at each stage, every lot following its rules; the log shows one zone per
     // stage and how often each lot appears.
     IEnumerator TypicalZones()
@@ -1860,8 +2199,13 @@ public class AiScenarios : MonoBehaviour
         return null;
     }
 
+    /// Batch runs: only the scenarios whose name holds one of these words ("a|b"; empty or null: all of them).
+    public static string Filter;
+
     IEnumerator Scenario(string name, IEnumerator body)
     {
+        if (!string.IsNullOrEmpty(Filter) && !Filter.Split('|').Any(w => w.Length > 0 && name.Contains(w, System.StringComparison.OrdinalIgnoreCase)))
+            yield break;
         current = name;
         Clear();
         yield return new WaitForFixedUpdate();

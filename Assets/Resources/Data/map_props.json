@@ -1,5 +1,6 @@
 {
  "comment": "Decor elements cut out of the upper layer of the story maps (MAP_BG) by Tools/pmd/extract_map_props.py into Resources/MapProps/<key>.png (found by find_map_props.py). map: BMA name; rect: x, y, width, height (pixels) in the rendered upper layer; group: what the props of quarter_test.json pick from; block: it blocks its tile (a tree trunk, a rock). Its foot is the middle of its bottom edge. layer: lower (the opaque lower layer, detoured by clearTop / cutSides, see extract_map_props.py), upper by default.",
+ "fade": { "comment": "Un élément au moins minHeight cases de haut (arbre, gros buisson) qui cache un Pokémon de l'équipe (le haut de son corps dans l'image, derrière son pied) devient transparent jusqu'à alpha, en time secondes (PropFade).", "alpha": 0.4, "minHeight": 1.2, "time": 0.2 },
  "props": [
   {"key": "jungle_fern_787", "group": "jungle_fern", "map": "D54P11A", "rect": [183, 46, 24, 24], "block": false},
   {"key": "jungle_fern_790", "group": "jungle_fern", "map": "D54P11A", "rect": [183, 130, 32, 26], "block": false},

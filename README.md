@@ -72,7 +72,9 @@ Le HUD affiche les touches du clavier quand aucune manette n'est branchée.
 
 ## Outils de test
 
-Réglages de test dans `Assets/Resources/Data/meta.json` (à repasser à `false` pour une version de jeu) :
+Réglages de test dans `Assets/Resources/Data/meta_dev.json`, appliqués par-dessus `meta.json` dans l'éditeur et les
+builds de développement seulement (une version de jeu garde les valeurs de `meta.json`, toutes à `false`). Pour
+essayer les vrais déblocages dans l'éditeur, passer une valeur à `false` dans `meta_dev.json` :
 
 - `unlockAll` : tous les Pokémon jouables sont débloqués.
 - `allItems` : tous les objets spéciaux sont possédés (niveau 1 au moins), quoi que dise la sauvegarde.
@@ -315,6 +317,35 @@ Fermer Unity, puis `python3 Tools/setup.py` : il extrait les nouveaux assets tir
 des obstacles dans `Assets/Resources/ObstacleTiles`, rochers `rock_9` / `rock_18`) et relance **Build Tilesets**, qui
 donne à chaque décor son numéro de la ROM (`romId`, utilisé pour choisir les obstacles d'une arène). Sans cela, les
 obstacles retombent sur des cases de couleur.
+
+### 25/10/2026 — Engrenages du Temps et boss de quartier (Robin, branche `feature/engrenages`)
+- Le passage vers le quartier suivant s'ouvre avec l'Engrenage du Temps du quartier, le centre avec les quatre
+  (`time_gears.json`). Un quartier le donne par un boss ou par 3 fragments gardés (indices sur la mini-carte). Le boss
+  attend sur un îlot, derrière un portail de la côte qui s'ouvre avec la clé trouvée au fond du donjon de la clé
+  (au thème et aux types du boss : embuscade, puis gardien évolué avec deux sbires à capacité Z, et le coffre de la
+  clé). Boss tiré dans le roster de la zone, grand, × 12 PV, barre en deux phases, méga-évolution à mi-PV (rarement,
+  3 %, le légendaire de la zone, qui se téracristallise), dans une arène faite pour son type (Vol : îlots et ponts
+  que deux sbires Feu brûlent). Compteur sous l'encadré d'étape. Quart de test : G change de mode.
+
+### 25/10/2026 — Peuplement de l'île, étapes 1 à 3 : populations, camps et rondes, salles (Robin, branche `feature/peuplement`)
+- Chaque sous-biome de l'île a sa population (`populations.json` : types pondérés, types de la nuit), utilisée par les
+  rencontres à la place du décor ; niveau et rang qui montent avec le quartier et la distance à l'arrivée.
+- Étape 2 : les quartiers sont peuplés (`island_population.json`) : camps (surtout des gangs) et rondes (surtout des
+  meutes) au repos jusqu'à l'approche de l'équipe, qui reviennent à leur place si on les sème ; points d'apparition
+  (nuit, météo, temps passé, équipe proche hors de vue) ; un camp battu reçoit un autre lot au bout de 4 min.
+- Étape 3 : les salles des escaliers secrets et des grottes scellées ont un contenu (`room_contents.json`) : trésor,
+  embuscade (sortie fermée, 2 ou 3 vagues, coffre) ou gardien (élite endormie près d'un coffre, plus facile à
+  recruter), dans le décor et avec les Pokémon du sous-biome. Les arbres deviennent transparents devant l'équipe.
+- Coffres aux couleurs de Donjon Mystère (PMDCollab : doré, bleu pour l'embuscade, rouge pour le gardien ; relancer
+  `python3 -I Tools/pmd/import_items.py .`). L'électricité et le poison ne gagnent plus que 5 cases d'eau autour du
+  point touché.
+
+### 25/10/2026 — Socle technique (Robin, branche `refacto/socle`)
+- Interface : une seule boîte à outils (`HudLayout`) pour tous les écrans, plus de code recopié.
+- Profil de dev : les réglages de test (`unlockAll`, `allItems`, `devMode`) sont dans `meta_dev.json`, appliqué
+  seulement dans l'éditeur et les builds de développement ; `meta.json` garde les valeurs d'une version de jeu.
+- **Tests EditMode** (`Assets/Editor/Tests/`, quelques secondes) : `python3 Tools/setup.py --edit-tests`.
+- Docs de reprise à jour : HANDOFF, ROADMAP, points ouverts du GDD.
 
 ### 25/10/2026 — Seconde phase des ennemis (Robin, branche `feature/phases`)
 - La méga et la Téra d'un ennemi ouvrent une **seconde phase** à mi-PV (plus au premier contact) : une élite ou un boss ne

@@ -4,6 +4,18 @@
 
 Décidé (13/10/2026) : squelette d'abord. Les jalons 1 à 4 sont faits en version minimale, dans l'ordre, pour boucler une partie complète ; on approfondit ensuite.
 
+## État au 25/10/2026
+
+- Jalons 1 à 4 : faits en version minimale. Jalon 5 : bien avancé (tous les sprites, attaques générées, statuts,
+  évolutions, mégas). Jalon 6 : pas commencé.
+- Approfondi depuis : terrains et obstacles, météos, IA (cible, dangers, réparation, secours), objets spéciaux et
+  ultimes, rencontres et élites (seconde phase), sac et objets tenus, interface en partie.
+- Encore provisoire : structure de partie sur `dev` (l'île, les salles et les niveaux continus d'Owen ne sont pas
+  fusionnés), équilibrage, rythme d'expérience, monnaies et boutique, talents, boss autres que Groudon.
+- Prochaines étapes : socle technique (`refacto/socle` : outils d'interface, profil de dev, tests EditMode, docs), puis
+  intégration des branches d'Owen avec lui, puis outils de dev dans un assembly séparé ; reprise des fonctionnalités
+  après la réunion de conception (structure de partie, économie, cibles d'équilibrage).
+
 ## Déjà fait (prototype de combat)
 
 Arène, équipe de 3 (1 joueur + 2 IA), changement de Pokémon, visée, 3 familles d'attaques (projectile, mêlée, zone), temps de recharge, ennemis au corps à corps et à distance avec attaques annoncées, poison, K.O. et fin de partie, effets visuels, IA qui contourne murs et nuages.
@@ -11,7 +23,7 @@ Arène, équipe de 3 (1 joueur + 2 IA), changement de Pokémon, visée, 3 famill
 ## Jalon 0 — Sécuriser le projet (fait)
 
 - Projet sous Git en local, sans dépôt distant. Exclus : `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Rom/`, les `.nds` et `.zip`, `Tools/.venv/`.
-- Les sprites, décors et données tirés de la ROM qui sont dans `Assets/` sont versionnés : ne jamais pousser ce dépôt vers un hébergement public.
+- Depuis le 19/10/2026, le dépôt est public sur GitHub sans rien de la ROM : les assets extraits sont ignorés (leurs `.meta` restent versionnés) et `Tools/setup.py` les régénère.
 
 ## Jalon 1 — Une arène avec un début et une fin
 

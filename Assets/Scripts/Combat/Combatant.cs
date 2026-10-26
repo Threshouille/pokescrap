@@ -77,9 +77,33 @@ public partial class Combatant : MonoBehaviour
     public bool IsAlive => hp > 0f;
     public bool IsPoisoned => HasStatus("poison");
     /// False while a status (sleep, freeze, trap) holds this Pokémon in place.
-    public bool CanMove => StatusAllows(def => def.canMove) && Time.time >= stunUntil && !IsEvolving;
+    public bool CanMove => StatusAllows(def => def.canMove) && Time.time >= stunUntil && !IsEvolving && !HeldStill;
     /// False while a status (sleep, freeze) prevents attacking.
-    public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil && !IsEvolving;
+    public bool CanAttack => StatusAllows(def => def.canAttack) && Time.time >= stunUntil && !IsEvolving && !HeldStill;
+
+    // A cut-scene (a boss's second phase, EnemyUltimate): everybody but its actor holds still until it ends.
+    static float stillUntil;
+    static Combatant stillActor;
+
+    /// Holds every Pokémon but "actor" still (no move, no attack) for that long; the shots in flight and the zones on
+    /// the ground go.
+    public static void HoldStill(Combatant actor, float time)
+    {
+        stillActor = actor;
+        stillUntil = Time.time + time;
+        foreach (var shot in UnityEngine.Object.FindObjectsByType<Projectile>()) UnityEngine.Object.Destroy(shot.gameObject);
+        foreach (var zone in UnityEngine.Object.FindObjectsByType<global::Zone>()) UnityEngine.Object.Destroy(zone.gameObject);
+    }
+
+    public static bool InCutScene => Time.time < stillUntil;
+    bool HeldStill => Time.time < stillUntil && this != stillActor;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStill()
+    {
+        stillUntil = 0f;
+        stillActor = null;
+    }
     /// True during the evolution animation: the Pokémon stands still and nothing hurts it.
     public bool IsEvolving => Time.time < evolvingUntil;
 
@@ -550,6 +574,7 @@ public partial class Combatant : MonoBehaviour
     public void Drive(Vector2 velocity)
     {
         if (body == null) return;
+        if (HeldStill) velocity = Vector2.zero; // a cut-scene: nobody but its actor moves
         velocity = velocity * Terrain.SpeedMul(this) * Obstacles.SpeedMul(this) + Obstacles.Pull(this) // magnets drag Acier
             + Climate.WindPush(this) // a storm's wind carries the Vol
             + Obstacles.LedgePush(this); // a ledge carries it down
@@ -711,7 +736,7 @@ public partial class Combatant : MonoBehaviour
             readyAt[slot] = Time.time + CooldownOf(move);
             foreach (var c in all.ToArray()) // a hit can remove a Pokémon from the list
                 if (c.team != team && c.IsAlive && Vector2.Distance(c.transform.position, transform.position) <= move.radius
-                    && c.TakeHit(DamageOf(move), move, out float dealt))
+                    && c.TakeHit(DamageOf(move), move, out float dealt, hitCap))
                 {
                     c.ApplyEffects(move, false, this);
                     HitLanded(move, dealt);
@@ -900,7 +925,7 @@ public partial class Combatant : MonoBehaviour
             Vector2 to = (Vector2)target.transform.position - at;
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
-            if (target.TakeHit(DamageOf(move) * factor, move, out float dealt))
+            if (target.TakeHit(DamageOf(move) * factor, move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
@@ -1164,7 +1189,7 @@ public partial class Combatant : MonoBehaviour
             {
                 if (target == null || !target.IsAlive) continue;
                 EffectPlayer.Spawn(delayedMove.impactEffect, target.transform.position, delayedDirection);
-                if (!target.TakeHit(DamageOf(delayedMove), delayedMove, out float dealt)) continue;
+                if (!target.TakeHit(DamageOf(delayedMove), delayedMove, out float dealt, hitCap)) continue;
                 target.Stun(StunOf(delayedMove));
                 target.ApplyEffects(delayedMove, false, this);
                 HitLanded(delayedMove, dealt);
@@ -1300,7 +1325,7 @@ public partial class Combatant : MonoBehaviour
                 continue;
             }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
-            if (target.TakeHit(DamageOf(move), move, out float dealt))
+            if (target.TakeHit(DamageOf(move), move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 // A dash pushes what it hits (a bouncing dash pushes its target when it bounces).
@@ -1343,7 +1368,12 @@ public partial class Combatant : MonoBehaviour
 
     /// A hit from a move: the target's types and defence (physical or special) change it. Returns false when the hit
     /// was ignored (already down, or protected just after a previous hit); "dealt" is the health actually lost.
-    public bool TakeHit(float raw, MoveDef move, out float dealt)
+    /// The most one of its blows takes off a target, as a share of the target's max HP (an island boss: no one-shot);
+    /// 0 for no limit.
+    [System.NonSerialized] public float hitCap;
+
+    /// cap: the attacker's hitCap.
+    public bool TakeHit(float raw, MoveDef move, out float dealt, float cap = 0f)
     {
         dealt = 0f;
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
@@ -1354,6 +1384,7 @@ public partial class Combatant : MonoBehaviour
         float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
         dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this)
             * Climate.DamageMul(move.type, transform.position)); // weather, sports around it
+        if (cap > 0f) dealt = Mathf.Min(dealt, maxHp * cap);
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);

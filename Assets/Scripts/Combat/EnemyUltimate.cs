@@ -28,6 +28,9 @@ public class EnemyUltimate : MonoBehaviour
     /// Carries the mega stone of its line whenever it can (the encounter lab shows mega evolutions).
     public bool preferMega;
 
+    /// Its second phase gets a short cut-scene like a boss's (a key dungeon's guardian, TimeGears).
+    [System.NonSerialized] public bool cutScene;
+
     /// What it unleashed ("tera", "z" or ""), for the tests.
     public string LastUsed { get; private set; } = "";
 
@@ -208,8 +211,9 @@ public class EnemyUltimate : MonoBehaviour
         used = true;
         LastUsed = "mega";
         string name = self.Stats.name;
-        self.MegaEvolve(mega);
         var animator = GetComponent<PmdAnimator>();
+        var before = animator != null ? animator.animSet : null; // its old form, for a boss's cut-scene
+        self.MegaEvolve(mega);
         var set = PokemonRoster.Get(mega.id);
         if (animator != null && set != null) animator.SetAnimSet(set);
         gameObject.name = mega.name;
@@ -218,13 +222,16 @@ public class EnemyUltimate : MonoBehaviour
         Ultimates.Aura(self, pose, Color.white);
         EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
         progression?.Announce($"{name} ennemi méga-évolue en {mega.name} !", Notice.Elite);
-        SecondPhase();
+        SecondPhase(before, mega.name.ToUpperInvariant(), Color.white);
     }
 
     /// Its second phase: heals (elites and bosses more), recharges faster, pushes the opponents away from the change.
-    void SecondPhase()
+    void SecondPhase(PmdAnimSet before, string title, Color colour)
     {
         var s = SpecialItems.Enemy;
+        // A boss: the fight stops for its change on screen (BossCutScene), then goes on.
+        if (GetComponent<BossAI>() != null) BossCutScene.Play(self, before, title, colour);
+        else if (cutScene) BossCutScene.Play(self, before, title, colour, s.guardianCutScene);
         self.phaseFloorShare = 0f;
         float share = GetComponent<BossAI>() != null ? s.phaseHealBoss : self.IsElite ? s.phaseHeal : s.phaseHealRanked;
         self.Heal(self.maxHp * share);
@@ -271,7 +278,7 @@ public class EnemyUltimate : MonoBehaviour
         if (EffectLibrary.Get("tera_eclat") != null) EffectPlayer.Spawn("tera_eclat", transform.position, Vector2.right);
         else EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
         progression?.Announce($"{self.Stats.name} ennemi se téracristallise : type {GameData.TypeName(type)} !", Notice.Elite);
-        SecondPhase();
+        SecondPhase(null, $"{self.Stats.name.ToUpperInvariant()} SE TÉRACRISTALLISE · {GameData.TypeName(type).ToUpperInvariant()}", GameData.TypeColor(type));
     }
 
     // ---- Z move ----

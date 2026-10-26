@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static HudLayout;
 
 /// Runs a whole run: a series of stages (arenas, then a boss), each made of enemy waves. Between two stages the
 /// arena is rebuilt with the next décor and the team is put back on its feet. Also draws the stage indicator,
@@ -361,12 +362,13 @@ public class EnemySpawner : MonoBehaviour
         float w = HudLayout.LotsWidth * s, line = 11f * s, pad = 6f * s;
         int total = 0;
         foreach (var l in lots) total += l.Alive;
-        float top = (Climate.Now != null ? HudLayout.Top + 14f : HudLayout.Top) * s;
+        float top = HudLayout.RightTop(s);
         var box = new Rect(Screen.width - w - HudLayout.Side * s, top, w, (lots.Count + 1) * line + 2f * pad);
         HudLayout.Panel(box, s);
-        var bold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
-        var row = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
-        var count = new GUIStyle(text) { alignment = TextAnchor.MiddleRight };
+        HudLayout.ReserveRightColumn(box.yMax);
+        var bold = Style("lots.title", 8f, bold: true, clip: true);
+        var row = Style("lots.row", 8f, clip: true);
+        var count = Style("lots.count", 8f, anchor: TextAnchor.MiddleRight);
         GUI.Label(new Rect(box.x + pad, box.y + pad, w - 2f * pad, line), $"Ennemis de la vague · {total}", bold);
         for (int i = 0; i < lots.Count; i++)
         {
@@ -480,11 +482,14 @@ public class EnemySpawner : MonoBehaviour
             Run.ToMenu();
     }
 
+    float bossShown = -1f; // the boss bar's eased share (HudLayout.Ease)
+    int bossFrame;
+
     // Provisional display: stage and wave, boss health, fades and end-of-run screens.
     void OnGUI()
     {
         if (stages == null || stages.Length == 0) return;
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
+        float s = HudLayout.Scale;
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         title ??= new GUIStyle(label);
         text ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
@@ -504,8 +509,8 @@ public class EnemySpawner : MonoBehaviour
                 : nextWaveAt > 0f ? $"Vague {CurrentWave} / {Current.waves.Length} terminée" : $"Vague {CurrentWave} / {Current.waves.Length}";
             var stageBox = new Rect(HudLayout.Side * s, HudLayout.Top * s, HudLayout.StageWidth * s, 27f * s);
             HudLayout.Panel(stageBox, s);
-            var leftBold = new GUIStyle(label) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
-            var leftSoft = new GUIStyle(text) { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip };
+            var leftBold = Style("stage.first", 8f, bold: true, clip: true);
+            var leftSoft = Style("stage.second", 8f, clip: true);
             leftSoft.normal.textColor = HudLayout.Secondary;
             GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 3f * s, stageBox.width - 12f * s, 10f * s), first, leftBold);
             GUI.Label(new Rect(stageBox.x + 6f * s, stageBox.y + 14f * s, stageBox.width - 12f * s, 10f * s), second, leftSoft);
@@ -513,9 +518,11 @@ public class EnemySpawner : MonoBehaviour
 
             if (bossStage && boss != null && boss.IsAlive)
             {
-                var bar = new Rect(cx - 110f * s, 20f * s, 220f * s, 9f * s);
+                var bar = new Rect(cx - 110f * s, HudLayout.BossBarTop(s), 220f * s, 9f * s);
+                HudLayout.ReserveBossBar(11f * s);
                 Fill(new Rect(bar.x - s, bar.y - s, bar.width + 2f * s, bar.height + 2f * s), new Color(0f, 0f, 0f, 0.75f));
-                Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(boss.hp / boss.maxHp), bar.height), new Color(0.85f, 0.2f, 0.2f));
+                float shown = HudLayout.Ease(ref bossShown, ref bossFrame, Mathf.Clamp01(boss.hp / boss.maxHp), 0.25f);
+                Fill(new Rect(bar.x, bar.y, bar.width * shown, bar.height), new Color(0.85f, 0.2f, 0.2f));
                 GUI.Label(bar, boss.Stats?.name, label);
             }
 
@@ -543,13 +550,5 @@ public class EnemySpawner : MonoBehaviour
             : "Aucune recrue";
         GUI.Label(new Rect(0, y + 62f * s, Screen.width, 14f * s), joined, text);
         GUI.Label(new Rect(0, y + 84f * s, Screen.width, 14f * s), "Croix ou Entrée : rejouer     Rond ou Échap : menu", text);
-    }
-
-    static void Fill(Rect rect, Color color)
-    {
-        var previous = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = previous;
     }
 }

@@ -200,7 +200,7 @@ public class Zone : MonoBehaviour
             target.ApplyEffects(move, true, owner);
             if (!tick) continue;
             if (move.impactOnTargets) EffectPlayer.Spawn(move.impactEffect, target.transform.position, Vector2.right);
-            if (!target.TakeHit(damage, move, out _)) continue;
+            if (!target.TakeHit(damage, move, out _, owner != null ? owner.hitCap : 0f)) continue;
             if (move.knockback > 0f)
             {
                 // Thrown away from the centre of the impact.

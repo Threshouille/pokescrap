@@ -1,39 +1,57 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 24/10/2026, 2e session (**composition du quart d'île : falaises, hauteur, végétation ; voir la section ci-dessous**). À lire en début de session avec `CLAUDE.md` (détails techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
+Dernière mise à jour : 26/10/2026 (Robin : socle technique fusionné dans `feature/engrenages` ; peuplement, engrenages et boss de quartier ; voir le README). À lire en début de session avec `CLAUDE.md` (détails
+techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons). Bilan complet du 25/10 : avancement,
+branches, axes de refonte et questions de conception (page partagée par Robin).
 
-## Méthode de travail avec Owen
+## Reprise (26/10/2026, Robin) : où on s'est arrêté
 
-- Owen écrit en français ; réponses courtes, économie de tokens (voir `CLAUDE.md`).
-- **Avant toute nouvelle tâche, présenter un plan détaillé et attendre son accord** (Pokémon, attaques, valeurs, comportements, ce qui est provisoire, questions ouvertes). Ne pas coder dans le même tour. Signaler explicitement tout écart au plan validé.
-- Il aime être contredit quand c'est justifié : donner un avis argumenté, pas seulement exécuter.
-- Après chaque tâche : tester dans Unity (unityMCP), mettre à jour GDD / ROADMAP / CLAUDE.md, committer ; dépôt public GitHub sans contenu de la ROM (voir `README.md` et `.gitignore`). Une branche `feature/<nom>` par tâche, depuis `dev` à jour (convention de Robin, l'autre développeur ; pseudo GitHub WinstonBlewUp), poussée sur `origin`, fusionnée dans `dev` une fois validée en jeu par Owen. Ne pas toucher à `main`.
-- Effets visuels : je rédige un prompt pour Claude Design (contraintes : pixel art strict, 24 px = 1 case, une ligne d'images orientée vers la droite, `effects.json`), Owen dépose l'archive `.zip` à la racine, je l'extrais dans `Design/effects_vN/`, je contrôle (tailles, alpha 0/255, ≤ 6 couleurs), je fusionne dans `Assets/Resources/Effects/`.
+Branche `feature/engrenages` (contient `feature/peuplement` et `refacto/socle`), **pas poussée**, pas fusionnée dans
+`dev`. Accès à l'îlot du boss terminé et validé en jeu : donjon de la clé sur le point d'intérêt, entrée = grotte
+du sommet (y entrer mène au donjon), sinon faille dimensionnelle de la ROM (`rift`, animée), sur une case libre, accessible à pied et loin des autres donjons ; pont de
+corde vertical sur la côte arrondie, pied praticable par tous ; portail de lumière animé (scintille terne sans la clé,
+s'ouvre la première fois qu'on approche avec, puis tourbillon) ; arène et salles gardées telles quelles au retour ;
+plus de bulles numérotées pour les boss d'îlot. La clé reste la Clé de Donjon Mystère (`pmd_Key_White`).
 
-## Où en est le projet
+À faire ensuite :
+1. Banc complet (pas lancé depuis la fusion de `refacto/socle`) avant toute fusion dans dev ; bilan de la tâche.
+2. Boss plus dynamiques (ruée, renforts à mi-PV), passe d'équilibrage générale, puis l'aspect graphique.
+3. Plus tard : salle rouge du terrain de test qui tire le boss au hasard à l'entrée (N reste pour choisir) ; quêtes
+   du Tableau des missions ; intégrer les branches d'Owen avec lui ; outils de dev dans un assembly à part ; boutique
+   Kecleon.
 
-Feuille de route « squelette d'abord » : jalons 1 à 4 en version minimale, puis approfondissement.
+## Méthode de travail
 
-| Jalon | État |
+- Owen et Robin écrivent en français ; réponses courtes, économie de tokens (voir `CLAUDE.md`).
+- Avant toute nouvelle tâche, présenter un plan et attendre l'accord (valeurs, comportements, ce qui est provisoire,
+  questions ouvertes). Signaler tout écart au plan validé. Donner un avis argumenté, pas seulement exécuter.
+- Une branche par tâche **depuis `dev`** (`feature/…`, `fix/…`, `refacto/…`), poussée sur `origin`, fusionnée dans `dev`
+  une fois testée en jeu et le banc vert. `main` n'est plus mis à jour depuis le 19/10 (à rattraper depuis `dev`).
+- Commits non signés, seulement avec l'accord de la personne ; jamais de force push ; ne pas toucher aux branches de
+  l'autre sans lui. Dépôt public : rien de la ROM (vérification avant chaque push, voir `CLAUDE.md`).
+- Après chaque tâche : tests (EditMode et banc), mise à jour de GDD / ROADMAP / CLAUDE.md / README, commit.
+- Effets visuels : prompt pour Claude Design (pixel art strict, 24 px = 1 case, une ligne d'images orientée vers la
+  droite, `effects.json`) ; archive déposée à la racine, extraite dans `Design/effects_vN/`, contrôlée, fusionnée dans
+  `Assets/Resources/Effects/`. Effets Z et Téra : ressources existantes en ligne plutôt que Claude Design.
+
+## Où en est le projet (25/10/2026)
+
+| Domaine | État |
 |---|---|
-| 0 Git local | fait |
-| 1 Arène avec vagues et victoire | fait (minimal) |
-| 2 Expérience, niveaux, choix d'améliorations | fait (minimal) |
-| 3 Partie complète : Arène 1 → Arène 2 → Boss, écrans de fin | fait (minimal), boss Groudon complet |
-| 4 Entre les parties : choix de l'équipe, recrutement, sauvegarde | fait (minimal) |
-| 5 Tous les Pokémon jouables et ennemis (génération automatique des attaques) | en cours : attaques génériques, statuts, évolution en partie faits |
-| 6 Coopération, son, finition | à faire, en dernier (décidé) |
+| Combat (familles d'attaques, types, statuts, esquive, visée) | solide |
+| Environnement (10 terrains, 20 obstacles, pylônes, 4 météos, 2 sports) | solide |
+| IA (rôles, cible par score, dangers, réparation de chemin, secours, soins sûrs) | solide |
+| Rencontres (lots, rangs, combinaisons, élites, seconde phase à mi-PV) | fait, à régler en vraie partie |
+| Objets (méga, Z, Téra ; sac partagé ; objets tenus à tiers ; butin ; interface lisible) | fait |
+| Progression en partie (expérience, améliorations, attaques, évolutions) | provisoire |
+| Structure de partie | provisoire sur `dev` (Arène 1 → Arène 2 → Boss) ; île, salles et niveaux continus sur les branches d'Owen |
+| Entre les parties (menu, recrutement, sauvegarde) | minimal ; ni monnaie ni boutique |
+| Son, coopération | pas commencés (jalon 6) |
+| Équilibrage | sans cible chiffrée |
 
-## Contenu actuel
+## Branches pas encore dans `dev` (25/10/2026)
 
-- **Jouables** : 6 débloqués au départ (`meta.json`) : Bulbizarre, Salamèche, Carapuce, Pichu (à la place de Pikachu, qui est une évolution), Goinfrex, Riolu. Les 6 ennemis sont recrutables (taux de la ROM de la première forme jouable de la lignée) et deviennent jouables. Les 519 Pokémon de la ROM ont des sprites (492 espèces + 28 Zarbi, formes de base seulement ; exceptions à revoir : `Docs/POKEMON_EXCEPTIONS.md`). Seuls Abra, Métamorph et Queulorior n'ont aucune attaque au choix (Téléport, Morphing, Gribouille) et ne sont pas jouables. Les ennemis restent ceux des `stages` (tirage parmi tous les Pokémon à décider plus tard).
-- **Menu** (scène `Menu`, lancée par Play) : choix de 3 Pokémon, Triangle pour choisir leurs 2 attaques de départ (attaques de base des types du Pokémon comprises) dans leur liste par niveau ; sauvegarde des débloqués, de la dernière équipe et des attaques choisies.
-- **Attaques** : 343 attaques génériques (`generate_moves.py`, ROM + PokéAPI, règles dans `Tools/pmd/move_rules.json`) + 28 faites à la main (prioritaires) ; 108 écartées, listées dans `Tools/pmd/generated_moves_report.txt`. Recharge croissante avec la puissance, annonce plus longue pour les attaques à charge, recharge ×1,5 pour celles à recharge, recul.
-- **Statuts** (`statuses.json`) : poison, paralysie, brûlure, sommeil, gel, confusion, piège, bâillement, vampigraine ; durées réduites pour l'équipe du joueur (sommeil, gel) et pour les boss.
-- **En partie** : tous les 10 niveaux, une des 3 cartes est une nouvelle attaque (toujours sous 4 attaques, puis 1 fois sur 2, en remplacement) ; évolution au niveau de la ROM (seulement par niveau et si les sprites existent) ; rôle d'IA déduit des attaques équipées. Ennemis : une attaque de base de leur style (Attaque / Attaque Spé) plus une attaque de leur liste. Boss Groudon inchangé (4 attaques fixes, bulle numérotée, résistances).
-- **Étapes** : décor 1 (cristaux roses, ennemis niv. 1), décor 20 (sable, niv. 5), décor 12 (volcan, boss niv. 10).
-- **Commandes clavier** (19/10/2026) : ZQSD / flèches déplacement, U / I / O / P attaques 1 à 4 (mêmes touches en AZERTY et QWERTY ; un bouton de souris maintenu vise le curseur), Ctrl gauche esquive, Tab changer de Pokémon ; au menu des attaques, ← / → changent le filtre de type. Le HUD affiche U I O P sans manette branchée.
-- **Commandes manette** : stick gauche déplacement, stick droit visée, R1/R2/L1/L2 attaques, croix gauche/droite changer de Pokémon ; écran d'amélioration : croix ou stick + ✕, ○ pour revenir de l'écran de remplacement ; fin de partie : ✕ rejouer, ○ menu.
+Toutes ont des conflits avec `dev` (fusion à blanc par `git merge-tree`) ; intégration prévue avec Owen, dans l'ordre :
 
 ## Fusion de dev dans `feature/quart-ile` (24/10/2026, Robin)
 
@@ -175,11 +193,22 @@ plutôt que chez Claude Design (demande de Robin) ; vérifier les noms français
 attaque de projectile touche un ennemi immobile du banc à de nombreuses reprises (1 035 dégâts pour ≈ 33 estimés par
 coup), à vérifier en jeu.
 
+## Branches (26/10/2026)
+
+`feature/quart-ile` est fusionnée dans `dev` (Owen, 25/10). Pas encore dans `dev` : `feature/attaques-type-lot2`,
+`feature/refonte-visuelle`, `feature/salles` (Owen), `feature/peuplement` et `feature/engrenages` (Robin, celle-ci
+contient `refacto/socle`). Conflits récurrents : numéros des salles du terrain de test, liste des scénarios du banc,
+`PlayerController`, journaux de modifications ; après l'intégration : registre des salles par nom, banc découpé par
+domaine, outils de dev dans un assembly à part, puis découpage de `Combatant` et `Obstacles`.
+
 ## En attente
 
-- **Icônes de bonus/malus** (`status_attack_up`… six fichiers) : prompt donné plus tôt, archive pas encore reçue ; flèches colorées provisoires.
-- **Évolution manuelle** (17/10/2026) : faite et testée par code (niveau, carte Pierre Givre d'Évoli, Ningale → Ninjask + Munja, onde de choc, nuit à l'étape 2). Pas testés : Triangle à la manette, échange, Babimanta, Barpau, Debugant, menu avec Rond et équipe de 1 ou 2. Le voile de nuit est discret (alpha 0,3) ; le gris « sans effet » des chiffres de dégâts se lit mal.
-- Archives qui ne servent plus (Owen peut les supprimer) : `Jeu d'action 2D pixel art*.zip`, `Groudon.zip`, `Statuts.zip` à la racine ; `Design/Attaquesbasedistance.zip`, `Design/CaC.zip`, `Design/Evolution.zip`, `Design/Jeu d'action 2D pixel art.zip`. Garder l'archive de la ROM.
+- Icônes de bonus et malus (`status_attack_up`… six fichiers) : flèches colorées provisoires.
+- Planches des 14 attaques à trace qui n'ont qu'un disque coloré (prompt prêt : `Design/prompt_attaques_terrain.md`) ;
+  les attribuer via `move_rules.json`.
+- Attaques génériques sans effet visuel propre ; 108 attaques écartées (`Tools/pmd/generated_moves_report.txt`).
+- Évolution manuelle : pas testés à la manette (Triangle), échange, Babimanta, Barpau, Debugant.
+- Archives qui ne servent plus à la racine et dans `Design/` (Owen peut les supprimer) ; garder l'archive de la ROM.
 
 ## Problèmes connus et points à surveiller
 
@@ -189,33 +218,36 @@ coup), à vérifier en jeu.
   réparation à tas binaire bornée, redessin incrémental des obstacles et du terrain. Sonde au banc (« Niveau : pas de
   gel… ») : pire image 167 ms → 31 ms sur un niveau 360×268. Reste à confirmer en jeu par Robin.
 
-- Analyse du code (17/10/2026), corrigé : gardes du boss qui rapportaient expérience et recrues, ✕ / Espace qui esquivaient ou attaquaient en fermant un menu (entrées ignorées 0,25 s), ennemi seul forcé en soutien, écran de fin qui se fermait aussitôt (1 s avant d'accepter une touche), recul ignoré pendant l'annonce d'un ennemi, attaque possible en pleine ruée ou esquive. Restent, mineurs : les zones ne déclenchent ni drain ni recul ; tuiles non détruites à chaque `Generate()` ; Attaque / Attaque Spé proposées même sans attaque de cette catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
-
-- **Équilibrage entièrement provisoire**, encore plus depuis le système d'attaques : 2 attaques au départ, ennemis à attaques tirées au hasard, recharges génériques (`move_rules.json`). Le soutien devient rare : il faut un soin ou un bonus aux alliés (Bulbizarre n'est soutien qu'avec Synthèse). L'équipe progresse trop vite (niveau 23-25 à la fin de l'arène 2 dans mes tests, mais ces tests tuaient les vagues par code) et écrase Groudon niveau 10. Rythme d'expérience (20 + 4 × niveau) sans lien avec l'objectif « niveau 100 en 30 min ».
-- Un soutien ennemi peut être rattrapé pendant sa pause après attaque.
-- **IA à corriger (prochaine branche, Robin, 20/10/2026)** : un allié qui suit le Pokémon joué ne recalcule pas de
-  chemin sûr pour le rejoindre ; il s'arrête au bord du danger (`AllyAI.SafeSpotNear`, en cours sur la branche des IA).
-- Corrigé le 20/10/2026 : le terrain se dessinait au même ordre que les Pokémon (ils passaient dessous et clignotaient) ;
-  sol descendu à -6 (`DungeonGenerator.FloorOrder`).
-- `meta.json` a `"devMode": true` (persos de dev en tête du menu, 19/10/2026) : le repasser à `false` pour une version de jeu.
-- `meta.json` a `"unlockAll": true` pour les tests d'Owen : le repasser à `false` pour retrouver les vrais déblocages.
+- Équilibrage entièrement provisoire : rythme d'expérience (20 + 4 × niveau) sans lien avec l'objectif « niveau 100 en
+  30 min », soutien rare (il faut un soin ou un bonus aux alliés), équipe qui progresse vite.
 - L'annonce des attaques au corps à corps ennemies reste un disque rouge, qui ne correspond pas aux arcs ni aux estocs.
-- Jamais testés à la manette : navigation du menu (grille et écran des attaques), écran de remplacement d'attaque, Croix/Rond des écrans de fin. Le symbole ✕ de la ligne d'aide de l'écran d'amélioration semble mal rendu par la police.
-- Pas testés en situation réelle : recul, bonus au lanceur à l'impact, soin de Vampigraine générique, comportement des IA sous statut.
-- Jamais observés en jeu : clignotement des icônes en fin d'effet, navigation manette dans l'écran d'amélioration, effets animés de Groudon (seulement les fichiers), alliés au repos qui se répartissent.
-- La traînée de Vive-Attaque et l'onde de Séisme sont fines : à vérifier pour la lisibilité.
-- Unity s'est bloqué une fois pendant un rechargement de scripts (« The file 'MemoryStream' is corrupted ») ; Owen a dû le relancer. Après une recompilation, la liaison unityMCP peut être absente une dizaine de secondes : vérifier `Logs/Editor.log` (ciblé) avant de conclure à un blocage.
-- Machine d'Owen (Linux) : la manette est une Battletron compatible PS4 en Bluetooth (le câble USB coupait). Si Linux la refuse (« Rejected connection from !bonded device » dans `journalctl -u bluetooth`), refaire l'appairage avec `bluetoothctl` jusqu'à « Bonded: yes ». Ne pas toucher à `ClassicBondedOnly` sans accord explicite.
+- Mineurs : les zones ne déclenchent ni drain ni recul ; Attaque / Attaque Spé proposées même sans attaque de cette
+  catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
+- Jamais testés à la manette : navigation du menu, écran de remplacement d'attaque, Croix / Rond des écrans de fin.
+- Observé sur le banc : une attaque de projectile touchait un ennemi immobile de nombreuses fois (à vérifier en jeu).
+- Réglages de test : dans `meta_dev.json` (éditeur et builds de développement), plus dans `meta.json`.
+- Unity s'est déjà bloqué pendant un rechargement de scripts (« The file 'MemoryStream' is corrupted ») : relancer.
+  Après une recompilation, la liaison unityMCP peut manquer une dizaine de secondes : vérifier `Logs/Editor.log`.
+- Version d'Unity : `ProjectSettings/ProjectVersion.txt` diffère selon les machines ; ne pas le committer.
+- Machine d'Owen (Linux) : manette Battletron compatible PS4 en Bluetooth ; si Linux la refuse (« Rejected connection
+  from !bonded device »), refaire l'appairage avec `bluetoothctl` jusqu'à « Bonded: yes ». Ne pas toucher à
+  `ClassicBondedOnly` sans accord explicite.
 
-## Comment je teste (rappels utiles)
+## Comment je teste
 
-- Play lance la scène `Menu` ; en test, `Run.Start(new[]{4,1,25})` lance une partie avec cette équipe, `Run.ToMenu()` revient au menu. Pour tester l'écran d'amélioration : `Progression.AddXp(5000)` ; les champs privés `options`, `pending`, `replacing` se lisent par réflexion, `Choose(i)` et `Replace(slot)` sont publics.
-- Statuts : `combatant.AddStatus("sleep", 3f)` ; la confusion se vérifie par `Steer(Vector2.right)`.
-- Captures : `manage_camera` avec `output_folder` = `Temp/Captures` (pas de dossier `Assets/Screenshots`).
-- Sauvegarde : `save.json` dans `Application.persistentDataPath` (Linux `~/.config/unity3d/DefaultCompany/Pokescrap/`, macOS `~/Library/Application Support/DefaultCompany/Pokescrap/`, Windows `%USERPROFILE%\AppData\LocalLow\DefaultCompany\Pokescrap\`) ; menu **Pokescrap > Effacer la sauvegarde** (la remettre à zéro après les tests). Pour tester le recrutement : `SaveData.Settings.recruitMultiplier = 100` en mode Play. Lancer `SampleScene` directement donne une équipe au hasard parmi les débloqués ; `Run.ToMenu()` / `Run.Start(ids)` changent de scène.
-- Tester une attaque par code : désactiver `EnemyAI` et `AllyAI`, et ne pas utiliser le Pokémon contrôlé (sa `LiveAim` vient de la manette et remplace la direction donnée) ; la fenêtre en arrière-plan est lente, prévoir plusieurs lectures espacées.
-- `execute_code` en mode Play ; neutraliser l'écran d'amélioration avec `Progression.choiceInterval = 0` et les vagues avec `EnemySpawner.delayBetweenWaves = 600`.
-- Aller directement au boss : invoquer deux fois la méthode privée `EnemySpawner.NextStage` par réflexion après avoir détruit les ennemis.
-- Pour mesurer une mécanique, figer les autres acteurs (désactiver `AllyAI`, `EnemyAI`, `BossAI`) : les alliés tuent sinon les cibles de test, et le poison fausse les PV.
-- Les captures complètes sont en 1920×879 : recadrer avec PIL dans le scratchpad plutôt que d'agrandir la capture.
-- Le temps de jeu est figé quand l'écran d'amélioration est ouvert (`Time.timeScale = 0`) : vérifier `Time.time` entre deux relevés.
+- **Tests EditMode** (logique pure et données, quelques secondes) : `python3 Tools/setup.py --edit-tests` (Unity fermé ;
+  sinon Window > General > Test Runner, EditMode). Fichiers dans `Assets/Editor/Tests/`.
+- **Banc d'essai** (58 scénarios en mode Play, environ 10 min) : `python3 Tools/setup.py --ai-scenarios`, Unity fermé,
+  lignes `AISCENARIO` dans `Logs/ai_scenarios.log` ; touche B dans le terrain de test.
+- **Compilation rapide hors Unity** : reprendre le fichier `.rsp` d'Unity (`Library/Bee/artifacts/*/Assembly-CSharp.rsp`)
+  et le passer au `csc` du SDK .NET livré avec Unity.
+- **Terrain de test** (menu, Select / T en `devMode`) : salle 0 (émetteurs de terrain, présentoir des objets), 1
+  obstacles et cibles, 2 galerie des mégas, 3 démo des capacités Z, 4 élite, 5 boss, 6 démos de secours, 20
+  observation des rencontres (V / ○ : pilote automatique).
+- Play lance la scène `Menu` ; `Run.Start(new[]{4,1,25})` lance une partie avec cette équipe, `Run.ToMenu()` revient au
+  menu. Écran d'amélioration : `Progression.AddXp(5000)`. Statuts : `combatant.AddStatus("sleep", 3f)`.
+- Sauvegarde : `save.json` dans `Application.persistentDataPath` (macOS `~/Library/Application Support/DefaultCompany/
+  Pokescrap/`, Linux `~/.config/unity3d/DefaultCompany/Pokescrap/`, Windows `%USERPROFILE%\AppData\LocalLow\
+  DefaultCompany\Pokescrap\`) ; menu **Pokescrap > Effacer la sauvegarde**.
+- Mesurer une mécanique : figer les autres acteurs (désactiver `AllyAI`, `EnemyAI`, `BossAI`). Le temps est figé
+  pendant l'écran d'amélioration (`Time.timeScale = 0`). La fenêtre Unity en arrière-plan est lente.

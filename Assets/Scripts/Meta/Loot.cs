@@ -33,10 +33,12 @@ public class Loot : MonoBehaviour
         public Combatant notFor; // the Pokémon that just let it go: not picked up again until it steps off
     }
 
+    const float ChestSize = 1.1f; // tiles
     const float IconSize = 0.8f, SquareSize = 0.45f; // tiles: an item's icon, or the coloured square without one
 
     readonly List<Drop> drops = new();
     GameObject chest;
+    float chestStone; // the waiting chest's chance of a mega stone
     PlayerController team;
     Progression progression;
     readonly System.Random rng = new();
@@ -44,6 +46,16 @@ public class Loot : MonoBehaviour
     /// Called when the stage's chest is opened.
     public event System.Action ChestOpened;
     public bool ChestWaiting => chest != null;
+
+    /// Where the waiting chest stands (tests, the island's rooms), null without one.
+    public Vector2? ChestAt => chest != null ? chest.transform.position : null;
+
+    /// Takes the waiting chest away unopened (the team leaves the room it stands in).
+    public void RemoveChest()
+    {
+        if (chest != null) Destroy(chest);
+        chest = null;
+    }
 
     void Start()
     {
@@ -152,11 +164,25 @@ public class Loot : MonoBehaviour
     }
 
     /// The stage is cleared: a chest near the team.
-    public void SpawnChest(Vector2 at)
+    /// anywhere: also in the test arena (the island's rooms); stoneChance: a mega stone instead of the Z crystal or
+    /// Tera shard, that often.
+    public void SpawnChest(Vector2 at, bool anywhere = false, float stoneChance = 0f, string icon = null)
     {
-        if (Run.Sandbox || chest != null) return;
+        if ((Run.Sandbox && !anywhere) || chest != null) return;
+        chestStone = stoneChance;
         chest = new GameObject("Coffre");
         chest.transform.position = at;
+        // Mystery Dungeon's chest (PMDCollab), else a drawn box with its lid.
+        var sprite = SpecialItems.Icon(string.IsNullOrEmpty(icon) ? SpecialItems.Loot.chestIcon : icon);
+        if (sprite != null)
+        {
+            var r = chest.AddComponent<SpriteRenderer>();
+            r.sprite = sprite;
+            r.sortingOrder = 1;
+            r.spriteSortPoint = SpriteSortPoint.Pivot;
+            chest.transform.localScale = Vector3.one * ChestSize;
+            return;
+        }
         var box = chest.AddComponent<SpriteRenderer>();
         box.sprite = Shapes.Square;
         box.color = new Color(0.55f, 0.33f, 0.12f);
@@ -238,7 +264,8 @@ public class Loot : MonoBehaviour
         var at = (Vector2)chest.transform.position;
         Destroy(chest);
         chest = null;
-        Place(RollTyped(rng, TeamTypes()), at + Vector2.up * 0.8f);
+        var special = rng.NextDouble() < chestStone ? RollStone(rng, TeamIds(), SaveData.HasStone) : null;
+        Place(special ?? RollTyped(rng, TeamTypes()), at + Vector2.up * 0.8f);
         if (rng.NextDouble() < HeldItems.ChestChance && HeldItems.Roll(rng) is { } held)
             Place(new Item { held = held.key, heldTier = held.tiered ? HeldItems.ChestTier(rng) : 0 }, at + new Vector2(-0.8f, 0.3f));
         for (int k = 0; k < BagItems.ChestCount; k++)
@@ -264,13 +291,22 @@ public class Loot : MonoBehaviour
     public void CollectAll()
     {
         if (chest != null) OpenChest();
-        var holder = team != null ? team.Controlled : null;
-        foreach (var d in drops.ToArray())
+        // Once each: a held item goes to a member that holds none (or the same one), never in exchange for another,
+        // which would drop that one and start again; what nobody can take stays behind and goes.
+        foreach (var d in drops.ToList())
         {
-            if (d.item.held != null && holder != null && holder.Held != null && holder.Held.key != d.item.held) continue;
             int index = drops.IndexOf(d);
-            if (index >= 0) Take(index);
+            if (index < 0) continue;
+            if (d.item.held == null) { Take(index); continue; }
+            var taker = team != null ? team.Members.FirstOrDefault(m => m != null && m.IsAlive && (m.Held == null || m.Held.key == d.item.held)) : null;
+            if (taker == null) continue;
+            drops.RemoveAt(index);
+            if (d.go != null) Destroy(d.go);
+            var now = HeldItems.Merge(taker.Held, HeldItems.AtTier(HeldItems.Get(d.item.held), d.item.heldTier), out _);
+            taker.Hold(now);
+            progression?.Announce($"{taker.Stats.name} tient {now.FullName}", Notice.Loot);
         }
+        ClearGround();
     }
 
     // A consumable is picked up only when the bag has room for it (it stays on the ground otherwise).

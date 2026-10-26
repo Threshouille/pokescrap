@@ -1,8 +1,8 @@
 {
-  "unlockAll": true,
-  "allItems": true,
+  "unlockAll": false,
+  "allItems": false,
   "teraStab": 2,
-  "devMode": true,
+  "devMode": false,
   "devStartingMoveCount": 4,
   "obstaclesInRuns": true,
   "encountersInRuns": true,
@@ -72,6 +72,7 @@
   "megaBossFill": 0.5,
   "megaTime": 50,
   "megaCastTime": 1.5,
+  "ultimateHeal": 0.15,
   "evolutionCardChance": 0.5,
   "statTieMargin": 0.1,
   "postProcessing": true

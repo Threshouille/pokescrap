@@ -49,3 +49,5 @@ Thumbs.db
 .vscode/
 /Assets/Resources/Cliffs/*/*.png
 /Assets/Resources/MapProps/*.png
+/Assets/Resources/Bridges/*.png
+/Assets/Resources/GroundObjects/*.png

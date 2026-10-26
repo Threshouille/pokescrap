@@ -156,6 +156,12 @@ public class DungeonGenerator : MonoBehaviour
                 int r = Region(x, y);
                 if (r == IslandPlan.Void)
                 {
+                    // A rope bridge over the sky (TimeGears): walked on, nothing drawn under it.
+                    if (PlanIndex(x, y) is var b && b >= 0 && plan.skyBridge.TryGetValue(b, out int bridgeZone) && bridgeZone == zone)
+                    {
+                        open[gx, gy] = true;
+                        continue;
+                    }
                     skyWall[g] = dist[k] <= 2; // the edge of the island
                     continue;
                 }
@@ -165,6 +171,18 @@ public class DungeonGenerator : MonoBehaviour
                 if (r == zone && plan.cliffStyle != null) LayCliff(plan, PlanIndex(x, y), x, y, gx, gy);
                 if (r == zone && cellHeight != null) cellHeight[g] = plan.height[PlanIndex(x, y)];
                 if (r == zone && cellShade != null) cellShade[g] = plan.Shade(PlanIndex(x, y));
+            }
+        // The sky along a bridge is walled too (nobody walks off its sides).
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                int gx = x + origin.x, gy = y + origin.y;
+                if (!open[gx, gy] || Region(x, y) != IslandPlan.Void) continue;
+                foreach (var d in Neighbours)
+                {
+                    int nx = gx + d.x, ny = gy + d.y;
+                    if (nx >= 0 && ny >= 0 && nx < size && ny < size && !open[nx, ny] && cellDecor[ny * size + nx] == null) skyWall[ny * size + nx] = true;
+                }
             }
         var arrival = (islandArrival ?? plan.Arrival(zone)) - box.min;
         tileset = nearest[Mathf.Clamp(arrival.y, 0, n - 1) * n + Mathf.Clamp(arrival.x, 0, n - 1)] ?? tileset;

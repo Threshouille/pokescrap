@@ -205,6 +205,7 @@ public class Ultimates : MonoBehaviour
         after = PokemonRoster.Get(mega.id);
         string name = member.Stats.name;
         member.MegaEvolve(mega);
+        member.Heal(member.maxHp * SaveData.Settings.ultimateHeal); // a breath of life with the change
         member.BeginEvolution(settings.megaCastTime);
         startedAt = Time.time;
         nextSwap = Time.time;
@@ -333,6 +334,7 @@ public class Ultimates : MonoBehaviour
         var e = member.Special;
         Gauge = 0f;
         member.Terastallize(e.type);
+        member.Heal(member.maxHp * SaveData.Settings.ultimateHeal);
         member.BeginEvolution(TeraPose);
         Aura(member, TeraPose, GameData.TypeColor(e.type));
         float length = SpecialItems.TeraTime(e.level);

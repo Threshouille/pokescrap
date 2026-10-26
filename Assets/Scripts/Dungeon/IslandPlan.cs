@@ -58,6 +58,11 @@ public partial class IslandPlan
     public Vector2Int secret = new(-1, -1); // secret stairs (SecretStairs), -1 none
     public string secretSpot; // where they hide: "clearing" or "rock" (under secret_rooms.json's rock, to break)
     public readonly List<Vector2> clearings = new(); // the clearings in the middle of the forests, in tiles (level design)
+    /// Tiles of the sky walked on (a rope bridge to a boss's islet, TimeGears), by index, with the zone they belong to:
+    /// open, nothing drawn under them, the sky around them walled.
+    public readonly Dictionary<int, int> skyBridge = new();
+    /// Tiles kept for the big places of a quarter (the key dungeon, the islet's bridge): no camp there.
+    public readonly List<Vector2Int> reserved = new();
     public readonly List<(string key, Vector2 at)> decorProps = new(); // decor elements (Resources/MapProps/<key>) at their foot, in tiles
     public int[] height; // per tile: level of the ground (0 = plain, 1, 2... on hills), may be null
     public bool[] wallLook; // per tile: walkable but drawn as a wall (a ledge looks like its cliff), may be null
@@ -126,7 +131,7 @@ public partial class IslandPlan
         for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
-                if (region[Index(x, y)] != zone) continue;
+                if (region[Index(x, y)] != zone && !(skyBridge.TryGetValue(Index(x, y), out int z) && z == zone)) continue;
                 minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x);
                 minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y);
             }

@@ -1,0 +1,12 @@
+{
+ "comment": "Objets de scène de l'histoire (GROUND/<file>.wan de la ROM, Explorateurs du Ciel) utilisés en jeu, extraits par Tools/pmd/extract_ground_objects.py (appelé par setup.py) dans Resources/GroundObjects/<key>.png (première image de leur première animation ; ignorés par Git, .meta versionnés). Repérage : Tools/pmd/render_ground_objects.py (planches locales). frames : écrit aussi <key>_frames.png (toutes les images du premier groupe d'animations, ou seulement celles des animations anims, cellules centrées sur le pied de l'objet). key : nom dans le jeu ; file : objet de la ROM ; use : à quoi il sert.",
+ "objects": [
+  { "key": "time_gear", "file": "v39p03a1", "use": "Engrenage du Temps : icône, engrenage et fragments (TimeGears)" },
+  { "key": "light_portal", "file": "p09p01a1", "frames": true, "use": "Portail à l'entrée du pont de l'îlot du boss : arche qui scintille (images 0-3, terne sans la clé), ouverture (4-7), tourbillon ouvert (8-11)" },
+  { "key": "floating_rock", "file": "v38p08a1", "use": "Îlot du boss aperçu au large (rocher flottant)" },
+  { "key": "floating_rock_b", "file": "v38p08b1", "use": "Îlot du boss : rocher flottant (variante)" },
+  { "key": "floating_rock_c", "file": "v38p10a2", "use": "Îlot du boss : petit rocher flottant" },
+  { "key": "rift", "file": "t01p01a5", "frames": true, "anims": [0], "use": "Entrée du donjon de la clé : faille dimensionnelle au sol qui pulse (4 images)" },
+  { "key": "seal_stone", "file": "d28p33a1", "use": "Sceau de pierre devant l'entrée du donjon de la clé" }
+ ]
+}

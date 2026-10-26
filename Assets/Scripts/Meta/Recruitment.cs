@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using static HudLayout;
 
 /// A knocked-out enemy may ask to join: the earliest playable form of its evolution line is unlocked for later runs
 /// (beating a Charizard unlocks Charmander). The chance is the ROM recruit rate of that form, since evolved forms
@@ -7,7 +8,6 @@ using UnityEngine;
 /// Added at runtime by EnemySpawner, which lists this run's recruits on the end screen.
 public class Recruitment : MonoBehaviour
 {
-    const float ReferenceHeight = 360f;
 
     /// Pokémon unlocked during this run, in order.
     public readonly List<int> recruits = new();
@@ -27,6 +27,7 @@ public class Recruitment : MonoBehaviour
         var baseForm = GameData.Pokemon(PokemonRoster.FirstPlayableForm(combatant.Stats.id));
         if (baseForm == null || SaveData.IsUnlocked(baseForm.id)) return;
         float chance = baseForm.recruitRate * SaveData.Settings.recruitMultiplier / 100f;
+        if (combatant.GetComponent<RecruitBonus>() is { } bonus) chance *= bonus.multiplier;
         if (chance <= 0f || rng.NextDouble() >= chance) return;
 
         SaveData.Unlock(baseForm.id);
@@ -45,7 +46,7 @@ public class Recruitment : MonoBehaviour
     void OnGUI()
     {
         if (shown < 0) return;
-        float s = Mathf.Max(1f, Mathf.Round(Screen.height / ReferenceHeight));
+        float s = HudLayout.Scale;
         text ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft, wordWrap = false };
         text.fontSize = Mathf.RoundToInt(8f * s);
 
@@ -58,13 +59,5 @@ public class Recruitment : MonoBehaviour
         var portrait = PokemonRoster.Portrait(shown);
         if (portrait != null) GUI.DrawTexture(new Rect(box.x + pad, box.y + pad, height - 2f * pad, height - 2f * pad), portrait);
         GUI.Label(new Rect(box.x + height + pad, box.y, width - height - pad, height), message, text);
-    }
-
-    static void Fill(Rect rect, Color color)
-    {
-        var previous = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = previous;
     }
 }

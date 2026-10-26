@@ -14,6 +14,24 @@ public class CameraFollow : MonoBehaviour
     public float slideTime = 0.18f;
 
     static float shakeStrength, shakeUntil, shakeLength;
+    static Vector2 focusPoint;
+    static float focusUntil, focusSlide = 0.5f, zoom = 1f, zoomUntil;
+
+    /// Centres the camera on a point for a while (a boss's second phase), sliding there and back over "slide"
+    /// seconds (eased), then follows its target again.
+    public static void Focus(Vector2 point, float time, float slide = 0.5f)
+    {
+        focusPoint = point;
+        focusUntil = Time.time + time;
+        focusSlide = slide;
+    }
+
+    /// Closes in by that factor for a while (eased), then back.
+    public static void Zoom(float factor, float time)
+    {
+        zoom = Mathf.Max(0.1f, factor);
+        zoomUntil = Time.time + time;
+    }
 
     /// Shakes the camera (tiles, seconds), fading out: a cave's door opening.
     public static void Shake(float strength, float time)
@@ -24,12 +42,18 @@ public class CameraFollow : MonoBehaviour
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetShake() => shakeUntil = 0f;
+    static void ResetShake()
+    {
+        shakeUntil = 0f;
+        focusUntil = 0f;
+        zoomUntil = 0f;
+    }
 
     Camera cam;
     Vector2 position; // unsnapped camera position
     Vector2 velocity;
-    bool sliding;
+    bool sliding, wasFocused, slowSlide;
+    float baseSize;
     bool started;
 
     void Awake()
@@ -40,7 +64,19 @@ public class CameraFollow : MonoBehaviour
     void LateUpdate()
     {
         if (target == null) return;
-        Vector2 goal = target.position;
+        bool focused = Time.time < focusUntil;
+        Vector2 goal = focused ? focusPoint : (Vector2)target.position;
+        // Zoom in and out smoothly around the base size.
+        if (baseSize <= 0f) baseSize = cam.orthographicSize;
+        float wanted = Time.time < zoomUntil ? baseSize / zoom : baseSize;
+        cam.orthographicSize = Mathf.MoveTowards(cam.orthographicSize, wanted, baseSize * Time.deltaTime * 1.5f);
+        if (focused != wasFocused)
+        {
+            sliding = true; // to the boss and back: a slow slide, not a cut
+            velocity = Vector2.zero;
+            wasFocused = focused;
+            slowSlide = true;
+        }
         if (!started)
         {
             position = goal; // no slide from wherever the camera was placed in the scene
@@ -54,8 +90,8 @@ public class CameraFollow : MonoBehaviour
         }
         if (sliding)
         {
-            position = Vector2.SmoothDamp(position, goal, ref velocity, slideTime);
-            if (Vector2.Distance(position, goal) < ArrivalDistance) sliding = false;
+            position = Vector2.SmoothDamp(position, goal, ref velocity, slowSlide ? focusSlide : slideTime);
+            if (Vector2.Distance(position, goal) < ArrivalDistance) sliding = slowSlide = false;
         }
         else
         {

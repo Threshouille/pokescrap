@@ -33,6 +33,15 @@ public static class SpecialItems
         public int terrainMinTiles = 4;
         // Second phase (mega or Tera): under phaseHealth of its HP; heal share by kind of enemy; recharges × phaseCooldownMul.
         public float phaseHealth = 0.5f, phaseHeal = 0.3f, phaseHealBoss = 0.2f, phaseHealRanked = 0.1f, phaseCooldownMul = 0.8f, phaseKnockback = 3f;
+        // A boss's second phase stops the fight (BossCutScene): seconds in all, of the opening freeze and of the reveal;
+        // camera zoom, darkening of the rest of the screen, seconds of the camera's slide.
+        public float bossCutScene = 2f, cutFreeze = 0.2f, cutReveal = 0.7f, cutZoom = 1.2f, cutDim = 0.6f, cutSlide = 0.5f;
+        // Its fall (BossDefeat): seconds, the team's heal (share of max HP), the title.
+        public float bossDefeat = 1.6f, bossDefeatHeal = 0.4f;
+        public string bossDefeatTitle = "BOSS VAINCU";
+        public float guardianCutScene = 1.4f; // seconds of a key dungeon guardian's Tera on screen
+        public float guardianDefeat = 1.2f, guardianDefeatHeal = 0.2f; // its fall
+        public string guardianDefeatTitle = "GARDIEN VAINCU";
     }
 
     [Serializable] public class FamilyIcons { public string mega, z, tera; }
@@ -46,6 +55,7 @@ public static class SpecialItems
     public class LootSettings
     {
         public float bossMega = 1f, bossOther = 0.6f, eliteChance = 0.033f, eliteDrop = 0.5f, eliteHealth = 2f, teamTypeWeight = 3f;
+        public string chestIcon = "pmd_Chest_Gold"; // the chest's sprite (Resources/Items), else a drawn box
     }
 
     [Serializable]

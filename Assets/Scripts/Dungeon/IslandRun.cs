@@ -20,7 +20,22 @@ public class IslandRun : MonoBehaviour
     public bool revealAll;
 
     /// The team is away from the island (a secret room, SecretStairs): no passage ends, no mini-map.
-    public bool Away { get; set; }
+    public bool Away
+    {
+        get => away;
+        set
+        {
+            away = value;
+            // In a room, what belongs to the island's zone is not drawn: its decor, passage ends and landmarks.
+            if (propRoot != null) propRoot.gameObject.SetActive(!away);
+            foreach (var e in exits) if (e.marker != null) e.marker.SetActive(!away);
+            foreach (var m in markers) if (m != null) m.SetActive(!away);
+        }
+    }
+    bool away;
+
+    /// Marks on the mini-map whatever was revealed (a gear fragment's hint, TimeGears), in island tiles.
+    public readonly List<(Vector2Int tile, Color colour)> hints = new();
 
     /// Called once a zone is built (the team in place).
     public event System.Action Built;
@@ -36,6 +51,7 @@ public class IslandRun : MonoBehaviour
 
     DungeonGenerator arena;
     PlayerController team;
+    TimeGears gears;
     Texture2D map;
     Color32[] pixels;
     bool[] revealed;
@@ -71,6 +87,14 @@ public class IslandRun : MonoBehaviour
         if (GetComponent<SecretStairs>() == null) gameObject.AddComponent<SecretStairs>();
         if (GetComponent<CaveSeal>() == null) gameObject.AddComponent<CaveSeal>();
         if (GetComponent<CaveStairs>() == null) gameObject.AddComponent<CaveStairs>();
+        if (GetComponent<IslandPopulation>() == null) gameObject.AddComponent<IslandPopulation>();
+        gears = GetComponent<TimeGears>();
+        if (gears == null) gears = gameObject.AddComponent<TimeGears>(); // after the population: its places are kept clear
+        gears.Bind(this);
+        gears.Prepare(plan); // its bridges over the sky before the first zone is built
+        // After the gears (their places are made first when a zone is built).
+        if (GetComponent<KeyDungeon>() == null) gameObject.AddComponent<KeyDungeon>();
+        if (GetComponent<BossPortal>() == null) gameObject.AddComponent<BossPortal>();
         Build(Plan.order[0], null);
     }
 
@@ -148,6 +172,7 @@ public class IslandRun : MonoBehaviour
     {
         if (propRoot != null) Destroy(propRoot.gameObject);
         propRoot = new GameObject("Éléments de décor").transform;
+        var fade = propRoot.gameObject.AddComponent<PropFade>(); // trees see-through over the team
         foreach (var (key, at) in Plan.decorProps)
         {
             var tile = Vector2Int.FloorToInt(at);
@@ -162,6 +187,7 @@ public class IslandRun : MonoBehaviour
             Wind.Sway(r, key); // trees, bushes and flowers sway
             r.sortingOrder = 1; // the Pokémon's
             r.spriteSortPoint = SpriteSortPoint.Pivot;
+            fade.Add(r);
         }
     }
 
@@ -199,13 +225,19 @@ public class IslandRun : MonoBehaviour
     }
 
     // Island tile under a world position.
-    Vector2Int TileOf(Vector2 position) => arena.CellOf(position) - arena.Interior.min + arena.IslandOrigin;
+    /// The island tile under a world position.
+    public Vector2Int TileOf(Vector2 position) => arena.CellOf(position) - arena.Interior.min + arena.IslandOrigin;
 
     public void End()
     {
         if (GetComponent<SecretStairs>() is { } secret) secret.Clear();
         if (GetComponent<CaveSeal>() is { } cave) cave.Clear();
         if (GetComponent<CaveStairs>() is { } caveStairs) caveStairs.Clear();
+        if (GetComponent<IslandPopulation>() is { } population) population.Clear();
+        if (GetComponent<TimeGears>() is { } timeGears) timeGears.Clear();
+        if (GetComponent<KeyDungeon>() is { } dungeon) dungeon.Clear();
+        if (GetComponent<BossPortal>() is { } portal) portal.Clear();
+        hints.Clear();
         Away = false;
         if (propRoot != null) Destroy(propRoot.gameObject);
         foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
@@ -235,6 +267,16 @@ public class IslandRun : MonoBehaviour
         {
             float d = Vector2.Distance(at, e.marker.transform.position);
             closest = Mathf.Min(closest, d);
+            // Locked until the quarter's Time Gear is found (TimeGears): grey, and a word when stepped on.
+            bool open = gears == null || gears.CanPass(Zone, e.zone);
+            e.marker.GetComponentsInChildren<SpriteRenderer>()[^1].color = !open ? new Color(0.35f, 0.35f, 0.38f)
+                : e.zone == IslandPlan.Centre ? new Color(0.75f, 0.5f, 1f) : new Color(1f, 0.85f, 0.3f);
+            if (armed && d <= PassageReach && !open)
+            {
+                armed = false;
+                gears.Refuse(e.zone);
+                continue;
+            }
             if (armed && d <= PassageReach)
             {
                 int zone = e.zone;
@@ -298,7 +340,9 @@ public class IslandRun : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         // The current zone only.
         float scale = MapSize / Mathf.Max(bounds.width, bounds.height) * s;
-        var rect = new Rect(Screen.width - 8f * s - bounds.width * scale, 34f * s, bounds.width * scale, bounds.height * scale);
+        // Top right, below the lots panel (HudLayout): never over it.
+        var rect = new Rect(Screen.width - 8f * s - bounds.width * scale, Mathf.Max(HudLayout.RightTop(s), HudLayout.BelowRightColumn(s)),
+            bounds.width * scale, bounds.height * scale);
         var uv = new Rect(bounds.x / (float)Plan.size, bounds.y / (float)Plan.size, bounds.width / (float)Plan.size, bounds.height / (float)Plan.size);
         var previous = GUI.color;
         GUI.color = new Color(0f, 0f, 0f, 0.35f);
@@ -322,10 +366,24 @@ public class IslandRun : MonoBehaviour
             GUI.color = new Color(0.3f, 1f, 0.9f);
             Dot(rect, scale, Plan.secret - bounds.min, 3.5f * s);
         }
+        // Tests: the key dungeon and the boss islet's portal (TimeGears).
+        if (revealAll || SaveData.Settings.devMode)
+            foreach (var stairs in new IslandStairs[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>() })
+                if (stairs != null && stairs.Waiting(Zone))
+                {
+                    GUI.color = stairs.MapColour;
+                    Dot(rect, scale, stairs.MapTile - bounds.min, 3.5f * s);
+                }
         if ((revealAll || SaveData.Settings.devMode) && Plan.sealedCave.x >= 0 && Plan.region[Plan.Index(Plan.sealedCave.x, Plan.sealedCave.y)] == Zone)
         {
             GUI.color = new Color(1f, 0.5f, 0f);
             Dot(rect, scale, Plan.sealedCave - bounds.min, 3.5f * s);
+        }
+        foreach (var (tile, colour) in hints)
+        {
+            if (Plan.region[Plan.Index(tile.x, tile.y)] != Zone) continue;
+            GUI.color = colour;
+            Dot(rect, scale, tile - bounds.min, 3f * s);
         }
         GUI.color = new Color(0.75f, 0.5f, 1f);
         foreach (var c in Plan.caves)

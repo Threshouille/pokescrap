@@ -77,7 +77,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   PV (plus jamais au premier contact) ; une élite ou un boss ne peut pas franchir ce seuil d'un seul coup. À la
   transformation (immobile et invincible un instant, onde qui repousse l'équipe) : +30 % des PV max (boss +20 %, ennemi
   d'un rang à objet +10 %), recharges × 0,8, en plus des statistiques ou du type. La capacité Z ne soigne pas ; la méga
-  et la Téra du joueur non plus. En contrepartie, le champion passe de 6 à 5 fois les PV.
+  et la Téra du joueur rendent 15 % des PV max (`ultimateHeal`, décidé le 26/10/2026). En contrepartie, le champion passe de 6 à 5 fois les PV.
 - Obtention (à affiner) : boss (méga-gemme non possédée, compatible avec l'équipe en priorité), coffre de fin d'étape
   (Z ou Téra pondérés vers les types de l'équipe), rare ennemi d'élite ; plus tard défis, quêtes, îlots, boutique.
 
@@ -203,6 +203,34 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   qui fuit), Défense du sanctuaire (tenir 3 vagues) ; chaque quête se termine par un boss. Le 4e quartier finit
   toujours par un boss. Les îlots ne donnent pas d'engrenage : récompenses de détour (plus tard).
 - Centre : série de salles défis et combats, structure de donjon (salles du catalogue), boss final.
+- Engrenages et boss de quartier (décidé le 25/10/2026, Robin ; `feature/engrenages`, `time_gears.json`) : passage
+  suivant fermé jusqu'à l'engrenage du quartier, centre avec les quatre. Le boss est sur un îlot à part, par un portail
+  au bord de la côte qui ne s'ouvre qu'avec la clé de l'îlot, au fond d'un donjon propre au boss (une embuscade, puis un
+  gardien près d'un coffre qui contient la clé) ; dans l'îlot, la sortie reste fermée jusqu'à sa chute (engrenage et
+  coffre). Le boss est plus grand qu'un Pokémon ordinaire (× 1,6), a plus de PV et une barre de vie qui n'annonce
+  pas sa seconde phase (surprise). Accès (26/10/2026) : le donjon de la clé est sur le point d'intérêt du
+  quartier (grotte du sommet, plus haut plateau ou clairière) ; un pont de corde part de la côte vers l'îlot, aperçu
+  au large (rochers flottants), fermé par un portail de lumière qui s'ouvre avec la clé ; avancer sur le pont mène
+  directement à l'arène. Objets importants à l'écran (engrenages, clé, fragments). Art tiré de la ROM : entrée du donjon = la grotte du sommet (y entrer mène au donjon), sinon une faille dimensionnelle au sol, portail animé qui s'ouvre à l'approche avec la clé, pont vertical sur la côte arrondie ; boss d'îlot sans bulles numérotées ; arène gardée après sa chute (pas de nouveau combat). Équilibrage (26/10/2026) : niveau de l'équipe + 2 (jamais sous celui du
+  quartier), × 22 PV, un coup ne retire jamais plus de 35 % des PV max de sa cible, annonces de ses attaques de zone
+  allongées de 0,3 s ; arène Vol : archipel de petites îles au-dessus du vide et de l'eau, beaucoup de ponts. À mi-PV, le combat s'arrête : la caméra se centre sur lui pendant qu'il
+  méga-évolue (animation rapide, environ 1,5 s, personne ne bouge ni n'attaque), puis le combat reprend (26/10/2026). Roster limité par zone (26/10/2026) : forêt Altaria, Gardevoir, Gallame, Lockpin ;
+  volcan Dracaufeu, Démolosse, Camérupt, Tyranocif ; glacier Oniglali, Absol, Altaria ; côte Ptéra, Airmure,
+  Dracaufeu ; désert Steelix, Mysdibule, Camérupt, Tyranocif ; ruines Alakazam, Ectoplasma, Branette, Ténéfix,
+  Charmina, Lucario. Légendaire à 3 % (Téracristal d'un type avantageux à sa seconde phase) : forêt Celebi, volcan
+  Groudon, côte Kyogre ; les trios légendaires (oiseaux, Regi, chiens, lacs) sont gardés pour les îlots secondaires,
+  les mégas légendaires pour le centre. Pas de duo. Pas de passif de zone : l'arène est pensée pour le boss (Vol :
+  îlots reliés par des ponts au-dessus du vide, 2 sbires Feu qui les brûlent ; Feu : archipel de lave, sbires Poison
+  ou Électrik qui piègent les zones qui ne brûlent pas ; Glace : patinoire ; Roche, Sol, Acier : éboulis ; Spectre,
+  Psy, Ténèbres : colonnade, sbires Spectre ; Normal, Combat : réseau électrique, sbires Électrik). Chaque boss a 4
+  attaques fixes, une par numéro de bulle (`movesets` de `time_gears.json`, choisies le 26/10/2026 : au moins une
+  attaque de statut ou de météo, des attaques de zone à éviter). Le donjon de la clé prend le thème et les Pokémon des types du boss ; son gardien est le
+  Pokémon le plus évolué de ces types, une élite qui se téracristallise (pas de méga), avec 2 sbires qui portent
+  chacun un cristal Z. Fragments : 3 dans des sous-biomes différents, gardés par une élite endormie ou cachés dans le
+  recoin le plus haut, indice sur la mini-carte. Quêtes du Tableau des missions : plus tard (un boss en attendant).
+  - Retours de test (26/10/2026, Robin), à faire :
+    - Fait le 26/10 : PV, barre en deux phases, arène sur mesure, gardien évolué et ses sbires, donjon au thème du
+      boss, roster par zone. Clé = Clé de Donjon Mystère, engrenage tiré de la ROM.
 - Zones séparées (décidé le 22/10/2026, Owen) : chaque quartier et le centre sont des instances à part (une carte
   chacune), séparées par de grands murs plutôt que par des frontières naturelles, avec un écran de chargement à chaque
   passage. On peut revenir dans un quartier déjà visité. Le centre s'ouvre depuis le dernier quartier. Passages ouverts
@@ -216,6 +244,16 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Végétation (décidé le 24/10/2026, Owen) : peu de décor épars (fleurs, buissons, rochers) ; les arbres servent aux
   forêts. Chaque sous-biome a des taches : champ de fleurs, fougeraie, éboulis, forêt. Une forêt est un massif plein
   traversé de sentiers vers une clairière centrale, pensé pour le level design (lisière praticable sous les couronnes).
+- Peuplement des quartiers (décidé le 25/10/2026, Robin) : mélange de camps (surtout des gangs, parfois une équipe
+  ou un solitaire ; endormis jusqu'à l'approche ou une attaque, laisse autour du camp), de patrouilles (surtout des
+  meutes, plus rares) et de points d'apparition spontanée selon des conditions (nuit, météo, temps passé, équipe
+  proche mais hors de vue) ; densité moyenne (8 à 12 rencontres par quartier au départ) ; un groupe battu ne revient
+  pas, mais un autre lot peut réapparaître à sa place au bout d'un moment. Populations par sous-biome
+  (`populations.json` : types pondérés, types de la nuit), plus fortes avec le quartier et la distance à l'arrivée.
+  Étapes : 1) populations (fait le 25/10/2026) ; 2) camps, patrouilles, apparitions et retour sur la carte (fait le
+  25/10/2026, `island_population.json`) ; 3) contenu
+  des escaliers secrets et des grottes (trésor, embuscade, gardien, décor du sous-biome ; fait le 25/10/2026,
+  `room_contents.json`) ; 4) tests.
 - Escaliers secrets (décidé le 25/10/2026, Owen ; génération à faire, Robin) : un escalier caché dans un quartier mène à
   une salle à part (écran de chargement, comme un changement de zone), dont un escalier ramène exactement au même
   endroit ; l'escalier secret disparaît ensuite. Tirage avec une probabilité, comme les Monster Houses de DM (0 ou 1
@@ -432,27 +470,37 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 
 ## 4. Points ouverts
 
+Revus le 25/10/2026 : les points tranchés depuis la première version sont regroupés à la fin.
 
 ### Structurants
-1. Boutons : avec la visée au stick droit, les 4 attaques vont sur les gâchettes (L1, L2, R1, R2). Quel bouton pour changer de Pokémon ?
-2. Périmètre de la première version : un seul cycle (2 arènes + 1 boss) ?
+2. Périmètre de la première version : un seul cycle (2 arènes + 1 boss) ? Et quelle structure de partie : étapes,
+   île flottante, niveaux continus (branches d'Owen) ?
 3. Échelle de vitesse : provisoirement 3 à 6 cases/s pour une vitesse de base de 5 à 160. À ajuster en jouant.
-4. Fréquence des choix : tous les 5 niveaux (environ 20 coupures et 60 choix par partie) ou tous les 10 (10 coupures, 30 choix) ?
+17. Cibles d'équilibrage : durée d'une partie, niveau visé, taux de victoire (objectif d'origine : niveau 100 en
+    30 minutes).
 
 ### Combat
-5. Ennemis : confirmer le partage des attaques avec les joueurs ; prévoir un temps d'annonce avant leurs attaques pour qu'elles soient esquivables.
-6. Formule de dégâts.
-7. IA alliée : niveau d'autonomie, ordres possibles ?
+7. IA alliée : ordres possibles ?
 8. Équilibrage solo / 2 joueurs / 3 joueurs.
 9. Lisibilité du type d'un ennemi à l'écran (en partie réglée par la couleur des chiffres de dégâts).
 
 ### Progression
-10. Évolutions sans niveau : décidé le 17/10/2026 (voir Progression en partie).
 11. Talents : un par Pokémon, passif permanent ou à déclencher ?
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?
 
 ### Contenu
-14. Terrains spéciaux (trous, eau, lave) : dans la première version ou plus tard ? Les spectres traversent-ils les murs ?
-15. Boss : lesquels, et avec quels comportements spécifiques ?
-16. Objets et boutiques : quels objets, quels effets ? Piste d'Owen (15/10/2026) : objets trouvés au hasard ou chez des marchands, qui donnent des effets passifs aux Pokémon.
+15. Boss : lesquels, et avec quels comportements spécifiques ? (Groudon seul pour l'instant ; la seconde phase des
+    élites peut servir de modèle.)
+16. Boutiques et monnaies : quoi acheter, où, avec quelle monnaie (une en partie, une entre les parties) ? Boutique
+    Kecleon envisagée.
+
+### Tranchés depuis
+1. Boutons : attaques sur les gâchettes, changement de Pokémon sur la croix gauche / droite, esquive sur ✕.
+4. Fréquence des choix : tous les 10 niveaux.
+5. Ennemis : mêmes attaques que les joueurs, annoncées avant de partir (zone rouge, bulle numérotée pour les boss).
+6. Formule de dégâts : bruts × 30 / (30 + défense), table des types adoucie, STAB.
+10. Évolutions sans niveau : décidé le 17/10/2026 (voir Progression en partie).
+14. Terrains spéciaux : eau, lave, vide, rochers et autres obstacles en partie, franchis selon le type de déplacement
+    ou le type du Pokémon (voir Obstacles).
+16 (en partie). Objets : sac partagé de consommables et objets tenus à tiers (voir Objets de partie).

@@ -1,0 +1,507 @@
+{
+ "comment": "Engrenages du Temps (TimeGears.cs, GDD « L'île flottante ») : le passage vers le quartier suivant s'ouvre avec l'engrenage du quartier, le centre avec les quatre. À la création de l'île, chaque quartier reçoit sa façon de le donner : modes (combien de quartiers par mode ; le dernier de l'ordre est toujours un boss), quest : un boss en attendant les quêtes. testMode : le mode du quart de test (G en devMode). Boss : tiré à la création parmi roster (bosses : par thème d'île, test pour le quart de test ; ids de Pokémon dont la méga a ses sprites, seconde phase = méga-évolution), ou legendary avec legendaryChance (seconde phase = Téracristal d'un type qui encaisse les attaques de l'équipe ; les trios légendaires sont gardés pour les îlots secondaires). attaques : son jeu fixe de movesets (ids, dans l'ordre des bulles 1 à 4 ; name pour s'y retrouver), sinon ses loadouts de realtime_moves.json, sinon son attaque de base et les 3 attaques offensives les plus puissantes de sa liste (toujours les mêmes) ; scale : taille ; niveau = celui de l'équipe plus level, jamais sous baseLevel + Populations.LevelBonus ; health (× PV), damage (× les dégâts d'un ennemi ordinaire), hitCap (un coup ne retire pas plus que cette part des PV max de sa cible), areaWindup (s ajoutées à l'annonce de ses attaques de zone) ; comportement : il choisit son attaque puis s'approche à sa portée, tourne autour de sa cible en attendant, speed (part de sa vitesse), recover (pause après une attaque, raccourcie par ses recharges en seconde phase). Son îlot s'ouvre par un portail au bord de la côte (portalShare) avec la clé de l'îlot, au fond du donjon de la clé (entrée à dungeonShare ; salles dungeonRooms l'une après l'autre, keyIcon), dont le thème de salles (dungeonThemes : le premier qui contient un type du boss, dans l'ordre de ses types) et les Pokémon (ceux des types du boss) viennent du boss. guardian : le gardien de la dernière salle du donjon, un Pokémon évolué (le stade le plus avancé) des types du boss, élite, Téracristal à sa seconde phase (health, level), avec minions sbires qui portent chacun le cristal Z de leur plus forte attaque. arenas : l'arène de l'îlot selon les types du boss (la première qui en contient un ; la dernière sans types sert d'office) : thème et variante de rooms.json, sbires (minions : types, count ; Électrik : relancent les pylônes, Spectre : traversent les colonnes ; élites : ils changent le décor contre l'équipe, comme brûler un pont). fragments : count fragments dans des sous-biomes différents, gardés (guards : elite endormie à côté ; nook, le recoin le plus haut et le plus loin), indice sur la mini-carte à hint cases près.",
+ "baseLevel": 2,
+ "modes": {
+  "boss": 2,
+  "fragments": 1,
+  "quest": 1
+ },
+ "questAs": "boss",
+ "testMode": "boss",
+ "boss": {
+  "roomType": "monster_house",
+  "dungeonShare": 0.45,
+  "portalShare": 0.5,
+  "dungeonRooms": [
+   "ambush",
+   "guardian"
+  ],
+  "keyIcon": "pmd_Key_White",
+  "legendaryChance": 0.03,
+  "scale": 1.6,
+  "level": 2,
+  "health": 22,
+  "stoneChance": 0.3,
+  "chestIcon": "pmd_Chest_Gold",
+  "damage": 4,
+  "speed": 0.9,
+  "recover": 0.6,
+  "hitCap": 0.35,
+  "areaWindup": 0.3
+ },
+ "bosses": [
+  {
+   "theme": "forest",
+   "roster": [
+    362,
+    310,
+    517,
+    470
+   ],
+   "legendary": [
+    278,
+    279
+   ]
+  },
+  {
+   "theme": "test",
+   "roster": [
+    362,
+    310,
+    517,
+    470
+   ],
+   "legendary": [
+    278,
+    279
+   ]
+  },
+  {
+   "theme": "volcano",
+   "roster": [
+    6,
+    256,
+    351,
+    275
+   ],
+   "legendary": [
+    415
+   ]
+  },
+  {
+   "theme": "glacier",
+   "roster": [
+    394,
+    391,
+    362
+   ],
+   "legendary": []
+  },
+  {
+   "theme": "coast",
+   "roster": [
+    142,
+    254,
+    6
+   ],
+   "legendary": [
+    414
+   ]
+  },
+  {
+   "theme": "desert",
+   "roster": [
+    235,
+    331,
+    351,
+    275
+   ],
+   "legendary": []
+  },
+  {
+   "theme": "ruins",
+   "roster": [
+    65,
+    94,
+    386,
+    330,
+    336,
+    490
+   ],
+   "legendary": []
+  }
+ ],
+ "dungeonThemes": [
+  {
+   "types": [
+    "Vol",
+    "Dragon"
+   ],
+   "theme": "void"
+  },
+  {
+   "types": [
+    "Feu"
+   ],
+   "theme": "lava"
+  },
+  {
+   "types": [
+    "Eau"
+   ],
+   "theme": "water"
+  },
+  {
+   "types": [
+    "Glace"
+   ],
+   "theme": "ice"
+  },
+  {
+   "types": [
+    "Plante",
+    "Insecte"
+   ],
+   "theme": "forest"
+  },
+  {
+   "types": [
+    "Roche",
+    "Sol",
+    "Acier"
+   ],
+   "theme": "cave"
+  },
+  {
+   "types": [
+    "Électrik"
+   ],
+   "theme": "electric"
+  },
+  {
+   "types": [
+    "Spectre",
+    "Psy",
+    "Ténèbres",
+    "Poison"
+   ],
+   "theme": "ruins"
+  },
+  {
+   "types": [
+    "Combat",
+    "Normal"
+   ],
+   "theme": "desert"
+  }
+ ],
+ "guardian": {
+  "health": 10,
+  "level": 1,
+  "minions": 2,
+  "damage": 1.5
+ },
+ "arenas": [
+  {
+   "types": [
+    "Vol"
+   ],
+   "theme": "void",
+   "variant": "archipelago",
+   "minions": {
+    "types": [
+     "Feu"
+    ],
+    "count": 2
+   }
+  },
+  {
+   "types": [
+    "Feu"
+   ],
+   "theme": "lava",
+   "variant": "archipelago",
+   "minions": {
+    "types": [
+     "Poison",
+     "Électrik"
+    ],
+    "count": 2
+   }
+  },
+  {
+   "types": [
+    "Glace"
+   ],
+   "theme": "ice",
+   "variant": "rink",
+   "minions": {
+    "types": [
+     "Glace"
+    ],
+    "count": 2
+   }
+  },
+  {
+   "types": [
+    "Roche",
+    "Sol",
+    "Acier"
+   ],
+   "theme": "cave",
+   "variant": "rockfall",
+   "minions": {
+    "types": [
+     "Combat",
+     "Roche"
+    ],
+    "count": 2
+   }
+  },
+  {
+   "types": [
+    "Spectre",
+    "Psy",
+    "Ténèbres"
+   ],
+   "theme": "ruins",
+   "variant": "colonnade",
+   "minions": {
+    "types": [
+     "Spectre"
+    ],
+    "count": 2
+   }
+  },
+  {
+   "types": [],
+   "theme": "electric",
+   "variant": "grid",
+   "minions": {
+    "types": [
+     "Électrik"
+    ],
+    "count": 2
+   }
+  }
+ ],
+ "fragments": {
+  "count": 3,
+  "hint": 4,
+  "guards": [
+   {
+    "key": "elite",
+    "weight": 1
+   },
+   {
+    "key": "nook",
+    "weight": 1
+   }
+  ],
+  "eliteLot": "champion",
+  "wake": 5,
+  "leash": 10
+ },
+ "movesets": [
+  {
+   "pokemon": 362,
+   "name": "Altaria",
+   "moves": [
+    342,
+    100,
+    538,
+    343
+   ]
+  },
+  {
+   "pokemon": 310,
+   "name": "Gardevoir",
+   "moves": [
+    109,
+    297,
+    111,
+    319
+   ]
+  },
+  {
+   "pokemon": 517,
+   "name": "Gallame",
+   "moves": [
+    440,
+    336,
+    491,
+    181
+   ]
+  },
+  {
+   "pokemon": 470,
+   "name": "Lockpin",
+   "moves": [
+    204,
+    205,
+    250,
+    95
+   ]
+  },
+  {
+   "pokemon": 6,
+   "name": "Dracaufeu",
+   "moves": [
+    53,
+    442,
+    272,
+    517
+   ]
+  },
+  {
+   "pokemon": 256,
+   "name": "Démolosse",
+   "moves": [
+    53,
+    62,
+    452,
+    542
+   ]
+  },
+  {
+   "pokemon": 351,
+   "name": "Camérupt",
+   "moves": [
+    519,
+    30,
+    484,
+    278
+   ]
+  },
+  {
+   "pokemon": 275,
+   "name": "Tyranocif",
+   "moves": [
+    481,
+    62,
+    436,
+    141
+   ]
+  },
+  {
+   "pokemon": 394,
+   "name": "Oniglali",
+   "moves": [
+    345,
+    62,
+    270,
+    14
+   ]
+  },
+  {
+   "pokemon": 391,
+   "name": "Absol",
+   "moves": [
+    60,
+    515,
+    491,
+    181
+   ]
+  },
+  {
+   "pokemon": 142,
+   "name": "Ptéra",
+   "moves": [
+    30,
+    93,
+    522,
+    455
+   ]
+  },
+  {
+   "pokemon": 254,
+   "name": "Airmure",
+   "moves": [
+    442,
+    244,
+    491,
+    83
+   ]
+  },
+  {
+   "pokemon": 235,
+   "name": "Steelix",
+   "moves": [
+    481,
+    1,
+    342,
+    141
+   ]
+  },
+  {
+   "pokemon": 331,
+   "name": "Mysdibule",
+   "moves": [
+    431,
+    62,
+    245,
+    186
+   ]
+  },
+  {
+   "pokemon": 65,
+   "name": "Alakazam",
+   "moves": [
+    109,
+    107,
+    117,
+    319
+   ]
+  },
+  {
+   "pokemon": 94,
+   "name": "Ectoplasma",
+   "moves": [
+    127,
+    436,
+    331,
+    111
+   ]
+  },
+  {
+   "pokemon": 386,
+   "name": "Branette",
+   "moves": [
+    127,
+    249,
+    515,
+    47
+   ]
+  },
+  {
+   "pokemon": 330,
+   "name": "Ténéfix",
+   "moves": [
+    127,
+    476,
+    512,
+    13
+   ]
+  },
+  {
+   "pokemon": 336,
+   "name": "Charmina",
+   "moves": [
+    206,
+    292,
+    344,
+    333
+   ]
+  },
+  {
+   "pokemon": 490,
+   "name": "Lucario",
+   "moves": [
+    508,
+    440,
+    132,
+    181
+   ]
+  },
+  {
+   "pokemon": 278,
+   "name": "Celebi",
+   "moves": [
+    537,
+    297,
+    93,
+    117
+   ]
+  },
+  {
+   "pokemon": 414,
+   "name": "Kyogre",
+   "moves": [
+    113,
+    240,
+    345,
+    433
+   ]
+  }
+ ]
+}
