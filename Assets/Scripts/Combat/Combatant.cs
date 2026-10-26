@@ -218,6 +218,7 @@ public partial class Combatant : MonoBehaviour
         all.Remove(this);
         StopHeld(false); // its charging ball or draining link goes with it
         EndBody();
+        EndLift();
     }
 
     public static int CountAlive(Team team)
@@ -1129,7 +1130,7 @@ public partial class Combatant : MonoBehaviour
                 && Nearest(team == Team.Player ? Team.Enemy : Team.Player, transform.position, 8f) == null);
             if (hp < maxHp && calm) Heal(maxHp * Held.regenShare);
         }
-        if (!UpdateStatuses()) { castMove = null; StopHeld(false); EndBody(); return; }
+        if (!UpdateStatuses()) { castMove = null; StopHeld(false); EndBody(); EndLift(); return; }
         UpdateHeld();
         UpdateBody();
 

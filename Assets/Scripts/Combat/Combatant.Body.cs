@@ -29,7 +29,8 @@ public partial class Combatant
         ? bodyMove.bodySpeedMul : 1f;
     string BodyAnim => bodyMove == null ? null
         : !string.IsNullOrEmpty(bodyMove.castAnim) ? bodyMove.castAnim
-        : bodyMove.body == "spin" ? "Rotate" : bodyMove.body == "leap" || bodyMove.body == "grab" ? "Hop" : null;
+        : bodyMove.body == "spin" ? "Rotate"
+        : bodyMove.body == "leap" || bodyMove.body == "grab" ? "Idle" : null; // the PMD Hop bounces on the spot: a still pose, the sprite swells instead
 
     // Untouchable in the air and while liquid.
     bool BodyUntouchable => bodyMove != null && (bodyMove.body == "liquid" || (bodyMove.body == "leap" && !bodyThrown)
@@ -39,6 +40,11 @@ public partial class Combatant
     bool StartBody(MoveDef move, Vector2 direction)
     {
         if (string.IsNullOrEmpty(move.body)) return false;
+        if (move.body == "lift")
+        {
+            StartLift(move, direction); // the user stays free: it can go on with other moves meanwhile
+            return true;
+        }
         bodyMove = move;
         bodyStart = Time.time;
         bodyUntil = Time.time + move.bodyTime;
@@ -62,17 +68,6 @@ public partial class Combatant
                 break;
             case "liquid":
                 PassThroughOpponents();
-                break;
-            case "lift":
-                bodyTarget = AimTarget != null && AimTarget.IsAlive && Vector2.Distance(AimTarget.transform.position, transform.position) <= move.range
-                    ? AimTarget : FindAimTarget(this, direction, SaveData.Settings.aimCone, move.range, SaveData.Settings.aimDistanceWeight);
-                if (bodyTarget == null)
-                {
-                    bodyMove = null; // nobody to lift: nothing happens
-                    return true;
-                }
-                bodyTarget.Stun(move.bodyTime + 0.1f);
-                bodyTarget.bodyScale = bodyTarget.transform.localScale;
                 break;
         }
         return true;
@@ -102,6 +97,7 @@ public partial class Combatant
     // Called from FixedUpdate.
     void UpdateBody()
     {
+        UpdateLift();
         if (bodyMove == null) return;
         float t = Mathf.Clamp01((Time.time - bodyStart) / Mathf.Max(0.01f, bodyMove.bodyTime));
         switch (bodyMove.body)
@@ -168,27 +164,6 @@ public partial class Combatant
                 TouchOpponents();
                 if (Time.time >= bodyUntil) EndBody();
                 return;
-            case "lift":
-            {
-                if (bodyTarget == null || !bodyTarget.IsAlive)
-                {
-                    EndBody();
-                    return;
-                }
-                if (!bodyThrown)
-                {
-                    // Raised, swelling and wobbling, then thrown away from the user.
-                    bodyTarget.transform.localScale = bodyTarget.bodyScale * (1f + 0.3f * t);
-                    if (t < 1f) return;
-                    bodyTarget.transform.localScale = bodyTarget.bodyScale;
-                    Throw();
-                    bodyThrown = true;
-                    bodyUntil = Time.time + 0.45f;
-                    return;
-                }
-                if (Time.time >= bodyUntil) EndBody();
-                return;
-            }
             case "counter":
                 if (Time.time < bodyUntil) return;
                 // Nobody struck: a small blow ahead.
@@ -229,26 +204,76 @@ public partial class Combatant
         }
     }
 
-    // Psyko: the lifted target flies away from the user; a wall on its way hurts it more.
+    // Psyko, apart from the other body moves (the user keeps acting): the target is raised, swelling, then thrown
+    // away from the user; a wall on its way hurts it more.
+    MoveDef liftMove;
+    Combatant liftTarget;
+    float liftStart, liftUntil;
+    bool liftThrown;
+
+    void StartLift(MoveDef move, Vector2 direction)
+    {
+        EndLift();
+        liftTarget = AimTarget != null && AimTarget.IsAlive && Vector2.Distance(AimTarget.transform.position, transform.position) <= move.range
+            ? AimTarget : FindAimTarget(this, direction, SaveData.Settings.aimCone, move.range, SaveData.Settings.aimDistanceWeight);
+        if (liftTarget == null) return; // nobody to lift: nothing happens
+        liftMove = move;
+        liftStart = Time.time;
+        liftUntil = Time.time + move.bodyTime;
+        liftThrown = false;
+        liftTarget.Stun(move.bodyTime + 0.1f);
+        liftTarget.bodyScale = liftTarget.transform.localScale;
+    }
+
+    void UpdateLift()
+    {
+        if (liftMove == null) return;
+        if (liftTarget == null || !liftTarget.IsAlive)
+        {
+            EndLift();
+            return;
+        }
+        if (!liftThrown)
+        {
+            float t = Mathf.Clamp01((Time.time - liftStart) / Mathf.Max(0.01f, liftMove.bodyTime));
+            liftTarget.transform.localScale = liftTarget.bodyScale * (1f + 0.3f * t);
+            if (t < 1f) return;
+            liftTarget.transform.localScale = liftTarget.bodyScale;
+            Throw();
+            liftThrown = true;
+            liftUntil = Time.time + 0.45f;
+            return;
+        }
+        if (Time.time >= liftUntil) EndLift();
+    }
+
+    void EndLift()
+    {
+        if (liftMove == null) return;
+        if (liftTarget != null && !liftThrown) liftTarget.transform.localScale = liftTarget.bodyScale;
+        liftMove = null;
+        liftTarget = null;
+    }
+
     void Throw()
     {
-        Vector2 away = bodyTarget.transform.position - transform.position;
+        Vector2 away = liftTarget.transform.position - transform.position;
         Vector2 direction = away.sqrMagnitude > 0.0001f ? away.normalized : Vector2.right;
-        float distance = Mathf.Max(0.5f, bodyMove.throwDistance);
+        float distance = Mathf.Max(0.5f, liftMove.throwDistance);
         bool wall = false;
-        foreach (var hit in Physics2D.RaycastAll(bodyTarget.transform.position, direction, distance))
+        foreach (var hit in Physics2D.RaycastAll(liftTarget.transform.position, direction, distance))
             if (!hit.collider.isTrigger && hit.collider.GetComponentInParent<Combatant>() == null) { wall = true; break; }
         HitSource = this;
-        float damage = DamageOf(bodyMove) * (wall ? Mathf.Max(1f, bodyMove.wallDamage) : 1f);
-        if (bodyTarget.TakeHit(damage, bodyMove, out float dealt))
+        float damage = DamageOf(liftMove) * (wall ? Mathf.Max(1f, liftMove.wallDamage) : 1f);
+        if (liftTarget.TakeHit(damage, liftMove, out float dealt))
         {
-            bodyTarget.ApplyEffects(bodyMove, false, this);
-            HitLanded(bodyMove, dealt);
-            if (wall) bodyTarget.Stun(0.8f);
+            liftTarget.ApplyEffects(liftMove, false, this);
+            HitLanded(liftMove, dealt);
+            if (wall) liftTarget.Stun(0.8f);
         }
         HitSource = null;
-        bodyTarget.Knockback(direction * distance / 0.4f, 0.4f);
-        EffectPlayer.Spawn(bodyMove.impactEffect, bodyTarget.transform.position, direction);
+        liftTarget.Knockback(direction * distance / 0.4f, 0.4f);
+        EffectPlayer.Spawn(liftMove.impactEffect, liftTarget.transform.position, direction);
     }
 
     // Frappe Atlas: the dash seizes the first opponent it meets.
@@ -318,7 +343,7 @@ public partial class Combatant
         if (bodyMove == null) return;
         if (bodyMove.body == "leap" || bodyMove.body == "grab" || bodyMove.body == "liquid") EndDodge();
         transform.localScale = bodyScale;
-        if ((bodyMove.body == "lift" || bodyMove.body == "grab") && bodyTarget != null) bodyTarget.transform.localScale = bodyTarget.bodyScale;
+        if (bodyMove.body == "grab" && bodyTarget != null) bodyTarget.transform.localScale = bodyTarget.bodyScale;
         bodyMove = null;
         bodyTarget = null;
     }
