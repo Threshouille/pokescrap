@@ -141,7 +141,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Roche **Pouv. Antique** : 5 pierres en orbite (bloquent les tirs) puis lancées une à une sur la cible.
   - Spectre **Onde Folie** : cône qui rend confus 4 s (sans dégâts) ; et **Ball'Ombre** : charge tant que le bouton est enfoncé (immobile, maximum après 2 s, peut être tenue indéfiniment), la charge augmente taille et dégâts ; rapide, courte portée, s'arrête et flotte en bout de course.
   - Dragon **Draco Météor** (les ennemis n'évitent pas les ombres, sinon les météores ne touchent jamais ; lancée dans la direction pointée par le joueur, sans verrouillage de cible ; impacts de 1,2 case de rayon, un météore toutes les 0,1 s, ennemis projetés à l'opposé du centre de l'impact) : gros météores qui tombent du ciel en diagonale, en ligne en partant du lanceur (ombre d'avertissement puis chute), puis Attaque Spé du lanceur en baisse.
-  - Ténèbres **Coup Bas** : garde de 1 s ; si un ennemi attaque le lanceur, il se téléporte derrière lui et frappe très fort, sinon petit coup devant.
+  - Ténèbres **Coup Bas** : garde de 1 s ; si un ennemi attaque le lanceur, il se téléporte derrière lui, frappe très fort et le projette à environ 4 cases, sinon petit coup devant.
   - Acier **Gyroballe** : toupie pendant 2 s, déplacement libre, blesse ce qu'elle touche, plus fort contre les ennemis rapides.
   - Lots : 1 Vibraqua, Lame d'Air, Plaie-Croix, Onde Folie, Telluriforce ; 2 Fatal-Foudre, Blizzard, Draco Météor, Pouv. Antique ; 3 (bouton maintenu) Lance-Flamme, Ball'Ombre, Méga-Sangsue ; 4 (états du corps, prises) Plaquage, Frappe Atlas, Acidarmure, Gyroballe, Psyko, Coup Bas.
 - Abandonné (15/10/2026) : l'évolution des attaques en cours de partie.

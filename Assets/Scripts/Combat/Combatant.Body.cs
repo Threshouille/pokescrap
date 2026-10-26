@@ -320,6 +320,13 @@ public partial class Combatant
             attacker.Stun(0.8f);
             attacker.ApplyEffects(move, false, this);
             HitLanded(move, dealt);
+            // Sent flying away from the user, now behind it (throwDistance tiles).
+            if (move.throwDistance > 0f)
+            {
+                Vector2 away = (Vector2)attacker.transform.position - behind;
+                const float FlyTime = 0.5f;
+                attacker.Knockback((away.sqrMagnitude > 0.0001f ? away.normalized : -side.normalized) * move.throwDistance / FlyTime, FlyTime);
+            }
         }
         HitSource = previous;
         return true; // the blow it answered does not land
