@@ -404,7 +404,10 @@ public class Projectile : MonoBehaviour
 
     void Strike(Combatant target)
     {
-        if (!target.TakeHit(damage, move, out float dealt)) return;
+        Combatant.HitSource = owner;
+        bool landed = target.TakeHit(damage, move, out float dealt);
+        Combatant.HitSource = null;
+        if (!landed) return;
         if (move.stun > 0f && (move.stunChance <= 0f || Random.value < move.stunChance)) target.Stun(move.stun);
         target.ApplyEffects(move, false, owner);
         if (owner != null) owner.HitLanded(move, dealt);

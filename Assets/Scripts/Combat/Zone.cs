@@ -170,6 +170,7 @@ public class Zone : MonoBehaviour
                 {
                     var target = other.GetComponentInParent<Combatant>();
                     if (target == null || target.team == team || !target.IsAlive) continue;
+                    Combatant.HitSource = owner;
                     if (target.TakeHit(damage, move, out float dealt))
                     {
                         target.ApplyEffects(move, false, owner);
@@ -200,6 +201,7 @@ public class Zone : MonoBehaviour
             target.ApplyEffects(move, true, owner);
             if (!tick) continue;
             if (move.impactOnTargets) EffectPlayer.Spawn(move.impactEffect, target.transform.position, Vector2.right);
+            Combatant.HitSource = owner;
             if (!target.TakeHit(damage, move, out _)) continue;
             if (move.knockback > 0f)
             {

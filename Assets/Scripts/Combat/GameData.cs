@@ -125,6 +125,14 @@ public class MoveDef
     public float link; // seconds a draining link to the target lasts at most (Méga-Sangsue, while the button is held)
     public float linkInterval; // seconds between two drains
     public float linkBreak; // tiles: the link breaks beyond this distance
+    public string body; // melee: leap, grab, liquid, spin, lift or counter (Combatant.Body.cs)
+    public float bodyTime; // seconds the body move lasts (the jump, the hold, the guard...)
+    public float bodyRadius; // tiles: landing hit, shockwave, contact
+    public float bodySpeedMul; // speed while liquid or spinning
+    public float bodyTick; // seconds before the same opponent can be touched again (spin, liquid)
+    public float counterDamage; // damage multiplier of the counter blow (Coup Bas) or of the slam (Frappe Atlas)
+    public float throwDistance; // tiles a lifted target is thrown (Psyko)
+    public float wallDamage; // damage multiplier when it is thrown into a wall
     public bool noAutoAim; // used by the player toward where they point, never toward the aimed target (Draco Météor)
     public bool aiIgnore; // zone the AIs neither avoid nor flee (Fatal-Foudre: its bolts find them anyway)
     public bool boltOnFoes; // zone bolts strike a random opponent inside the zone (a random spot when there is none)
