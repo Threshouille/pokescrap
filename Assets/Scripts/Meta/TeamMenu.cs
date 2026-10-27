@@ -516,7 +516,7 @@ public class TeamMenu : MonoBehaviour
             var move = GameData.Move(moveId);
             if (move == null) continue;
             Fill(new Rect(panel.x + pad, y + 3f * s, 6f * s, 6f * s), GameData.TypeColor(move.type));
-            Label(new Rect(panel.x + pad + 10f * s, y, panel.width - 2f * pad, line), move.name, TextAnchor.MiddleLeft);
+            Label(new Rect(panel.x + pad + 10f * s, y, panel.width - 2f * pad, line), move.name, TextAnchor.MiddleLeft, MoveColor(move.id));
             y += line;
         }
         Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), $"{GameData.MovePool(id).Count} attaques au choix", TextAnchor.MiddleLeft);
@@ -546,7 +546,7 @@ public class TeamMenu : MonoBehaviour
             int slot = picked.IndexOf(move.id);
             Label(new Rect(row.x, y, 10f * s, line), slot >= 0 ? (slot + 1).ToString() : "·", TextAnchor.MiddleCenter);
             Fill(new Rect(row.x + 12f * s, y + 3f * s, 6f * s, 6f * s), GameData.TypeColor(move.type));
-            Label(new Rect(row.x + 22f * s, y, width - 22f * s, line), move.name, TextAnchor.MiddleLeft);
+            Label(new Rect(row.x + 22f * s, y, width - 22f * s, line), move.name, TextAnchor.MiddleLeft, MoveColor(move.id));
             y += line;
         }
 
@@ -569,12 +569,21 @@ public class TeamMenu : MonoBehaviour
 
 
     // White text with a one-pixel dark shadow.
-    void Label(Rect rect, string content, TextAnchor anchor)
+    void Label(Rect rect, string content, TextAnchor anchor) => Label(rect, content, anchor, Color.white);
+
+    // Hand-made moves (own effect sheets) stand out in the lists.
+    static Color MoveColor(int moveId)
+    {
+        if (!GameData.IsHandMade(moveId)) return Color.white;
+        return ColorUtility.TryParseHtmlString(SaveData.Settings.handMadeMoveColor, out var c) ? c : Color.white;
+    }
+
+    void Label(Rect rect, string content, TextAnchor anchor, Color color)
     {
         text.alignment = anchor;
         text.normal.textColor = Color.black;
         GUI.Label(new Rect(rect.x + 1f, rect.y + 1f, rect.width, rect.height), content, text);
-        text.normal.textColor = Color.white;
+        text.normal.textColor = color;
         GUI.Label(rect, content, text);
     }
 }

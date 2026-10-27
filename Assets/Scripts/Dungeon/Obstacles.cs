@@ -10,6 +10,7 @@ public class ObstacleDef
     public string key;
     public string name;
     public bool solid; // blocks everyone and every shot, like a wall
+    public bool noCollider; // solid to the paths only: what stops a Pokémon is a collider of its own (a tree's trunk)
     public bool fall; // a Pokémon that gets in falls, unless its movement type is in passTypes
     public int[] passTypes = new int[0]; // ROM movement types: 2 float, 3 through walls, 4 lava, 5 swim
     public int[] passPokemonTypes = new int[0]; // Pokémon types that cross it too (Eau through water, Spectre through rocks)
@@ -224,6 +225,10 @@ public class Obstacles : MonoBehaviour
     int sortingLayer, sortingOrder;
     float[] revertAt;
     readonly Dictionary<int, GameObject> solids = new(); // colliders of the solid tiles
+    // The solid tiles nobody crosses (trees, the heart of a forest...) merged into one smooth shape: a Pokémon slides
+    // along a row of them instead of catching on the seams between tile boxes.
+    CompositeCollider2D merged;
+    bool mergedDirty;
     readonly Dictionary<Combatant, Vector2> lastSafe = new();
     readonly Dictionary<Combatant, float> fellAt = new();
     readonly Dictionary<Combatant, float> bumpedAt = new();
@@ -298,7 +303,7 @@ public class Obstacles : MonoBehaviour
         decorTiles = null;
         reach = null;
         foreach (var solid in solids.Values)
-            if (solid != null) Discard(solid);
+            if (solid != null) Drop(solid);
         solids.Clear();
         lastSafe.Clear();
         fellAt.Clear();
@@ -389,23 +394,62 @@ public class Obstacles : MonoBehaviour
     void UpdateSolid(int x, int y, ObstacleDef def)
     {
         int i = y * size + x;
-        bool solid = def != null && def.solid;
+        bool solid = def != null && def.solid && !def.noCollider;
         if (solids.TryGetValue(i, out var go))
         {
             if (solid) return;
-            if (go != null) Discard(go);
+            if (go != null) Drop(go);
             solids.Remove(i);
             return;
         }
         if (!solid) return;
+        // Nobody crosses it: a part of the merged shape; else a box of its own (some Pokémon go through it).
+        bool shared = def.passTypes.Length == 0 && def.passPokemonTypes.Length == 0;
         go = new GameObject("Bloc " + def.name);
-        go.transform.SetParent(transform, false);
+        go.transform.SetParent(shared ? Merged().transform : transform, false);
         go.transform.position = grid.CentreOf(x, y);
         go.transform.localScale = Vector3.one;
         var box = go.AddComponent<BoxCollider2D>();
         box.size = grid.CentreOf(1, 1) - grid.CentreOf(0, 0);
         solids[i] = go;
+        if (shared)
+        {
+            box.compositeOperation = Collider2D.CompositeOperation.Merge;
+            mergedDirty = true;
+            return;
+        }
         foreach (var c in passers) LetThrough(c, box, def);
+    }
+
+    CompositeCollider2D Merged()
+    {
+        if (merged != null) return merged;
+        var go = new GameObject("Blocs fusionnés");
+        go.transform.SetParent(transform, false);
+        go.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Static;
+        merged = go.AddComponent<CompositeCollider2D>();
+        merged.geometryType = CompositeCollider2D.GeometryType.Polygons;
+        merged.generationType = CompositeCollider2D.GenerationType.Manual; // once per change, not once per tile
+        return merged;
+    }
+
+    // A solid tile's collider goes (out of the merged shape at once: Destroy waits for the end of the frame).
+    void Drop(GameObject go)
+    {
+        if (go.GetComponent<BoxCollider2D>() is { } box)
+        {
+            if (box.compositeOperation != Collider2D.CompositeOperation.None) mergedDirty = true;
+            box.enabled = false;
+        }
+        Discard(go);
+    }
+
+    // The merged shape made again after its tiles changed.
+    void RebuildMerged()
+    {
+        if (!mergedDirty || merged == null) return;
+        mergedDirty = false;
+        merged.GenerateGeometry();
     }
 
     // The Pokémon that walk through some solid obstacles (Spectre): their colliders ignore those obstacles' (shots
@@ -531,6 +575,7 @@ public class Obstacles : MonoBehaviour
         var ahead = At(position + dir * EdgeLook);
         if (ahead != null && ahead.OneWay && ahead == At(position)) return false; // along the ledge it stands on
         if (ahead != null && ahead.OneWay) return !(Mathf.RoundToInt(dir.x) == ahead.oneWay[0] && Mathf.RoundToInt(dir.y) == ahead.oneWay[1]);
+        if (ahead != null && ahead.noCollider) return false; // its own collider stops the Pokémon, where it is drawn
         return WouldBlock(ahead, c);
     }
 
@@ -779,6 +824,7 @@ public class Obstacles : MonoBehaviour
 
     void FixedUpdate()
     {
+        RebuildMerged();
         if (kind == null) return;
         for (int k = 0; k < pending.Count; k++)
         {
@@ -983,6 +1029,7 @@ public class Obstacles : MonoBehaviour
 
     void LateUpdate()
     {
+        RebuildMerged();
         if (texture == null) return;
         if (redrawAll || changed.Count > 0)
         {

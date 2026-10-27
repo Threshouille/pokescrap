@@ -73,6 +73,43 @@ public partial class IslandPlan
     {
         public string key, group;
         public bool block;
+        public int[] trunk = new int[0]; // px: width, height, x offset of what stops a Pokémon, from its foot
+    }
+
+    static Dictionary<string, MapProp> trunkProps;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetTrunks() => trunkProps = null;
+
+    /// The trunk of a decor element (map_props.json "trunk": width, height, x offset in pixels from its foot), or null:
+    /// IslandRun puts a collider of that size on it.
+    public static int[] TrunkOf(string key)
+    {
+        if (trunkProps == null)
+        {
+            trunkProps = new Dictionary<string, MapProp>();
+            var asset = Resources.Load<TextAsset>("Data/map_props");
+            if (asset != null) foreach (var p in JsonUtility.FromJson<MapPropFile>(asset.text).props) trunkProps[p.key] = p;
+        }
+        return trunkProps.TryGetValue(key, out var prop) && prop.trunk != null && prop.trunk.Length >= 3 ? prop.trunk : null;
+    }
+
+    // The tiles a trunk standing at that foot covers (a little inside its edges), or just the foot's tile.
+    List<int> TrunkTiles(MapProp prop, Vector2 foot)
+    {
+        var tiles = new List<int>();
+        if (prop.trunk == null || prop.trunk.Length < 3)
+        {
+            tiles.Add(Index(Mathf.FloorToInt(foot.x), Mathf.FloorToInt(foot.y)));
+            return tiles;
+        }
+        const float Inset = 0.15f;
+        float half = prop.trunk[0] / 48f, cx = foot.x + prop.trunk[2] / 24f, top = foot.y + prop.trunk[1] / 24f;
+        for (int y = Mathf.FloorToInt(foot.y + Inset); y <= Mathf.FloorToInt(top - Inset); y++)
+            for (int x = Mathf.FloorToInt(cx - half + Inset); x <= Mathf.FloorToInt(cx + half - Inset); x++)
+                if (InMap(x, y)) tiles.Add(Index(x, y));
+        if (tiles.Count == 0) tiles.Add(Index(Mathf.FloorToInt(foot.x), Mathf.FloorToInt(foot.y)));
+        return tiles;
     }
 
     [Serializable] class MapPropFile { public MapProp[] props = new MapProp[0]; }
@@ -900,9 +937,15 @@ public partial class IslandPlan
                     if (prop.block)
                     {
                         if (dist[i] < t.props.clearance || blockers.Exists(b => Vector2.Distance(b, tile) < t.props.blockSpacing)) continue;
-                        obstacle[i] = "blocker";
+                        // A trunk blocks the AI's paths on the tiles it covers (its collider stops the Pokémon); any
+                        // other blocking element, its whole tile.
+                        var foot = new Vector2(tile.x, tile.y - 0.3f);
+                        var covered = TrunkTiles(prop, foot);
+                        if (covered.Exists(j => obstacle[j] != null)) continue;
+                        bool trunk = prop.trunk != null && prop.trunk.Length >= 3;
+                        foreach (int j in covered) obstacle[j] = trunk ? "trunk" : "blocker";
                         blockers.Add(tile);
-                        decorProps.Add((prop.key, new Vector2(tile.x, tile.y - 0.3f)));
+                        decorProps.Add((prop.key, foot));
                     }
                     else
                         decorProps.Add((prop.key, tile + new Vector2((float)rng.NextDouble() - 0.5f, (float)rng.NextDouble() - 0.5f) * 0.7f));
@@ -1002,6 +1045,9 @@ public partial class IslandPlan
                 for (float x = minX + step / 2f; x < maxX; x += step)
                 {
                     var foot = new Vector2(x, y) + new Vector2((float)rng.NextDouble() - 0.5f, (float)rng.NextDouble() - 0.5f) * step * 0.4f;
+                    // Its trunk stands at the bottom middle of a tile, like the lone trees (its collider and the tiles
+                    // the AI goes round fit what is drawn).
+                    foot = new Vector2(Mathf.Floor(foot.x) + 0.5f, Mathf.Floor(foot.y) + 0.2f);
                     int i = Index(Mathf.FloorToInt(foot.x), Mathf.FloorToInt(foot.y));
                     if (!inside.Contains(i) || open.Contains(i)) continue;
                     bool nearOpen = false;
@@ -1010,9 +1056,16 @@ public partial class IslandPlan
                 }
             // Blocked: each trunk's tile, and the depth of the mass (tiles of the forest all round, off the paths); its
             // edge stays walkable between the trunks, under the crowns.
+            var kinds = new List<MapProp>();
             var trunks = new HashSet<int>();
-            foreach (var f in feet) trunks.Add(Index(Mathf.FloorToInt(f.x), Mathf.FloorToInt(f.y)));
+            foreach (var f in feet)
+            {
+                var tree = trees[rng.Next(trees.Count)];
+                kinds.Add(tree);
+                foreach (int j in TrunkTiles(tree, f)) if (inside.Contains(j)) trunks.Add(j);
+            }
             var blocked = new List<int>();
+            var edgeTrunks = new HashSet<int>();
             foreach (int i in tiles)
             {
                 if (open.Contains(i)) continue;
@@ -1024,8 +1077,10 @@ public partial class IslandPlan
                     if (j < 0 || !inside.Contains(j) || open.Contains(j)) { deep = false; break; }
                 }
                 if (deep || trunks.Contains(i)) blocked.Add(i);
+                // The depth of the mass blocks whole tiles; a trunk on the edge stops with its own collider.
+                if (!deep && trunks.Contains(i)) edgeTrunks.Add(i);
             }
-            foreach (int i in blocked) obstacle[i] = "blocker";
+            foreach (int i in blocked) obstacle[i] = edgeTrunks.Contains(i) ? "trunk" : "blocker";
             var after = ReachWithout(new bool[n], new bool[n]);
             for (int i = 0; i < n; i++)
                 if (before[i] && !after[i] && !inside.Contains(i))
@@ -1033,7 +1088,7 @@ public partial class IslandPlan
                     foreach (int j in blocked) obstacle[j] = null;
                     return false;
                 }
-            foreach (var f in feet) decorProps.Add((trees[rng.Next(trees.Count)].key, f));
+            for (int k = 0; k < feet.Count; k++) decorProps.Add((kinds[k].key, feet[k]));
             clearings.Add(centre);
             return true;
         }

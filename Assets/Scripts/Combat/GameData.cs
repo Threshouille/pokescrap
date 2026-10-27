@@ -226,6 +226,7 @@ public static class GameData
 
     static Dictionary<int, PokemonStats> pokemon;
     static Dictionary<int, MoveDef> moves;
+    static HashSet<int> handMade = new();
     static Dictionary<int, int[]> loadouts;
     static Dictionary<int, string> roles;
     static Dictionary<int, Color> typeColors;
@@ -269,7 +270,8 @@ public static class GameData
         var generated = Resources.Load<TextAsset>("Data/generated_moves");
         if (generated != null)
             foreach (var m in JsonUtility.FromJson<MoveFile>(generated.text).moves) moves[m.id] = m;
-        foreach (var m in file.moves) moves[m.id] = m;
+        handMade = new HashSet<int>();
+        foreach (var m in file.moves) { moves[m.id] = m; handMade.Add(m.id); }
         loadouts = new Dictionary<int, int[]>();
         roles = new Dictionary<int, string>();
         foreach (var l in file.loadouts)
@@ -505,6 +507,9 @@ public static class GameData
         "ranged" => m.power > 0 && (m.family == "projectile" || m.family == "zone"),
         _ => m.power > 0 && (m.family == "melee" || m.family == "burst"),
     };
+
+    /// Whether the move is written by hand in realtime_moves.json (own effect sheets), not generated.
+    public static bool IsHandMade(int id) { Load(); return handMade.Contains(id); }
 
     public static MoveDef Move(int id)
     {
