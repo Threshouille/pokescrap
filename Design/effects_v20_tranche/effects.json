@@ -1,0 +1,42 @@
+{
+  "sheets": [
+    {
+      "file": "tranche_coup.png",
+      "frame_width": 40,
+      "frame_height": 56,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        30,
+        40,
+        50,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#8a90a0",
+        "#c8ccd6",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "tranche_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#8a90a0",
+        "#c8ccd6",
+        "#ffffff"
+      ]
+    }
+  ]
+}

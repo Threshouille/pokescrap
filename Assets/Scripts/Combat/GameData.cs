@@ -164,6 +164,7 @@ public class MoveDef
     public float recovery; // seconds the user stays rooted after the move
     public float hop; // tiles: little jump in place during the cast (melee dash)
     public float knockback; // melee: tiles the target is pushed away when hit
+    public float knockbackDelay; // seconds before the push starts (the stun holds the target meanwhile)
     public float knockbackTime; // seconds the push lasts, slowing down (Combatant.KnockbackTime when omitted)
     public float teleportDelay; // melee teleport: seconds the user stays gone before reappearing
     public float stun; // melee: seconds a hit stuns its target (meleeStun of meta.json when omitted)
@@ -172,6 +173,8 @@ public class MoveDef
     public float strikeDelay;
     public string strikeEffect; // melee: sheet of the strikes when "effect" is a dash trail (Pisto-Poing)
     public float sideOffset; // melee: strikes start this far to the side, on the side opposite to their hitAngle, so they cross; projectile after a dash: tiles between the user and each shot
+    public string sweepSide; // "random": each sweep starts on a random side (otherwise it alternates)
+    public bool knockbackSide; // push sideways, toward where the sweep ends, instead of straight ahead
     public bool sweep; // melee arc: the strike sheet turns across the arc around the user, one way then the other
     public string anim; // animation played when the move is used (Shoot / Attack when omitted); PMD Attack sheets step forward
     public string dashAnim; // melee dash: animation during the dash (Walk when omitted)

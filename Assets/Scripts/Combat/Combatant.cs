@@ -207,6 +207,9 @@ public partial class Combatant : MonoBehaviour
     float blinkUntil;
     Vector2 castDirection;
     float castDistance, castUntil;
+    string releaseAnim; // attack animation played when a cast move leaves (until releaseUntil)
+    float releaseUntil;
+    const float ReleaseAnimTime = 0.3f;
     float confusionOffset, nextConfusionChange;
     Rigidbody2D body;
     SpriteRenderer spriteRenderer;
@@ -849,6 +852,27 @@ public partial class Combatant : MonoBehaviour
         knockUntil = Time.time + time;
     }
 
+    Vector2 delayedKnock; // a push held back by knockbackDelay (Mach Punch: stunned, then sent flying)
+    float delayedKnockTime, delayedKnockAt = -1f;
+
+    /// Pushes along direction by move.knockback tiles, now or after move.knockbackDelay.
+    public void PushFrom(MoveDef move, Vector2 direction)
+    {
+        float time = KnockbackOf(move);
+        Vector2 velocity = direction * move.knockback / time;
+        if (move.knockbackDelay <= 0f) { Knockback(velocity, time); return; }
+        delayedKnock = velocity;
+        delayedKnockTime = time;
+        delayedKnockAt = Time.time + move.knockbackDelay;
+    }
+
+    void UpdateDelayedKnock()
+    {
+        if (delayedKnockAt < 0f || Time.time < delayedKnockAt) return;
+        delayedKnockAt = -1f;
+        if (IsAlive) Knockback(delayedKnock, delayedKnockTime);
+    }
+
     public const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
 
     static float KnockbackOf(MoveDef move) => move.knockbackTime > 0f ? move.knockbackTime : KnockbackTime;
@@ -916,6 +940,9 @@ public partial class Combatant : MonoBehaviour
         };
         // Strikes that land in quick succession hit harder (chainBonus).
         if (move.chainBonus > 0f && Time.time > chainUntil) chainCount = 0;
+        // A sweep starts on a random side (sweepSide "random"); it ends on the left when sweepBack is false.
+        if (move.sweep && move.sweepSide == "random") sweepBack = UnityEngine.Random.value < 0.5f;
+        Vector2 push = move.knockbackSide ? (Vector2)(Quaternion.Euler(0f, 0f, sweepBack ? -90f : 90f) * direction) : direction;
         ShowStrike(move, shape, at, direction, reach * mul, radius > 0f);
         Terrain.OnStrike(move, shape, at, direction, reach * mul, this);
         float factor = move.chainBonus > 0f ? Mathf.Min(1f + move.chainBonus * chainCount, move.chainMax > 0f ? move.chainMax : 2f) : 1f;
@@ -933,7 +960,7 @@ public partial class Combatant : MonoBehaviour
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
-                if (move.knockback > 0f) target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
+                if (move.knockback > 0f) target.PushFrom(move, push);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target); // a Rocky Helmet
@@ -1147,6 +1174,7 @@ public partial class Combatant : MonoBehaviour
 
     void FixedUpdate()
     {
+        UpdateDelayedKnock();
         if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
         {
             nextRegenAt = Time.time + 1f;
@@ -1185,6 +1213,8 @@ public partial class Combatant : MonoBehaviour
             else if (CanAttack && castMove.family == "zone") PlaceZone(castMove, aim, castDistance);
             else if (CanAttack) Shoot(castMove, aim, castDistance);
             if (CanAttack) UseModifier(castMove);
+            // The attack animation plays when the blow leaves, not at the start of the cast.
+            if (castMove.castTime > 0f && animator != null) { releaseAnim = GameData.AttackAnim(castMove, animator); releaseUntil = Time.time + ReleaseAnimTime; }
             castMove = null;
         }
 
@@ -1338,7 +1368,7 @@ public partial class Combatant : MonoBehaviour
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 // A dash pushes what it hits (a bouncing dash pushes its target when it bounces).
                 if (move.knockback > 0f && move.bounceBack <= 0f)
-                    target.Knockback(direction * move.knockback / KnockbackOf(move), KnockbackOf(move));
+                    target.PushFrom(move, direction);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target);
@@ -1504,7 +1534,8 @@ public partial class Combatant : MonoBehaviour
             // Hurt first, then what the current move asks for: running (or rolling) during a dash, its cast animation.
             string forced = IsHurt ? "Hurt"
                 : IsLunging && lungeMove != null ? (string.IsNullOrEmpty(lungeMove.dashAnim) ? "Walk" : lungeMove.dashAnim)
-                : castMove != null && !string.IsNullOrEmpty(castMove.castAnim) ? castMove.castAnim
+                : castMove != null ? (string.IsNullOrEmpty(castMove.castAnim) ? "Idle" : castMove.castAnim)
+                : Time.time < releaseUntil ? releaseAnim
                 : HeldAnim ?? BodyAnim;
             animator.Forced = forced != null && animator.Has(forced) ? forced : null;
         }
