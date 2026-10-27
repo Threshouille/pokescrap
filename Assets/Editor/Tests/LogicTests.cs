@@ -134,6 +134,16 @@ public class LogicTests
     // ---- Data ----
 
     [Test]
+    public void RandomHitCountsAreOrdered()
+    {
+        foreach (var m in GameData.AllMoves)
+            if (m.hitsMax > 0) Assert.IsTrue(m.hitsMin >= 1 && m.hitsMin <= m.hitsMax, $"{m.name} : hitsMin {m.hitsMin}, hitsMax {m.hitsMax}");
+        var combo = GameData.AllMoves.First(x => x.id == 312);
+        Assert.AreEqual(2, combo.hitsMin);
+        Assert.AreEqual(5, combo.hitsMax);
+    }
+
+    [Test]
     public void KarateChopSweepsAndThrowsSideways()
     {
         var m = GameData.AllMoves.First(x => x.id == 68);

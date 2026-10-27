@@ -149,6 +149,7 @@ public class MoveDef
     public bool sequential; // projectile: the shots of a fan leave one by one (burstInterval apart), middle first, then left, right
     public string shape; // melee: circle (default: in front, range away), arc (sector around the user: range, arc), thrust (line from the user: range long, radius wide), around (circle around the user)
     public float arc; // melee arc: total angle in degrees
+    public int hitsMin, hitsMax; // melee: random number of strikes instead of hits (Combo-Griffe)
     public int hits; // melee: strikes in a row (1 when omitted)
     public bool strikeRoot; // melee: the user can neither move nor attack until its last strike (recovery adds to it)
     public float hitInterval; // seconds between two strikes
@@ -159,6 +160,7 @@ public class MoveDef
     public int rolloutMax; // melee dash (Roulade): each dash that lands adds a step, up to rolloutMax; a miss resets; while in a series only this move can be used
     public float rolloutDamage, rolloutSpeed, rolloutRange; // per step: damage, dash speed and dash distance shares
     public float chainBonus, chainMax, chainWindow; // melee: each strike landing within chainWindow seconds of the previous one adds chainBonus to the damage, up to ×chainMax
+    public float strikeAtTarget; // melee: tiles within which the blow lands right on the target, the user staying put (Poing Ombre)
     public bool teleportToTarget; // teleport: reappear in front of the target when it is within lunge + range
     public bool teleport; // melee: the user blinks lunge tiles forward (through opponents, not walls), then strikes
     public string finishEffect; // melee dash: sheet of the strike where the dash ends, stretched to finishRadius

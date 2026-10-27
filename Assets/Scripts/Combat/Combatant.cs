@@ -183,7 +183,8 @@ public partial class Combatant : MonoBehaviour
     float dodgeUntil, dodgeReadyAt;
     readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
-    struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; public bool followAim; }
+    struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; public bool followAim; public int index; }
+    int strikeIndex; // rank of the strike being played in its combo (odd ones use the mirrored sheet <effect>_b)
     readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
     int chainCount; // strikes landed in a row (chainBonus)
     float chainUntil;
@@ -861,6 +862,15 @@ public partial class Combatant : MonoBehaviour
             return;
         }
         if (move.strikeRoot) recoverUntil = Mathf.Max(recoverUntil, Time.time + (Mathf.Max(1, move.hits) - 1) * move.hitInterval);
+        // strikeAtTarget: the blow lands on the target from where the user stands (Poing Ombre), else in front.
+        var struck = move.strikeAtTarget > 0f ? TeleportTarget(move, direction, move.strikeAtTarget) : null;
+        if (struck != null)
+        {
+            Vector2 to = (Vector2)struck.transform.position - (Vector2)transform.position;
+            if (to.sqrMagnitude > 0.0001f) direction = to.normalized;
+            QueueStrikes(move, direction, extra: to - direction * move.range);
+            return;
+        }
         QueueStrikes(move, direction);
     }
 
@@ -917,16 +927,17 @@ public partial class Combatant : MonoBehaviour
     }
 
     /// followAim: each strike goes where the player aims when it lands rather than at the start (blow after a dash).
-    void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f, bool followAim = false)
+    void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f, bool followAim = false, Vector2 extra = default)
     {
-        int count = Mathf.Max(1, move.hits);
+        // hitsMax: a random number of strikes, hitsMin to hitsMax (Combo-Griffe).
+        int count = move.hitsMax > 0 ? UnityEngine.Random.Range(Mathf.Max(1, move.hitsMin), move.hitsMax + 1) : Mathf.Max(1, move.hits);
         for (int i = 0; i < count; i++)
         {
             float angle = move.hitAngles != null && move.hitAngles.Length > 0 ? move.hitAngles[i % move.hitAngles.Length] : 0f;
             // With a side offset, a strike angled to the left starts on the right (and the other way round).
             Vector2 offset = new Vector2(-direction.y, direction.x) * (-Mathf.Sign(angle) * move.sideOffset);
-            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, offset = angle != 0f ? offset : Vector2.zero,
-                at = Time.time + delay + i * move.hitInterval, followAim = followAim });
+            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, offset = (angle != 0f ? offset : Vector2.zero) + extra,
+                at = Time.time + delay + i * move.hitInterval, followAim = followAim, index = i });
         }
     }
 
@@ -940,10 +951,11 @@ public partial class Combatant : MonoBehaviour
 
     const float BlinkStandoff = 0.6f; // tiles between a teleporting user and its target's centre
 
-    /// teleportToTarget: the aimed opponent if within reach (lunge + range), else the nearest one in front within reach.
-    Combatant TeleportTarget(MoveDef move, Vector2 direction)
+    /// teleportToTarget / strikeAtTarget: the aimed opponent if within reach (lunge + range, or the given reach),
+    /// else the nearest one in front within reach.
+    Combatant TeleportTarget(MoveDef move, Vector2 direction, float reach = -1f)
     {
-        float reach = move.lunge + move.range;
+        if (reach <= 0f) reach = move.lunge + move.range;
         Vector2 at = transform.position;
         if (AimTarget != null && AimTarget.IsAlive && Vector2.Distance(at, AimTarget.transform.position) <= reach) return AimTarget;
         Combatant best = null;
@@ -1049,6 +1061,7 @@ public partial class Combatant : MonoBehaviour
             "around" => at,
             _ => at + direction * move.range,
         };
+        if (strikeIndex % 2 == 1 && !string.IsNullOrEmpty(sheet) && EffectLibrary.Get(sheet + "_b") != null) sheet += "_b"; // a combo alternates sides
         if (move.sweep && shape == "arc" && EffectLibrary.Get(sheet) != null)
         {
             // The sheet turns across the arc around the user, the other way at the next strike.
@@ -1322,7 +1335,9 @@ public partial class Combatant : MonoBehaviour
             if (!CanAttack) continue;
             if (strike.followAim && LiveAim != Vector2.zero) strike.direction = MeleeAutoAim(Steer(LiveAim.normalized));
             if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
+            strikeIndex = strike.index;
             Strike(strike.move, strike.direction, -1f, strike.offset);
+            strikeIndex = 0;
             if (strike.move.recovery > 0f && !strikes.Exists(x => x.move == strike.move))
                 recoverUntil = Time.time + strike.move.recovery;
         }

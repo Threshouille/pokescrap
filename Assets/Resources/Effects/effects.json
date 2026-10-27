@@ -4772,6 +4772,763 @@
         "#c8ccd6",
         "#ffffff"
       ]
+    },
+    {
+      "file": "crocs_feu_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        40,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "crocs_feu_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "crocs_eclair_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        40,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#4a2a00",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "crocs_eclair_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#4a2a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "crochetvenin_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        40,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#a8ff3e",
+        "#e4d0f4"
+      ]
+    },
+    {
+      "file": "crochetvenin_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1f0a2e",
+        "#5b2585",
+        "#9447c2",
+        "#a8ff3e"
+      ]
+    },
+    {
+      "file": "machouille_coup.png",
+      "frame_width": 28,
+      "frame_height": 28,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        40,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#0a0408",
+        "#1e1a24",
+        "#4a3f5c",
+        "#c8c0d8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "machouille_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#0a0408",
+        "#1e1a24",
+        "#4a3f5c",
+        "#c8c0d8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "croc_de_mort_coup.png",
+      "frame_width": 28,
+      "frame_height": 28,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        40,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "croc_de_mort_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poing_de_feu_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "poing_de_feu_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a0b06",
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#fff4c2"
+      ]
+    },
+    {
+      "file": "poinglace_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1a2f5a",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poinglace_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1a2f5a",
+        "#4f8fd8",
+        "#a6dcff",
+        "#e6f8ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poing_eclair_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#4a2a00",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poing_eclair_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#4a2a00",
+        "#d68a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "poing_ombre_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#140a2a",
+        "#3a2266",
+        "#6a48b0",
+        "#b89aff",
+        "#ece4ff"
+      ]
+    },
+    {
+      "file": "poing_ombre_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#140a2a",
+        "#6a48b0",
+        "#b89aff",
+        "#ece4ff"
+      ]
+    },
+    {
+      "file": "vampipoing_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#8a2a12",
+        "#d0562a",
+        "#ffb070",
+        "#7ee04a"
+      ]
+    },
+    {
+      "file": "vampipoing_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#d0562a",
+        "#ffb070",
+        "#ffe4bc"
+      ]
+    },
+    {
+      "file": "vampipoing_soin.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        60,
+        70,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#ffb070",
+        "#7ee04a"
+      ]
+    },
+    {
+      "file": "marto_poing_ombre.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        75,
+        75,
+        75,
+        75
+      ],
+      "loop": true,
+      "palette": [
+        "#3a1606",
+        "#8a2a12",
+        "#d0562a",
+        "#ffb070"
+      ]
+    },
+    {
+      "file": "marto_poing_chute.png",
+      "frame_width": 32,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true,
+      "palette": [
+        "#3a1606",
+        "#8a2a12",
+        "#d0562a",
+        "#ffb070",
+        "#ffe4bc"
+      ]
+    },
+    {
+      "file": "marto_poing_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        50,
+        60,
+        70,
+        70,
+        70,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#8a2a12",
+        "#d0562a",
+        "#ffb070",
+        "#ffe4bc"
+      ]
+    },
+    {
+      "file": "mitra_poing_charge.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#3a1606",
+        "#8a2a12",
+        "#d0562a",
+        "#ffb070"
+      ]
+    },
+    {
+      "file": "mitra_poing_coup.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        50,
+        50
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#d0562a",
+        "#ffb070",
+        "#ffe4bc"
+      ]
+    },
+    {
+      "file": "mitra_poing_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a1606",
+        "#ffb070",
+        "#ffe4bc"
+      ]
+    },
+    {
+      "file": "ultimapoing_charge.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#24242e",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ultimapoing_coup.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ultimapoing_impact.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ultimapoing_onde.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        40,
+        50,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "combo_griffe_coup.png",
+      "frame_width": 28,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        40,
+        50,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "combo_griffe_coup_b.png",
+      "frame_width": 28,
+      "frame_height": 36,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        40,
+        50,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "combo_griffe_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "griffe_acier_coup.png",
+      "frame_width": 36,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#22262e",
+        "#5a6470",
+        "#a8b4c0",
+        "#f0f6ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "griffe_acier_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#22262e",
+        "#a8b4c0",
+        "#f0f6ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "griffe_ombre_coup.png",
+      "frame_width": 36,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#140a2a",
+        "#3a2266",
+        "#6a48b0",
+        "#b89aff"
+      ]
+    },
+    {
+      "file": "griffe_ombre_impact.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#140a2a",
+        "#6a48b0",
+        "#b89aff",
+        "#ece4ff"
+      ]
+    },
+    {
+      "file": "eclategriffe_coup.png",
+      "frame_width": 36,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        30,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "eclategriffe_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
     }
   ]
 }
