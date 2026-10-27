@@ -184,4 +184,13 @@ public class LogicTests
         Assert.IsFalse(file.unlockAll, "unlockAll");
         Assert.IsFalse(file.allItems, "allItems");
     }
+
+    [Test]
+    public void RolloutGrowsEachStep()
+    {
+        Assert.AreEqual(1f, Combatant.RolloutMul(0.3f, 0), 1e-5f);
+        Assert.AreEqual(2.5f, Combatant.RolloutMul(0.3f, 5), 1e-5f);
+        var roulade = GameData.Move(105);
+        Assert.Greater(roulade.rolloutMax, 0, "Roulade en série");
+    }
 }

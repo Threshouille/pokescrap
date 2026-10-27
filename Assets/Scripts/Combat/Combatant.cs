@@ -187,6 +187,14 @@ public partial class Combatant : MonoBehaviour
     readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
     int chainCount; // strikes landed in a row (chainBonus)
     float chainUntil;
+    int rolloutCount; // Roulade: dashes landed in a row (rolloutMax)
+    bool rolloutPending, rolloutLanded;
+    GameObject rolloutBadge; // "2/5" above the user while a series runs
+    int rolloutShown;
+    /// In a Roulade series: only that move can be used.
+    public bool InRollout => rolloutCount > 0; // ends only on a miss or after the last step
+    /// Multiplier of a series step: 1 + share × step.
+    public static float RolloutMul(float share, int step) => 1f + share * step;
     float lungeSpeed;
     bool lungeBouncing, lungeFinishPending, lungeStrikePending, lungeShotPending;
     readonly List<Combatant> delayedTargets = new(); // cut by a dash with delayedHit, struck at delayedAt
@@ -203,6 +211,7 @@ public partial class Combatant : MonoBehaviour
     float knockTime;
     float hopOffset; // height of the jump during a cast (hop)
     MoveDef blinkMove; // teleport in progress: gone until blinkUntil
+    Combatant blinkTarget; // teleportToTarget: the opponent it reappears in front of
     Vector2 blinkDirection;
     float blinkUntil;
     Vector2 castDirection;
@@ -473,6 +482,20 @@ public partial class Combatant : MonoBehaviour
     GameObject teraIcon;
 
     // Its Tera type at a glance: crystal hexagon under the feet, the shard above the head (TeraAura).
+    // The step of a Roulade series, shown above the user as long as the series runs.
+    void UpdateRolloutBadge()
+    {
+        int step = InRollout && IsAlive ? rolloutCount : 0;
+        if (step == rolloutShown && (step == 0) == (rolloutBadge == null)) return;
+        rolloutShown = step;
+        if (rolloutBadge != null) Destroy(rolloutBadge);
+        rolloutBadge = null;
+        var move = System.Array.Find(Moves, m => m != null && m.rolloutMax > 0);
+        if (step > 0 && move != null)
+            rolloutBadge = DamageNumber.Steady(transform, Vector3.up * RolloutBadgeHeight, $"{step}/{move.rolloutMax}", SaveData.Settings.multiplierColor);
+    }
+    const float RolloutBadgeHeight = 1.5f;
+
     void ShowTeraIcon(int type)
     {
         if (teraIcon != null) Destroy(teraIcon);
@@ -694,6 +717,7 @@ public partial class Combatant : MonoBehaviour
         var move = Moves[slot];
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
         if (Holding || InBody) return false; // a held move or a body move is going on
+        if (InRollout && move.rolloutMax <= 0) return false; // a Roulade series: nothing else
         if (move.noAutoAim && RawAim != Vector2.zero) direction = RawAim; // the player's own direction, not the target's
         attackCount++; // a new attack (a Life Orb takes its toll once per attack)
         if (StartHeld(slot, move, direction, out bool refused)) return !refused;
@@ -822,11 +846,14 @@ public partial class Combatant : MonoBehaviour
                 // Gone for a moment (no hit can land), then back further on, striking.
                 blinkMove = move;
                 blinkDirection = direction;
+                blinkTarget = move.teleportToTarget ? TeleportTarget(move, direction) : null;
                 blinkUntil = Time.time + move.teleportDelay;
                 ShowSelf(false);
                 return;
             }
-            MoveSafely(direction, move.lunge);
+            var target = move.teleportToTarget ? TeleportTarget(move, direction) : null;
+            if (target != null) direction = BlinkTo(target);
+            else MoveSafely(direction, move.lunge);
         }
         else if (move.lunge > 0f && body != null)
         {
@@ -911,6 +938,37 @@ public partial class Combatant : MonoBehaviour
         return to.sqrMagnitude > 0.0001f ? to.normalized : direction;
     }
 
+    const float BlinkStandoff = 0.6f; // tiles between a teleporting user and its target's centre
+
+    /// teleportToTarget: the aimed opponent if within reach (lunge + range), else the nearest one in front within reach.
+    Combatant TeleportTarget(MoveDef move, Vector2 direction)
+    {
+        float reach = move.lunge + move.range;
+        Vector2 at = transform.position;
+        if (AimTarget != null && AimTarget.IsAlive && Vector2.Distance(at, AimTarget.transform.position) <= reach) return AimTarget;
+        Combatant best = null;
+        float bestDistance = reach;
+        foreach (var other in all)
+        {
+            if (other == null || other.team == team || !other.IsAlive) continue;
+            Vector2 to = (Vector2)other.transform.position - at;
+            float d = to.magnitude;
+            if (d > bestDistance || (d > 0.3f && Vector2.Angle(direction, to) > 60f)) continue;
+            best = other;
+            bestDistance = d;
+        }
+        return best;
+    }
+
+    /// Reappears in front of the target (on the user's side of it), stopping short of walls; returns the direction to it.
+    Vector2 BlinkTo(Combatant target)
+    {
+        Vector2 to = (Vector2)target.transform.position - (Vector2)transform.position;
+        if (to.sqrMagnitude < 0.0001f) return blinkDirection;
+        MoveSafely(to.normalized, Mathf.Max(0f, to.magnitude - BlinkStandoff));
+        return to.normalized;
+    }
+
     // Moves the user up to "distance" tiles, through opponents but stopping short of walls.
     void MoveSafely(Vector2 direction, float distance)
     {
@@ -946,6 +1004,7 @@ public partial class Combatant : MonoBehaviour
         ShowStrike(move, shape, at, direction, reach * mul, radius > 0f);
         Terrain.OnStrike(move, shape, at, direction, reach * mul, this);
         float factor = move.chainBonus > 0f ? Mathf.Min(1f + move.chainBonus * chainCount, move.chainMax > 0f ? move.chainMax : 2f) : 1f;
+        if (move.rolloutMax > 0) factor *= RolloutMul(move.rolloutDamage, InRollout ? rolloutCount : 0);
 
         var hit = new HashSet<Combatant>();
         foreach (var other in found)
@@ -1059,6 +1118,16 @@ public partial class Combatant : MonoBehaviour
         lungeHit.Clear();
         lungeUntil = Time.time + LungeTime(move);
         lungeSpeed = move.lunge / LungeTime(move);
+        if (move.rolloutMax > 0)
+        {
+            // Each step of the series dashes faster and further.
+            if (!InRollout) rolloutCount = 0;
+            rolloutPending = true;
+            rolloutLanded = false;
+            float distance = move.lunge * RolloutMul(move.rolloutRange, rolloutCount);
+            lungeSpeed *= RolloutMul(move.rolloutSpeed, rolloutCount);
+            lungeUntil = Time.time + distance / lungeSpeed;
+        }
         lungeBouncing = false;
         lungeFinishPending = move.finishRadius > 0f;
         lungeStrikePending = move.strikeAfterLunge;
@@ -1175,6 +1244,7 @@ public partial class Combatant : MonoBehaviour
     void FixedUpdate()
     {
         UpdateDelayedKnock();
+        UpdateRolloutBadge();
         if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
         {
             nextRegenAt = Time.time + 1f;
@@ -1186,6 +1256,13 @@ public partial class Combatant : MonoBehaviour
         if (!UpdateStatuses()) { castMove = null; StopHeld(false); EndBody(); EndLift(); return; }
         UpdateHeld();
         UpdateBody();
+
+        // A step while casting (backstep tiles over the cast): back, away from where the move will go, or forward when negative.
+        if (castMove != null && castMove.backstep != 0f && castMove.castTime > 0f)
+        {
+            Vector2 aim = LiveAim != Vector2.zero ? LiveAim.normalized : castDirection;
+            MoveSafely(castMove.backstep > 0f ? -aim : aim, Mathf.Abs(castMove.backstep) * Time.fixedDeltaTime / castMove.castTime);
+        }
 
         // Little jump in place while casting a move with a hop.
         float hop = castMove != null && castMove.hop > 0f
@@ -1200,7 +1277,9 @@ public partial class Combatant : MonoBehaviour
         {
             var move = blinkMove;
             blinkMove = null;
-            MoveSafely(blinkDirection, move.lunge);
+            if (blinkTarget != null && blinkTarget.IsAlive) blinkDirection = BlinkTo(blinkTarget);
+            else MoveSafely(blinkDirection, move.lunge);
+            blinkTarget = null;
             ShowSelf(true);
             QueueStrikes(move, blinkDirection);
         }
@@ -1266,6 +1345,17 @@ public partial class Combatant : MonoBehaviour
         // strike around it, or bounce back off the first one it hits.
         if (!IsLunging)
         {
+            if (rolloutPending)
+            {
+                // A dash that landed adds a step; a miss ends the series.
+                rolloutPending = false;
+                if (rolloutLanded)
+                {
+                    // The last step of the series lands, then it starts over.
+                    rolloutCount = rolloutCount + 1 >= lungeMove.rolloutMax ? 0 : rolloutCount + 1;
+                }
+                else rolloutCount = 0;
+            }
             if (lungeFinishPending)
             {
                 lungeFinishPending = false;
@@ -1295,20 +1385,30 @@ public partial class Combatant : MonoBehaviour
             }
             return;
         }
+        // lungeAccel: from a standstill to twice the mean speed, same distance covered.
+        float speedShare = 1f;
+        if (!lungeBouncing && lungeMove.lungeAccel)
+        {
+            speedShare = Mathf.Clamp(1f - (lungeUntil - Time.time) / LungeTime(lungeMove), 0.1f, 1f);
+            lungeSpeed = 2f * lungeMove.lunge / LungeTime(lungeMove) * speedShare;
+        }
         body.linearVelocity = lungeDirection * lungeSpeed;
         if (!lungeBouncing) Terrain.OnDash(lungeMove, body.position, this);
         if (GrabFirst() || (bodyMove != null && bodyMove.body == "grab")) return; // Frappe Atlas seizes instead of hitting
         if (lungeBouncing || lungeMove.lungeHarmless || lungeMove.family != "melee") return;
-        if (MeleeHit(lungeMove, lungeDirection, lungeHit) > 0 && lungeMove.bounceBack > 0f)
+        int landed = MeleeHit(lungeMove, lungeDirection, lungeHit);
+        if (landed > 0) rolloutLanded = true;
+        if (landed > 0 && lungeMove.bounceBack > 0f)
         {
             // Both are thrown apart, slowly enough to be seen.
             const float BounceTime = KnockbackTime;
+            // An accelerating dash throws both further the faster it was going.
             foreach (var target in lungeHit)
-                if (target != null) target.Knockback(lungeDirection * lungeMove.knockback / KnockbackOf(lungeMove), KnockbackOf(lungeMove));
+                if (target != null) target.Knockback(lungeDirection * lungeMove.knockback * speedShare / KnockbackOf(lungeMove), KnockbackOf(lungeMove));
             lungeBouncing = true;
             lungeFinishPending = false;
             lungeDirection = -lungeDirection;
-            lungeSpeed = lungeMove.bounceBack / BounceTime;
+            lungeSpeed = lungeMove.bounceBack * speedShare / BounceTime;
             lungeUntil = Time.time + BounceTime;
         }
     }

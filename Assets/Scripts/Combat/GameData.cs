@@ -156,7 +156,10 @@ public class MoveDef
     public float step; // melee: tiles the user steps forward with each strike
     public float finishRadius; // melee dash: radius of a strike around the user where the dash ends
     public float radiusMin; // melee around: the radius is drawn between this and range
+    public int rolloutMax; // melee dash (Roulade): each dash that lands adds a step, up to rolloutMax; a miss resets; while in a series only this move can be used
+    public float rolloutDamage, rolloutSpeed, rolloutRange; // per step: damage, dash speed and dash distance shares
     public float chainBonus, chainMax, chainWindow; // melee: each strike landing within chainWindow seconds of the previous one adds chainBonus to the damage, up to ×chainMax
+    public bool teleportToTarget; // teleport: reappear in front of the target when it is within lunge + range
     public bool teleport; // melee: the user blinks lunge tiles forward (through opponents, not walls), then strikes
     public string finishEffect; // melee dash: sheet of the strike where the dash ends, stretched to finishRadius
     public string trailEffect; // melee teleport: sheet left where the user blinked from
@@ -178,6 +181,8 @@ public class MoveDef
     public bool sweep; // melee arc: the strike sheet turns across the arc around the user, one way then the other
     public string anim; // animation played when the move is used (Shoot / Attack when omitted); PMD Attack sheets step forward
     public string dashAnim; // melee dash: animation during the dash (Walk when omitted)
+    public bool lungeAccel; // dash that speeds up from a standstill; bounce and push grow with the speed reached
+    public float backstep; // tiles stepped back during the cast (Roue de Feu takes a run-up); negative: a step forward (Aqua-Jet)
     public string castAnim; // animation during the cast (e.g. Hop)
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
