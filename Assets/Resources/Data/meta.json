@@ -57,6 +57,7 @@
   "noEffectColor": "#5a5a66",
   "healColor": "#60e070",
   "multiplierColor": "#ffb020",
+  "handMadeMoveColor": "#7fd8ff",
   "bigNumberScale": 1.5,
   "smallNumberScale": 0.75,
   "evolveTime": 2.5,
