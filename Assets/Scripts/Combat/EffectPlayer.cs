@@ -14,6 +14,7 @@ public static class EffectLibrary
         public int frame_width, frame_height, frame_count;
         public int[] frame_duration_ms;
         public bool loop;
+        public bool below; // drawn under the Pokémon (a dash trail), not above them
 
         [NonSerialized] public Texture2D texture;
         [NonSerialized] Sprite[] sprites;
@@ -61,6 +62,7 @@ public static class EffectLibrary
 public class EffectPlayer : MonoBehaviour
 {
     const int SortingOrder = 3; // above the Pokémon
+    const int BelowOrder = 0; // under the Pokémon (1), with the ground marks
 
     EffectLibrary.Sheet sheet;
     SpriteRenderer spriteRenderer;
@@ -78,7 +80,7 @@ public class EffectPlayer : MonoBehaviour
         player.sheet = sheet;
         player.spriteRenderer = go.GetComponent<SpriteRenderer>();
         if (player.spriteRenderer == null) player.spriteRenderer = go.AddComponent<SpriteRenderer>();
-        player.spriteRenderer.sortingOrder = SortingOrder;
+        player.spriteRenderer.sortingOrder = sheet.below ? BelowOrder : SortingOrder;
         Unlit.Apply(player.spriteRenderer); // effects keep their colours at night (DayNight)
         player.spriteRenderer.color = Color.white;
         player.spriteRenderer.sprite = sheet.Frame(0);

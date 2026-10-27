@@ -134,6 +134,25 @@ public class LogicTests
     // ---- Data ----
 
     [Test]
+    public void KarateChopSweepsAndThrowsSideways()
+    {
+        var m = GameData.AllMoves.First(x => x.id == 68);
+        Assert.AreEqual("arc", m.shape);
+        Assert.IsTrue(m.sweep && m.knockbackSide);
+        Assert.AreEqual("random", m.sweepSide);
+        Assert.Greater(m.knockback, 0f);
+    }
+
+    [Test]
+    public void MachPunchStunsThenThrows()
+    {
+        var m = GameData.AllMoves.First(x => x.id == 300);
+        Assert.AreEqual(1, m.hits);
+        Assert.Greater(m.knockback, 0f);
+        Assert.AreEqual(m.stun, m.knockbackDelay, 0.001f);
+    }
+
+    [Test]
     public void MovesUseKnownFamiliesAndStatuses()
     {
         var families = new HashSet<string> { "projectile", "melee", "zone", "burst", "heal", "modifier", "climate" };
@@ -164,5 +183,14 @@ public class LogicTests
         Assert.IsFalse(file.devMode, "devMode");
         Assert.IsFalse(file.unlockAll, "unlockAll");
         Assert.IsFalse(file.allItems, "allItems");
+    }
+
+    [Test]
+    public void RolloutGrowsEachStep()
+    {
+        Assert.AreEqual(1f, Combatant.RolloutMul(0.3f, 0), 1e-5f);
+        Assert.AreEqual(2.5f, Combatant.RolloutMul(0.3f, 5), 1e-5f);
+        var roulade = GameData.Move(105);
+        Assert.Greater(roulade.rolloutMax, 0, "Roulade en série");
     }
 }

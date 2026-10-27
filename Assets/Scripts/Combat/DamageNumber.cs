@@ -25,6 +25,7 @@ public class DamageNumber : MonoBehaviour
         { '+', new[] { "...", ".#.", "###", ".#.", "..." } },
         { 'x', new[] { "...", "#.#", ".#.", "#.#", "..." } },
         { '.', new[] { "...", "...", "...", "...", ".#." } },
+        { '/', new[] { "..#", "..#", ".#.", "#..", "#.." } },
     };
     static readonly Dictionary<char, Sprite> sprites = new();
 
@@ -67,6 +68,29 @@ public class DamageNumber : MonoBehaviour
         ColorUtility.TryParseHtmlString(SaveData.Settings.multiplierColor, out var c);
         Show(at + Vector3.up * MultiplierHeight, "x" + factor.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture), c,
             SaveData.Settings.bigNumberScale, false);
+    }
+
+    /// A label that stays (a Roulade series above its user): glyphs only, nothing moves or fades; destroy it yourself.
+    public static GameObject Steady(Transform parent, Vector3 offset, string text, string hex)
+    {
+        ColorUtility.TryParseHtmlString(hex, out var color);
+        var go = new GameObject("SteadyNumber");
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = offset;
+        go.transform.localScale = Vector3.one * SaveData.Settings.bigNumberScale;
+        float left = -(text.Length - 1) * GlyphSpacing / 2f;
+        for (int i = 0; i < text.Length; i++)
+        {
+            var glyph = new GameObject(text[i].ToString());
+            glyph.transform.SetParent(go.transform, false);
+            glyph.transform.localPosition = new Vector3(left + i * GlyphSpacing, 0f, 0f);
+            var renderer = glyph.AddComponent<SpriteRenderer>();
+            Unlit.Apply(renderer);
+            renderer.sprite = SpriteOf(text[i]);
+            renderer.color = color;
+            renderer.sortingOrder = SortingOrder;
+        }
+        return go;
     }
 
     static void Spawn(Vector3 at, float amount, Color color, float scale, string prefix) =>
