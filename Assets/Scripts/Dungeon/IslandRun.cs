@@ -185,6 +185,13 @@ public class IslandRun : MonoBehaviour
             var r = go.AddComponent<SpriteRenderer>();
             r.sprite = sprite;
             Wind.Sway(r, key); // trees, bushes and flowers sway
+            // A trunk stops the Pokémon where it is drawn (its tiles only steer the AI's paths: obstacle "trunk").
+            if (IslandPlan.TrunkOf(key) is { } trunk)
+            {
+                var box = go.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(trunk[0], trunk[1]) / 24f;
+                box.offset = new Vector2(trunk[2], trunk[1] / 2f) / 24f;
+            }
             r.sortingOrder = 1; // the Pokémon's
             r.spriteSortPoint = SpriteSortPoint.Pivot;
             fade.Add(r);

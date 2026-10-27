@@ -1,5 +1,5 @@
 {
- "comment": "Decor elements cut out of the upper layer of the story maps (MAP_BG) by Tools/pmd/extract_map_props.py into Resources/MapProps/<key>.png (found by find_map_props.py). map: BMA name; rect: x, y, width, height (pixels) in the rendered upper layer; group: what the props of quarter_test.json pick from; block: it blocks its tile (a tree trunk, a rock). Its foot is the middle of its bottom edge. layer: lower (the opaque lower layer, detoured by clearTop / cutSides, see extract_map_props.py), upper by default.",
+ "comment": "Decor elements cut out of the upper layer of the story maps (MAP_BG) by Tools/pmd/extract_map_props.py into Resources/MapProps/<key>.png (found by find_map_props.py). map: BMA name; rect: x, y, width, height (pixels) in the rendered upper layer; group: what the props of quarter_test.json pick from; block: it blocks its tile (a tree trunk, a rock); trunk: [width, height, x offset] in pixels of the part that stops a Pokémon, from its foot (a tree's trunk: a collider of that size on it, its tiles blocked to the AI's paths only, obstacle 'trunk'; without it the whole tile blocks, obstacle 'blocker'). Its foot is the middle of its bottom edge. layer: lower (the opaque lower layer, detoured by clearTop / cutSides, see extract_map_props.py), upper by default.",
  "fade": { "comment": "Un élément au moins minHeight cases de haut (arbre, gros buisson) qui cache un Pokémon de l'équipe (le haut de son corps dans l'image, derrière son pied) devient transparent jusqu'à alpha, en time secondes (PropFade).", "alpha": 0.4, "minHeight": 1.2, "time": 0.2 },
  "props": [
   {"key": "jungle_fern_787", "group": "jungle_fern", "map": "D54P11A", "rect": [183, 46, 24, 24], "block": false},
@@ -19,8 +19,8 @@
   {"key": "jungle_palm_819", "group": "jungle_palm", "map": "D54P32A", "rect": [329, 105, 78, 58], "block": false},
   {"key": "jungle_palm_824", "group": "jungle_palm", "map": "D54P32A", "rect": [401, 273, 78, 58], "block": false},
   {"key": "jungle_palm_825", "group": "jungle_palm", "map": "D54P32A", "rect": [17, 289, 78, 58], "block": false},
-  {"key": "jungle_big_803", "group": "jungle_big", "map": "D54P31A", "rect": [358, 104, 44, 38], "block": true},
-  {"key": "jungle_big_804", "group": "jungle_big", "map": "D54P31A", "rect": [3, 177, 39, 41], "block": true},
+  {"key": "jungle_big_803", "group": "jungle_big", "map": "D54P31A", "rect": [358, 104, 44, 38], "block": true, "trunk": [40, 10, 0]},
+  {"key": "jungle_big_804", "group": "jungle_big", "map": "D54P31A", "rect": [3, 177, 39, 41], "block": true, "trunk": [28, 10, -1]},
   {"key": "jungle_rock_788", "group": "jungle_rock", "map": "D54P11A", "rect": [281, 49, 37, 35], "block": true},
   {"key": "jungle_rock_800", "group": "jungle_rock", "map": "D54P11A", "rect": [164, 259, 45, 36], "block": true},
   {"key": "jungle_rock_820", "group": "jungle_rock", "map": "D54P32A", "rect": [293, 153, 54, 47], "block": true},
@@ -47,9 +47,9 @@
   {"key": "meadow_rock_1035", "group": "meadow_rock", "map": "P01P02A", "rect": [128, 128, 32, 31], "block": true},
   {"key": "meadow_rock_1209", "group": "meadow_rock", "map": "P16P01A", "rect": [266, 104, 20, 15], "block": true},
   {"key": "meadow_rock_1211", "group": "meadow_rock", "map": "P16P01A", "rect": [267, 188, 30, 23], "block": true},
-  {"key": "tree_1212", "group": "tree", "map": "P16P01A", "rect": [48, 193, 95, 86], "block": true},
-  {"key": "tree_1251", "group": "tree", "map": "P20P02A", "rect": [270, 73, 89, 88], "block": true},
-  {"key": "tree_1254", "group": "tree", "map": "P20P02A", "rect": [49, 121, 89, 88], "block": true},
-  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true}
+  {"key": "tree_1212", "group": "tree", "map": "P16P01A", "rect": [48, 193, 95, 86], "block": true, "trunk": [14, 10, 0]},
+  {"key": "tree_1251", "group": "tree", "map": "P20P02A", "rect": [270, 73, 89, 88], "block": true, "trunk": [17, 10, 3]},
+  {"key": "tree_1254", "group": "tree", "map": "P20P02A", "rect": [49, 121, 89, 88], "block": true, "trunk": [17, 10, -4]},
+  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true, "trunk": [15, 8, 0]}
  ]
 }
