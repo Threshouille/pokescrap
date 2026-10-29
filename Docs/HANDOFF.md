@@ -4,6 +4,12 @@ Dernière mise à jour : 26/10/2026 (Robin : socle technique fusionné dans `fea
 techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons). Bilan complet du 25/10 : avancement,
 branches, axes de refonte et questions de conception (page partagée par Robin).
 
+## Talents, étape 1 (29/10/2026, branche `feature/talents`)
+
+Données seulement : catalogue `abilities_rt.json`, talents ROM + caché PokéAPI par Pokémon, talent des mégas, rapport
+`Docs/TALENTS.md` (`abilities_report.py`). Suite : choisir les talents à adapter et la forme (passif / déclenché),
+puis les effets en jeu par familles.
+
 ## Reprise (26/10/2026, Robin) : où on s'est arrêté
 
 Branche `feature/engrenages` (contient `feature/peuplement` et `refacto/socle`), **pas poussée**, pas fusionnée dans

@@ -1,0 +1,176 @@
+{
+ "comment": "Adaptation families for the ability report (abilities_report.py): first family whose keywords match the short English effect (lower case), in this order. 'byId' forces a family for a game ability id.",
+ "families": [
+  {
+   "key": "none",
+   "name": "Non transposable (hors combat, PP, poids, priorité, changement de Pokémon)",
+   "keywords": [
+    "wild pokémon",
+    "encounter",
+    "fleeing",
+    "after battle",
+    "pick up",
+    "picks up",
+    "egg",
+    "copies an opponent's ability",
+    "transforms",
+    "upon entering battle",
+    "pp cost",
+    "weight",
+    "switching out",
+    "from fleeing",
+    "priority",
+    "move last"
+   ]
+  },
+  {
+   "key": "weather",
+   "name": "Météo / terrain",
+   "keywords": [
+    "weather",
+    "sunlight",
+    "sun",
+    "rain",
+    "hail",
+    "snow",
+    "sandstorm",
+    "fog",
+    "terrain"
+   ]
+  },
+  {
+   "key": "type",
+   "name": "Immunité / absorption / renfort de type",
+   "keywords": [
+    "-type",
+    "same-type",
+    "super effective",
+    "normal moves",
+    "fire moves",
+    "water moves",
+    "electric moves",
+    "grass moves",
+    "ice moves",
+    "fighting moves",
+    "poison moves",
+    "ground moves",
+    "flying moves",
+    "psychic moves",
+    "bug moves",
+    "rock moves",
+    "ghost moves",
+    "dragon moves",
+    "dark moves",
+    "steel moves",
+    "fairy moves",
+    "normal pokémon",
+    "fire pokémon",
+    "water pokémon",
+    "electric pokémon",
+    "grass pokémon",
+    "ice pokémon",
+    "fighting pokémon",
+    "poison pokémon",
+    "ground pokémon",
+    "flying pokémon",
+    "psychic pokémon",
+    "bug pokémon",
+    "rock pokémon",
+    "ghost pokémon",
+    "dragon pokémon",
+    "dark pokémon",
+    "steel pokémon",
+    "fairy pokémon",
+    "sound-based"
+   ]
+  },
+  {
+   "key": "status",
+   "name": "Statut (infliger, immunité, soin)",
+   "keywords": [
+    "poison",
+    "paraly",
+    "burn",
+    "sleep",
+    "freez",
+    "frozen",
+    "confus",
+    "infatuat",
+    "flinch",
+    "major status",
+    "status ailment"
+   ]
+  },
+  {
+   "key": "item",
+   "name": "Objets tenus et baies",
+   "keywords": [
+    "held item",
+    "berr",
+    "item"
+   ]
+  },
+  {
+   "key": "team",
+   "name": "Équipe / alliés",
+   "keywords": [
+    "ally",
+    "allies",
+    "friendly"
+   ]
+  },
+  {
+   "key": "contact",
+   "name": "Contact (coup au corps à corps)",
+   "keywords": [
+    "contact"
+   ]
+  },
+  {
+   "key": "hit",
+   "name": "Réaction au coup reçu / K.O.",
+   "keywords": [
+    "when hit",
+    "hit by",
+    "takes damage",
+    "damaged",
+    "is hit",
+    "fainting",
+    "faint",
+    "knocks out",
+    "critical hit",
+    "one-hit",
+    "recoil",
+    "indirect damage"
+   ]
+  },
+  {
+   "key": "hp",
+   "name": "Seuil de PV / soin",
+   "keywords": [
+    "hp",
+    "heal"
+   ]
+  },
+  {
+   "key": "stats",
+   "name": "Passif de stats",
+   "keywords": [
+    "attack",
+    "defense",
+    "speed",
+    "accuracy",
+    "evasion",
+    "power",
+    "stat",
+    "damage"
+   ]
+  },
+  {
+   "key": "other",
+   "name": "Autres (à voir au cas par cas)",
+   "keywords": []
+  }
+ ],
+ "byId": {}
+}

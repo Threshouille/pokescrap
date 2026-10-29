@@ -186,6 +186,20 @@ public class LogicTests
     }
 
     [Test]
+    public void AbilitiesPointToTheCatalogue()
+    {
+        Assert.Greater(AbilityLibrary.All.Count, 120, "abilities_rt.json");
+        foreach (var p in GameData.AllPokemon)
+        {
+            if (p.id >= 9000) continue; // dev characters have no ability
+            Assert.IsNotEmpty(p.abilities, p.name);
+            foreach (int a in p.abilities) Assert.NotNull(AbilityLibrary.Get(a), $"{p.name} : talent {a}");
+            if (p.hiddenAbility != 0) Assert.NotNull(AbilityLibrary.Get(p.hiddenAbility), $"{p.name} : talent caché {p.hiddenAbility}");
+        }
+        foreach (var m in GameData.AllMegas) Assert.NotNull(AbilityLibrary.Get(m.ability), $"{m.name} : talent {m.ability}");
+    }
+
+    [Test]
     public void RolloutGrowsEachStep()
     {
         Assert.AreEqual(1f, Combatant.RolloutMul(0.3f, 0), 1e-5f);

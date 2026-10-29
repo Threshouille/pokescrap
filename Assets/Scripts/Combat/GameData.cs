@@ -14,6 +14,8 @@ public class PokemonStats
     public int evolveLevel; // level at which the previous form turns into this one (0: not by level)
     public float recruitRate; // percent chance to join when knocked out, from the ROM (≤ 0: never)
     public int[] levelUpMoves; // moves learnt by level in the ROM, in level order (TMs and egg moves left out)
+    public int[] abilities; // 1 or 2 abilities from the ROM (AbilityLibrary ids)
+    public int hiddenAbility; // hidden ability from PokéAPI (5th generation on), 0 when none or already in abilities
     public EvolutionDef evolution; // how the previous form turns into this one (method empty: not by itself)
     public int model; // dev characters: Pokémon whose sprites and portrait they use (0: their own)
     public int growthOf; // dev characters: Pokémon whose level-up gains they get (0: their own)
@@ -39,6 +41,7 @@ public class MegaDef
     public string name;
     public int[] types;
     public OfficialStats stats, baseStats;
+    public int ability; // official ability of the mega (AbilityLibrary id)
 }
 
 /// Evolution condition from the ROM (extract_data.py). method: level, iq, item, party (a Pokémon in the team),

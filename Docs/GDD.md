@@ -153,7 +153,11 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Visée libre au stick droit ; le Pokémon se tourne dans la direction du stick quand il attaque.
 - Les attaques sont regroupées en familles paramétrables (projectile, corps à corps, zone, ruée, mur, amélioration temporaire…), avec quelques attaques faites sur mesure (ex. : Mur Lumière devient un vrai mur posé sur le terrain).
 - Attaques de statut : on en garde un maximum, traitées au cas par cas (plus fortes ou transformées).
-- Talents réadaptés au temps réel.
+- Talents réadaptés au temps réel. Données (décidé le 29/10/2026, Robin) : les 1 ou 2 talents de la ROM pour chaque
+  Pokémon, plus son talent caché (PokéAPI, 5e génération et après) gardé à part, et le talent officiel de chaque méga ;
+  catalogue de tous les talents de la série principale (314, dont 122 dans la ROM). Les talents changés après la
+  4e génération restent ceux de la ROM. Statistiques et familles d'adaptation : `Docs/TALENTS.md`. Pas encore d'effet
+  en jeu ; choix des talents à adapter et rôle du talent caché à venir.
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.
@@ -465,7 +469,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Taux de recrutement : 208 Pokémon sur 558 ont un taux nul ou négatif ; la plupart des autres sont entre 5 et 15 % (8,2 % pour les trois starters).
 - 187 évolutions par niveau, niveau médian 28, maximum 55.
 - Chaque attaque a des champs d'IA (poids, portée visée) utilisables pour les alliés et les ennemis.
-- 124 talents, 558 Pokémon.
+- 124 talents, 558 Pokémon (122 talents réellement portés ; 230 espèces ont 1 talent, 262 en ont 2 ; aucune sans talent).
 - Chaque Pokémon a déjà un type de déplacement : standard (305), survol des trous (104), traversée des murs (14, spectres), marche sur la lave (34), nage (101). Les décors contiennent aussi les blocs d'eau et de lave.
 
 ## 4. Points ouverts
@@ -485,7 +489,8 @@ Revus le 25/10/2026 : les points tranchés depuis la première version sont regr
 9. Lisibilité du type d'un ennemi à l'écran (en partie réglée par la couleur des chiffres de dégâts).
 
 ### Progression
-11. Talents : un par Pokémon, passif permanent ou à déclencher ?
+11. Talents : un par Pokémon, passif permanent ou à déclencher ? Lesquels adapter (voir `Docs/TALENTS.md`), et à quoi
+    sert le talent caché (rang des ennemis, amélioration, objet) ?
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?
 
