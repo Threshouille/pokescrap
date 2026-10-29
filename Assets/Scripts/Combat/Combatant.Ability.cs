@@ -27,17 +27,17 @@ public partial class Combatant
         SetAbilityId(Abilities.Suspended ? 0 : Abilities.InSlot(Stats, slot));
     }
 
-    /// A given ability (dev characters, tests).
-    public void SetAbility(int id)
+    /// A given ability (dev characters, tests); "effect": what it does instead of the ability's own (a mega's).
+    public void SetAbility(int id, AbilityEffect effect = null)
     {
         abilitySlot = -1;
-        SetAbilityId(id);
+        SetAbilityId(id, effect);
     }
 
-    void SetAbilityId(int id)
+    void SetAbilityId(int id, AbilityEffect effect = null)
     {
         AbilityId = id;
-        Ability = Abilities.Effect(id);
+        Ability = effect ?? Abilities.Effect(id);
         intimidated.Clear();
         // Bigger or faster shots, a wider blow (Super Luck, Sniper): on top of the upgrades, taken back on a change.
         projectileSizeMul /= shotSizeApplied;
@@ -60,7 +60,10 @@ public partial class Combatant
     void AbilityToMega(MegaDef mega)
     {
         abilityBeforeMega = AbilityId;
-        if (mega.ability != 0) SetAbilityId(mega.ability);
+        if (mega.ability == 0) return;
+        SetAbilityId(mega.ability, Abilities.ForMega(mega)); // its ability and the mega's own effect
+        // Steelix, Houndoom: their weather as they mega evolve.
+        if (Ability != null && Ability.arrivalClimate != 0 && GameData.Move(Ability.arrivalClimate) is { } climate) Climate.Cast(climate, this);
     }
 
     void AbilityFromMega() => SetAbilityId(abilityBeforeMega);
@@ -101,7 +104,7 @@ public partial class Combatant
         get
         {
             if (Ability == null) return 1f;
-            float mul = (WeatherBonus?.speedMul ?? 1f) * speedBoostMul;
+            float mul = (WeatherBonus?.speedMul ?? 1f) * speedBoostMul * Ability.speedMul;
             if (Ability.statusedSpeedMul != 1f && HasAnyStatus) mul *= Ability.statusedSpeedMul;
             return mul;
         }
@@ -177,9 +180,9 @@ public partial class Combatant
     }
 
     /// The Pokémon of another team whose ability draws in a shot of this move passing at "at" (Lightning Rod), or null.
-    public static Combatant Attractor(MoveDef move, Vector2 at, Team shooter)
+    public static Combatant Attractor(MoveDef move, Vector2 at, Team shooter, Combatant owner = null)
     {
-        if (move == null) return null;
+        if (move == null || owner?.Ability is { ignoreRedirect: true }) return null; // Stalwart
         foreach (var c in all)
         {
             var a = c.Ability;
@@ -400,7 +403,8 @@ public partial class Combatant
                     c.AddModifier(a.allyWeatherStat, a.allyWeatherValue, 1.5f);
     }
 
-    bool AbilityBlocksStatus(string key) => Ability != null && (Ability.ImmuneTo(key) || WeatherBonus is { statusImmune: true });
+    bool AbilityBlocksStatus(string key) => (Ability != null && (Ability.ImmuneTo(key) || WeatherBonus is { statusImmune: true }))
+        || ShieldedFromStatus(); // Latias's shield
 
     float AbilityStatusDuration(string key) => Ability?.StatusDurationMul(key) ?? 1f;
 
@@ -435,6 +439,11 @@ public partial class Combatant
             if (!string.IsNullOrEmpty(own.hitStatus) && Random.value < own.hitChance) target.AddStatus(own.hitStatus, DefaultStatusDuration, attacker);
             if (own.hitStunChance > 0f && Random.value < own.hitStunChance) target.Stun(own.hitStun);
             if (own.glueSlow != 1f && !target.KeepsStat("speed", own.glueSlow)) target.AddModifier("speed", own.glueSlow, own.glueTime); // Sticky Hold
+            if (own.meleeKnockback > 0f) // Lopunny
+            {
+                Vector2 away = target.transform.position - attacker.transform.position;
+                if (away != Vector2.zero) target.Knockback(away.normalized * own.meleeKnockback / 0.25f, 0.25f);
+            }
         }
     }
 
@@ -443,6 +452,7 @@ public partial class Combatant
     void UpdateAbility()
     {
         if (Ability == null || !IsAlive || IsEvolving) return;
+        UpdateMegaAuras();
         if (!string.IsNullOrEmpty(Ability.arrivalModStat)) Intimidate();
         // Natural Cure: out of the player's hands and left alone a while.
         if (Ability.naturalCure > 0f && !PlayerDriven && HasAnyStatus && Time.time - lastHurtAt >= Ability.naturalCure)
@@ -470,6 +480,7 @@ public partial class Combatant
         nextAbilityTick = Time.time + 1f;
         AbsorbTerrain();
         UpdateLotThree();
+        MegaAurasEachSecond();
         if (Ability.nightmareRadius > 0f) // Bad Dreams
             foreach (var c in new List<Combatant>(all))
                 if (c.team != team && c.IsAlive && c.HasStatus("sleep") && Vector2.Distance(c.transform.position, transform.position) <= Ability.nightmareRadius)
@@ -592,6 +603,82 @@ public partial class Combatant
             attacker.ShowAbility();
         }
         if (!IsAlive && team == Team.Enemy) PickUp();
+        // The attacker's mega effects on what it hit.
+        var their = attacker != null && attacker != this ? attacker.Ability : null;
+        if (their == null) return;
+        if (!string.IsNullOrEmpty(their.hitTerrain) && (!their.hitTerrainMeleeOnly || move.family == "melee"))
+            Terrain.PaintArea(their.hitTerrain, transform.position, their.hitTerrainRadius, their.hitTerrainDuration, attacker);
+        if (IsAlive && !string.IsNullOrEmpty(their.anyHitStatus) && Random.value < their.anyHitChance)
+            AddStatus(their.anyHitStatus, DefaultStatusDuration, attacker);
+        if (their.echoShare > 0f && !echoing && IsAlive) attacker.StartCoroutine(attacker.Echo(this, move, dealt));
+    }
+
+    static bool echoing; // a second strike does not strike again
+
+    /// Parental Bond: the hit lands a second time, weaker, a moment later.
+    System.Collections.IEnumerator Echo(Combatant target, MoveDef move, float dealt)
+    {
+        yield return new WaitForSeconds(0.2f);
+        if (target == null || !target.IsAlive || !IsAlive || Ability == null) yield break;
+        echoing = true;
+        var previous = HitSource;
+        HitSource = this;
+        if (target.TakeHit(DamageOf(move) * Ability.echoShare, move, out _, hitCap) && Ability.echoStun > 0f) target.Stun(Ability.echoStun);
+        HitSource = previous;
+        echoing = false;
+    }
+
+    /// Mewtwo Y: a foe's aura slows a shot of "team" flying by.
+    public static float ShotSlow(Team shooter, Vector2 at)
+    {
+        float mul = 1f;
+        foreach (var c in all)
+            if (c.team != shooter && c.IsAlive && c.Ability is { shotSlowRadius: > 0f } a
+                && Vector2.Distance(c.transform.position, at) <= a.shotSlowRadius) mul = Mathf.Min(mul, a.shotSlowMul);
+        return mul;
+    }
+
+    /// Sableye: this shot goes back to its shooter.
+    public bool ReflectsShot() => Ability is { reflectShotChance: > 0f } a && IsAlive && Random.value < a.reflectShotChance;
+
+    /// Latios, Lucario: its shots of this move pierce / turn toward their target (degrees a second, 0: no).
+    public bool PiercesWith(MoveDef move) => Ability != null && System.Array.IndexOf(Ability.piercingTypes, Abilities.TypeOf(move, Ability)) >= 0;
+    public float HomingTurn => Ability?.homingTurn ?? 0f;
+
+    /// Latias: a team-mate's shield keeps statuses off it.
+    bool ShieldedFromStatus()
+    {
+        foreach (var c in all)
+            if (c != this && c.team == team && c.IsAlive && c.Ability is { allyStatusShieldRadius: > 0f } a
+                && Vector2.Distance(c.transform.position, transform.position) <= a.allyStatusShieldRadius) return true;
+        return false;
+    }
+
+    float nextTrail;
+
+    /// Manectric: a trail of its terrain where it walks; Gengar: the foes it traps lose HP; Altaria: heals around.
+    void UpdateMegaAuras()
+    {
+        var a = Ability;
+        if (a == null || !IsAlive) return;
+        if (!string.IsNullOrEmpty(a.trailTerrain) && Time.time >= nextTrail && body != null && body.linearVelocity.sqrMagnitude > 0.5f)
+        {
+            nextTrail = Time.time + 0.25f;
+            Terrain.PaintArea(a.trailTerrain, transform.position, 0.4f, 3f, this);
+        }
+    }
+
+    void MegaAurasEachSecond()
+    {
+        var a = Ability;
+        if (a == null) return;
+        if (a.trappedDrain > 0f && a.trapRadius > 0f)
+            foreach (var c in new List<Combatant>(all))
+                if (c.team != team && c.IsAlive && c.Trapped()) c.TakeIndirectDamage(c.maxHp * a.trappedDrain);
+        if (a.allyHealShare > 0f)
+            foreach (var c in all)
+                if (c.team == team && c.IsAlive && c.hp < c.maxHp && Vector2.Distance(c.transform.position, transform.position) <= a.allyHealRadius)
+                    c.Heal(c.maxHp * a.allyHealShare);
     }
 
     /// Defiant: a foe lowered one of its stats.

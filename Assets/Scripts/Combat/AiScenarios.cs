@@ -165,6 +165,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
         yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
         yield return Scenario("Talents : Garde Mystik, Brise Moule, Pickpocket", AbilityRulesThree());
+        yield return Scenario("Talents : une méga prend son talent et son effet, puis les rend", MegaAbility());
         yield return Scenario("Talents : la démo de chaque talent se joue sans erreur", AbilityDemosRun());
         yield return Scenario("Objets tenus : Ceinture Force et Casque Brut", HeldLastStand());
         yield return Scenario("Objets tenus : pris en marchant dessus, l'ancien tombe à ses pieds", HeldSwap());
@@ -1741,6 +1742,33 @@ public class AiScenarios : MonoBehaviour
         return point;
     }
 
+    // Méga-Kangourex: during the mega, Parental Bond and the stun of its own effect; back to its ability after.
+    IEnumerator MegaAbility()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var mega = GameData.AllMegas.Find(m => m.id == 21151);
+        if (mega == null) { Report(false, "pas de Méga-Kangourex dans megas.json"); yield break; }
+        leader.SetAbility(AbilityId("Fermeté"));
+        leader.MegaEvolve(mega);
+        yield return null;
+        bool during = leader.AbilityId == mega.ability && leader.Ability != null && leader.Ability.echoShare > 0f && leader.Ability.echoStun > 0f;
+        // Its second strike lands.
+        var foe = Enemy(BatchTeam[1], new Vector2(1.2f, 0f));
+        foe.maxHp = foe.hp = 100000f; // the first strike must not knock it out
+        yield return new WaitForFixedUpdate();
+        var punch = FindMove(1, m => m.family == "melee") ?? FindMove(7, m => true);
+        float before = foe.hp;
+        Combatant.HitSource = leader;
+        foe.TakeHit(leader.DamageOf(punch), punch, out float first);
+        Combatant.HitSource = null;
+        yield return new WaitForSeconds(0.4f);
+        bool echoed = before - foe.hp > first + 0.5f;
+        leader.RevertMega();
+        bool after = leader.AbilityId == AbilityId("Fermeté") && leader.Ability != null && leader.Ability.echoShare <= 0f;
+        leader.SetAbility(0);
+        Report(during && echoed && after, $"en méga {(during ? "Amour Filial + étourdissement" : "talent manquant")}, second coup {(echoed ? "oui" : "non")}, retour {(after ? "Fermeté" : "raté")}");
+    }
+
     static int AbilityId(string name)
     {
         foreach (var a in AbilityLibrary.All)
@@ -1775,7 +1803,9 @@ public class AiScenarios : MonoBehaviour
         Application.logMessageReceived -= Count;
         Destroy(demos);
         yield return null;
-        Report(errors == 0 && cases == Abilities.All.Count, $"{cases} démos sur {Abilities.All.Count} talents, {errors} erreur(s){(first != null ? " : " + first : "")}");
+        int megas = GameData.AllMegas.FindAll(m => Abilities.ForMega(m) != null && PokemonRoster.Has(m.@base)).Count;
+        Report(errors == 0 && cases == Abilities.All.Count + megas,
+            $"{cases} démos pour {Abilities.All.Count} talents et {megas} mégas, {errors} erreur(s){(first != null ? " : " + first : "")}");
     }
 
     // Synchronize sends a burn back to who gave it; Magic Guard takes no poison damage; Shadow Tag keeps the

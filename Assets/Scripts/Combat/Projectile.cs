@@ -36,6 +36,9 @@ public class Projectile : MonoBehaviour
     bool returning; // boomerang on its way back
     int bouncesLeft;
     Combatant homingTarget;
+    bool piercing; // goes through foes by its owner's ability
+    float turnRate; // degrees a second it turns toward its target by its owner's ability
+    bool Pierces => move.pierce || piercing;
     readonly HashSet<Combatant> hit = new();
     Renderer[] renderers;
 
@@ -85,6 +88,8 @@ public class Projectile : MonoBehaviour
         projectile.delay = delay;
         projectile.hold = move.hold;
         projectile.lockedTarget = lockedTarget;
+        projectile.piercing = owner != null && owner.PiercesWith(move); // Latios
+        projectile.turnRate = owner != null ? owner.HomingTurn : 0f; // Lucario
         projectile.aimAtSpawn = owner.LiveAim;
         projectile.renderers = go.GetComponentsInChildren<Renderer>();
         if (delay > 0f) projectile.Show(false);
@@ -166,7 +171,7 @@ public class Projectile : MonoBehaviour
         }
 
         speed = Mathf.Max(MinSpeed, speed + move.accel * dt);
-        if (move.path == "homing") Steer(dt);
+        if (move.path == "homing" || turnRate > 0f) Steer(dt);
 
         Vector2 from = transform.position;
         Vector2 to;
@@ -181,7 +186,7 @@ public class Projectile : MonoBehaviour
         }
         else
         {
-            float step = Mathf.Min(speed * dt, range - travelled);
+            float step = Mathf.Min(speed * dt * Combatant.ShotSlow(team, transform.position), range - travelled); // Mewtwo Y
             travelled += step;
             to = PathPoint(travelled);
             done = travelled >= range;
@@ -206,7 +211,7 @@ public class Projectile : MonoBehaviour
         }
 
         Terrain.OnTrail(move, from, to, owner);
-        if (Combatant.Attractor(move, to, team) is { } rod)
+        if (Combatant.Attractor(move, to, team, owner) is { } rod)
         {
             // Drawn in by Lightning Rod or Storm Drain: the shot ends on it, which takes it in.
             EffectPlayer.Spawn(move.impactEffect, rod.transform.position, forward);
@@ -214,7 +219,7 @@ public class Projectile : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-        if (Obstacles.Capture(move, to, out var magnet))
+        if (owner?.Ability is not { ignoreRedirect: true } && Obstacles.Capture(move, to, out var magnet))
         {
             // Caught by a magnet: the shot ends on it (and may charge it).
             EffectPlayer.Spawn(move.impactEffect, magnet, forward);
@@ -262,7 +267,7 @@ public class Projectile : MonoBehaviour
             if (target == null || target.team == team || !target.IsAlive || !hit.Add(target)) continue;
             Strike(target);
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, forward);
-            if (!move.pierce) { Destroy(gameObject); return; }
+            if (!Pierces) { Destroy(gameObject); return; }
         }
         if (Time.time < hoverUntil) return;
         Terrain.OnImpact(move, transform.position, owner);
@@ -314,7 +319,8 @@ public class Projectile : MonoBehaviour
         }
         if (homingTarget == null) return;
         Vector2 wanted = ((Vector2)homingTarget.transform.position - (Vector2)transform.position).normalized;
-        float turn = Mathf.Clamp(Vector2.SignedAngle(forward, wanted), -move.homing * dt, move.homing * dt);
+        float rate = Mathf.Max(move.homing, turnRate);
+        float turn = Mathf.Clamp(Vector2.SignedAngle(forward, wanted), -rate * dt, rate * dt);
         // The path restarts as a straight line through the current position, in the new direction.
         forward = (Vector2)(Quaternion.Euler(0f, 0f, turn) * forward);
         origin = (Vector2)transform.position - forward * travelled;
@@ -343,7 +349,7 @@ public class Projectile : MonoBehaviour
                 if (target.team == team || !hit.Add(target)) continue;
                 Strike(target);
                 EffectPlayer.Spawn(move.impactEffect, at, delta);
-                if (move.pierce || move.path == "boomerang") continue;
+                if (Pierces || move.path == "boomerang") continue;
                 Terrain.OnImpact(move, at, owner);
                 Destroy(gameObject);
                 return true;
@@ -413,6 +419,12 @@ public class Projectile : MonoBehaviour
 
     void Strike(Combatant target)
     {
+        // Sableye: the shot goes back to its shooter instead.
+        if (owner != null && owner.IsAlive && target.ReflectsShot())
+        {
+            Spawn(target, move, ((Vector2)owner.transform.position - (Vector2)target.transform.position).normalized);
+            return;
+        }
         Combatant.HitSource = owner;
         float far = Abilities.FarShotMul(owner != null ? owner.Ability : null, range > 0f ? travelled / range : 0f); // Sniper
         bool landed = target.TakeHit(damage * far, move, out float dealt, owner != null ? owner.hitCap : 0f);

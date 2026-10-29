@@ -668,6 +668,7 @@ public partial class Combatant : MonoBehaviour
         if (AbilityBlocksStatus(key)) return; // Insomnia, Limber…
         Synchronize(key, duration, source);
         duration *= AbilityStatusDuration(key); // Early Bird
+        if (source != null && source != this && source.Ability != null) duration *= source.Ability.statusGivenMul; // Banette
         duration *= team == Team.Player ? def.playerDurationFactor : 1f;
         if (isBoss) duration *= def.bossDurationFactor;
         foreach (var st in statuses)
@@ -705,6 +706,7 @@ public partial class Combatant : MonoBehaviour
     /// Called on the attacker when one of its moves lands: drain, recoil and bonuses it gives itself.
     public void HitLanded(MoveDef move, float dealt)
     {
+        if (dealt > 0f && move.family == "melee" && Ability is { meleeDrain: > 0f } jaws) Heal(dealt * jaws.meleeDrain); // Mawile
         if (Held != null && dealt > 0f)
         {
             if (Held.drainShare > 0f) Heal(dealt * Held.drainShare); // a Shell Bell

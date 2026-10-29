@@ -179,6 +179,31 @@ public class AbilityEffect
     public string allyWeatherStat; // …this stat bonus (Flower Gift)
     public float allyWeatherValue = 1f;
 
+    // ---- Megas (the mega's ability, and the effect of its own on top: Abilities.ForMega) ----
+    public float contactMul = 1f; // its close-range moves (Tough Claws)
+    public int normalTo; // its Normal moves take this type… (Pixilate, Refrigerate)
+    public float normalToMul = 1f; // …and hit this much harder
+    public TypeMul[] dealtTypes = new TypeMul[0]; // its moves of these types
+    public float echoShare, echoStun; // each hit strikes again this much later, may stun (Parental Bond)
+    public bool ignoreRedirect; // its shots go past Lightning Rod and magnets (Stalwart)
+    public string hitTerrain; // terrain laid where its hits land…
+    public float hitTerrainRadius = 0.6f, hitTerrainDuration = 4f;
+    public bool hitTerrainMeleeOnly; // …close-range ones only
+    public float trappedDrain; // foes it keeps from dodging lose this share of HP each second
+    public float shotSlowRadius, shotSlowMul = 1f; // foes' shots this close fly slower
+    public float statusGivenMul = 1f; // statuses it gives last this much longer
+    public float reflectShotChance; // a shot hitting it may go back to its shooter
+    public float meleeDrain; // its close-range hits heal it this share of the damage
+    public string trailTerrain; // terrain it leaves where it walks
+    public float allyHealShare, allyHealRadius = 4f; // it and its team-mates this close heal each second
+    public float allyStatusShieldRadius; // team-mates this close get no status
+    public int[] piercingTypes = new int[0]; // its shots of these types go through foes
+    public float homingTurn; // degrees a second its shots turn toward their target
+    public float speedMul = 1f; // its movement
+    public float meleeKnockback; // tiles its close-range hits push the target
+    public string anyHitStatus; // any of its hits may give it…
+    public float anyHitChance;
+
     public WeatherBonus Under(string weather)
     {
         if (string.IsNullOrEmpty(weather)) return null;
@@ -224,22 +249,26 @@ public static class Abilities
     /// A family of abilities (dev picker filter, demo room): key as FamilyOf gives it, name shown.
     [Serializable] public class Family { public string key, name; }
 
+    /// The effect of a mega's own on top of its ability (megas of ability_effects.json; mega: its megas.json id).
+    [Serializable] public class MegaEffect : AbilityEffect { public int mega; }
+
     [Serializable]
     class File
     {
         public Settings settings = new();
         public Family[] families = new Family[0];
         public AbilityEffect[] abilities = new AbilityEffect[0];
+        public MegaEffect[] megas = new MegaEffect[0];
     }
 
     static File data;
-    static Dictionary<int, AbilityEffect> byId;
+    static Dictionary<int, AbilityEffect> byId, byMega;
 
     /// While true (the AI bench), nobody draws an ability: only SetAbility gives one.
     public static bool Suspended;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() { data = null; byId = null; Suspended = false; }
+    static void Reset() { data = null; byId = null; byMega = null; Suspended = false; }
 
     static void Load()
     {
@@ -248,11 +277,70 @@ public static class Abilities
         data = asset != null ? JsonUtility.FromJson<File>(asset.text) : new File();
         byId = new Dictionary<int, AbilityEffect>();
         foreach (var a in data.abilities) byId[a.id] = a;
+        byMega = new Dictionary<int, AbilityEffect>();
     }
 
     public static Settings Config { get { Load(); return data.settings; } }
 
     public static IReadOnlyList<Family> Families { get { Load(); return data.families; } }
+
+    /// Every mega's own effect, in file order.
+    public static IReadOnlyList<MegaEffect> Megas { get { Load(); return data.megas; } }
+
+    public static MegaEffect MegaOwn(int megaId)
+    {
+        Load();
+        foreach (var m in data.megas)
+            if (m.mega == megaId) return m;
+        return null;
+    }
+
+    /// What a mega does: its ability and its own effect together (null when neither does anything).
+    public static AbilityEffect ForMega(MegaDef mega)
+    {
+        if (mega == null) return null;
+        Load();
+        if (byMega.TryGetValue(mega.id, out var cached)) return cached;
+        var merged = Merge(Effect(mega.ability), MegaOwn(mega.id));
+        if (merged != null) merged.id = mega.ability;
+        byMega[mega.id] = merged;
+        return merged;
+    }
+
+    static readonly AbilityEffect Neutral = new();
+
+    /// Two effects in one: a field left at its default takes the other's; multipliers (default 1) multiply, other
+    /// numbers keep the larger, flags add up, lists join, a text or a type set on "b" wins.
+    public static AbilityEffect Merge(AbilityEffect a, AbilityEffect b)
+    {
+        if (a == null && b == null) return null;
+        var result = new AbilityEffect();
+        foreach (var f in typeof(AbilityEffect).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        {
+            object va = a != null ? f.GetValue(a) : f.GetValue(Neutral), vb = b != null ? f.GetValue(b) : f.GetValue(Neutral), vd = f.GetValue(Neutral);
+            object value;
+            if (f.FieldType == typeof(float))
+            {
+                float fa = (float)va, fb = (float)vb, fd = (float)vd;
+                value = fb == fd ? fa : fa == fd ? fb : fd == 1f ? fa * fb : Mathf.Max(fa, fb);
+            }
+            else if (f.FieldType == typeof(bool)) value = (bool)va || (bool)vb;
+            else if (f.FieldType == typeof(int)) value = (int)vb != (int)vd ? vb : va;
+            else if (f.FieldType == typeof(string)) value = !string.IsNullOrEmpty((string)vb) ? vb : va;
+            else if (f.FieldType.IsArray)
+            {
+                var xa = (Array)va ?? Array.CreateInstance(f.FieldType.GetElementType(), 0);
+                var xb = (Array)vb ?? Array.CreateInstance(f.FieldType.GetElementType(), 0);
+                var joined = Array.CreateInstance(f.FieldType.GetElementType(), xa.Length + xb.Length);
+                Array.Copy(xa, joined, xa.Length);
+                Array.Copy(xb, 0, joined, xa.Length, xb.Length);
+                value = joined;
+            }
+            else value = vb ?? va;
+            f.SetValue(result, value);
+        }
+        return result;
+    }
 
     /// The family of an ability, from what it does: weather, team (and items), contact, status, defense, attack,
     /// else combat.
@@ -342,7 +430,8 @@ public static class Abilities
     }
 
     /// The type of a move as its user throws it (Normalize: Normal).
-    public static int TypeOf(MoveDef move, AbilityEffect user) => user is { normalize: true } ? 1 : move.type;
+    public static int TypeOf(MoveDef move, AbilityEffect user) =>
+        user is { normalize: true } ? 1 : move.type == 1 && user is { normalTo: > 0 } ? user.normalTo : move.type; // Pixilate
 
     // ---- Pure rules (also used by the tests) ----
 
@@ -368,6 +457,10 @@ public static class Abilities
         if (statused && move.category == "physical") mul *= attacker.statusedAttackMul;
         if (move.category == "physical") mul *= attacker.physicalMul;
         mul *= attacker.allDealtMul;
+        if (move.family == "melee") mul *= attacker.contactMul; // Tough Claws
+        if (move.type == 1 && attacker.normalTo > 0) mul *= attacker.normalToMul; // Pixilate, Refrigerate
+        foreach (var t in attacker.dealtTypes)
+            if (t.type == move.type) mul *= t.mul;
         if (move.punch) mul *= attacker.punchMul;
         if (attacker.normalize) mul *= attacker.normalizeMul;
         if (move.recoil > 0f) mul *= attacker.recoilMoveMul;
@@ -587,6 +680,25 @@ public static class Abilities
         foreach (var b in e.statusBoosts)
             parts.Add($"{StatusName(b.status)} : attaques {(b.category == "special" ? "spéciales" : "physiques")} {Times(b.mul)}");
         if (e.clearWeather) parts.Add("à son arrivée, met fin à la météo");
+        if (e.contactMul != 1f) parts.Add($"corps à corps {Times(e.contactMul)}");
+        if (e.normalTo > 0) parts.Add($"attaques Normal → {TypeName(e.normalTo)} {Times(e.normalToMul)}");
+        foreach (var t in e.dealtTypes) parts.Add($"attaques {TypeName(t.type)} {Times(t.mul)}");
+        if (e.echoShare > 0f) parts.Add($"chaque coup frappe une seconde fois à {Pct(e.echoShare)}{(e.echoStun > 0f ? ", qui étourdit" : "")}");
+        if (e.ignoreRedirect) parts.Add("ses tirs ignorent Paratonnerre et les aimants");
+        if (!string.IsNullOrEmpty(e.hitTerrain)) parts.Add($"{(e.hitTerrainMeleeOnly ? "ses coups au corps à corps" : "ses coups")} laissent : {Terrain.Def(e.hitTerrain)?.name ?? e.hitTerrain}");
+        if (e.trappedDrain > 0f) parts.Add($"adversaires piégés : −{Pct(e.trappedDrain)} des PV par seconde");
+        if (e.shotSlowRadius > 0f) parts.Add($"tirs ennemis à {e.shotSlowRadius:0.#} cases : vitesse {Times(e.shotSlowMul)}");
+        if (e.statusGivenMul != 1f) parts.Add($"statuts donnés {Times(e.statusGivenMul)} plus longs");
+        if (e.reflectShotChance > 0f) parts.Add($"{Pct(e.reflectShotChance)} de renvoyer un tir");
+        if (e.meleeDrain > 0f) parts.Add($"corps à corps : draine {Pct(e.meleeDrain)}");
+        if (!string.IsNullOrEmpty(e.trailTerrain)) parts.Add($"laisse en marchant : {Terrain.Def(e.trailTerrain)?.name ?? e.trailTerrain}");
+        if (e.allyHealShare > 0f) parts.Add($"lui et ses alliés à {e.allyHealRadius:0} cases : +{Pct(e.allyHealShare)} des PV par seconde");
+        if (e.allyStatusShieldRadius > 0f) parts.Add($"alliés à {e.allyStatusShieldRadius:0} cases : aucun statut");
+        if (e.piercingTypes.Length > 0) parts.Add($"tirs {string.Join(", ", Array.ConvertAll(e.piercingTypes, TypeName))} perçants");
+        if (e.homingTurn > 0f) parts.Add("ses tirs suivent la cible");
+        if (e.speedMul != 1f) parts.Add($"vitesse {Times(e.speedMul)}");
+        if (e.meleeKnockback > 0f) parts.Add("ses coups au corps à corps repoussent");
+        if (!string.IsNullOrEmpty(e.anyHitStatus)) parts.Add($"{Pct(e.anyHitChance)} de {StatusName(e.anyHitStatus)} à chaque coup");
         if (e.allyWeatherRadius > 0f && e.weathers.Length > 0)
             parts.Add($"{WeatherName(e.weathers[0].weather)} : lui et ses alliés à {e.allyWeatherRadius:0} cases, {StatName(e.allyWeatherStat)} {Times(e.allyWeatherValue)}");
         if (parts.Count == 0) return "Sans effet pour l'instant.";

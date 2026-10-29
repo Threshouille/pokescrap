@@ -179,7 +179,15 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   (même type, pas de genre), Glu (ralentit au corps à corps), Anticipation (esquive rechargée par un coup super
   efficace, 5 % d'ignorer un coup), Calque (copie à la rencontre), Lumiattirance (expérience), Météo, Homochromie,
   Protéen (changement de type, un seul, jamais en Téra ni en méga), Télépathe (zones), Tension (soins des adversaires),
-  Régé-Force (hors contrôle), Coloforce / Force Pure (× 1,5)… Restent : passifs des mégas.
+  Régé-Force (hors contrôle), Coloforce / Force Pure (× 1,5)…
+- Passifs des mégas (29/10/2026, Robin) : pendant la méga, son talent officiel et un effet propre en plus
+  (`ability_effects.json`, `megas`) : Dracaufeu X braises au corps à corps, Alakazam esquive 60 % plus longue,
+  Ectoplasma piégés drainés, Kangourex second coup qui étourdit, Ptéra Roche × 1,25 et vitesse, Mewtwo Y tirs
+  ennemis ralentis, Steelix et Démolosse lancent leur météo, Airmure peau dure, Tyranocif inébranlable, Gardevoir
+  protège les alliés, Ténéfix renvoie 20 % des tirs, Mysdibule draine, Charmina sans statut, Élecsprint traînée
+  électrique, Camérupt braises, Altaria soigne les alliés, Branette statuts plus longs, Absol anticipe, Oniglali gèle,
+  Latias protège des statuts, Latios tirs perçants, Rayquaza Dragon / Vol, Lockpin vitesse et poussée, Lucario tirs
+  qui suivent, Gallame coups plus larges, Darkrai endort. Peau Féérique : attaques Normal → type de la méga.
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.

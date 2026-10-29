@@ -48,6 +48,8 @@ public class AbilityDemos : MonoBehaviour
     }
 
     readonly List<AbilityEffect> list = new();
+    // The megas (Abilities.ForMega: ability + own effect): their name and species in the list.
+    readonly Dictionary<AbilityEffect, (string name, int species)> megas = new();
     readonly List<Combatant> spawned = new();
     readonly List<AllyAI> paused = new();
     PlayerController team;
@@ -70,12 +72,22 @@ public class AbilityDemos : MonoBehaviour
     void Build()
     {
         list.Clear();
+        megas.Clear();
         foreach (var e in Abilities.All)
             if (family < 0 || Abilities.FamilyOf(e) == Abilities.Families[family].key) list.Add(e);
         list.Sort((a, b) => string.CompareOrdinal(Abilities.FamilyOf(a) + NameOf(a), Abilities.FamilyOf(b) + NameOf(b)));
+        if (family < 0 || Abilities.Families[family].key == "mega")
+            foreach (var mega in GameData.AllMegas)
+                if (Abilities.ForMega(mega) is { } effect && PokemonRoster.Has(mega.@base))
+                {
+                    megas[effect] = (mega.name, mega.@base);
+                    list.Add(effect);
+                }
     }
 
-    static string NameOf(AbilityEffect e) => AbilityLibrary.Get(e.id)?.name ?? e.id.ToString();
+    string NameOf(AbilityEffect e) => megas.TryGetValue(e, out var m) ? $"{m.name} ({AbilityLibrary.Get(e.id)?.name})" : AbilityLibrary.Get(e.id)?.name ?? e.id.ToString();
+
+    string FamilyOf(AbilityEffect e) => megas.ContainsKey(e) ? "mega" : Abilities.FamilyOf(e);
 
     IEnumerator Start()
     {
@@ -143,7 +155,7 @@ public class AbilityDemos : MonoBehaviour
         if (list.Count == 0) return "Démo des talents : aucun talent";
         var e = list[index];
         string fam = family < 0 ? "toutes familles" : Abilities.Families[family].name;
-        string head = $"Talents ({index + 1}/{list.Count}, {fam}) : {NameOf(e)} [{Abilities.FamilyName(Abilities.FamilyOf(e))}] — {Abilities.Describe(e)}";
+        string head = $"Talents ({index + 1}/{list.Count}, {fam}) : {NameOf(e)} [{Abilities.FamilyName(FamilyOf(e))}] — {Abilities.Describe(e)}";
         string body = plan == null ? "" : plan.act == Act.Explain ? $"     {plan.watch}"
             : $"     {plan.watch}     Avec : {Measure(with)}     Sans : {Measure(without)}";
         float left = Mathf.Max(0f, endsAt - Time.time);
@@ -214,8 +226,8 @@ public class AbilityDemos : MonoBehaviour
         CameraFollow.Focus(Centre + new Vector2(0f, 1f), (caseTime > 0f ? caseTime : CaseTime) + 0.5f, 0.2f); // the cast, not the team
         if (!string.IsNullOrEmpty(plan.weather) && Climate.MoveOf(plan.weather) is var climate and > 0)
             Climate.Cast(GameData.Move(climate), null);
-        with = Stage(-SideOffset, e.id);
-        without = Stage(SideOffset, 0);
+        with = Stage(-SideOffset, e.id, e);
+        without = Stage(SideOffset, 0, null);
         yield return new WaitForFixedUpdate();
         foreach (var s in new[] { with, without }) Ready(s);
         float next = 0f;
@@ -234,7 +246,7 @@ public class AbilityDemos : MonoBehaviour
 
     Combatant Holder(Side s) => plan.holderBeside ? s.extra : plan.holderAttacks ? s.attacker : s.target;
 
-    Side Stage(float x, int ability)
+    Side Stage(float x, int ability, AbilityEffect effect)
     {
         var s = new Side();
         Vector2 middle = Centre + new Vector2(x, 1f);
@@ -260,7 +272,7 @@ public class AbilityDemos : MonoBehaviour
         if (plan.balloon) s.target.Hold(HeldItems.Get("air_balloon"));
         if (plan.attackerItem && s.attacker != null) s.attacker.Hold(HeldItems.Get("leftovers"));
         var holder = Holder(s);
-        if (holder != null) holder.SetAbility(ability);
+        if (holder != null) holder.SetAbility(ability, effect);
         if (!string.IsNullOrEmpty(plan.preStatus) && holder != null) holder.AddStatus(plan.preStatus, 30f);
         return s;
     }
@@ -384,7 +396,7 @@ public class AbilityDemos : MonoBehaviour
 
     Plan PlanFor(AbilityEffect e)
     {
-        int holder = SpeciesWith(e.id);
+        int holder = megas.TryGetValue(e, out var mega) ? mega.species : SpeciesWith(e.id);
         var p = new Plan { attackerSpecies = Fallback, targetSpecies = holder };
         var any = FindMove(m => m.family == "projectile");
         var melee = FindMove(m => m.family == "melee" && m.lunge <= 0f);

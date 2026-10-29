@@ -10,7 +10,7 @@ Généré par `Tools/pmd/abilities_report.py` d'après `abilities_rt.json`, `pok
 - Talents normaux par espèce : 1 talent : 230, 2 talents : 262.
 - Sans talent caché distinct : 46 espèces (légendaires surtout, ou caché identique à un talent normal).
 - Sans aucun talent : 0.
-- Avec un effet en jeu (`ability_effects.json`, ✓ ci-dessous) : 155 talents.
+- Avec un effet en jeu (`ability_effects.json`, ✓ ci-dessous) : 160 talents.
 
 ## Les plus communs (talents normaux, 25 premiers)
 
@@ -184,8 +184,8 @@ Classement automatique d'après l'effet anglais de PokéAPI (`Tools/pmd/ability_
 - Peau Féérique (Pixilate) [2] : Turns the bearer's Normal moves into Fairy moves and strengthens them to 1.3× their power.
 - ✓ Garde Mystik (Wonder Guard) [1] : Protects against damaging moves that are not super effective.
 - ✓ Motorisé (Motor Drive) [1] : Absorbs Electric moves, raising Speed one stage.
-- Peau Gelée (Refrigerate) [1] : Turns the bearer's Normal moves into Ice moves and strengthens them to 1.3× their power.
-- Souffle Delta (Delta Stream) [1] : Creates a mysterious air current, which cannot be replaced and causes moves to never be super effective against Flying Pokémon.
+- ✓ Peau Gelée (Refrigerate) [1] : Turns the bearer's Normal moves into Ice moves and strengthens them to 1.3× their power.
+- ✓ Souffle Delta (Delta Stream) [1] : Creates a mysterious air current, which cannot be replaced and causes moves to never be super effective against Flying Pokémon.
 
 ### Statut (infliger, immunité, soin) : 29 talents, poids 256
 
@@ -240,7 +240,7 @@ Classement automatique d'après l'effet anglais de PokéAPI (`Tools/pmd/ability_
 
 - ✓ Boom Final (Aftermath) [6] : Damages the attacker for 1/4 its max HP when knocked out by a contact move.
 - ✓ Peau Dure (Rough Skin) [5] : Damages attacking Pokémon for 1/8 their max HP on contact.
-- Griffe Dure (Tough Claws) [2] : Strengthens moves that make contact to 1.33× their power.
+- ✓ Griffe Dure (Tough Claws) [2] : Strengthens moves that make contact to 1.33× their power.
 
 ### Réaction au coup reçu / K.O. : 11 talents, poids 112
 
@@ -292,7 +292,7 @@ Classement automatique d'après l'effet anglais de PokéAPI (`Tools/pmd/ability_
 - ✓ Filtre (Filter) [2] : Decreases damage taken from super-effective moves by 1/4.
 - ✓ Contestation (Contrary) [2] : Inverts stat changes.
 - ✓ Écran Fumée (White Smoke) [1] : Prevents stats from being lowered by other Pokémon.
-- Amour Filial (Parental Bond) [1] : Lets the bearer hit twice with damaging moves.  The second hit has half power.
+- ✓ Amour Filial (Parental Bond) [1] : Lets the bearer hit twice with damaging moves.  The second hit has half power.
 
 ### Autres (à voir au cas par cas) : 13 talents, poids 64
 
@@ -308,5 +308,5 @@ Classement automatique d'après l'effet anglais de PokéAPI (`Tools/pmd/ability_
 - ✓ Corps Maudit (Cursed Body) [3] : Has a 30% chance of Disabling any move that hits the Pokémon.
 - ✓ Absentéisme (Truant) [2] : Skips every second turn.
 - ✓ Protéen (Protean) [1] : Changes the bearer's type to match each move it uses.
-- Nerfs d’Acier (Stalwart) [1] : Ignores moves and abilities that draw in moves.
+- ✓ Nerfs d’Acier (Stalwart) [1] : Ignores moves and abilities that draw in moves.
 

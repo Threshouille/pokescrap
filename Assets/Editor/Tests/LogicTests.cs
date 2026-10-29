@@ -289,6 +289,26 @@ public class LogicTests
         Assert.AreEqual(0.75f, Abilities.TakenFlatMul(Abilities.Effect(IdOf("Télépathe")), new MoveDef { family = "zone" }, false), 1e-4f, "Télépathe");
     }
 
+    [Test]
+    public void MegaEffectsAddToTheirAbility()
+    {
+        foreach (var m in Abilities.Megas)
+            Assert.IsTrue(GameData.AllMegas.Exists(d => d.id == m.mega), $"{m.mega} : méga inconnue");
+        var charizard = GameData.AllMegas.Find(d => d.id == 20061); // Méga-Dracaufeu X : Griffe Dure + braises
+        var both = Abilities.ForMega(charizard);
+        Assert.AreEqual(1.3f, both.contactMul, 1e-4f, "Griffe Dure");
+        Assert.AreEqual("embers", both.hitTerrain, "braises");
+        Assert.AreEqual(charizard.ability, both.id);
+        // Multipliers multiply, flags add up, lists join.
+        var merged = Abilities.Merge(new AbilityEffect { speedMul = 1.2f, statusImmune = new[] { "burn" } },
+            new AbilityEffect { speedMul = 1.5f, noRecoil = true, statusImmune = new[] { "sleep" } });
+        Assert.AreEqual(1.8f, merged.speedMul, 1e-4f);
+        Assert.IsTrue(merged.noRecoil);
+        Assert.AreEqual(2, merged.statusImmune.Length);
+        foreach (var mega in GameData.AllMegas)
+            Assert.AreNotEqual("Sans effet pour l'instant.", Abilities.Describe(Abilities.ForMega(mega)), mega.name);
+    }
+
     static int IdOf(string name)
     {
         foreach (var a in AbilityLibrary.All)
