@@ -1386,6 +1386,8 @@ public class AiScenarios : MonoBehaviour
                 if (dir != lastDir[i]) turns[i]++;
                 lastDir[i] = dir;
                 var v = c.GetComponent<Rigidbody2D>().linearVelocity;
+                // A push from a hit or a dodge is not a jolt of its own walking: only its walking counts.
+                if (c.IsHurt || c.IsDodging) { lastVel[i] = Vector2.zero; continue; }
                 if (v.magnitude > 0.5f && lastVel[i].magnitude > 0.5f && Vector2.Dot(v.normalized, lastVel[i].normalized) < -0.3f) reversals[i]++;
                 lastVel[i] = v;
             }
@@ -1726,6 +1728,19 @@ public class AiScenarios : MonoBehaviour
             $"Garde Mystik {(guarded ? "bloque" : "laisse passer")}, Brise Moule {(broken ? "passe" : "bloqué")}, Pickpocket {(stolen ? "vole" : "ne vole pas")}");
     }
 
+    // A walkable spot about "distance" tiles from a point, nothing in the way (a wall, a tree, water).
+    static Vector2 FreeNear(Vector2 point, float distance)
+    {
+        var arena = DungeonGenerator.Current;
+        for (int i = 0; i < 16; i++)
+        {
+            float angle = i * Mathf.PI / 8f;
+            var spot = point + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
+            if (arena == null || (arena.WalkableAt(spot, 0.3f) && !Obstacles.BlocksAt(spot, null))) return spot;
+        }
+        return point;
+    }
+
     static int AbilityId(string name)
     {
         foreach (var a in AbilityLibrary.All)
@@ -1966,7 +1981,8 @@ public class AiScenarios : MonoBehaviour
         var camps = places.Where(p => p.sort == IslandPopulation.Sort.Camp).ToList();
         var patrols = places.Where(p => p.sort == IslandPopulation.Sort.Patrol).ToList();
         int spawns = places.Count(p => p.sort == IslandPopulation.Sort.Spawn);
-        bool fitting = camps.All(c => c.lot != null && c.lot.members.All(m => Populations.Lives(c.habitat, m.pokemonId, false) || m.lot != c.lot.category));
+        // Day or night population: the clock starts at random (DayNight), so a camp may be a night one.
+        bool fitting = camps.All(c => c.lot != null && c.lot.members.All(m => Populations.Lives(c.habitat, m.pokemonId, true) || m.lot != c.lot.category));
         string result = $"{camps.Count} camps, {patrols.Count} rondes, {spawns} points d'apparition";
         bool ok = camps.Count > 0 && patrols.Count > 0 && fitting;
         var members = team.Members.ToArray();
@@ -1981,9 +1997,15 @@ public class AiScenarios : MonoBehaviour
             foreach (var m in members) Teleport(m, far);
             yield return new WaitForSeconds(1f);
             bool restsFar = !group.Engaged;
-            foreach (var m in members) Teleport(m, home + Vector2.right * 3f);
-            yield return new WaitForSeconds(1f);
-            bool wakes = group.Engaged;
+            // Right by a member of the camp (its home spot may lie in a wall or a tree): it must wake within 2 s.
+            Vector2 sleeper = camp.spawned[0].transform.position;
+            foreach (var m in members) Teleport(m, FreeNear(sleeper, 2f));
+            bool wakes = false;
+            for (float t = 0f; t < 2f && !wakes; t += Time.fixedDeltaTime)
+            {
+                yield return new WaitForFixedUpdate();
+                wakes = group.Engaged;
+            }
             foreach (var m in members) Teleport(m, far);
             yield return new WaitForSeconds(group.roam.giveUp + 1.5f);
             bool backToRest = !group.Engaged;

@@ -30,8 +30,9 @@ Test en jeu prévu (éditeur, profil de dev) :
 9. À noter : bandeaux trop fréquents ou pas assez, valeurs trop fortes ou trop faibles.
 Banc complet le 29/10 (lot 3) : 78/81 ; échecs antérieurs aux talents (toujours là avec les talents coupés), à corriger à
 part : « capacité Z frappe et paralyse » (16 et 18 dégâts pour un seuil de 17,5) et « Secours : le plus apte éloigne
-l'ennemi » (allié K.O. jamais réanimé). « Groupe : pas d'à-coups » a échoué une fois sur trois (instable) ; « Peuplement : camps et rondes » aussi (2 échecs sur 4 :
-lieux tirés au hasard, camp parfois mal peuplé ou pas réveillé ; talents coupés pendant le banc, donc sans lien).
+l'ennemi » (allié K.O. jamais réanimé). « Groupe : pas d'à-coups » et « Peuplement : camps et rondes », instables, corrigés le 29/10 (8 passages sur 8) :
+reculs dus aux coups et aux esquives exclus ; population de nuit acceptée, équipe placée sur une case libre près
+du camp.
 
 ## Reprise (26/10/2026, Robin) : où on s'est arrêté
 
