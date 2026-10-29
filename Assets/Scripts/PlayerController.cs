@@ -269,8 +269,16 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Dev mode: J gives the controlled Pokémon the next ability that does something (Abilities).
-        if (SaveData.Settings.devMode && Keyboard.current is { } devKb && devKb.jKey.wasPressedThisFrame && Abilities.All.Count > 0)
+        // Dev mode: J opens the list of abilities for the controlled Pokémon; Shift + J gives it the next one.
+        if (SaveData.Settings.devMode && Keyboard.current is { } devKb && devKb.jKey.wasPressedThisFrame && Abilities.All.Count > 0
+            && !devKb.shiftKey.isPressed)
+        {
+            var overlay = GetComponent<AbilityPickerOverlay>();
+            if (overlay == null) overlay = gameObject.AddComponent<AbilityPickerOverlay>();
+            overlay.Show(Current.combatant);
+            return;
+        }
+        if (SaveData.Settings.devMode && Keyboard.current is { } nextKb && nextKb.jKey.wasPressedThisFrame && Abilities.All.Count > 0)
         {
             var all = Abilities.All;
             var who = Current.combatant;

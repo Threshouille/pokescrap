@@ -86,7 +86,7 @@ public static class TargetChoice
             score += s.aiTargetThreat * Threat(foe, self.team);
             score += s.aiTargetFocus * Focus(foe, self);
             if (foe == current) score += s.aiTargetKeep;
-            if (Taunting(foe)) score += s.aiTargetTaunt;
+            if (Taunting(foe) && !self.IgnoresTaunts) score += s.aiTargetTaunt; // Oblivious
             if (score > bestScore)
             {
                 best = foe;

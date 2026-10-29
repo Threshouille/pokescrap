@@ -213,6 +213,11 @@ public class LogicTests
             if (!string.IsNullOrEmpty(e.hitStatus)) Assert.NotNull(StatusLibrary.Get(e.hitStatus), $"{name} : {e.hitStatus}");
             if (e.arrivalClimate != 0) Assert.AreEqual("climate", GameData.Move(e.arrivalClimate)?.family, $"{name} : météo");
             foreach (var w in e.weathers) Assert.AreNotEqual(w.weather, Climate.WeatherName(w.weather), $"{name} : {w.weather}");
+            foreach (var k in e.pickupItems) Assert.NotNull(BagItems.Get(k), $"{name} : objet {k}");
+            foreach (var k in e.absorbTerrains) Assert.NotNull(Terrain.Def(k), $"{name} : terrain {k}");
+            string family = Abilities.FamilyOf(e);
+            Assert.AreNotEqual(family, Abilities.FamilyName(family), $"{name} : famille « {family} » sans nom");
+            foreach (int m in e.dampMoves) Assert.NotNull(GameData.Move(m), $"{name} : attaque {m}");
             Assert.AreNotEqual("Sans effet pour l'instant.", Abilities.Describe(e), name);
         }
     }
@@ -235,6 +240,25 @@ public class LogicTests
         Assert.AreEqual(99f, Abilities.Endure(sturdy, 100f, 100f, 500f), 1e-4f, "Fermeté à PV pleins");
         Assert.AreEqual(500f, Abilities.Endure(sturdy, 90f, 100f, 500f), 1e-4f, "Fermeté entamée");
         Assert.IsTrue(Abilities.Absorbs(Abilities.Effect(36), 3), "Absorbe-Eau");
+    }
+
+    [Test]
+    public void SecondLotRules()
+    {
+        var melee = new MoveDef { type = 1, power = 6, category = "physical", family = "melee" };
+        Assert.AreEqual(0.85f, Abilities.TakenFlatMul(Abilities.Effect(19), melee, false), 1e-4f, "Coque Armure");
+        Assert.AreEqual(0.5f, Abilities.TakenFlatMul(Abilities.Effect(1136), melee, true), 1e-4f, "Multiécaille PV pleins");
+        Assert.AreEqual(1f, Abilities.TakenFlatMul(Abilities.Effect(1136), melee, false), 1e-4f, "Multiécaille entamé");
+        Assert.AreEqual(0.25f, Abilities.TakenMul(Abilities.Effect(55), 9, Efficacy.Normal), 1e-4f, "Lévitation, Sol");
+        var sniper = Abilities.Effect(93);
+        Assert.AreEqual(1f, Abilities.FarShotMul(sniper, 0f), 1e-4f, "Sniper à bout portant");
+        Assert.AreEqual(1.3f, Abilities.FarShotMul(sniper, 1f), 1e-4f, "Sniper en bout de course");
+        var arenaTrap = Abilities.Effect(5);
+        Assert.IsTrue(Abilities.Traps(arenaTrap, 2f, new[] { 1 }, false), "Piège Sable : marcheur");
+        Assert.IsFalse(Abilities.Traps(arenaTrap, 2f, new[] { 10 }, true), "Piège Sable : volant");
+        Assert.IsFalse(Abilities.Traps(arenaTrap, 5f, new[] { 1 }, false), "Piège Sable : trop loin");
+        Assert.IsTrue(Abilities.Traps(Abilities.Effect(23), 2f, new[] { 17 }, false), "Magnépiège : Acier");
+        Assert.IsFalse(Abilities.Traps(Abilities.Effect(23), 2f, new[] { 1 }, false), "Magnépiège : autre");
     }
 
     [Test]

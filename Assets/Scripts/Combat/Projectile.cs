@@ -414,7 +414,8 @@ public class Projectile : MonoBehaviour
     void Strike(Combatant target)
     {
         Combatant.HitSource = owner;
-        bool landed = target.TakeHit(damage, move, out float dealt, owner != null ? owner.hitCap : 0f);
+        float far = Abilities.FarShotMul(owner != null ? owner.Ability : null, range > 0f ? travelled / range : 0f); // Sniper
+        bool landed = target.TakeHit(damage * far, move, out float dealt, owner != null ? owner.hitCap : 0f);
         Combatant.HitSource = null;
         if (!landed) return;
         if (move.stun > 0f && (move.stunChance <= 0f || Random.value < move.stunChance)) target.Stun(move.stun);

@@ -165,8 +165,16 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   de critique seront adaptés en « coups dans le dos » (lot 2). Valeurs adoucies comme la table des types (Isograisse
   × 0,6, Filtre × 0,8, Adaptabilité : bonus de type 1,5). Fermeté : survit à 1 PV à un coup reçu à PV pleins, sans
   limite. Talents de météo d'arrivée : équipe, boss et élites seulement. Lot 1 fait (70 talents : types, absorption,
-  bas PV, statuts, contact, météo, Intimidation, Fuite, Pression, Technicien…) ; lot 2 et passifs des mégas à venir
-  (liste dans `Docs/TALENTS.md`).
+  bas PV, statuts, contact, météo, Intimidation, Fuite, Pression, Technicien…). Lot 2 fait (39 talents, 29/10/2026) :
+  pas de « coups dans le dos » ; Sniper = tirs plus rapides, plus longs, jusqu'à × 1,3 en bout de course ; Chanceux =
+  tirs plus gros, coups plus larges ; Coque Armure / Armurbaston = corps à corps reçu × 0,85, pas de bonus de série ;
+  Colérique = attaque × 1,5 après un coup de plus de 25 % des PV ; Lévitation = Sol × 0,25 ; réactions (Synchro,
+  Cœur Noble, Phobique, Acharné, Corps Maudit, Suintement), combat (Impudence, Turbo, Agitation, Annule Garde,
+  Garde Magik, Multiécaille, poussée, pièges qui empêchent d'esquiver, Moiteur, Mauvais Rêve), équipe et butin
+  (Garde-Ami, Plus / Moins, Ramassage, Cherche Miel, Gloutonnerie, Délestage). ≈ 89 % de chances que le talent tiré
+  agisse. Absorption aussi sur les terrains de leur élément (Robin, 29/10) : aucun mal, + 3 % des PV par seconde pour
+  Absorbe-Eau / Absorbe-Volt / Peau Sèche, bonus de stat ou de puissance gardé tant qu'il y reste pour les autres.
+  Restent : passifs des mégas, talents écartés (`Docs/TALENTS.md`).
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.
@@ -498,8 +506,8 @@ Revus le 25/10/2026 : les points tranchés depuis la première version sont regr
 9. Lisibilité du type d'un ennemi à l'écran (en partie réglée par la couleur des chiffres de dégâts).
 
 ### Progression
-11. Talents : lot 2 (coups dans le dos, K.O., équipe, butin) et passifs des mégas à valider ; débloquer le talent
-    caché par une amélioration en partie ?
+11. Talents : passifs des mégas à valider ; débloquer le talent caché par une amélioration en partie ? Valeurs à
+    régler après le test en jeu.
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?
 

@@ -661,6 +661,7 @@ public partial class Combatant : MonoBehaviour
         var def = StatusLibrary.Get(key);
         if (!IsAlive || def == null) return;
         if (AbilityBlocksStatus(key)) return; // Insomnia, Limber…
+        Synchronize(key, duration, source);
         duration *= AbilityStatusDuration(key); // Early Bird
         duration *= team == Team.Player ? def.playerDurationFactor : 1f;
         if (isBoss) duration *= def.bossDurationFactor;
@@ -685,7 +686,10 @@ public partial class Combatant : MonoBehaviour
         float more = EffectChanceMul(source); // Serene Grace
         if (!string.IsNullOrEmpty(move.modStat) && move.family != "modifier" && !KeepsStat(move.modStat, move.modValue)
             && (sure || move.statChance <= 0f || UnityEngine.Random.value <= move.statChance * more))
+        {
             AddModifier(move.modStat, move.modValue, move.modDuration > 0f ? move.modDuration : DefaultStatusDuration);
+            if (move.modValue < 1f) Lowered(); // Defiant
+        }
 
         if (string.IsNullOrEmpty(move.status)) return;
         float chance = move.statusChance > 0f ? Mathf.Min(1f, move.statusChance * more) : 1f;
@@ -702,14 +706,17 @@ public partial class Combatant : MonoBehaviour
             if (Held.recoilShare > 0f && IsAlive && recoiledAttack != attackCount) // a Life Orb: once per attack, not per hit
             {
                 recoiledAttack = attackCount;
-                TakeFixedDamage(maxHp * Held.recoilShare);
+                TakeIndirectDamage(maxHp * Held.recoilShare);
             }
         }
         if (dealt > 0f && move.drain > 0f)
-            MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
+        {
+            if (DrainSign(LastHit) < 0f) TakeIndirectDamage(dealt * move.drain); // Liquid Ooze
+            else MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
+        }
         if (!string.IsNullOrEmpty(move.selfModStat) && (move.selfStatChance <= 0f || UnityEngine.Random.value <= move.selfStatChance))
             AddModifier(move.selfModStat, move.selfModValue, move.selfModDuration > 0f ? move.selfModDuration : DefaultStatusDuration);
-        if (dealt > 0f && move.recoil > 0f && IsAlive && Ability is not { noRecoil: true }) // Rock Head: none
+        if (dealt > 0f && move.recoil > 0f && IsAlive && Ability is not { noRecoil: true } && !MagicGuard) // Rock Head: none
         {
             float recoil = Mathf.Max(1f, dealt * move.recoil);
             DamageNumber.Damage(transform.position, recoil, Efficacy.Normal);
@@ -726,6 +733,7 @@ public partial class Combatant : MonoBehaviour
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
         if (Holding || InBody) return false; // a held move or a body move is going on
         if (InRollout && move.rolloutMax <= 0) return false; // a Roulade series: nothing else
+        if (Damped(move)) return false; // Damp
         if (move.noAutoAim && RawAim != Vector2.zero) direction = RawAim; // the player's own direction, not the target's
         attackCount++; // a new attack (a Life Orb takes its toll once per attack)
         if (StartHeld(slot, move, direction, out bool refused)) return !refused;
@@ -881,6 +889,9 @@ public partial class Combatant : MonoBehaviour
     public void Knockback(Vector2 velocity, float time)
     {
         if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this)) return; // an Acier on metal holds firm
+        float held = AbilityKnockbackMul; // Suction Cups, Heavy Metal
+        if (held <= 0f) return;
+        velocity *= held;
         time *= Terrain.KnockbackMul(this); // slippery ground: the push carries further
         knockVelocity = velocity;
         knockTime = time;
@@ -922,6 +933,7 @@ public partial class Combatant : MonoBehaviour
     {
         if (isBoss || duration <= 0f || Ability is { stunImmune: true }) return; // Inner Focus
         stunUntil = Mathf.Max(stunUntil, Time.time + duration);
+        AbilityStunned(); // Steadfast
     }
 
     /// followAim: each strike goes where the player aims when it lands rather than at the start (blow after a dash).
@@ -1023,7 +1035,7 @@ public partial class Combatant : MonoBehaviour
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             HitSource = this;
-            if (target.TakeHit(DamageOf(move) * factor, move, out float dealt, hitCap))
+            if (target.TakeHit(DamageOf(move) * (target.Ability is { noChainBonus: true } ? 1f : factor), move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
@@ -1086,9 +1098,10 @@ public partial class Combatant : MonoBehaviour
     public bool TryDodge(Vector2 direction)
     {
         if (!IsAlive || Time.time < dodgeReadyAt || !CanMove || IsCasting || IsLunging || direction == Vector2.zero || body == null) return false;
+        if (Trapped()) return false; // Arena Trap, Shadow Tag…
         var settings = SaveData.Settings;
         dodgeDirection = direction.normalized;
-        dodgeUntil = Time.time + settings.dodgeTime;
+        dodgeUntil = Time.time + settings.dodgeTime * AbilityDodgeTimeMul; // Light Metal
         dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown) * AbilityDodgeCooldownMul;
         PassThroughOpponents();
         return true;
@@ -1223,7 +1236,8 @@ public partial class Combatant : MonoBehaviour
                     int rank = Mathf.RoundToInt(2f * Mathf.Abs(i - centre)) - (i > centre ? 1 : 0); // i > centre: left side
                     delay += rank * move.burstInterval;
                 }
-                angle += UnityEngine.Random.Range(-move.jitter, move.jitter);
+                float stray = move.jitter + (Ability?.shotJitter ?? 0f); // Hustle
+                angle += UnityEngine.Random.Range(-stray, stray);
                 Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, delay, distance,
                     (volley * shots + i) * move.rangeStep);
             }
@@ -1447,6 +1461,7 @@ public partial class Combatant : MonoBehaviour
                 Heal(amount);
                 continue;
             }
+            if (MagicGuard) continue;
             DamageNumber.Status(transform.position, amount, st.def.color);
             LoseHp(amount);
             if (st.def.drainToSource && st.source != null && st.source.IsAlive) st.source.Heal(amount);
@@ -1552,10 +1567,13 @@ public partial class Combatant : MonoBehaviour
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
         lastHurtAt = Time.time;
+        LastHit = this;
+        AbilityAfterHit(move, attacker, dealt); // Anger Point, Justified, Cursed Body, Moxie…
         if (Held != null && Held.popOnHit && IsAlive) // a Balloon bursts at the first blow
         {
             Hold(null);
             EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+            ItemUsedUp(); // Unburden
         }
         Hurt?.Invoke(this);
         return true;
@@ -1597,6 +1615,7 @@ public partial class Combatant : MonoBehaviour
             amount = hp - 1f;
             Hold(null);
             EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+            ItemUsedUp(); // Unburden
         }
         hp = Mathf.Max(0f, hp - amount);
         flashUntil = Time.time + HitFlashTime;

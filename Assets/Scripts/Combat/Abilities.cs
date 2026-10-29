@@ -20,6 +20,7 @@ public class AbilityEffect
         public float chip; // max HP lost each second (Solar Power)
         public bool chipImmune; // no weather damage
         public bool cure; // statuses cured each second (Hydration)
+        public bool statusImmune; // no status at all (Leaf Guard)
         public TypeMul[] types = new TypeMul[0]; // damage of its moves of these types
     }
 
@@ -44,6 +45,8 @@ public class AbilityEffect
     public float absorbValue = 1f, absorbDuration = 8f;
     public float absorbBoost = 1f; // its moves of absorbType hit this much harder after absorbing (Flash Fire)
     public float attractRadius; // shots of absorbType passing this close are drawn in (Lightning Rod)
+    public string[] absorbTerrains = new string[0]; // standing on these terrains: no harm, and what absorbing gives…
+    public float terrainHeal; // …max HP healed each second there (absorbStat / absorbBoost: kept up while there)
 
     // Low health.
     public float lowHpShare; // below this share of max HP
@@ -83,6 +86,48 @@ public class AbilityEffect
     public float attackerCooldownMul = 1f; // a foe that hits it waits longer for that move (Pressure)
 
     public WeatherBonus[] weathers = new WeatherBonus[0];
+
+    // ---- Lot 2 ----
+    public float takenAllMul = 1f; // every hit taken (No Guard)
+    public float meleeTakenMul = 1f; // close-range hits taken (Shell Armor)
+    public bool noChainBonus; // chained strikes get no bonus against it
+    public float fullHpTakenMul = 1f; // hits taken at full health (Multiscale)
+    public bool shieldDust; // the side effects of the moves that hit it do not act
+    public float physicalMul = 1f; // its physical moves (Hustle)
+    public float shotJitter; // degrees its shots may stray (Hustle)
+    public float shotSizeMul = 1f, shotSpeedMul = 1f, meleeAreaMul = 1f; // its shots and blows (Super Luck, Sniper)
+    public float farShotMul = 1f; // a shot hits this much harder at the end of its range (Sniper)
+    public float rageShare; // a single hit taking off this share of its HP…
+    public float rageValue = 1.5f, rageDuration = 10f; // …raises its attack (Anger Point)
+    public int[] hitByTypes = new int[0]; // hit by a move of these types…
+    public string hitByStat; // …this modifier (Justified, Rattled)
+    public float hitByValue = 1f, hitByDuration = 8f;
+    public float loweredAttack = 1f, loweredDuration = 8f; // a foe lowers one of its stats: attack bonus (Defiant)
+    public bool synchronize; // poison, burn and paralysis go back to whoever gave them
+    public float naturalCure; // seconds without being hit (not played by a person) before its statuses are cured
+    public bool oblivious; // neither Intimidate nor a taunting foe acts on it
+    public float curseChance, curseTime = 3f; // the move that hit it is blocked for its user (Cursed Body)
+    public bool liquidOoze; // draining it hurts instead of healing
+    public float koAttackStep = 1f, koAttackMax = 1f; // each foe it knocks out (Moxie), up to the max, until the next arena
+    public float speedBoostEvery, speedBoostStep = 1f, speedBoostMax = 1f; // in a fight, every few seconds (Speed Boost)
+    public bool magicGuard; // no damage but from hits (statuses, terrain, weather, recoil, contact)
+    public bool noKnockback; // Suction Cups
+    public float knockbackMul = 1f, dodgeTimeMul = 1f; // Heavy Metal, Light Metal
+    public float confusedDodgeMul = 1f; // dodge recharge while confused (Tangled Feet)
+    public float stunSpeedMul = 1f, stunSpeedTime = 4f; // stunned: speed bonus (Steadfast)
+    public float trapRadius; // foes this close cannot dodge…
+    public int[] trapTypes = new int[0]; // …only of these types (empty: all)…
+    public bool trapSparesFliers; // …but those that fly or float (Arena Trap)
+    public float dampRadius; // these moves cannot be used this close to it (Damp)
+    public int[] dampMoves = new int[0];
+    public float nightmareRadius, nightmareShare; // foes asleep this close lose this share of their HP each second (Bad Dreams)
+    public float allyGuardRadius, allyGuardMul = 1f; // allies this close take less (Friend Guard)
+    public int allyTypeBoost; // an ally of this type within allyTypeRadius…
+    public float allyTypeRadius = 4f, allyTypeMul = 1f; // …powers its moves (Plus, Minus)
+    public float pickupChance; // a foe knocked out by its team: chance of a bag item…
+    public string[] pickupItems = new string[0]; // …among these (Pickup, Honey Gather)
+    public float bagHealMul = 1f; // healing items of the bag (Gluttony)
+    public float unburdenSpeed = 1f, unburdenTime = 8f; // its held item used up: speed bonus (Unburden)
 
     public WeatherBonus Under(string weather)
     {
@@ -126,7 +171,16 @@ public static class Abilities
         public bool enemyClimate; // ordinary enemies cast their arrival weather too (bosses and elites always do)
     }
 
-    [Serializable] class File { public Settings settings = new(); public AbilityEffect[] abilities = new AbilityEffect[0]; }
+    /// A family of abilities (dev picker filter, demo room): key as FamilyOf gives it, name shown.
+    [Serializable] public class Family { public string key, name; }
+
+    [Serializable]
+    class File
+    {
+        public Settings settings = new();
+        public Family[] families = new Family[0];
+        public AbilityEffect[] abilities = new AbilityEffect[0];
+    }
 
     static File data;
     static Dictionary<int, AbilityEffect> byId;
@@ -147,6 +201,35 @@ public static class Abilities
     }
 
     public static Settings Config { get { Load(); return data.settings; } }
+
+    public static IReadOnlyList<Family> Families { get { Load(); return data.families; } }
+
+    /// The family of an ability, from what it does: weather, team (and items), contact, status, defense, attack,
+    /// else combat.
+    public static string FamilyOf(AbilityEffect e)
+    {
+        if (e == null) return "combat";
+        if (e.weathers.Length > 0 || e.arrivalClimate != 0) return "weather";
+        if (e.allyGuardRadius > 0f || e.allyTypeBoost != 0 || e.pickupChance > 0f || e.bagHealMul != 1f || e.unburdenSpeed != 1f) return "team";
+        if (e.contactStatuses.Length > 0 || e.contactShare > 0f || e.faintContactShare > 0f || !string.IsNullOrEmpty(e.hitStatus)
+            || e.hitStunChance > 0f) return "contact";
+        if (e.statusImmune.Length > 0 || e.statusDurations.Length > 0 || e.cureEvery > 0f || e.poisonHeals || e.statusedAttackMul != 1f
+            || e.statusedSpeedMul != 1f || e.synchronize || e.naturalCure > 0f || e.shieldDust || e.magicGuard || e.modImmune.Length > 0
+            || e.stunImmune) return "status";
+        if (e.takenTypes.Length > 0 || e.superEffectiveTakenMul != 1f || e.absorbType != 0 || e.endure || e.meleeTakenMul != 1f
+            || e.fullHpTakenMul != 1f || e.liquidOoze) return "defense";
+        if (e.stabMul > 0f || e.lowHpShare > 0f || e.lowPowerMax > 0f || e.effectMovesMul != 1f || e.effectChanceMul != 1f || e.rangeMul != 1f
+            || e.resistedDealtMul != 1f || e.ignoreImmunityTypes.Length > 0 || e.physicalMul != 1f || e.shotSizeMul != 1f
+            || e.shotSpeedMul != 1f || e.farShotMul != 1f || e.recoilMoveMul != 1f || e.noRecoil || e.koAttackStep > 1f) return "attack";
+        return "combat";
+    }
+
+    public static string FamilyName(string key)
+    {
+        foreach (var f in Families)
+            if (f.key == key) return f.name;
+        return key;
+    }
 
     /// Every ability with an effect, in file order.
     public static IReadOnlyList<AbilityEffect> All { get { Load(); return data.abilities; } }
@@ -201,6 +284,7 @@ public static class Abilities
         if (attacker.lowPowerMax > 0f && move.power > 0 && move.power <= attacker.lowPowerMax) mul *= attacker.lowPowerMul;
         if (attacker.effectMovesMul != 1f && HasSideEffect(move)) mul *= attacker.effectMovesMul;
         if (statused && move.category == "physical") mul *= attacker.statusedAttackMul;
+        if (move.category == "physical") mul *= attacker.physicalMul;
         if (move.recoil > 0f) mul *= attacker.recoilMoveMul;
         var w = attacker.Under(weather);
         if (w != null)
@@ -210,6 +294,32 @@ public static class Abilities
             if (move.category == "special") mul *= w.spAtkMul;
         }
         return mul;
+    }
+
+    /// Multiplier on a hit taken by "holder" from its own ability: every hit, close range, at full health.
+    public static float TakenFlatMul(AbilityEffect holder, MoveDef move, bool fullHealth)
+    {
+        if (holder == null || move == null) return 1f;
+        float mul = holder.takenAllMul;
+        if (move.family == "melee") mul *= holder.meleeTakenMul;
+        if (fullHealth) mul *= holder.fullHpTakenMul;
+        return mul;
+    }
+
+    /// Sniper: a shot that has covered "share" of its range hits this much harder.
+    public static float FarShotMul(AbilityEffect owner, float share) =>
+        owner == null || owner.farShotMul == 1f ? 1f : Mathf.Lerp(1f, owner.farShotMul, Mathf.Clamp01(share));
+
+    /// True when a foe with a trapping ability at "distance" keeps "victim" (its types, its movement) from dodging.
+    public static bool Traps(AbilityEffect trapper, float distance, int[] victimTypes, bool victimFlies)
+    {
+        if (trapper == null || trapper.trapRadius <= 0f || distance > trapper.trapRadius) return false;
+        if (trapper.trapSparesFliers && victimFlies) return false;
+        if (trapper.trapTypes.Length == 0) return true;
+        if (victimTypes == null) return false;
+        foreach (int t in victimTypes)
+            if (Array.IndexOf(trapper.trapTypes, t) >= 0) return true;
+        return false;
     }
 
     public static bool HasSideEffect(MoveDef move) => !string.IsNullOrEmpty(move.status) || !string.IsNullOrEmpty(move.modStat);
@@ -266,6 +376,9 @@ public static class Abilities
             if (e.absorbBoost != 1f) gain.Add($"ses attaques {TypeName(e.absorbType)} {Times(e.absorbBoost)}");
             parts.Add($"absorbe les attaques {TypeName(e.absorbType)}" + (gain.Count > 0 ? " : " + string.Join(", ", gain) : ""));
             if (e.attractRadius > 0f) parts.Add($"attire les tirs {TypeName(e.absorbType)} à {e.attractRadius:0.#} cases");
+            if (e.absorbTerrains.Length > 0)
+                parts.Add($"sur {string.Join(", ", Array.ConvertAll(e.absorbTerrains, k => Terrain.Def(k)?.name ?? k))} : aucun mal"
+                    + (e.terrainHeal > 0f ? $", +{Pct(e.terrainHeal)} des PV par seconde" : ", même effet tant qu'il y reste"));
         }
         if (e.lowHpShare > 0f)
             parts.Add($"sous {Pct(e.lowHpShare)} des PV, attaques {(e.lowHpType != 0 ? TypeName(e.lowHpType) + " " : "")}{Times(e.lowHpMul)}");
@@ -302,8 +415,46 @@ public static class Abilities
             if (w.chip > 0f) under.Add($"perd {Pct(w.chip)} des PV par seconde");
             if (w.chipImmune) under.Add("aucun dégât de la météo");
             if (w.cure) under.Add("guérit de ses statuts");
+            if (w.statusImmune) under.Add("aucun statut");
             if (under.Count > 0) parts.Add($"{WeatherName(w.weather)} : {string.Join(", ", under)}");
         }
+        if (e.takenAllMul != 1f) parts.Add($"dégâts reçus {Times(e.takenAllMul)}");
+        if (e.meleeTakenMul != 1f) parts.Add($"dégâts reçus au corps à corps {Times(e.meleeTakenMul)}");
+        if (e.noChainBonus) parts.Add("pas de bonus de série contre lui");
+        if (e.fullHpTakenMul != 1f) parts.Add($"à PV pleins, dégâts reçus {Times(e.fullHpTakenMul)}");
+        if (e.shieldDust) parts.Add("insensible aux effets secondaires des attaques");
+        if (e.physicalMul != 1f) parts.Add($"attaques physiques {Times(e.physicalMul)}");
+        if (e.shotJitter > 0f) parts.Add($"tirs déviés jusqu'à {e.shotJitter:0}°");
+        if (e.shotSizeMul != 1f) parts.Add($"taille des tirs {Times(e.shotSizeMul)}");
+        if (e.shotSpeedMul != 1f) parts.Add($"vitesse des tirs {Times(e.shotSpeedMul)}");
+        if (e.meleeAreaMul != 1f) parts.Add($"zone des coups {Times(e.meleeAreaMul)}");
+        if (e.farShotMul != 1f) parts.Add($"tirs jusqu'à {Times(e.farShotMul)} en bout de course");
+        if (e.rageShare > 0f) parts.Add($"un coup de plus de {Pct(e.rageShare)} des PV : attaque {Times(e.rageValue)} {e.rageDuration:0} s");
+        if (e.hitByTypes.Length > 0 && !string.IsNullOrEmpty(e.hitByStat))
+            parts.Add($"touché par {string.Join(", ", Array.ConvertAll(e.hitByTypes, TypeName))} : {StatName(e.hitByStat)} {Times(e.hitByValue)} {e.hitByDuration:0} s");
+        if (e.loweredAttack != 1f) parts.Add($"une stat baissée : attaque {Times(e.loweredAttack)} {e.loweredDuration:0} s");
+        if (e.synchronize) parts.Add("renvoie poison, brûlure et paralysie");
+        if (e.naturalCure > 0f) parts.Add($"guérit après {e.naturalCure:0} s sans être touché (hors contrôle)");
+        if (e.oblivious) parts.Add("insensible à Intimidation et aux provocations");
+        if (e.curseChance > 0f) parts.Add($"{Pct(e.curseChance)} de bloquer l'attaque qui le touche {e.curseTime:0} s");
+        if (e.liquidOoze) parts.Add("qui le draine perd des PV");
+        if (e.koAttackStep != 1f) parts.Add($"chaque K.O. : attaque {Times(e.koAttackStep)} (jusqu'à {Times(e.koAttackMax)})");
+        if (e.speedBoostEvery > 0f) parts.Add($"en combat, vitesse {Times(e.speedBoostStep)} toutes les {e.speedBoostEvery:0} s (jusqu'à {Times(e.speedBoostMax)})");
+        if (e.magicGuard) parts.Add("ne perd des PV que par les coups");
+        if (e.noKnockback) parts.Add("jamais repoussé");
+        if (e.knockbackMul != 1f) parts.Add($"poussée {Times(e.knockbackMul)}");
+        if (e.dodgeTimeMul != 1f) parts.Add($"esquive {Times(e.dodgeTimeMul)} plus longue");
+        if (e.confusedDodgeMul != 1f) parts.Add($"confus, recharge de l'esquive {Times(e.confusedDodgeMul)}");
+        if (e.stunSpeedMul != 1f) parts.Add($"étourdi, vitesse {Times(e.stunSpeedMul)} {e.stunSpeedTime:0} s");
+        if (e.trapRadius > 0f)
+            parts.Add($"les adversaires {(e.trapTypes.Length > 0 ? string.Join(", ", Array.ConvertAll(e.trapTypes, TypeName)) + " " : "")}à {e.trapRadius:0.#} cases ne peuvent plus esquiver{(e.trapSparesFliers ? " (sauf ceux qui volent)" : "")}");
+        if (e.dampRadius > 0f) parts.Add($"empêche {string.Join(", ", Array.ConvertAll(e.dampMoves, m => GameData.Move(m)?.name ?? m.ToString()))} à {e.dampRadius:0.#} cases");
+        if (e.nightmareRadius > 0f) parts.Add($"adversaires endormis à {e.nightmareRadius:0.#} cases : −{Pct(e.nightmareShare)} des PV par seconde");
+        if (e.allyGuardRadius > 0f) parts.Add($"alliés à {e.allyGuardRadius:0.#} cases : dégâts reçus {Times(e.allyGuardMul)}");
+        if (e.allyTypeBoost != 0) parts.Add($"un allié {TypeName(e.allyTypeBoost)} à {e.allyTypeRadius:0.#} cases : attaques {Times(e.allyTypeMul)}");
+        if (e.pickupChance > 0f) parts.Add($"{Pct(e.pickupChance)} de trouver un objet à chaque K.O. ennemi");
+        if (e.bagHealMul != 1f) parts.Add($"soins du sac {Times(e.bagHealMul)}");
+        if (e.unburdenSpeed != 1f) parts.Add($"objet tenu épuisé : vitesse {Times(e.unburdenSpeed)} {e.unburdenTime:0} s");
         if (parts.Count == 0) return "Sans effet pour l'instant.";
         string text = string.Join(" ; ", parts) + ".";
         return char.ToUpper(text[0]) + text.Substring(1);

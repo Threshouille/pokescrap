@@ -93,6 +93,8 @@ public class TerrainSandbox : MonoBehaviour
     static readonly Vector2 RescueStairs = new(12f, 0f), RescueBackStairs = new(-12f, 0f);
     static readonly Vector2 EncounterStairs = new(-6f, -12f); // to the encounter lab (its way back: ObstacleStairs)
     public const int EncounterRoom = 20; // far from the other rooms' numbers, which other branches add to
+    public const int AbilityRoom = 21; // the demo of every ability (AbilityDemos)
+    static readonly Vector2 AbilityStairs = new(6f, -12f); // its way back: RescueBackStairs
     const int RiverFrom = 3, RiverTo = 5; // elite room: columns of the river, from the arrival point
     static readonly Vector2 GalleryCentre = new(0f, 5f); // above the arrival point, which stays clear
 
@@ -434,11 +436,12 @@ public class TerrainSandbox : MonoBehaviour
             AddStairs(arena, BossStairs, BossRoom, "Escalier vers la salle du boss", new Color(0.9f, 0.2f, 0.2f));
             AddStairs(arena, RescueStairs, RescueRoom, "Escalier vers les démos de secours", new Color(0.3f, 0.6f, 1f));
             AddStairs(arena, EncounterStairs, EncounterRoom, "Escalier vers l'observation des rencontres", new Color(0.9f, 0.9f, 0.9f));
+            AddStairs(arena, AbilityStairs, AbilityRoom, "Escalier vers la démo des talents", new Color(1f, 0.55f, 0.8f));
         }
         else if (room == 4 || room == 5)
             AddStairs(arena, FreeNear(arena, arena.CellOf(arena.SpawnPoint)) - Centre(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         else if (room == 3) AddStairs(arena, BackStairsNearSpawn(arena), 0, "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
-        else AddStairs(arena, room switch { 1 or EncounterRoom => ObstacleStairs, ZDemoRoom => ZDemoBackStairs, EliteRoom => EliteBackStairs, BossRoom => BossBackStairs, RescueRoom => RescueBackStairs, _ => GalleryBackStairs }, 0,
+        else AddStairs(arena, room switch { 1 or EncounterRoom => ObstacleStairs, ZDemoRoom => ZDemoBackStairs, EliteRoom => EliteBackStairs, BossRoom => BossBackStairs, RescueRoom or AbilityRoom => RescueBackStairs, _ => GalleryBackStairs }, 0,
             "Escalier vers le terrain de test", new Color(0.6f, 0.85f, 1f));
         stairsArmed = false;
     }
@@ -530,6 +533,8 @@ public class TerrainSandbox : MonoBehaviour
         RestoreItems();
         var demos = GetComponent<RescueDemos>();
         if (room != RescueRoom && demos != null) Destroy(demos);
+        var abilityDemos = GetComponent<AbilityDemos>();
+        if (room != AbilityRoom && abilityDemos != null) Destroy(abilityDemos);
         // The room gallery builds a room of the catalogue; the other rooms are the sandbox's own open arena.
         if (sandboxDecor == null) sandboxDecor = arena.tileset;
         // Before the island rooms too: the showcase of room 0 lay under the secret rooms (same world positions).
@@ -591,6 +596,7 @@ public class TerrainSandbox : MonoBehaviour
         if (room == EliteRoom) BuildRiver(arena);
         if (room == EliteRoom || room == BossRoom) SpawnFighter();
         if (room == RescueRoom && demos == null) gameObject.AddComponent<RescueDemos>();
+        if (room == AbilityRoom && abilityDemos == null) gameObject.AddComponent<AbilityDemos>();
         var lab = GetComponent<EncounterLab>();
         if (room == EncounterRoom && lab == null) gameObject.AddComponent<EncounterLab>();
         if (room != EncounterRoom && lab != null) Destroy(lab);
@@ -656,9 +662,10 @@ public class TerrainSandbox : MonoBehaviour
         float s = Mathf.Max(1f, Mathf.Round(Screen.height / 360f));
         label ??= new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         label.fontSize = Mathf.RoundToInt(8f * s);
-        string line = room == 0 ? "Escaliers : jaune (en haut à droite) obstacles, violet (en bas à droite) mégas, vert (en bas à gauche) salles, orange (en bas) île, turquoise (en haut) quart d'île, orange foncé (en haut à gauche) capacités Z, doré (à gauche) élite, rouge (en haut, à droite du turquoise) boss, bleu (à droite) secours, blanc (en bas, à gauche de l'orange) rencontres"
+        string line = room == 0 ? "Escaliers : jaune (en haut à droite) obstacles, violet (en bas à droite) mégas, vert (en bas à gauche) salles, orange (en bas) île, turquoise (en haut) quart d'île, orange foncé (en haut à gauche) capacités Z, doré (à gauche) élite, rouge (en haut, à droite du turquoise) boss, bleu (à droite) secours, blanc (en bas, à gauche de l'orange) rencontres, rose (en bas, à droite de l'orange) talents"
             : room == ZDemoRoom ? ZDemoLine()
             : room == RescueRoom ? (GetComponent<RescueDemos>() is { } rescue ? rescue.Line() : "Démos de secours")
+            : room == AbilityRoom ? (GetComponent<AbilityDemos>() is { } talents ? talents.Line() : "Démo des talents")
             : room == EncounterRoom ? (GetComponent<EncounterLab>() is { } lab ? lab.Line(drawn) : "Observation des rencontres")
             : room == EliteRoom ? $"Salle de l'élite : rivière {(bridge ? "avec un pont (en mêlée sur le pont, l'élite le brûle)" : "sans pont (l'élite la gèle pour venir)")}     R ou Select : {(bridge ? "sans" : "avec")} pont     Escalier (en haut à gauche) : retour"
             : room == BossRoom ? $"Boss d'îlot ({bossIndex % Mathf.Max(1, BossRoster.Count) + 1}/{BossRoster.Count}) : {fighter?.Stats?.name ?? "boss"}{(fighter == null || !fighter.IsAlive ? " (revient bientôt)" : "")} · arène {arenaName}     N ou ↑ : boss suivant     R ou Select : relancer     Escalier (en haut) : retour"

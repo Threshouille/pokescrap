@@ -7,9 +7,28 @@ branches, axes de refonte et questions de conception (page partagée par Robin).
 ## Talents (29/10/2026, branche `feature/talents`)
 
 Catalogue `abilities_rt.json`, talents ROM + caché PokéAPI par Pokémon, talent des mégas, rapport `Docs/TALENTS.md`.
-Lot 1 des effets (70 talents, `ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`) : à tester en jeu
-(persos de dev : R2 / Tab dans le menu, J en partie). Suite : lot 2, passifs des mégas.
-Banc complet le 29/10 : 74/77 ; échecs antérieurs aux talents (toujours là avec les talents coupés), à corriger à
+Lots 1 et 2 des effets (109 talents, `ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`). Suite : test
+en jeu ci-dessous, réglage des valeurs, passifs des mégas ; ensuite (Robin) : adapter les IA aux talents (les leurs
+et ceux des adversaires : viser autrement, rester sur un terrain absorbé, éviter Statik au corps à corps…).
+
+Test en jeu prévu (éditeur, profil de dev) :
+0. Démo de tous les talents : terrain de test, escalier rose (en bas, à droite de l'orange) ; regarder chaque talent
+   (←/→, ↑/↓ par famille) et noter ceux dont la démo ne montre rien de clair.
+1. Menu : un perso de dev, R2 / Tab ouvre la liste des talents (filtre par famille, description) ; un Pokémon normal
+   montre ses talents et son caché. En partie, J ouvre la même liste (Maj+J : le suivant).
+2. Partie normale : le nom du talent tiré s'affiche dans le HUD après le niveau ; il reste après une évolution ; une
+   méga prend celui de la méga puis rend l'ancien.
+3. Terrain de test (Select / T) avec un perso de dev, J pour choisir un talent :
+   cibles d'entraînement de la salle 0 pour Sniper (dégâts plus forts de loin), Chanceux (tirs plus gros),
+   Technicien, Brasier sous 1/3 des PV ; Statik / Peau Dure en frappant au corps à corps une cible avec le talent
+   (élite de la salle 7 : J ne change que le Pokémon joué, donc tester le talent de l'élite par son tirage).
+4. Météo : Sécheresse / Crachin au début d'une arène ; Glissade, Chlorophylle (vitesse), Voile Sable (pas de dégâts).
+5. Intimidation : bandeau et icône de malus d'attaque sur les ennemis qui approchent.
+6. Paratonnerre / Lavabo : les tirs Électrik / Eau des ennemis sont attirés et absorbés.
+7. Marque Ombre / Piège Sable : esquive refusée près du porteur ; Ventouse : pas de recul.
+8. Ramassage : objets qui arrivent dans le sac au fil des K.O.
+9. À noter : bandeaux trop fréquents ou pas assez, valeurs trop fortes ou trop faibles.
+Banc complet le 29/10 (lot 2, démo des talents) : 77/79 ; échecs antérieurs aux talents (toujours là avec les talents coupés), à corriger à
 part : « capacité Z frappe et paralyse » (16 et 18 dégâts pour un seuil de 17,5) et « Secours : le plus apte éloigne
 l'ennemi » (allié K.O. jamais réanimé). « Groupe : pas d'à-coups » a échoué une fois sur trois (instable).
 

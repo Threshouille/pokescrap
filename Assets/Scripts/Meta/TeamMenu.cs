@@ -33,6 +33,7 @@ public class TeamMenu : MonoBehaviour
     // Starting moves screen: open for one Pokémon, with its move pool and the moves picked so far.
     // The pool can be filtered by type: "pool" holds the moves shown, "fullPool" all of them.
     bool editingMoves;
+    AbilityPicker abilityPicker; // a dev character's ability list (R2 / Tab)
     List<MoveDef> fullPool, pool;
     readonly List<int> filterTypes = new(); // types found in the pool; filter -1 shows every move
     int filter = -1;
@@ -80,6 +81,18 @@ public class TeamMenu : MonoBehaviour
             if (circle || square) CloseItems();
             return;
         }
+        if (abilityPicker != null)
+        {
+            bool previous = (pad != null && pad.leftShoulder.wasPressedThisFrame) || (repeat && direction.x < 0);
+            bool next = (pad != null && pad.rightShoulder.wasPressedThisFrame) || (repeat && direction.x > 0);
+            bool closing = circle || triangle || (kb != null && kb.tabKey.wasPressedThisFrame);
+            if (abilityPicker.Handle(repeat ? direction.y : 0, previous ? -1 : next ? 1 : 0, cross, closing))
+            {
+                if (cross) SaveData.SetDevAbility(choices[cursor], abilityPicker.Chosen);
+                abilityPicker = null;
+            }
+            return;
+        }
         if (editingMoves)
         {
             if (repeat && direction.y != 0) moveCursor = Mathf.Clamp(moveCursor + direction.y, 0, pool.Count - 1);
@@ -95,10 +108,13 @@ public class TeamMenu : MonoBehaviour
             OpenMoves(choices[cursor]);
             return;
         }
-        // A dev character: R2 (Tab) cycles through the abilities that do something (Abilities).
+        // A dev character: R2 (Tab) opens the list of the abilities that do something (Abilities).
         if (GameData.IsDev(choices[cursor]) && Abilities.All.Count > 0
             && ((pad != null && pad.rightTrigger.wasPressedThisFrame) || (kb != null && kb.tabKey.wasPressedThisFrame)))
-            CycleDevAbility(choices[cursor]);
+        {
+            abilityPicker = new AbilityPicker(SaveData.DevAbility(choices[cursor]));
+            return;
+        }
         if (square && SaveData.IsUnlocked(choices[cursor]) && !GameData.IsDev(choices[cursor]))
         {
             OpenItems(choices[cursor]);
@@ -121,15 +137,6 @@ public class TeamMenu : MonoBehaviour
         if (team.Count > 0 && SaveData.Settings.devMode
             && ((pad != null && pad.selectButton.wasPressedThisFrame) || (kb != null && kb.tKey.wasPressedThisFrame)))
             Run.Start(team.ToArray(), true);
-    }
-
-    static void CycleDevAbility(int id)
-    {
-        var all = Abilities.All;
-        int at = 0;
-        for (int i = 0; i < all.Count; i++)
-            if (all[i].id == SaveData.DevAbility(id)) at = i;
-        SaveData.SetDevAbility(id, all[(at + 1) % all.Count].id);
     }
 
     /// Its abilities as the menu shows them: the dev character's pick, else the regular ones and the hidden one.
@@ -483,7 +490,8 @@ public class TeamMenu : MonoBehaviour
         float px = left + (gridWidth + 16f) * s;
         var panel = new Rect(px, top, panelWidth * s, PanelHeight * s);
         Fill(panel, Frame);
-        if (editingItems) DrawItems(choices[cursor], panel, s);
+        if (abilityPicker != null) abilityPicker.Draw(panel, s, $"Talent de {GameData.Pokemon(choices[cursor])?.name}");
+        else if (editingItems) DrawItems(choices[cursor], panel, s);
         else if (editingMoves) DrawMoves(choices[cursor], panel, s);
         else if (choices.Count > 0) DrawDetails(choices[cursor], panel, s);
 

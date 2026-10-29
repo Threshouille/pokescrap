@@ -162,6 +162,9 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Objets tenus : Bandeau Choix, Restes, Ballon", HeldEffects());
         yield return Scenario("Talents : l'allié ne tire pas de l'Eau sur un Absorbe-Eau", AbilityTarget());
         yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
+        yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
+        yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
+        yield return Scenario("Talents : la démo de chaque talent se joue sans erreur", AbilityDemosRun());
         yield return Scenario("Objets tenus : Ceinture Force et Casque Brut", HeldLastStand());
         yield return Scenario("Objets tenus : pris en marchant dessus, l'ancien tombe à ses pieds", HeldSwap());
         yield return Scenario("Objets tenus : un ennemi qui en tient un le lâche", EnemyDropsHeld());
@@ -1665,6 +1668,90 @@ public class AiScenarios : MonoBehaviour
         bool focus = !foe.IsHurt;
         Report(absorbed && sturdy && focus,
             $"absorption {(absorbed ? "oui" : "non")}, Fermeté {(sturdy ? "oui" : "non")}, Attention {(focus ? "oui" : "non")}");
+    }
+
+    // Water Absorb on a puddle heals and is not slowed; Sap Sipper on brambles is neither slowed nor hurt.
+    IEnumerator AbilityTerrain()
+    {
+        Place(new Vector2(-3f, -3f), new Vector2(-6f, -3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(3f, 2f));
+        yield return new WaitForFixedUpdate();
+        Vector2 at = foe.transform.position;
+        foe.SetAbility(36); // Absorbe-Eau
+        foe.hp = foe.maxHp * 0.5f;
+        Terrain.PaintArea("water", at, 1f, 10f);
+        float before = foe.hp;
+        yield return new WaitForSeconds(2.2f);
+        bool heals = foe.hp > before;
+        bool unslowedWater = Mathf.Approximately(Terrain.SpeedMul(foe), 1f);
+        Terrain.ClearArea("water", at, 1.5f);
+        foe.SetAbility(1157); // Herbivore
+        foe.hp = foe.maxHp * 0.5f;
+        Terrain.PaintArea("brambles", at, 1f, 10f);
+        before = foe.hp;
+        yield return new WaitForSeconds(2.2f);
+        bool unhurt = foe.hp >= before - 0.01f;
+        bool unslowedBrambles = Mathf.Approximately(Terrain.SpeedMul(foe), 1f);
+        bool boosted = foe.HasModifier("attack", true);
+        Terrain.ClearArea("brambles", at, 1.5f);
+        Report(heals && unslowedWater && unhurt && unslowedBrambles && boosted,
+            $"Flaque : {(heals ? "soigne" : "ne soigne pas")}, {(unslowedWater ? "pas ralenti" : "ralenti")} ; Ronces : {(unhurt ? "pas de dégâts" : "blessé")}, {(unslowedBrambles ? "pas ralenti" : "ralenti")}, attaque {(boosted ? "+" : "inchangée")}");
+    }
+
+    // The ability demo room (AbilityDemos) plays every case for a moment: no error logged, every ability has a demo.
+    IEnumerator AbilityDemosRun()
+    {
+        var sandbox = FindAnyObjectByType<TerrainSandbox>();
+        if (sandbox == null) { Report(false, "pas de terrain de test"); yield break; }
+        int errors = 0;
+        string first = null;
+        void Count(string message, string trace, LogType type)
+        {
+            if (type != LogType.Error && type != LogType.Exception) return;
+            errors++;
+            first ??= message;
+        }
+        Application.logMessageReceived += Count;
+        var demos = sandbox.gameObject.AddComponent<AbilityDemos>();
+        demos.caseTime = 100f; // the scenario moves on itself
+        yield return null;
+        yield return null;
+        int cases = demos.Count;
+        for (int i = 0; i < cases; i++)
+        {
+            demos.Play(i);
+            yield return new WaitForSeconds(0.5f);
+        }
+        Application.logMessageReceived -= Count;
+        Destroy(demos);
+        yield return null;
+        Report(errors == 0 && cases == Abilities.All.Count, $"{cases} démos sur {Abilities.All.Count} talents, {errors} erreur(s){(first != null ? " : " + first : "")}");
+    }
+
+    // Synchronize sends a burn back to who gave it; Magic Guard takes no poison damage; Shadow Tag keeps the
+    // controlled Pokémon from dodging while near, and no longer once the ability is gone.
+    IEnumerator AbilityRulesTwo()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(2f, 0f));
+        yield return new WaitForFixedUpdate();
+        foe.SetAbility(25); // Synchro
+        foe.AddStatus("burn", 3f, leader);
+        bool synced = leader.HasStatus("burn");
+        leader.Cleanse();
+        foe.Cleanse();
+        foe.SetAbility(115); // Garde Magik
+        foe.AddStatus("poison", 3f, leader);
+        float before = foe.hp;
+        yield return new WaitForSeconds(1.5f);
+        bool guarded = Mathf.Approximately(foe.hp, before);
+        foe.Cleanse();
+        foe.SetAbility(10); // Marque Ombre
+        bool trapped = !leader.TryDodge(Vector2.left);
+        foe.SetAbility(0);
+        bool free = leader.TryDodge(Vector2.left);
+        Report(synced && guarded && trapped && free,
+            $"Synchro {(synced ? "oui" : "non")}, Garde Magik {(guarded ? "oui" : "non")}, Marque Ombre {(trapped ? "bloque" : "laisse esquiver")} puis {(free ? "libre" : "bloqué")}");
     }
 
     // A Focus Sash leaves 1 HP after a knock-out blow, once, and breaks; a Rocky Helmet hurts who strikes it at close range.

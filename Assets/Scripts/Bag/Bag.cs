@@ -118,7 +118,7 @@ public class Bag : MonoBehaviour
         {
             case "heal":
                 if (user.hp >= user.maxHp) return false;
-                user.Heal(user.maxHp * item.value);
+                user.Heal(user.maxHp * item.value * user.BagHealMul); // Gluttony
                 Burst("evolution_eclat", at, item.Colour, 1.5f);
                 return true;
             case "cure":

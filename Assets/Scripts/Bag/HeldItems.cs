@@ -175,6 +175,6 @@ public static class HeldItems
     {
         if (attacker == null || target == null || target.Held == null || target.Held.contactShare <= 0f) return;
         float share = attacker.isBoss && target.Held.bossContactShare >= 0f ? target.Held.bossContactShare : target.Held.contactShare;
-        attacker.TakeFixedDamage(attacker.maxHp * share);
+        attacker.TakeIndirectDamage(attacker.maxHp * share);
     }
 }
