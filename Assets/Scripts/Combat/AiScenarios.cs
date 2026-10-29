@@ -94,6 +94,9 @@ public class AiScenarios : MonoBehaviour
         var progression = team.GetComponent<Progression>();
         if (progression != null) progression.enabled = false;
         if (team.Count < 2) team.AddMember(BatchTeam[1], team.Controlled.transform.position + Vector3.right);
+        // Abilities drawn at random would change the scenarios: none, unless a scenario gives one.
+        Abilities.Suspended = true;
+        foreach (var member in team.Members) member.SetAbility(0);
 
         yield return Scenario("Ne suit pas le Pokémon joué dans le danger", NoFollowIntoDanger());
         yield return Scenario("Contourne un danger pour le rejoindre", WalkAround());
@@ -157,6 +160,8 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Sac : 4 emplacements, piles de 9, plein ensuite", BagCapacity());
         yield return Scenario("Sac : un élite lâche un objet, ramassé en marchant dessus", EliteDropsConsumable());
         yield return Scenario("Objets tenus : Bandeau Choix, Restes, Ballon", HeldEffects());
+        yield return Scenario("Talents : l'allié ne tire pas de l'Eau sur un Absorbe-Eau", AbilityTarget());
+        yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
         yield return Scenario("Objets tenus : Ceinture Force et Casque Brut", HeldLastStand());
         yield return Scenario("Objets tenus : pris en marchant dessus, l'ancien tombe à ses pieds", HeldSwap());
         yield return Scenario("Objets tenus : un ennemi qui en tient un le lâche", EnemyDropsHeld());
@@ -178,6 +183,7 @@ public class AiScenarios : MonoBehaviour
 
         Clear();
         if (progression != null) progression.enabled = true;
+        Abilities.Suspended = false;
         Failures = results.FindAll(r => !r.passed).Count;
         Debug.Log($"AISCENARIO DONE {results.Count - Failures}/{results.Count}");
         current = null;
@@ -1611,6 +1617,54 @@ public class AiScenarios : MonoBehaviour
         leader.hp = leader.maxHp;
         Report(band && back && regen && floats && burst,
             $"Bandeau {(band ? "oui" : "non")} (rendu {(back ? "oui" : "non")}), Restes {(regen ? "oui" : "non")}, Ballon : {(floats ? "flotte" : "tombe")} puis {(burst ? "éclate" : "reste")}");
+    }
+
+    // Only Water moves, two identical opponents, the nearer one with Water Absorb: the ally picks the other one.
+    IEnumerator AbilityTarget()
+    {
+        var (_, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        var water = FindMove(3, m => m.family == "projectile");
+        int neutral = FindSpecies(t => Mathf.Approximately(TypeChart.Multiplier(3, t, out _), 1f));
+        if (water == null || neutral < 0)
+        {
+            Report(false, "pas d'attaque Eau ou pas d'espèce neutre");
+            yield break;
+        }
+        var kept = (MoveDef[])ally.Moves.Clone();
+        for (int i = 0; i < ally.Moves.Length; i++) ally.Moves[i] = water;
+        var near = Enemy(neutral, new Vector2(3f, 0f));
+        var far = Enemy(neutral, new Vector2(0f, 5f));
+        near.SetAbility(36); // Absorbe-Eau
+        near.maxHp = near.hp = far.maxHp = far.hp = 100000f;
+        yield return new WaitForSeconds(Choose);
+        var chosen = TargetChoice.Current(ally);
+        for (int i = 0; i < kept.Length; i++) ally.Moves[i] = kept[i];
+        Report(chosen == far, $"{water.name} ; près {Name(near)} (Absorbe-Eau), loin {Name(far)} ; choisit {Name(chosen)}");
+    }
+
+    // Water Absorb heals instead of taking a Water hit; Sturdy leaves 1 HP from full health; Inner Focus is never stunned.
+    IEnumerator AbilityRules()
+    {
+        Place(new Vector2(-3f, -3f), new Vector2(-6f, -3f), settle: false);
+        var water = FindMove(3, m => true);
+        var other = FindMove(1, m => true) ?? FindMove(7, m => true);
+        int neutral = FindSpecies(t => Mathf.Approximately(TypeChart.Multiplier(3, t, out _), 1f));
+        var foe = Enemy(neutral, new Vector2(4f, 0f));
+        yield return null;
+        foe.SetAbility(36);
+        foe.hp = foe.maxHp * 0.5f;
+        float before = foe.hp;
+        bool landed = foe.TakeHit(50f, water, out _);
+        bool absorbed = !landed && foe.hp > before;
+        foe.SetAbility(13);
+        foe.hp = foe.maxHp;
+        foe.TakeHit(foe.maxHp * 50f, other, out _);
+        bool sturdy = foe.IsAlive && foe.hp <= 1.01f;
+        foe.SetAbility(31);
+        foe.Stun(1f);
+        bool focus = !foe.IsHurt;
+        Report(absorbed && sturdy && focus,
+            $"absorption {(absorbed ? "oui" : "non")}, Fermeté {(sturdy ? "oui" : "non")}, Attention {(focus ? "oui" : "non")}");
     }
 
     // A Focus Sash leaves 1 HP after a knock-out blow, once, and breaks; a Rocky Helmet hurts who strikes it at close range.

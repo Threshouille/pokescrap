@@ -37,6 +37,7 @@ public static class Encounters
         public float[] weight = { 1f };
         public int level, moves;
         public float health = 1f, cost = 1f;
+        public float hiddenAbility; // chance of its hidden ability (Abilities)
         public bool strong, item, repairs;
 
         public Color Colour => ColorUtility.TryParseHtmlString(color, out var c) ? c : Color.clear;

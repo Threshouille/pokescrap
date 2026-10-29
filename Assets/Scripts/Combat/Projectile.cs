@@ -76,7 +76,8 @@ public class Projectile : MonoBehaviour
         projectile.baseScale = go.transform.localScale;
         float weather = Climate.ShotMul(move, direction); // rain shortens Fire shots, a storm's wind carries or holds
         projectile.speed = move.speed * owner.projectileSpeedMul * weather;
-        projectile.range = ((move.path == "arc" && distance > 0f ? Mathf.Min(distance, move.range) : move.range) + extraRange) * weather;
+        projectile.range = ((move.path == "arc" && distance > 0f ? Mathf.Min(distance, move.range) : move.range) + extraRange) * weather
+            * (owner != null ? owner.AbilityRangeMul : 1f); // Keen Eye
         projectile.side = shotIndex % 2 == 0 ? 1f : -1f;
         projectile.forward = direction.normalized;
         projectile.origin = go.transform.position;
@@ -205,6 +206,14 @@ public class Projectile : MonoBehaviour
         }
 
         Terrain.OnTrail(move, from, to, owner);
+        if (Combatant.Attractor(move, to, team) is { } rod)
+        {
+            // Drawn in by Lightning Rod or Storm Drain: the shot ends on it, which takes it in.
+            EffectPlayer.Spawn(move.impactEffect, rod.transform.position, forward);
+            rod.Absorb(move);
+            Destroy(gameObject);
+            return;
+        }
         if (Obstacles.Capture(move, to, out var magnet))
         {
             // Caught by a magnet: the shot ends on it (and may charge it).

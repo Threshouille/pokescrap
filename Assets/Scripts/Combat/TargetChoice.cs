@@ -68,13 +68,18 @@ public static class TargetChoice
             float distance = Vector2.Distance(from, foe.transform.position);
             if (distance > range) continue;
 
-            float hit = 0f, efficacy = 1f;
+            float hit = 0f, efficacy = 0f;
+            bool attacks = false;
             foreach (var move in self.Moves)
             {
                 if (move == null || move.power <= 0) continue;
+                attacks = true;
                 hit = Mathf.Max(hit, self.EstimateHit(move, foe));
-                efficacy = Mathf.Max(efficacy, TypeChart.Multiplier(move.type, foe.Stats?.types, out _));
+                // A move its ability takes in (Water Absorb…) is worth nothing against it.
+                if (!Abilities.Absorbs(foe.Ability, move.type))
+                    efficacy = Mathf.Max(efficacy, TypeChart.Multiplier(move.type, foe.Stats?.types, out _));
             }
+            if (!attacks) efficacy = 1f;
             float score = -s.aiTargetDistance * distance;
             if (hit > 0f) score += s.aiTargetFinish / Mathf.Max(1f, foe.hp / hit);
             score += s.aiTargetEfficacy * Mathf.Log(Mathf.Max(0.25f, efficacy), 2f);

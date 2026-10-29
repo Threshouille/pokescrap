@@ -149,7 +149,7 @@ public partial class Combatant : MonoBehaviour
     public bool IsCasting => castMove != null || blinkMove != null || chargeMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
     public float CurrentSpeed => CanMove && !IsCasting && !BodyRoots && Time.time >= recoverUntil
-        ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul * BodySpeedMul : 0f;
+        ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul * BodySpeedMul * AbilitySpeedMul : 0f;
 
     class TimedModifier
     {
@@ -336,6 +336,7 @@ public partial class Combatant : MonoBehaviour
         for (int i = 0; moveIds != null && i < MoveSlots && i < moveIds.Length; i++) Moves[i] = GameData.Move(moveIds[i]);
         // Bosses keep the role written with their fixed moves; the others get it from the moves they have.
         Role = moveIds == null ? GameData.Role(pokemonId) : GameData.RoleFromMoves(Moves);
+        SetAbilitySlot(Abilities.DrawSlot(Stats, 0f, new System.Random(UnityEngine.Random.Range(0, int.MaxValue))));
         if (Stats == null) return;
         maxHp = hp = Stats.baseHp;
         level = 1;
@@ -403,6 +404,7 @@ public partial class Combatant : MonoBehaviour
         spDef += next.baseSpDef - Stats.baseSpDef;
         moveSpeed *= GameData.MoveSpeed(next.baseSpeed) / GameData.MoveSpeed(Stats.baseSpeed);
         Stats = next;
+        RefreshAbility();
     }
 
     /// The mega evolution this Pokémon is in, or null.
@@ -433,6 +435,7 @@ public partial class Combatant : MonoBehaviour
         spDef += megaSpDef = Gain(spDef, mega.stats.spDef, mega.baseStats.spDef);
         megaSpeedMul = GameData.MoveSpeed(mega.stats.speed) / GameData.MoveSpeed(mega.baseStats.speed);
         moveSpeed *= megaSpeedMul;
+        AbilityToMega(mega);
     }
 
     public void RevertMega()
@@ -449,6 +452,7 @@ public partial class Combatant : MonoBehaviour
         moveSpeed /= megaSpeedMul;
         Stats = beforeMega;
         Mega = null;
+        AbilityFromMega();
     }
 
     /// The special item this Pokémon brings into the run (its ultimate: Ultimates), or null.
@@ -656,6 +660,8 @@ public partial class Combatant : MonoBehaviour
     {
         var def = StatusLibrary.Get(key);
         if (!IsAlive || def == null) return;
+        if (AbilityBlocksStatus(key)) return; // Insomnia, Limber…
+        duration *= AbilityStatusDuration(key); // Early Bird
         duration *= team == Team.Player ? def.playerDurationFactor : 1f;
         if (isBoss) duration *= def.bossDurationFactor;
         foreach (var st in statuses)
@@ -675,12 +681,14 @@ public partial class Combatant : MonoBehaviour
     {
         if (!IsAlive) return;
         statuses.RemoveAll(st => st.def.thawType == move.type); // a fire move thaws a frozen Pokémon
-        if (!string.IsNullOrEmpty(move.modStat) && move.family != "modifier"
-            && (sure || move.statChance <= 0f || UnityEngine.Random.value <= move.statChance))
+        if (SideEffectsDropped(source, move)) return; // Sheer Force
+        float more = EffectChanceMul(source); // Serene Grace
+        if (!string.IsNullOrEmpty(move.modStat) && move.family != "modifier" && !KeepsStat(move.modStat, move.modValue)
+            && (sure || move.statChance <= 0f || UnityEngine.Random.value <= move.statChance * more))
             AddModifier(move.modStat, move.modValue, move.modDuration > 0f ? move.modDuration : DefaultStatusDuration);
 
         if (string.IsNullOrEmpty(move.status)) return;
-        float chance = move.statusChance > 0f ? move.statusChance : 1f;
+        float chance = move.statusChance > 0f ? Mathf.Min(1f, move.statusChance * more) : 1f;
         if (!sure && UnityEngine.Random.value > chance) return;
         AddStatus(move.status, move.statusDuration > 0f ? move.statusDuration : DefaultStatusDuration, source);
     }
@@ -701,7 +709,7 @@ public partial class Combatant : MonoBehaviour
             MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
         if (!string.IsNullOrEmpty(move.selfModStat) && (move.selfStatChance <= 0f || UnityEngine.Random.value <= move.selfStatChance))
             AddModifier(move.selfModStat, move.selfModValue, move.selfModDuration > 0f ? move.selfModDuration : DefaultStatusDuration);
-        if (dealt > 0f && move.recoil > 0f && IsAlive)
+        if (dealt > 0f && move.recoil > 0f && IsAlive && Ability is not { noRecoil: true }) // Rock Head: none
         {
             float recoil = Mathf.Max(1f, dealt * move.recoil);
             DamageNumber.Damage(transform.position, recoil, Efficacy.Normal);
@@ -912,7 +920,7 @@ public partial class Combatant : MonoBehaviour
     /// Neither moving nor attacking for a moment (bosses are immune).
     public void Stun(float duration)
     {
-        if (isBoss || duration <= 0f) return;
+        if (isBoss || duration <= 0f || Ability is { stunImmune: true }) return; // Inner Focus
         stunUntil = Mathf.Max(stunUntil, Time.time + duration);
     }
 
@@ -1023,6 +1031,7 @@ public partial class Combatant : MonoBehaviour
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target); // a Rocky Helmet
+                AbilityContact(this, target);
             }
         }
         if (move.chainBonus > 0f && hit.Count > 0)
@@ -1080,7 +1089,7 @@ public partial class Combatant : MonoBehaviour
         var settings = SaveData.Settings;
         dodgeDirection = direction.normalized;
         dodgeUntil = Time.time + settings.dodgeTime;
-        dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown);
+        dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown) * AbilityDodgeCooldownMul;
         PassThroughOpponents();
         return true;
     }
@@ -1244,6 +1253,7 @@ public partial class Combatant : MonoBehaviour
     void FixedUpdate()
     {
         UpdateDelayedKnock();
+        UpdateAbility();
         UpdateRolloutBadge();
         if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
         {
@@ -1309,6 +1319,7 @@ public partial class Combatant : MonoBehaviour
                 target.ApplyEffects(delayedMove, false, this);
                 HitLanded(delayedMove, dealt);
                 HeldItems.OnContact(this, target);
+                AbilityContact(this, target);
             }
             delayedTargets.Clear();
             delayedMove = null;
@@ -1431,6 +1442,11 @@ public partial class Combatant : MonoBehaviour
             if (IsEvolving) continue; // nothing hurts during the evolution
             // Damage over time ignores defence and the post-hit protection.
             float amount = Mathf.Max(1f, maxHp * st.def.damageShare * (isBoss ? st.def.bossDamageFactor : 1f));
+            if (st.def.key == "poison" && Ability is { poisonHeals: true }) // Poison Heal
+            {
+                Heal(amount);
+                continue;
+            }
             DamageNumber.Status(transform.position, amount, st.def.color);
             LoseHp(amount);
             if (st.def.drainToSource && st.source != null && st.source.IsAlive) st.source.Heal(amount);
@@ -1472,6 +1488,7 @@ public partial class Combatant : MonoBehaviour
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target);
+                AbilityContact(this, target);
             }
         }
         return count;
@@ -1482,7 +1499,7 @@ public partial class Combatant : MonoBehaviour
     {
         if (move.power <= 0) return 0f; // pure status moves
         float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
-        float burn = move.category == "physical" ? StatusProduct(def => def.physicalAttackMul) : 1f;
+        float burn = move.category == "physical" && !IgnoresStatusAttackLoss ? StatusProduct(def => def.physicalAttackMul) : 1f;
         float scale = (move.damageScale > 0f ? move.damageScale : 1f) * EnemyBasic(move, SaveData.Settings.enemyBasicDamageMul);
         // Same-type bonus: its own types; Terastallized, the Tera type too, and more when it was already one of them.
         var own = TeraType >= 0 && beforeTera != null ? beforeTera.types : Stats?.types;
@@ -1490,7 +1507,7 @@ public partial class Combatant : MonoBehaviour
         float stab = TeraType == move.type ? (native ? SaveData.Settings.teraStab : SaveData.Settings.stab)
             : native ? SaveData.Settings.stab : 1f;
         float held = Held != null ? Held.damageMul : 1f; // an Orbe Vie
-        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab * held;
+        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * AbilityStab(stab) * held * AbilityDealtMul(move);
     }
 
     /// The damage a hit of this move would roughly deal to "target" (types, defence; weather and terrain aside),
@@ -1499,9 +1516,11 @@ public partial class Combatant : MonoBehaviour
     {
         float raw = DamageOf(move);
         if (raw <= 0f || target == null) return 0f;
+        if (Abilities.Absorbs(target.Ability, move.type)) return 0f; // Water Absorb, Lightning Rod…
         float defence = move.category == "physical" ? target.def : target.spDef;
-        return raw * TypeChart.Multiplier(move.type, target.Stats?.types, out _) * DefenseScale / (DefenseScale + defence)
-            / target.Modifier("defense");
+        float typeMul = TypeChart.Multiplier(move.type, target.Stats?.types, out var efficacy);
+        float abilities = target.AbilityHitMul(move, this, ref typeMul, ref efficacy);
+        return raw * typeMul * abilities * DefenseScale / (DefenseScale + defence) / target.Modifier("defense");
     }
 
     /// A hit from a move: the target's types and defence (physical or special) change it. Returns false when the hit
@@ -1517,13 +1536,18 @@ public partial class Combatant : MonoBehaviour
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
         if (BodyIgnoresHit()) return false; // untouchable, or Coup Bas answers it
         if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
+        if (TryAbsorb(move)) return false; // Water Absorb, Flash Fire…: nothing else happens
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = move.category == "physical" ? def : spDef;
         float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
-        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this)
+        var attacker = HitSource;
+        float abilities = AbilityHitMul(move, attacker, ref typeMul, ref efficacy);
+        dealt = Mathf.Max(1f, raw * typeMul * abilities * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this)
             * Climate.DamageMul(move.type, transform.position)); // weather, sports around it
         if (cap > 0f) dealt = Mathf.Min(dealt, maxHp * cap);
+        dealt = AbilityEndure(dealt); // Sturdy
+        AbilityPressure(move, attacker);
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);

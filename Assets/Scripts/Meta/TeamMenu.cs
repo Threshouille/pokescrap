@@ -95,6 +95,10 @@ public class TeamMenu : MonoBehaviour
             OpenMoves(choices[cursor]);
             return;
         }
+        // A dev character: R2 (Tab) cycles through the abilities that do something (Abilities).
+        if (GameData.IsDev(choices[cursor]) && Abilities.All.Count > 0
+            && ((pad != null && pad.rightTrigger.wasPressedThisFrame) || (kb != null && kb.tabKey.wasPressedThisFrame)))
+            CycleDevAbility(choices[cursor]);
         if (square && SaveData.IsUnlocked(choices[cursor]) && !GameData.IsDev(choices[cursor]))
         {
             OpenItems(choices[cursor]);
@@ -117,6 +121,25 @@ public class TeamMenu : MonoBehaviour
         if (team.Count > 0 && SaveData.Settings.devMode
             && ((pad != null && pad.selectButton.wasPressedThisFrame) || (kb != null && kb.tKey.wasPressedThisFrame)))
             Run.Start(team.ToArray(), true);
+    }
+
+    static void CycleDevAbility(int id)
+    {
+        var all = Abilities.All;
+        int at = 0;
+        for (int i = 0; i < all.Count; i++)
+            if (all[i].id == SaveData.DevAbility(id)) at = i;
+        SaveData.SetDevAbility(id, all[(at + 1) % all.Count].id);
+    }
+
+    /// Its abilities as the menu shows them: the dev character's pick, else the regular ones and the hidden one.
+    static string AbilityLine(int id, PokemonStats stats)
+    {
+        if (GameData.IsDev(id)) return $"Talent : {AbilityLibrary.Get(SaveData.DevAbility(id))?.name} (R2 / Tab)";
+        if (stats?.abilities == null || stats.abilities.Length == 0) return "Talent : aucun";
+        var names = System.Array.ConvertAll(stats.abilities, a => AbilityLibrary.Get(a)?.name ?? "?");
+        string hidden = stats.hiddenAbility != 0 ? $" (caché : {AbilityLibrary.Get(stats.hiddenAbility)?.name})" : "";
+        return $"Talent{(names.Length > 1 ? "s" : "")} : {string.Join(" / ", names)}{hidden}";
     }
 
     static Vector2Int ReadDirection(Gamepad pad, Keyboard kb)
@@ -520,6 +543,8 @@ public class TeamMenu : MonoBehaviour
             y += line;
         }
         Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), $"{GameData.MovePool(id).Count} attaques au choix", TextAnchor.MiddleLeft);
+        y += line;
+        Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), AbilityLine(id, stats), TextAnchor.MiddleLeft);
     }
 
     // The move pool, the picked moves ticked, and what the move under the cursor does.

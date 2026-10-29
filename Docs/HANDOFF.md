@@ -4,11 +4,14 @@ Dernière mise à jour : 26/10/2026 (Robin : socle technique fusionné dans `fea
 techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons). Bilan complet du 25/10 : avancement,
 branches, axes de refonte et questions de conception (page partagée par Robin).
 
-## Talents, étape 1 (29/10/2026, branche `feature/talents`)
+## Talents (29/10/2026, branche `feature/talents`)
 
-Données seulement : catalogue `abilities_rt.json`, talents ROM + caché PokéAPI par Pokémon, talent des mégas, rapport
-`Docs/TALENTS.md` (`abilities_report.py`). Suite : choisir les talents à adapter et la forme (passif / déclenché),
-puis les effets en jeu par familles.
+Catalogue `abilities_rt.json`, talents ROM + caché PokéAPI par Pokémon, talent des mégas, rapport `Docs/TALENTS.md`.
+Lot 1 des effets (70 talents, `ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`) : à tester en jeu
+(persos de dev : R2 / Tab dans le menu, J en partie). Suite : lot 2, passifs des mégas.
+Banc complet le 29/10 : 74/77 ; échecs antérieurs aux talents (toujours là avec les talents coupés), à corriger à
+part : « capacité Z frappe et paralyse » (16 et 18 dégâts pour un seuil de 17,5) et « Secours : le plus apte éloigne
+l'ennemi » (allié K.O. jamais réanimé). « Groupe : pas d'à-coups » a échoué une fois sur trois (instable).
 
 ## Reprise (26/10/2026, Robin) : où on s'est arrêté
 

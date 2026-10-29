@@ -158,6 +158,15 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   catalogue de tous les talents de la série principale (314, dont 122 dans la ROM). Les talents changés après la
   4e génération restent ceux de la ROM. Statistiques et familles d'adaptation : `Docs/TALENTS.md`. Pas encore d'effet
   en jeu ; choix des talents à adapter et rôle du talent caché à venir.
+- Talents en jeu (décidé le 29/10/2026, Robin) : un seul talent actif, passif, **jamais choisi** : tiré au hasard
+  parmi les talents normaux au début de la partie (le caché avec une petite chance, 5 %), gardé à l'évolution ; celui
+  de la méga pendant la méga. Seuls les persos de dev choisissent (menu, J en partie). Ennemis : talent normal au
+  hasard ; caché pour les boss, une élite sur deux, 25 % des rares, 50 % des épiques. Pas de coup critique : les talents
+  de critique seront adaptés en « coups dans le dos » (lot 2). Valeurs adoucies comme la table des types (Isograisse
+  × 0,6, Filtre × 0,8, Adaptabilité : bonus de type 1,5). Fermeté : survit à 1 PV à un coup reçu à PV pleins, sans
+  limite. Talents de météo d'arrivée : équipe, boss et élites seulement. Lot 1 fait (70 talents : types, absorption,
+  bas PV, statuts, contact, météo, Intimidation, Fuite, Pression, Technicien…) ; lot 2 et passifs des mégas à venir
+  (liste dans `Docs/TALENTS.md`).
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.
@@ -489,8 +498,8 @@ Revus le 25/10/2026 : les points tranchés depuis la première version sont regr
 9. Lisibilité du type d'un ennemi à l'écran (en partie réglée par la couleur des chiffres de dégâts).
 
 ### Progression
-11. Talents : un par Pokémon, passif permanent ou à déclencher ? Lesquels adapter (voir `Docs/TALENTS.md`), et à quoi
-    sert le talent caché (rang des ennemis, amélioration, objet) ?
+11. Talents : lot 2 (coups dans le dos, K.O., équipe, butin) et passifs des mégas à valider ; débloquer le talent
+    caché par une amélioration en partie ?
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?
 

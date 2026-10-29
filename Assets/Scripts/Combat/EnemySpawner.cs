@@ -312,6 +312,7 @@ public class EnemySpawner : MonoBehaviour
             var moves = GameData.RandomMoves(m.pokemonId, m.moveCount, rng, m.role, m.rarity.strong);
             var c = Build(m.pokemonId, set, spot, false, moves, Mathf.Max(1, level + m.levelBonus), healthFactor * m.health);
             RarityMark.Put(c, m.rarity);
+            if (rng.NextDouble() < m.rarity.hiddenAbility && c.Stats?.hiddenAbility != 0) c.SetAbilitySlot(2); // a rare rank
             // The higher ranks (and elites) may hold an item, which acts for them and drops when they fall.
             string rank = m.lot != null && m.lot.elite ? "elite" : m.rarity.key;
             if (rng.NextDouble() < HeldItems.EnemyChance(rank)) c.Hold(HeldItems.AtTier(HeldItems.Roll(rng), HeldItems.EnemyTier(rank, rng)));
@@ -447,6 +448,7 @@ public class EnemySpawner : MonoBehaviour
         combatant.damageFactor = damageFactor;
         combatant.isBoss = isBoss;
         combatant.maxHp = combatant.hp = combatant.maxHp * health;
+        if (isBoss && Abilities.Config.bossHidden && combatant.Stats?.hiddenAbility != 0) combatant.SetAbilitySlot(2);
         if (isBoss)
         {
             go.AddComponent<BossAI>(); // numbered announcements instead of danger areas

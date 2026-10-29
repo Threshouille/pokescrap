@@ -158,11 +158,24 @@ public class PlayerController : MonoBehaviour
         member.combatant = go.AddComponent<Combatant>();
         member.combatant.Init(pokemonId, Team.Player, SaveData.StartingMoves(pokemonId));
         member.combatant.Special = SpecialItems.ActiveFor(pokemonId); // its ultimate for this run (Ultimates)
+        DrawAbility(member.combatant, pokemonId);
         member.combatant.Died += _ => OnKnockedOut(member);
         member.ai = go.AddComponent<AllyAI>();
         member.ai.leader = transform;
         go.AddComponent<HealthBar>();
         return member;
+    }
+
+    /// Its ability for the run: a slot of its form drawn at random (the hidden one with a small chance); a dev
+    /// character takes the one chosen in the menu.
+    static void DrawAbility(Combatant c, int pokemonId)
+    {
+        if (GameData.IsDev(pokemonId))
+        {
+            c.SetAbility(SaveData.DevAbility(pokemonId));
+            return;
+        }
+        c.SetAbilitySlot(Abilities.DrawSlot(c.Stats, Abilities.Config.hiddenChance, new System.Random(Random.Range(0, int.MaxValue))));
     }
 
     /// A Pokémon joining the team during the run (Munja), placed at that point; null when the team is full.
@@ -254,6 +267,18 @@ public class PlayerController : MonoBehaviour
             ShowTargetRing(null);
             if (members.Count > 0) Current.combatant.PlayerDriven = false; // its AI holds moves for it
             return;
+        }
+
+        // Dev mode: J gives the controlled Pokémon the next ability that does something (Abilities).
+        if (SaveData.Settings.devMode && Keyboard.current is { } devKb && devKb.jKey.wasPressedThisFrame && Abilities.All.Count > 0)
+        {
+            var all = Abilities.All;
+            var who = Current.combatant;
+            int at = -1;
+            for (int i = 0; i < all.Count; i++)
+                if (all[i].id == who.AbilityId) at = i;
+            who.SetAbility(all[(at + 1) % all.Count].id);
+            GetComponent<Progression>()?.Announce($"{who.Stats.name} : {who.AbilityName} — {Abilities.Describe(who.Ability)}");
         }
 
         var member = Current;
@@ -353,6 +378,7 @@ public class PlayerController : MonoBehaviour
             member.body.position = spot;
             member.go.transform.position = spot;
             member.body.linearVelocity = Vector2.zero;
+            member.combatant.Arrive();
         }
     }
 
@@ -377,6 +403,7 @@ public class PlayerController : MonoBehaviour
             member.body.position = spot;
             member.go.transform.position = spot;
             member.body.linearVelocity = Vector2.zero;
+            member.combatant.Arrive(); // Drought…: the weather of the new arena
         }
         SetControlled(current);
     }

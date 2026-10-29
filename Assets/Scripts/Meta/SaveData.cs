@@ -205,6 +205,18 @@ public static class SaveData
         return GameData.DefaultStartingMoves(pokemonId, count);
     }
 
+    // Ability picked in the menu for a dev character (Abilities), for this session only: never written to the save.
+    static readonly Dictionary<int, int> devAbilities = new();
+
+    /// The ability a dev character fights with: the one picked in the menu, else the first with an effect.
+    public static int DevAbility(int pokemonId)
+    {
+        if (devAbilities.TryGetValue(pokemonId, out int id)) return id;
+        return Abilities.All.Count > 0 ? Abilities.All[0].id : 0;
+    }
+
+    public static void SetDevAbility(int pokemonId, int abilityId) => devAbilities[pokemonId] = abilityId;
+
     public static void SetStartingMoves(int pokemonId, int[] moves)
     {
         Data.startingMoves.RemoveAll(c => c.pokemonId == pokemonId);

@@ -400,6 +400,7 @@ public class Loot : MonoBehaviour
     public static EliteMark Mark(Combatant c)
     {
         var mark = c.gameObject.AddComponent<EliteMark>();
+        if (c.Stats != null && c.Stats.hiddenAbility != 0 && Random.value < Abilities.Config.eliteHiddenChance) c.SetAbilitySlot(2);
         var ring = new GameObject("Aura d'élite").AddComponent<SpriteRenderer>();
         Unlit.Apply(ring); // keeps its colours at night (DayNight)
         ring.transform.SetParent(c.transform, false);

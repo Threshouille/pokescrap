@@ -80,7 +80,7 @@ public class TeamHud : MonoBehaviour
         // From the top: name and level, experience, health, then its held item (icon on its tier's colour, name, what it
         // does), then the moves along the bottom of the portrait.
         string evolve = evolution != null && evolution.ReadyForm(combatant) != null ? "   Triangle : évoluer" : "";
-        Label(new Rect(x, portrait.y - 25f * s, BarWidth * 2f * s, 10f * s), $"{combatant.Stats.name} · Niv. {combatant.level}{(combatant.TeraType >= 0 ? $" · Téra {GameData.TypeName(combatant.TeraType)}" : "")}{evolve}", TextAnchor.MiddleLeft);
+        Label(new Rect(x, portrait.y - 25f * s, BarWidth * 2f * s, 10f * s), $"{combatant.Stats.name} · Niv. {combatant.level}{(combatant.TeraType >= 0 ? $" · Téra {GameData.TypeName(combatant.TeraType)}" : "")}{(combatant.AbilityName != null ? $" · {combatant.AbilityName}" : "")}{evolve}", TextAnchor.MiddleLeft);
         if (progression != null)
         {
             var xp = new Rect(x, portrait.y - 13f * s, BarWidth * s, 3f * s);

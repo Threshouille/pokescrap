@@ -166,6 +166,7 @@
   },
   {
    "key": "rare",
+   "hiddenAbility": 0.25,
    "name": "Rare",
    "weight": [
     5,
@@ -183,6 +184,7 @@
   },
   {
    "key": "epic",
+   "hiddenAbility": 0.5,
    "name": "Épique",
    "weight": [
     0,

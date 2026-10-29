@@ -2,7 +2,7 @@
 """Ability statistics, to choose which abilities to adapt to real time.
 
 Usage: python3 -I abilities_report.py <project_dir> [<out.md>]
-Reads Resources/Data/abilities_rt.json, pokemon_rt.json, megas.json, Assets/Data/pokemon.json (National Dex number)
+Reads Resources/Data/abilities_rt.json, pokemon_rt.json, megas.json, ability_effects.json (✓: has an effect), Assets/Data/pokemon.json (National Dex number)
 and Tools/pmd/ability_families.json (adaptation families, by keyword on the English effect). Counts per species
 (National Dex number: the ROM's forms of one species are merged), per evolution line (baseForm) and per mega.
 Writes a Markdown report (Docs/TALENTS.md by default).
@@ -27,6 +27,7 @@ def main(project, out=None):
     dex_of = {e["id"]: e["dex"] for e in load(root / "Assets/Data/pokemon.json")}
     megas = load(data / "megas.json")["megas"]
     rules = load(root / "Tools/pmd/ability_families.json")
+    in_game = {a["id"] for a in load(data / "ability_effects.json")["abilities"]}
 
     # Species: union of its forms' abilities; line: baseForm of its first form in the table.
     regular, hidden, line, name = collections.defaultdict(set), {}, {}, {}
@@ -86,14 +87,15 @@ def main(project, out=None):
     w(f"- Talents normaux par espèce : " + ", ".join(f"{n} talent{'s' if n > 1 else ''} : {counts[n]}" for n in sorted(counts)) + ".")
     no_hidden = [d for d in species if not hidden.get(d)]
     w(f"- Sans talent caché distinct : {len(no_hidden)} espèces (légendaires surtout, ou caché identique à un talent normal).")
-    w(f"- Sans aucun talent : {sum(1 for d in species if not regular[d])}.\n")
+    w(f"- Sans aucun talent : {sum(1 for d in species if not regular[d])}.")
+    w(f"- Avec un effet en jeu (`ability_effects.json`, ✓ ci-dessous) : {len(in_game)} talents.\n")
 
     w(f"## Les plus communs (talents normaux, {TOP} premiers)\n")
-    w("| Talent | Espèces | Lignées | En caché | Mégas | Famille |")
-    w("|---|---:|---:|---:|---:|---|")
+    w("| Talent | Espèces | Lignées | En caché | Mégas | Famille | En jeu |")
+    w("|---|---:|---:|---:|---:|---|:---:|")
     for a in sorted(rom_used, key=lambda a: (-len(holders[a]["regular"]), catalogue[a]["name"]))[:TOP]:
         h = holders[a]
-        w(f"| {label(a)} | {len(h['regular'])} | {len(lines_of(h['regular']))} | {len(h['hidden'])} | {len(h['mega'])} | {family(catalogue[a])} |")
+        w(f"| {label(a)} | {len(h['regular'])} | {len(lines_of(h['regular']))} | {len(h['hidden'])} | {len(h['mega'])} | {family(catalogue[a])} | {"✓" if a in in_game else ""} |")
     w("")
 
     unique = [a for a in rom_used if len(lines_of(holders[a]["regular"] | holders[a]["hidden"])) == 1]
@@ -127,7 +129,7 @@ def main(project, out=None):
             continue
         w(f"### {f['name']} : {len(items)} talents, poids {sum(weight(a) for a in items)}\n")
         for a in items:
-            w(f"- {label(a)} [{weight(a)}] : {catalogue[a]['effectEn']}")
+            w(f"- {'✓ ' if a in in_game else ''}{label(a)} [{weight(a)}] : {catalogue[a]['effectEn']}")
         w("")
 
     target = Path(out) if out else root / "Docs/TALENTS.md"

@@ -109,6 +109,9 @@ public class Climate : MonoBehaviour
     /// The weather on now, or null.
     public static Weather Now => current != null && current.weather != null && Time.time < current.weatherUntil ? current.weather : null;
 
+    /// Name of a weather by key ("sun"…), the key itself when unknown.
+    public static string WeatherName(string key) => Array.Find(Data.weathers, w => w.key == key)?.name ?? key;
+
     /// Clears the weather and the sports (a new arena).
     public static void Clear()
     {
@@ -313,7 +316,7 @@ public class Climate : MonoBehaviour
         {
             nextChip = Time.time + 1f;
             foreach (var c in new List<Combatant>(Combatant.All)) // a copy: the damage may knock one out
-                if (c != null && c.IsAlive && !HasType(c, w.chip.immuneTypes)) c.TakeFixedDamage(c.maxHp * w.chip.share);
+                if (c != null && c.IsAlive && !HasType(c, w.chip.immuneTypes) && !c.WeatherProof) c.TakeFixedDamage(c.maxHp * w.chip.share);
         }
     }
 

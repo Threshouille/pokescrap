@@ -200,6 +200,55 @@ public class LogicTests
     }
 
     [Test]
+    public void AbilityEffectsUseKnownData()
+    {
+        Assert.Greater(Abilities.All.Count, 0, "ability_effects.json");
+        foreach (var e in Abilities.All)
+        {
+            string name = AbilityLibrary.Get(e.id)?.name;
+            Assert.NotNull(name, $"talent {e.id}");
+            foreach (var s in e.statusImmune) Assert.NotNull(StatusLibrary.Get(s), $"{name} : {s}");
+            foreach (var s in e.contactStatuses) Assert.NotNull(StatusLibrary.Get(s), $"{name} : {s}");
+            foreach (var s in e.statusDurations) Assert.NotNull(StatusLibrary.Get(s.status), $"{name} : {s.status}");
+            if (!string.IsNullOrEmpty(e.hitStatus)) Assert.NotNull(StatusLibrary.Get(e.hitStatus), $"{name} : {e.hitStatus}");
+            if (e.arrivalClimate != 0) Assert.AreEqual("climate", GameData.Move(e.arrivalClimate)?.family, $"{name} : météo");
+            foreach (var w in e.weathers) Assert.AreNotEqual(w.weather, Climate.WeatherName(w.weather), $"{name} : {w.weather}");
+            Assert.AreNotEqual("Sans effet pour l'instant.", Abilities.Describe(e), name);
+        }
+    }
+
+    [Test]
+    public void AbilityRulesChangeDamage()
+    {
+        var thickFat = Abilities.Effect(2);
+        Assert.AreEqual(0.6f, Abilities.TakenMul(thickFat, 2, Efficacy.Normal), 1e-4f, "Isograisse, Feu");
+        Assert.AreEqual(1f, Abilities.TakenMul(thickFat, 3, Efficacy.Normal), 1e-4f, "Isograisse, Eau");
+        Assert.AreEqual(0.8f, Abilities.TakenMul(Abilities.Effect(110), 3, Efficacy.Super), 1e-4f, "Filtre");
+
+        var blaze = Abilities.Effect(70);
+        var ember = new MoveDef { type = 2, power = 6, category = "special" };
+        Assert.AreEqual(1.5f, Abilities.DealtMul(blaze, ember, 0.3f, false, null), 1e-4f, "Brasier sous 1/3");
+        Assert.AreEqual(1f, Abilities.DealtMul(blaze, ember, 0.5f, false, null), 1e-4f, "Brasier PV hauts");
+        Assert.AreEqual(1.5f, Abilities.DealtMul(Abilities.Effect(100), ember, 1f, false, null), 1e-4f, "Technicien");
+
+        var sturdy = Abilities.Effect(13);
+        Assert.AreEqual(99f, Abilities.Endure(sturdy, 100f, 100f, 500f), 1e-4f, "Fermeté à PV pleins");
+        Assert.AreEqual(500f, Abilities.Endure(sturdy, 90f, 100f, 500f), 1e-4f, "Fermeté entamée");
+        Assert.IsTrue(Abilities.Absorbs(Abilities.Effect(36), 3), "Absorbe-Eau");
+    }
+
+    [Test]
+    public void AbilityDrawRespectsTheHiddenChance()
+    {
+        var stats = new PokemonStats { abilities = new[] { 65 }, hiddenAbility = 34 };
+        var rng = new System.Random(1);
+        Assert.AreEqual(2, Abilities.DrawSlot(stats, 1f, rng));
+        Assert.AreEqual(0, Abilities.DrawSlot(stats, 0f, rng));
+        Assert.AreEqual(34, Abilities.InSlot(stats, 2));
+        Assert.AreEqual(65, Abilities.InSlot(stats, 1), "un seul talent : le second emplacement reprend le premier");
+    }
+
+    [Test]
     public void RolloutGrowsEachStep()
     {
         Assert.AreEqual(1f, Combatant.RolloutMul(0.3f, 0), 1e-5f);
