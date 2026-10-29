@@ -174,7 +174,12 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   (Garde-Ami, Plus / Moins, Ramassage, Cherche Miel, Gloutonnerie, Délestage). ≈ 89 % de chances que le talent tiré
   agisse. Absorption aussi sur les terrains de leur élément (Robin, 29/10) : aucun mal, + 3 % des PV par seconde pour
   Absorbe-Eau / Absorbe-Volt / Peau Sèche, bonus de stat ou de puissance gardé tant qu'il y reste pour les autres.
-  Restent : passifs des mégas, talents écartés (`Docs/TALENTS.md`).
+  Lot 3 fait (46 talents, 29/10/2026) : tous les talents des Pokémon ont un effet, sauf Imposteur et Maladresse,
+  abandonnés : le tirage ne tombe jamais sur un talent sans effet quand la forme en a un autre. Adaptations : Rivalité
+  (même type, pas de genre), Glu (ralentit au corps à corps), Anticipation (esquive rechargée par un coup super
+  efficace, 5 % d'ignorer un coup), Calque (copie à la rencontre), Lumiattirance (expérience), Météo, Homochromie,
+  Protéen (changement de type, un seul, jamais en Téra ni en méga), Télépathe (zones), Tension (soins des adversaires),
+  Régé-Force (hors contrôle), Coloforce / Force Pure (× 1,5)… Restent : passifs des mégas.
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.

@@ -264,12 +264,36 @@ public class LogicTests
     [Test]
     public void AbilityDrawRespectsTheHiddenChance()
     {
-        var stats = new PokemonStats { abilities = new[] { 65 }, hiddenAbility = 34 };
+        var stats = new PokemonStats { abilities = new[] { 26 }, hiddenAbility = 74 }; // Engrais, Chlorophylle
         var rng = new System.Random(1);
         Assert.AreEqual(2, Abilities.DrawSlot(stats, 1f, rng));
         Assert.AreEqual(0, Abilities.DrawSlot(stats, 0f, rng));
-        Assert.AreEqual(34, Abilities.InSlot(stats, 2));
-        Assert.AreEqual(65, Abilities.InSlot(stats, 1), "un seul talent : le second emplacement reprend le premier");
+        Assert.AreEqual(74, Abilities.InSlot(stats, 2));
+        Assert.AreEqual(26, Abilities.InSlot(stats, 1), "un seul talent : le second emplacement reprend le premier");
+        // Never an ability without effect when the form has another one: Maladresse (111) is skipped.
+        var klutz = new PokemonStats { abilities = new[] { 111, 43 } };
+        for (int i = 0; i < 20; i++) Assert.AreEqual(1, Abilities.DrawSlot(klutz, 0f, rng), "Maladresse évitée");
+        var imposter = new PokemonStats { abilities = new[] { 22 }, hiddenAbility = 1150 }; // Échauffement, Imposteur
+        for (int i = 0; i < 20; i++) Assert.AreEqual(0, Abilities.DrawSlot(imposter, 1f, rng), "Imposteur jamais tiré");
+    }
+
+    [Test]
+    public void ThirdLotRules()
+    {
+        Assert.AreEqual(0.6f, Abilities.ChangedModifier(Abilities.Effect(IdOf("Simple")), 0.8f), 1e-4f, "Simple");
+        Assert.AreEqual(1.25f, Abilities.ChangedModifier(Abilities.Effect(IdOf("Contestation")), 0.8f), 1e-4f, "Contestation");
+        Assert.AreEqual(1, Abilities.TypeOf(new MoveDef { type = 2 }, Abilities.Effect(IdOf("Normalise"))), "Normalise");
+        Assert.AreEqual(2, Abilities.TypeOf(new MoveDef { type = 2 }, null));
+        var punch = new MoveDef { type = 7, power = 8, category = "physical", punch = true };
+        Assert.AreEqual(1.2f, Abilities.DealtMul(Abilities.Effect(IdOf("Poing de Fer")), punch, 1f, false, null), 1e-4f, "Poing de Fer");
+        Assert.AreEqual(0.75f, Abilities.TakenFlatMul(Abilities.Effect(IdOf("Télépathe")), new MoveDef { family = "zone" }, false), 1e-4f, "Télépathe");
+    }
+
+    static int IdOf(string name)
+    {
+        foreach (var a in AbilityLibrary.All)
+            if (a.name == name) return a.id;
+        return 0;
     }
 
     [Test]

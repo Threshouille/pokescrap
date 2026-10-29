@@ -129,6 +129,56 @@ public class AbilityEffect
     public float bagHealMul = 1f; // healing items of the bag (Gluttony)
     public float unburdenSpeed = 1f, unburdenTime = 8f; // its held item used up: speed bonus (Unburden)
 
+    // ---- Lot 3 ----
+    [Serializable] public class WeatherType { public string weather; public int type; }
+    [Serializable] public class StatusBoost { public string status, category; public float mul = 1f; }
+    public float rivalTypeMul = 1f; // hitting a foe that shares one of its types (Rivalry)
+    public float glueSlow = 1f, glueTime = 3f; // its close-range blows slow the target (Sticky Hold)
+    public bool soundImmune, powderImmune; // sound moves, spores and powders do nothing to it
+    public float ignoreHitChance; // chance to take nothing from a hit (Anticipation)
+    public bool superEffectiveDodge; // a super-effective hit recharges its dodge (Anticipation)
+    public bool copyAbility; // takes the ability of the first foe it meets (Trace)
+    public float xpMul = 1f; // the team's experience (Illuminate)
+    public WeatherType[] weatherTypes = new WeatherType[0]; // its type under a weather (Forecast)
+    public bool typeFromHit, typeFromMove; // takes the type of the last move that hit it (Color Change) / of its own (Protean)
+    public float firstHitMul = 1f; // the first hit of each foe (Forewarn)
+    public bool simple, contrary; // its stat changes count double (Simple) / go the other way (Contrary)
+    public bool unaware; // ignores its target's defence bonus and its attacker's attack bonus
+    public bool moldBreaker; // its moves ignore the target's defensive abilities
+    public bool frisk; // a foe it knocks out always drops its held item, consumables more often
+    public float downloadMul = 1f; // its hits aimed at the target's weaker defence
+    public float allDealtMul = 1f, cooldownMul = 1f; // every move it uses (Stall, Truant)
+    public float afterAttackPause; // seconds without attacking after each move (Truant)
+    public float slowStartTime, slowStartMul = 1f; // its attack this much for that long in each arena (Slow Start)
+    public bool normalize; // its moves are Normal
+    public float normalizeMul = 1f;
+    public int extraHits; // one more shot in a burst, one more strike in a multi-hit move (Skill Link)
+    public float statusedTakenMul = 1f; // hits taken while it has a status (Marvel Scale)
+    public bool onlySuperEffective; // only super-effective hits hurt it (Wonder Guard)
+    public float punchMul = 1f; // punching moves (Iron Fist)
+    public float foesHealMul = 1f, foesHealRadius = 4f; // foes this close heal less (Unnerve)
+    public float zoneTakenMul = 1f; // zone moves taken (Telepathy)
+    public bool weatherProof; // no weather damage at all (Overcoat)
+    public bool infiltrator; // its moves ignore defence bonuses and Friend Guard
+    public float moodyEvery, moodyUp = 1f, moodyDown = 1f; // a random stat up, another down, every few seconds (Moody)
+    public float analyticMul = 1f; // on a target that attacked less than a second ago (Analytic)
+    public string hitByCategory; // hit by a move of this category… (Weak Armor)
+    public string hitByCategoryStat, hitByCategoryStat2;
+    public float hitByCategoryValue = 1f, hitByCategoryValue2 = 1f, hitByCategoryDuration = 8f;
+    public float offControlRegen; // HP each second out of the player's hands (Regenerator)
+    public bool prankster; // status moves: no cast time…
+    public float statusCooldownMul = 1f; // …and a shorter recharge
+    public bool pickpocket; // struck at close range with nothing held: takes the attacker's item
+    public bool magicBounce; // status moves aimed at it go back to their user
+    public float statusChanceMul = 1f; // chance of the statuses given to it (Wonder Skin)
+    public float allyCureEvery, allyCureChance, allyCureRadius = 4f; // cures a team-mate's status now and then (Healer)
+    public float berryKeepChance; // a berry of the bag it eats may not be used up (Harvest)
+    public StatusBoost[] statusBoosts = new StatusBoost[0]; // with that status, moves of that category (Flare Boost)
+    public bool clearWeather; // ends the weather on arrival (Cloud Nine)
+    public float allyWeatherRadius; // under its weather bonus, team-mates this close get…
+    public string allyWeatherStat; // …this stat bonus (Flower Gift)
+    public float allyWeatherValue = 1f;
+
     public WeatherBonus Under(string weather)
     {
         if (string.IsNullOrEmpty(weather)) return null;
@@ -209,18 +259,22 @@ public static class Abilities
     public static string FamilyOf(AbilityEffect e)
     {
         if (e == null) return "combat";
-        if (e.weathers.Length > 0 || e.arrivalClimate != 0) return "weather";
-        if (e.allyGuardRadius > 0f || e.allyTypeBoost != 0 || e.pickupChance > 0f || e.bagHealMul != 1f || e.unburdenSpeed != 1f) return "team";
+        if (e.weathers.Length > 0 || e.arrivalClimate != 0 || e.weatherTypes.Length > 0 || e.clearWeather || e.weatherProof) return "weather";
+        if (e.allyGuardRadius > 0f || e.allyTypeBoost != 0 || e.pickupChance > 0f || e.bagHealMul != 1f || e.unburdenSpeed != 1f
+            || e.xpMul != 1f || e.frisk || e.berryKeepChance > 0f || e.pickpocket || e.allyCureEvery > 0f || e.foesHealMul != 1f) return "team";
         if (e.contactStatuses.Length > 0 || e.contactShare > 0f || e.faintContactShare > 0f || !string.IsNullOrEmpty(e.hitStatus)
             || e.hitStunChance > 0f) return "contact";
         if (e.statusImmune.Length > 0 || e.statusDurations.Length > 0 || e.cureEvery > 0f || e.poisonHeals || e.statusedAttackMul != 1f
             || e.statusedSpeedMul != 1f || e.synchronize || e.naturalCure > 0f || e.shieldDust || e.magicGuard || e.modImmune.Length > 0
-            || e.stunImmune) return "status";
+            || e.stunImmune || e.statusChanceMul != 1f || e.statusBoosts.Length > 0 || e.magicBounce) return "status";
         if (e.takenTypes.Length > 0 || e.superEffectiveTakenMul != 1f || e.absorbType != 0 || e.endure || e.meleeTakenMul != 1f
-            || e.fullHpTakenMul != 1f || e.liquidOoze) return "defense";
+            || e.fullHpTakenMul != 1f || e.liquidOoze || e.soundImmune || e.powderImmune || e.onlySuperEffective
+            || e.statusedTakenMul != 1f || e.zoneTakenMul != 1f || e.firstHitMul != 1f || e.ignoreHitChance > 0f) return "defense";
         if (e.stabMul > 0f || e.lowHpShare > 0f || e.lowPowerMax > 0f || e.effectMovesMul != 1f || e.effectChanceMul != 1f || e.rangeMul != 1f
             || e.resistedDealtMul != 1f || e.ignoreImmunityTypes.Length > 0 || e.physicalMul != 1f || e.shotSizeMul != 1f
-            || e.shotSpeedMul != 1f || e.farShotMul != 1f || e.recoilMoveMul != 1f || e.noRecoil || e.koAttackStep > 1f) return "attack";
+            || e.shotSpeedMul != 1f || e.farShotMul != 1f || e.recoilMoveMul != 1f || e.noRecoil || e.koAttackStep > 1f
+            || e.rivalTypeMul != 1f || e.downloadMul != 1f || e.analyticMul != 1f || e.punchMul != 1f || e.normalize
+            || e.allDealtMul != 1f || e.extraHits > 0 || e.slowStartTime > 0f || e.moldBreaker || e.infiltrator || e.unaware) return "attack";
         return "combat";
     }
 
@@ -257,10 +311,38 @@ public static class Abilities
     public static int DrawSlot(PokemonStats stats, float hiddenChance, System.Random rng)
     {
         if (stats == null) return 0;
-        if (stats.hiddenAbility != 0 && rng.NextDouble() < hiddenChance) return 2;
+        // Never an ability that does nothing when another one of the form does something (Imposter, Klutz…).
+        bool hidden = stats.hiddenAbility != 0 && (Effect(stats.hiddenAbility) != null || !AnyActive(stats));
+        if (hidden && rng.NextDouble() < hiddenChance) return 2;
         int count = stats.abilities != null ? stats.abilities.Length : 0;
+        var active = new List<int>();
+        for (int i = 0; i < count; i++)
+            if (Effect(stats.abilities[i]) != null) active.Add(i);
+        if (active.Count > 0) return active[rng.Next(active.Count)];
+        if (stats.hiddenAbility != 0 && Effect(stats.hiddenAbility) != null) return 2;
         return count > 1 ? rng.Next(count) : 0;
     }
+
+    static bool AnyActive(PokemonStats stats)
+    {
+        if (stats.abilities != null)
+            foreach (int a in stats.abilities)
+                if (Effect(a) != null) return true;
+        return false;
+    }
+
+    /// The modifier a stat change becomes with the ability of who gets it (Simple: twice as far from 1; Contrary: the
+    /// other way).
+    public static float ChangedModifier(AbilityEffect holder, float value)
+    {
+        if (holder == null || value <= 0f) return value;
+        if (holder.contrary) value = 1f / value;
+        if (holder.simple) value = Mathf.Max(0.1f, 1f + 2f * (value - 1f));
+        return value;
+    }
+
+    /// The type of a move as its user throws it (Normalize: Normal).
+    public static int TypeOf(MoveDef move, AbilityEffect user) => user is { normalize: true } ? 1 : move.type;
 
     // ---- Pure rules (also used by the tests) ----
 
@@ -285,6 +367,9 @@ public static class Abilities
         if (attacker.effectMovesMul != 1f && HasSideEffect(move)) mul *= attacker.effectMovesMul;
         if (statused && move.category == "physical") mul *= attacker.statusedAttackMul;
         if (move.category == "physical") mul *= attacker.physicalMul;
+        mul *= attacker.allDealtMul;
+        if (move.punch) mul *= attacker.punchMul;
+        if (attacker.normalize) mul *= attacker.normalizeMul;
         if (move.recoil > 0f) mul *= attacker.recoilMoveMul;
         var w = attacker.Under(weather);
         if (w != null)
@@ -302,6 +387,7 @@ public static class Abilities
         if (holder == null || move == null) return 1f;
         float mul = holder.takenAllMul;
         if (move.family == "melee") mul *= holder.meleeTakenMul;
+        if (move.family == "zone") mul *= holder.zoneTakenMul;
         if (fullHealth) mul *= holder.fullHpTakenMul;
         return mul;
     }
@@ -455,6 +541,54 @@ public static class Abilities
         if (e.pickupChance > 0f) parts.Add($"{Pct(e.pickupChance)} de trouver un objet à chaque K.O. ennemi");
         if (e.bagHealMul != 1f) parts.Add($"soins du sac {Times(e.bagHealMul)}");
         if (e.unburdenSpeed != 1f) parts.Add($"objet tenu épuisé : vitesse {Times(e.unburdenSpeed)} {e.unburdenTime:0} s");
+        if (e.rivalTypeMul != 1f) parts.Add($"contre un adversaire qui partage un de ses types : dégâts {Times(e.rivalTypeMul)}");
+        if (e.glueSlow != 1f) parts.Add($"ses coups au corps à corps : vitesse de la cible {Times(e.glueSlow)} {e.glueTime:0} s");
+        if (e.soundImmune) parts.Add("immunisé contre les attaques sonores");
+        if (e.powderImmune) parts.Add("immunisé contre les spores et poudres");
+        if (e.ignoreHitChance > 0f) parts.Add($"{Pct(e.ignoreHitChance)} de chances d'ignorer un coup");
+        if (e.superEffectiveDodge) parts.Add("un coup super efficace recharge son esquive");
+        if (e.copyAbility) parts.Add("copie le talent du premier adversaire qu'il croise");
+        if (e.xpMul != 1f) parts.Add($"expérience de l'équipe {Times(e.xpMul)}");
+        foreach (var w in e.weatherTypes) parts.Add($"{WeatherName(w.weather)} : type {TypeName(w.type)}");
+        if (e.typeFromHit) parts.Add("prend le type de la dernière attaque qui le touche");
+        if (e.typeFromMove) parts.Add("prend le type de l'attaque qu'il lance");
+        if (e.firstHitMul != 1f) parts.Add($"premier coup de chaque adversaire {Times(e.firstHitMul)}");
+        if (e.simple) parts.Add("ses bonus et malus comptent double");
+        if (e.contrary) parts.Add("ses bonus et malus sont inversés");
+        if (e.unaware) parts.Add("ignore les bonus de défense de ses cibles et d'attaque de ceux qui le frappent");
+        if (e.moldBreaker) parts.Add("ses attaques ignorent les talents défensifs");
+        if (e.frisk) parts.Add("les ennemis qu'il met K.O. lâchent plus souvent un objet du sac (× 1,5)");
+        if (e.downloadMul != 1f) parts.Add($"coups visant la défense la plus faible {Times(e.downloadMul)}");
+        if (e.allDealtMul != 1f) parts.Add($"dégâts {Times(e.allDealtMul)}");
+        if (e.cooldownMul != 1f) parts.Add($"recharge {Times(e.cooldownMul)}");
+        if (e.afterAttackPause > 0f) parts.Add($"{e.afterAttackPause:0.#} s sans attaquer après chaque attaque");
+        if (e.slowStartTime > 0f) parts.Add($"attaque {Times(e.slowStartMul)} les {e.slowStartTime:0} premières secondes");
+        if (e.normalize) parts.Add($"ses attaques deviennent Normal, {Times(e.normalizeMul)}");
+        if (e.extraHits > 0) parts.Add($"+{e.extraHits} tir ou coup aux attaques qui en ont plusieurs");
+        if (e.statusedTakenMul != 1f) parts.Add($"sous statut, dégâts reçus {Times(e.statusedTakenMul)}");
+        if (e.onlySuperEffective) parts.Add("seuls les coups super efficaces le blessent");
+        if (e.punchMul != 1f) parts.Add($"attaques de poing {Times(e.punchMul)}");
+        if (e.foesHealMul != 1f) parts.Add($"adversaires à {e.foesHealRadius:0} cases : soins {Times(e.foesHealMul)}");
+        if (e.zoneTakenMul != 1f) parts.Add($"dégâts des zones reçus {Times(e.zoneTakenMul)}");
+        if (e.weatherProof) parts.Add("aucun dégât de météo");
+        if (e.infiltrator) parts.Add("ignore les bonus de défense et Garde-Ami");
+        if (e.moodyEvery > 0f) parts.Add($"toutes les {e.moodyEvery:0} s : une stat {Times(e.moodyUp)}, une autre {Times(e.moodyDown)}");
+        if (e.analyticMul != 1f) parts.Add($"sur une cible qui vient d'attaquer {Times(e.analyticMul)}");
+        if (!string.IsNullOrEmpty(e.hitByCategory))
+            parts.Add($"touché par une attaque {(e.hitByCategory == "physical" ? "physique" : "spéciale")} : {StatName(e.hitByCategoryStat)} {Times(e.hitByCategoryValue)}"
+                + (string.IsNullOrEmpty(e.hitByCategoryStat2) ? "" : $", {StatName(e.hitByCategoryStat2)} {Times(e.hitByCategoryValue2)}"));
+        if (e.offControlRegen > 0f) parts.Add($"+{Pct(e.offControlRegen)} des PV par seconde hors contrôle ou hors combat");
+        if (e.prankster) parts.Add($"attaques de statut sans lancement, recharge {Times(e.statusCooldownMul)}");
+        if (e.pickpocket) parts.Add("frappé au corps à corps sans objet : prend celui de l'attaquant");
+        if (e.magicBounce) parts.Add("renvoie les attaques de statut");
+        if (e.statusChanceMul != 1f) parts.Add($"chances de subir un statut {Times(e.statusChanceMul)}");
+        if (e.allyCureEvery > 0f) parts.Add($"{Pct(e.allyCureChance)} de guérir un allié proche toutes les {e.allyCureEvery:0} s");
+        if (e.berryKeepChance > 0f) parts.Add($"{Pct(e.berryKeepChance)} de garder la baie du sac qu'il mange");
+        foreach (var b in e.statusBoosts)
+            parts.Add($"{StatusName(b.status)} : attaques {(b.category == "special" ? "spéciales" : "physiques")} {Times(b.mul)}");
+        if (e.clearWeather) parts.Add("à son arrivée, met fin à la météo");
+        if (e.allyWeatherRadius > 0f && e.weathers.Length > 0)
+            parts.Add($"{WeatherName(e.weathers[0].weather)} : lui et ses alliés à {e.allyWeatherRadius:0} cases, {StatName(e.allyWeatherStat)} {Times(e.allyWeatherValue)}");
         if (parts.Count == 0) return "Sans effet pour l'instant.";
         string text = string.Join(" ; ", parts) + ".";
         return char.ToUpper(text[0]) + text.Substring(1);

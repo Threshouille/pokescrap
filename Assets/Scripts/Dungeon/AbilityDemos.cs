@@ -34,6 +34,7 @@ public class AbilityDemos : MonoBehaviour
         public int allyType; // an ally of this type stands by the attacker (Plus, Minus)
         public bool balloon; // the target holds an Air Balloon (Unburden)
         public bool respawn; // knocked-out targets come back (Moxie)
+        public bool attackerItem; // the attacker holds an item (Pickpocket)
     }
 
     class Side
@@ -257,6 +258,7 @@ public class AbilityDemos : MonoBehaviour
         if (plan.allyType != 0 && FindSpecies(t => Array.IndexOf(t, plan.allyType) >= 0) is var mate and > 0)
             Cast(mate, s.attackerAt + Vector2.left * 1.2f, Team.Player);
         if (plan.balloon) s.target.Hold(HeldItems.Get("air_balloon"));
+        if (plan.attackerItem && s.attacker != null) s.attacker.Hold(HeldItems.Get("leftovers"));
         var holder = Holder(s);
         if (holder != null) holder.SetAbility(ability);
         if (!string.IsNullOrEmpty(plan.preStatus) && holder != null) holder.AddStatus(plan.preStatus, 30f);
@@ -538,6 +540,42 @@ public class AbilityDemos : MonoBehaviour
         }
         if (e.stunSpeedMul != 1f) { p.move = melee; p.distance = 1.2f; p.watch = "étourdie, la gauche gagne de la vitesse."; return p; }
         if (e.speedBoostEvery > 0f) { Attacker(); p.act = Act.Idle; p.distance = 2f; p.watch = $"près d'un adversaire, la vitesse monte toutes les {e.speedBoostEvery:0} s (icône vitesse non affichée : voir le texte)."; return p; }
+        // Lot 3.
+        if (e.soundImmune) { p.move = FindMove(m => m.sound) ?? any; p.distance = p.move.family == "melee" ? 1.2f : 3f; p.watch = "une attaque sonore sur les deux."; return p; }
+        if (e.powderImmune) { p.move = FindPowder() ?? any; p.weather = "sand"; p.watch = "une poudre sur les deux, sous une tempête de sable."; return p; }
+        if (e.onlySuperEffective) { p.move = FindMove(m => m.family == "projectile" && TypeChart.Multiplier(m.type, Types(holder), out var eff) <= 1f && eff != Efficacy.Super) ?? any; p.watch = "un tir qui n'est pas super efficace : rien à gauche."; return p; }
+        if (e.statusedTakenMul != 1f) { p.preStatus = "poison"; p.move = any; p.watch = "les deux cibles sont empoisonnées : comparer les dégâts."; return p; }
+        if (e.zoneTakenMul != 1f) { p.move = FindZone() ?? any; p.watch = "une attaque de zone : comparer les dégâts."; return p; }
+        if (e.firstHitMul != 1f || e.ignoreHitChance > 0f || e.superEffectiveDodge) { p.move = SuperEffective(holder) ?? any; p.watch = "tirs répétés : comparer les dégâts (premier coup, coups évités)."; return p; }
+        if (e.typeFromHit) { p.move = TypedMove(2); p.watch = "touchée par du Feu, la gauche devient Feu (voir le bandeau)."; return p; }
+        if (e.typeFromMove) { Attacker(); p.move = TypedMove(3); p.watch = "en tirant de l'Eau, la gauche devient Eau (voir le bandeau)."; return p; }
+        if (e.weatherTypes.Length > 0) { p.act = Act.Idle; p.weather = e.weatherTypes[0].weather; p.watch = $"{Climate.WeatherName(p.weather)} : la gauche change de type (voir le bandeau)."; return p; }
+        if (e.clearWeather) { Attacker(); p.act = Act.Arrive; p.weather = "rain"; p.watch = "il pleut ; à son arrivée, la météo s'arrête."; return p; }
+        if (e.weatherProof) { p.act = Act.Idle; p.weather = "hail"; p.watch = "sous la grêle : comparer les PV."; return p; }
+        if (e.rivalTypeMul != 1f) { Attacker(); p.targetSpecies = holder; p.move = any; p.watch = "contre un Pokémon de même type : comparer les dégâts."; return p; }
+        if (e.punchMul != 1f) { Attacker(); p.move = FindMove(m => m.punch) ?? melee; p.distance = p.move.family == "melee" ? 1.2f : 3f; p.watch = "une attaque de poing : comparer les dégâts."; return p; }
+        if (e.normalize || e.downloadMul != 1f || e.analyticMul != 1f || e.allDealtMul != 1f || e.slowStartTime > 0f
+            || e.unaware || e.infiltrator || e.moldBreaker)
+        { Attacker(); p.move = any; p.watch = "les deux tirent : comparer les dégâts."; return p; }
+        if (e.extraHits > 0) { Attacker(); p.move = FindMove(m => m.burst > 1 || m.hits > 1) ?? any; p.distance = p.move.family == "melee" ? 1.2f : 3f; p.watch = "une attaque à plusieurs coups : compter les chiffres."; return p; }
+        if (e.cooldownMul != 1f || e.afterAttackPause > 0f || e.prankster)
+        {
+            Attacker();
+            p.act = Act.Count;
+            p.move = e.prankster ? FindStatusOnly() ?? any : any;
+            p.watch = "l'attaquant attaque dès qu'il peut : comparer le nombre d'attaques.";
+            return p;
+        }
+        if (e.simple || e.contrary) { p.move = FindMove(m => !string.IsNullOrEmpty(m.modStat) && m.modValue < 1f && m.family != "modifier") ?? any; p.distance = p.move.family == "melee" ? 1.2f : 3f; p.watch = "une attaque qui baisse une stat : comparer les icônes."; return p; }
+        if (e.magicBounce || e.statusChanceMul != 1f) { p.move = StatusMove("paralysis") ?? StatusMove("poison") ?? any; p.distance = p.move.family == "melee" ? 1.2f : 3f; p.watch = "une attaque à statut : comparer les statuts (cible et attaquant)."; return p; }
+        if (e.statusBoosts.Length > 0) { Attacker(); p.preStatus = e.statusBoosts[0].status; p.move = FindMove(m => m.family == "projectile" && m.category == e.statusBoosts[0].category) ?? any; p.watch = "les deux attaquants ont le statut : comparer les dégâts."; return p; }
+        if (!string.IsNullOrEmpty(e.hitByCategory)) { p.move = FindMove(m => m.family == "projectile" && m.category == e.hitByCategory) ?? any; p.watch = "touchée, la gauche change de stats (icônes)."; return p; }
+        if (e.glueSlow != 1f) { Attacker(); p.move = melee; p.distance = 1.2f; p.watch = "coups au corps à corps : la cible de gauche ralentit (icône)."; return p; }
+        if (e.pickpocket) { p.move = melee; p.distance = 1.2f; p.attackerItem = true; p.watch = "l'attaquant tient un objet : la cible de gauche le lui prend."; return p; }
+        if (e.moodyEvery > 0f) { p.act = Act.Idle; p.watch = $"toutes les {e.moodyEvery:0} s, les stats de la gauche changent (icônes)."; return p; }
+        if (e.offControlRegen > 0f) { p.act = Act.Idle; p.targetHpShare = 0.5f; p.watch = "seule et loin des adversaires, la gauche se soigne."; return p; }
+        if (e.foesHealMul != 1f) { Attacker(); p.act = Act.Heal; p.distance = 2f; p.watch = "une Baie Oran sur les cibles, près du porteur à gauche : comparer le soin."; return p; }
+        if (e.copyAbility) { p.act = Act.Idle; p.distance = 2f; Attacker(); p.watch = "la gauche copie le talent de l'adversaire en face (bandeau)."; return p; }
         p.act = Act.Explain;
         p.watch = "pas de démo pour ce talent : description seulement.";
         return p;
@@ -600,6 +638,27 @@ public class AbilityDemos : MonoBehaviour
         foreach (var m in GameData.AllMoves)
             if (m.family == "projectile" && m.power > 0 && (best == null || m.power > best.power)) best = m;
         return best;
+    }
+
+    static MoveDef FindPowder()
+    {
+        foreach (var m in GameData.AllMoves)
+            if (m.powder) return m;
+        return null;
+    }
+
+    static MoveDef FindZone()
+    {
+        foreach (var m in GameData.AllMoves)
+            if (m.family == "zone" && m.power > 0) return m;
+        return null;
+    }
+
+    static MoveDef FindStatusOnly()
+    {
+        foreach (var m in GameData.AllMoves)
+            if (m.power <= 0 && m.family is "projectile" or "melee" && !string.IsNullOrEmpty(m.status)) return m;
+        return null;
     }
 
     static MoveDef StatusMove(string status)

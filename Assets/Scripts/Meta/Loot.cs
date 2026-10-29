@@ -89,7 +89,8 @@ public class Loot : MonoBehaviour
     {
         if (c.team != Team.Enemy || c.isBoss) return;
         string rank = c.GetComponent<EliteMark>() != null ? "elite" : c.GetComponent<RarityMark>()?.Rarity?.key ?? "common";
-        if (rng.NextDouble() >= BagItems.DropChance(rank)) return;
+        float more = c.LastAttacker?.Ability is { frisk: true } ? 1.5f : 1f; // Frisk
+        if (rng.NextDouble() >= BagItems.DropChance(rank) * more) return;
         var item = BagItems.Roll(rng);
         if (item != null) Place(new Item { consumable = item.key }, (Vector2)c.transform.position + Random.insideUnitCircle * 0.3f);
     }

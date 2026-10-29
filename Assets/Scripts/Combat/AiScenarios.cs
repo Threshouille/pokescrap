@@ -164,6 +164,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
         yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
         yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
+        yield return Scenario("Talents : Garde Mystik, Brise Moule, Pickpocket", AbilityRulesThree());
         yield return Scenario("Talents : la démo de chaque talent se joue sans erreur", AbilityDemosRun());
         yield return Scenario("Objets tenus : Ceinture Force et Casque Brut", HeldLastStand());
         yield return Scenario("Objets tenus : pris en marchant dessus, l'ancien tombe à ses pieds", HeldSwap());
@@ -1696,6 +1697,40 @@ public class AiScenarios : MonoBehaviour
         Terrain.ClearArea("brambles", at, 1.5f);
         Report(heals && unslowedWater && unhurt && unslowedBrambles && boosted,
             $"Flaque : {(heals ? "soigne" : "ne soigne pas")}, {(unslowedWater ? "pas ralenti" : "ralenti")} ; Ronces : {(unhurt ? "pas de dégâts" : "blessé")}, {(unslowedBrambles ? "pas ralenti" : "ralenti")}, attaque {(boosted ? "+" : "inchangée")}");
+    }
+
+    // Wonder Guard shrugs off a neutral hit, which Mold Breaker gets through; Pickpocket takes the item of whoever
+    // strikes it at close range.
+    IEnumerator AbilityRulesThree()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(2f, 0f));
+        yield return new WaitForFixedUpdate();
+        var move = FindMove(1, m => true) ?? FindMove(7, m => true);
+        foe.SetAbility(AbilityId("Garde Mystik"));
+        float before = foe.hp;
+        Combatant.HitSource = leader;
+        bool landed = foe.TakeHit(20f, move, out _);
+        bool guarded = !landed && Mathf.Approximately(foe.hp, before);
+        leader.SetAbility(AbilityId("Brise Moule"));
+        bool broken = foe.TakeHit(20f, move, out _) && foe.hp < before;
+        Combatant.HitSource = null;
+        leader.SetAbility(0);
+        foe.SetAbility(AbilityId("Pickpocket"));
+        var item = HeldItems.Get("leftovers");
+        var kept = leader.Hold(item);
+        Combatant.AbilityContact(leader, foe);
+        bool stolen = foe.Held == item && leader.Held == null;
+        leader.Hold(kept);
+        Report(guarded && broken && stolen,
+            $"Garde Mystik {(guarded ? "bloque" : "laisse passer")}, Brise Moule {(broken ? "passe" : "bloqué")}, Pickpocket {(stolen ? "vole" : "ne vole pas")}");
+    }
+
+    static int AbilityId(string name)
+    {
+        foreach (var a in AbilityLibrary.All)
+            if (a.name == name) return a.id;
+        return 0;
     }
 
     // The ability demo room (AbilityDemos) plays every case for a moment: no error logged, every ability has a demo.

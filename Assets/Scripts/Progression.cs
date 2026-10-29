@@ -109,7 +109,7 @@ public class Progression : MonoBehaviour
 
     void OnDied(Combatant combatant)
     {
-        if (combatant.team == Team.Enemy && combatant.Stats != null) AddXp(combatant.Stats.expYield * xpFactor);
+        if (combatant.team == Team.Enemy && combatant.Stats != null) AddXp(combatant.Stats.expYield * xpFactor * Combatant.TeamXpMul()); // Illuminate
     }
 
     public void AddXp(float amount)

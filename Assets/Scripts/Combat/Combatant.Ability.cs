@@ -93,7 +93,7 @@ public partial class Combatant
     }
 
     /// No damage from the weather (Sand Veil, Snow Cloak, Ice Body…).
-    public bool WeatherProof => WeatherBonus is { chipImmune: true } || Ability is { magicGuard: true };
+    public bool WeatherProof => WeatherBonus is { chipImmune: true } || Ability is { magicGuard: true } || Ability is { weatherProof: true };
 
     /// Movement multiplier from the ability (weather, statuses).
     float AbilitySpeedMul
@@ -120,6 +120,9 @@ public partial class Combatant
         float mul = Abilities.DealtMul(Ability, move, maxHp > 0f ? hp / maxHp : 1f, HasAnyStatus, WeatherKey);
         if (Time.time < absorbBoostUntil && move.type == Ability.absorbType) mul *= Ability.absorbBoost; // Flash Fire
         mul *= koAttackMul; // Moxie
+        if (Ability.slowStartTime > 0f && Time.time - arrivedAt < Ability.slowStartTime) mul *= Ability.slowStartMul; // Slow Start
+        foreach (var b in Ability.statusBoosts)
+            if (move.category == b.category && HasStatus(b.status)) mul *= b.mul; // Flare Boost, Toxic Boost
         if (Ability.allyTypeBoost != 0 && AllyOfTypeNear(Ability.allyTypeBoost, Ability.allyTypeRadius)) mul *= Ability.allyTypeMul; // Plus, Minus
         return mul;
     }
@@ -131,24 +134,34 @@ public partial class Combatant
     float AbilityStab(float usual) => Ability != null && Ability.stabMul > 0f && usual > 1f ? Mathf.Max(usual, Ability.stabMul) : usual;
 
     /// A hit of "move" from "attacker" on this Pokémon, after the type chart: the multiplier both abilities give.
-    float AbilityHitMul(MoveDef move, Combatant attacker, ref float typeMul, ref Efficacy efficacy)
+    float AbilityHitMul(MoveDef move, int type, Combatant attacker, ref float typeMul, ref Efficacy efficacy)
     {
         var their = attacker != null ? attacker.Ability : null;
-        if (their != null && efficacy == Efficacy.None && System.Array.IndexOf(their.ignoreImmunityTypes, move.type) >= 0)
+        var mine = their is { moldBreaker: true } ? null : Ability; // Mold Breaker: its own does not count
+        if (their != null && efficacy == Efficacy.None && System.Array.IndexOf(their.ignoreImmunityTypes, type) >= 0)
         {
             typeMul = 1f; // Scrappy
             efficacy = Efficacy.Normal;
         }
-        float mul = Abilities.TakenMul(Ability, move.type, efficacy) * Abilities.TakenFlatMul(Ability, move, hp >= maxHp - 0.01f);
-        if (their != null && efficacy == Efficacy.NotVery) mul *= their.resistedDealtMul;
-        mul *= AllyGuardMul(); // Friend Guard
+        float mul = Abilities.TakenMul(mine, type, efficacy) * Abilities.TakenFlatMul(mine, move, hp >= maxHp - 0.01f);
+        if (mine != null && mine.statusedTakenMul != 1f && HasAnyStatus) mul *= mine.statusedTakenMul; // Marvel Scale
+        if (mine != null && mine.firstHitMul != 1f && attacker != null && seenFoes.Add(attacker)) mul *= mine.firstHitMul; // Forewarn
+        if (their != null)
+        {
+            if (efficacy == Efficacy.NotVery) mul *= their.resistedDealtMul;
+            if (their.rivalTypeMul != 1f && SharesType(attacker)) mul *= their.rivalTypeMul; // Rivalry
+            if (their.downloadMul != 1f && (move.category == "physical" ? def < spDef : spDef < def)) mul *= their.downloadMul; // Download
+            if (their.analyticMul != 1f && Time.time - lastAttackAt < 1f) mul *= their.analyticMul; // Analytic
+        }
+        if (their is not { infiltrator: true }) mul *= AllyGuardMul(); // Friend Guard
         return mul;
     }
 
     /// True when its ability takes this move in (no damage, no effect): it heals, raises a stat or powers itself.
-    bool TryAbsorb(MoveDef move)
+    bool TryAbsorb(MoveDef move, Combatant attacker)
     {
-        if (!Abilities.Absorbs(Ability, move.type)) return false;
+        if (attacker?.Ability is { moldBreaker: true }) return false; // Mold Breaker
+        if (!Abilities.Absorbs(Ability, Abilities.TypeOf(move, attacker?.Ability))) return false;
         Absorb(move);
         return true;
     }
@@ -203,6 +216,190 @@ public partial class Combatant
     /// A penalty its ability refuses (Hyper Cutter, Clear Body…).
     bool KeepsStat(string stat, float value) => value < 1f && Ability != null && Ability.KeepsStat(stat);
 
+    // ---- Lot 3 ----
+
+    readonly HashSet<Combatant> seenFoes = new(); // Forewarn: foes whose first hit it took
+    float lastAttackAt = -10f, arrivedAt, nextMoody, nextAllyCure;
+    PokemonStats typeShiftFrom; // its form before Forecast, Color Change or Protean changed its type
+    bool copied; // Trace has taken a foe's ability
+
+    /// The Pokémon that dealt it its last hit (Frisk: Loot).
+    public Combatant LastAttacker { get; private set; }
+
+    int ExtraHits => Ability?.extraHits ?? 0;
+
+    bool SharesType(Combatant other)
+    {
+        var mine = Stats?.types;
+        var theirs = other?.Stats?.types;
+        if (mine == null || theirs == null) return false;
+        foreach (int t in theirs)
+            if (System.Array.IndexOf(mine, t) >= 0) return true;
+        return false;
+    }
+
+    float AbilityCooldownMul(MoveDef move)
+    {
+        if (Ability == null) return 1f;
+        return Ability.cooldownMul * (move.power <= 0 ? Ability.statusCooldownMul : 1f);
+    }
+
+    /// The defence bonus a hit from "attacker" meets (Unaware, Infiltrator ignore bonuses; Unaware on it ignores the
+    /// attacker's attack bonus, taken back here).
+    float DefenseAgainst(Combatant attacker)
+    {
+        float defence = Modifier("defense");
+        if (attacker?.Ability is { unaware: true } || (attacker?.Ability is { infiltrator: true } && defence > 1f)) defence = 1f;
+        if (Ability is { unaware: true } && attacker != null) defence *= attacker.Modifier("attack");
+        return defence;
+    }
+
+    /// Soundproof, Overcoat, Magic Bounce, Anticipation: the hit does nothing.
+    bool AbilityIgnoresHit(MoveDef move, Combatant attacker, float raw)
+    {
+        var mine = attacker?.Ability is { moldBreaker: true } ? null : Ability;
+        if (mine == null) return false;
+        if ((mine.soundImmune && move.sound) || (mine.powderImmune && move.powder))
+        {
+            ShowAbility("sans effet");
+            return true;
+        }
+        if (mine.magicBounce && raw <= 0f && attacker != null && attacker != this && attacker.team != team)
+        {
+            attacker.ApplyEffects(move, false, this); // back to its user
+            ShowAbility("renvoyé");
+            return true;
+        }
+        if (mine.ignoreHitChance > 0f && raw > 0f && Random.value < mine.ignoreHitChance)
+        {
+            ShowAbility("évité");
+            return true;
+        }
+        return false;
+    }
+
+    /// Wonder Guard: anything but a super-effective hit does nothing; Anticipation: a super-effective one recharges
+    /// the dodge.
+    bool AbilityShrugs(Efficacy efficacy, Combatant attacker)
+    {
+        var mine = attacker?.Ability is { moldBreaker: true } ? null : Ability;
+        if (mine == null) return false;
+        if (mine.superEffectiveDodge && efficacy == Efficacy.Super) dodgeReadyAt = 0f;
+        if (mine.onlySuperEffective && efficacy != Efficacy.Super)
+        {
+            ShowAbility("sans effet");
+            return true;
+        }
+        return false;
+    }
+
+    /// After one of its moves goes: Truant pauses it, Protean takes its type, Analytic notes it.
+    void AbilityAttacked(MoveDef move)
+    {
+        lastAttackAt = Time.time;
+        if (Ability == null) return;
+        if (Ability.afterAttackPause > 0f) recoverUntil = Mathf.Max(recoverUntil, Time.time + Ability.afterAttackPause);
+        if (Ability.typeFromMove && move.power > 0) ShiftType(Abilities.TypeOf(move, Ability));
+    }
+
+    /// Unnerve of a foe close by: what it heals.
+    float UnnerveMul()
+    {
+        float mul = 1f;
+        foreach (var c in all)
+            if (c.team != team && c.IsAlive && c.Ability is { foesHealMul: < 1f } a
+                && Vector2.Distance(c.transform.position, transform.position) <= a.foesHealRadius) mul = Mathf.Min(mul, a.foesHealMul);
+        return mul;
+    }
+
+    /// Forecast, Color Change, Protean: a single type for now (never while Terastallized or mega evolved).
+    void ShiftType(int type)
+    {
+        if (Stats == null || TeraType >= 0 || Mega != null || type <= 0) return;
+        if (Stats.types != null && Stats.types.Length == 1 && Stats.types[0] == type) return;
+        typeShiftFrom ??= Stats;
+        var form = typeShiftFrom.Clone();
+        form.types = new[] { type };
+        Stats = form;
+        ShowAbility("type " + GameData.TypeName(type));
+    }
+
+    void RevertTypeShift()
+    {
+        if (typeShiftFrom == null) return;
+        Stats = typeShiftFrom;
+        typeShiftFrom = null;
+    }
+
+    /// The team's experience bonus (Illuminate of a member still up).
+    public static float TeamXpMul()
+    {
+        float mul = 1f;
+        foreach (var c in all)
+            if (c.team == Team.Player && c.IsAlive && c.Ability != null) mul = Mathf.Max(mul, c.Ability.xpMul);
+        return mul;
+    }
+
+    /// Harvest: a berry of the bag it eats is kept.
+    public bool KeepsBerry(BagItems.Item item) =>
+        item != null && (item.effect == "heal" || item.effect == "cure") && Ability is { berryKeepChance: > 0f } a && Random.value < a.berryKeepChance;
+
+    /// Once a second, the lot 3 abilities that act on their own.
+    void UpdateLotThree()
+    {
+        var a = Ability;
+        if (a == null) return;
+        // Trace: the first foe near enough lends its ability.
+        if (a.copyAbility && !copied)
+        {
+            var foe = NearestOpponent(6f);
+            if (foe != null && foe.Ability != null && !foe.Ability.copyAbility)
+            {
+                copied = true;
+                string from = foe.AbilityName;
+                SetAbilityId(foe.AbilityId);
+                ShowAbility($"copie {from}");
+                return;
+            }
+        }
+        // Forecast: the type of the weather on, its own without one.
+        if (a.weatherTypes.Length > 0)
+        {
+            int type = 0;
+            foreach (var w in a.weatherTypes)
+                if (w.weather == WeatherKey) type = w.type;
+            if (type > 0) ShiftType(type);
+            else RevertTypeShift();
+        }
+        if (a.moodyEvery > 0f && Time.time >= nextMoody)
+        {
+            nextMoody = Time.time + a.moodyEvery;
+            string[] stats = { "attack", "defense", "speed" };
+            int up = Random.Range(0, stats.Length), down = (up + Random.Range(1, stats.Length)) % stats.Length;
+            AddModifier(stats[up], a.moodyUp, a.moodyEvery);
+            AddModifier(stats[down], a.moodyDown, a.moodyEvery);
+        }
+        if (a.offControlRegen > 0f && !PlayerDriven && hp < maxHp && (team == Team.Player || NearestOpponent(8f) == null))
+            Heal(maxHp * a.offControlRegen); // Regenerator
+        if (a.allyCureEvery > 0f && Time.time >= nextAllyCure)
+        {
+            nextAllyCure = Time.time + a.allyCureEvery;
+            foreach (var c in all)
+                if (c != this && c.team == team && c.IsAlive && c.HasAnyStatus && Random.value < a.allyCureChance
+                    && Vector2.Distance(c.transform.position, transform.position) <= a.allyCureRadius)
+                {
+                    c.statuses.Clear();
+                    ShowAbility();
+                    break;
+                }
+        }
+        // Flower Gift: under its weather, it and its team-mates nearby get the bonus.
+        if (a.allyWeatherRadius > 0f && !string.IsNullOrEmpty(a.allyWeatherStat) && WeatherBonus != null)
+            foreach (var c in all)
+                if (c.team == team && c.IsAlive && Vector2.Distance(c.transform.position, transform.position) <= a.allyWeatherRadius)
+                    c.AddModifier(a.allyWeatherStat, a.allyWeatherValue, 1.5f);
+    }
+
     bool AbilityBlocksStatus(string key) => Ability != null && (Ability.ImmuneTo(key) || WeatherBonus is { statusImmune: true });
 
     float AbilityStatusDuration(string key) => Ability?.StatusDurationMul(key) ?? 1f;
@@ -221,6 +418,11 @@ public partial class Combatant
                 target.ShowAbility();
             }
             if (their.contactShare > 0f) attacker.TakeIndirectDamage(attacker.maxHp * their.contactShare);
+            if (their.pickpocket && target.IsAlive && target.Held == null && attacker.Held != null) // Pickpocket
+            {
+                target.Hold(attacker.Hold(null));
+                target.ShowAbility("vole l'objet");
+            }
             if (!target.IsAlive && their.faintContactShare > 0f)
             {
                 attacker.TakeIndirectDamage(attacker.maxHp * their.faintContactShare);
@@ -232,6 +434,7 @@ public partial class Combatant
         {
             if (!string.IsNullOrEmpty(own.hitStatus) && Random.value < own.hitChance) target.AddStatus(own.hitStatus, DefaultStatusDuration, attacker);
             if (own.hitStunChance > 0f && Random.value < own.hitStunChance) target.Stun(own.hitStun);
+            if (own.glueSlow != 1f && !target.KeepsStat("speed", own.glueSlow)) target.AddModifier("speed", own.glueSlow, own.glueTime); // Sticky Hold
         }
     }
 
@@ -266,6 +469,7 @@ public partial class Combatant
         if (Time.time < nextAbilityTick) return;
         nextAbilityTick = Time.time + 1f;
         AbsorbTerrain();
+        UpdateLotThree();
         if (Ability.nightmareRadius > 0f) // Bad Dreams
             foreach (var c in new List<Combatant>(all))
                 if (c.team != team && c.IsAlive && c.HasStatus("sleep") && Vector2.Distance(c.transform.position, transform.position) <= Ability.nightmareRadius)
@@ -303,7 +507,14 @@ public partial class Combatant
     public void Arrive()
     {
         intimidated.Clear();
+        seenFoes.Clear();
+        arrivedAt = Time.time;
         koAttackMul = speedBoostMul = 1f; // Moxie and Speed Boost last one arena
+        if (Ability is { clearWeather: true } && IsAlive && Climate.Now != null) // Cloud Nine
+        {
+            Climate.Clear();
+            ShowAbility("plus de météo");
+        }
         if (Ability == null || Ability.arrivalClimate == 0 || !IsAlive) return;
         if (team == Team.Enemy && !isBoss && !IsElite && !Abilities.Config.enemyClimate) return;
         var move = GameData.Move(Ability.arrivalClimate);
@@ -345,11 +556,17 @@ public partial class Combatant
     }
 
     /// What a hit did to it, for the abilities that answer (Anger Point, Justified, Rattled, Cursed Body, Moxie).
-    void AbilityAfterHit(MoveDef move, Combatant attacker, float dealt)
+    void AbilityAfterHit(MoveDef move, Combatant attacker, float dealt, int type)
     {
         var a = Ability;
         if (a != null && IsAlive)
         {
+            if (a.typeFromHit) ShiftType(type); // Color Change
+            if (!string.IsNullOrEmpty(a.hitByCategory) && move.category == a.hitByCategory) // Weak Armor
+            {
+                if (!string.IsNullOrEmpty(a.hitByCategoryStat)) AddModifier(a.hitByCategoryStat, a.hitByCategoryValue, a.hitByCategoryDuration);
+                if (!string.IsNullOrEmpty(a.hitByCategoryStat2)) AddModifier(a.hitByCategoryStat2, a.hitByCategoryValue2, a.hitByCategoryDuration);
+            }
             if (a.rageShare > 0f && dealt >= maxHp * a.rageShare)
             {
                 AddModifier("attack", a.rageValue, a.rageDuration);

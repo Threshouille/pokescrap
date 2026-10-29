@@ -7,7 +7,7 @@ branches, axes de refonte et questions de conception (page partagée par Robin).
 ## Talents (29/10/2026, branche `feature/talents`)
 
 Catalogue `abilities_rt.json`, talents ROM + caché PokéAPI par Pokémon, talent des mégas, rapport `Docs/TALENTS.md`.
-Lots 1 et 2 des effets (109 talents, `ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`). Suite : test
+Lots 1 à 3 des effets (155 talents, tous ceux des Pokémon hors passifs des mégas ; `ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`). Suite : test
 en jeu ci-dessous, réglage des valeurs, passifs des mégas ; ensuite (Robin) : adapter les IA aux talents (les leurs
 et ceux des adversaires : viser autrement, rester sur un terrain absorbé, éviter Statik au corps à corps…).
 
@@ -28,9 +28,10 @@ Test en jeu prévu (éditeur, profil de dev) :
 7. Marque Ombre / Piège Sable : esquive refusée près du porteur ; Ventouse : pas de recul.
 8. Ramassage : objets qui arrivent dans le sac au fil des K.O.
 9. À noter : bandeaux trop fréquents ou pas assez, valeurs trop fortes ou trop faibles.
-Banc complet le 29/10 (lot 2, démo des talents) : 77/79 ; échecs antérieurs aux talents (toujours là avec les talents coupés), à corriger à
+Banc complet le 29/10 (lot 3) : 78/81 ; échecs antérieurs aux talents (toujours là avec les talents coupés), à corriger à
 part : « capacité Z frappe et paralyse » (16 et 18 dégâts pour un seuil de 17,5) et « Secours : le plus apte éloigne
-l'ennemi » (allié K.O. jamais réanimé). « Groupe : pas d'à-coups » a échoué une fois sur trois (instable).
+l'ennemi » (allié K.O. jamais réanimé). « Groupe : pas d'à-coups » a échoué une fois sur trois (instable) ; « Peuplement : camps et rondes » aussi (2 échecs sur 4 :
+lieux tirés au hasard, camp parfois mal peuplé ou pas réveillé ; talents coupés pendant le banc, donc sans lien).
 
 ## Reprise (26/10/2026, Robin) : où on s'est arrêté
 

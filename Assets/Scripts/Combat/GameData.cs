@@ -190,6 +190,7 @@ public class MoveDef
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
     public float drain; // share of the damage dealt that heals the most wounded ally
+    public bool punch, sound, powder; // PokéAPI flags, set from generated_moves.json tags (abilities)
     public float recoil; // share of the damage dealt that the user loses
     public float statChance; // 0..1 chance of the on-hit modifier (always when omitted)
     public string selfModStat; // bonus the user gets when the move lands
@@ -227,7 +228,8 @@ public static class GameData
     [Serializable] class Loadout { public int pokemonId; public string role; public int[] moves; }
     [Serializable] class UpgradeFile { public UpgradeDef[] upgrades; }
     [Serializable] class BasicEntry { public int type; public int pokemonId; public int move; }
-    [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; public BasicEntry[] basicByType, meleeBasicByType, basicByPokemon; }
+    [Serializable] class MoveFile { public TypeColorEntry[] typeColors; public MoveDef[] moves; public Loadout[] loadouts; public BasicEntry[] basicByType, meleeBasicByType, basicByPokemon; public MoveTag[] tags; }
+    [Serializable] class MoveTag { public int id; public bool punch, sound, powder; } // PokéAPI flags (generate_moves.py)
 
     // Base speed in the main games goes from 5 to 160; squeezed into a playable range.
     const float MinBaseSpeed = 5f, MaxBaseSpeed = 160f, MinMoveSpeed = 3f, MaxMoveSpeed = 6f;
@@ -280,6 +282,15 @@ public static class GameData
             foreach (var m in JsonUtility.FromJson<MoveFile>(generated.text).moves) moves[m.id] = m;
         handMade = new HashSet<int>();
         foreach (var m in file.moves) { moves[m.id] = m; handMade.Add(m.id); }
+        // Punch, sound and powder moves (abilities: Iron Fist, Soundproof, Overcoat), hand-written ones included.
+        if (generated != null && JsonUtility.FromJson<MoveFile>(generated.text).tags is { } tags)
+            foreach (var t in tags)
+                if (moves.TryGetValue(t.id, out var tagged))
+                {
+                    tagged.punch = t.punch;
+                    tagged.sound = t.sound;
+                    tagged.powder = t.powder;
+                }
         loadouts = new Dictionary<int, int[]>();
         roles = new Dictionary<int, string>();
         foreach (var l in file.loadouts)

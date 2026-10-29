@@ -17,6 +17,7 @@ from pathlib import Path
 T_ENEMIES, T_PARTY, T_ALL, T_USER, T_CHARGING, T_ALL_BUT_USER, T_TEAMMATES = 0, 1, 2, 3, 4, 5, 6
 R_FRONT, R_FRONT_SIDES, R_NEARBY, R_ROOM, R_TWO_TILES, R_LINE, R_FLOOR, R_USER = 0, 1, 2, 3, 4, 5, 6, 7
 FLAG_CONTACT, FLAG_CHARGE, FLAG_RECHARGE = 1, 2, 3
+FLAG_PUNCH, FLAG_SOUND, FLAG_POWDER = 8, 9, 15
 DAMAGE_CLASS = {"1": "status", "2": "physical", "3": "special"}
 
 # PokéAPI identifiers that the camel-case split does not find.
@@ -59,6 +60,14 @@ def main(root):
     learnable = {m["move"] for p in pokemon for m in p.get("learnset", {}).get("level_up", [])}
     templates = rules["templates"]
     generated, skipped = [], []
+    # Tags of every move (generated or not, the hand-written ones too): punch, sound, powder (abilities).
+    tags = []
+    for mv in moves:
+        a = api.get(api_key(mv["name_en"]))
+        mflags = flags.get(a["id"], set()) if a else set()
+        tag = {k: True for k, f in (("punch", FLAG_PUNCH), ("sound", FLAG_SOUND), ("powder", FLAG_POWDER)) if f in mflags}
+        if tag:
+            tags.append({"id": mv["id"], **tag})
 
     for mv in moves:
         if mv["id"] not in learnable:
@@ -186,7 +195,7 @@ def main(root):
 
     data_dir = root / "Assets/Resources/Data"
     (data_dir / "generated_moves.json").write_text(
-        json.dumps({"moves": generated}, ensure_ascii=False, indent=1), encoding="utf-8")
+        json.dumps({"moves": generated, "tags": tags}, ensure_ascii=False, indent=1), encoding="utf-8")
     report = [f"{len(generated)} attaques générées, {len(skipped)} écartées (à faire à la main) :"]
     report += [f"  {mv['id']:3} {mv['name']} ({mv['name_en']}) : {why}" for mv, why in skipped]
     (root / "Tools/pmd/generated_moves_report.txt").write_text("\n".join(report) + "\n", encoding="utf-8")

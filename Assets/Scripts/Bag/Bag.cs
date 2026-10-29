@@ -104,7 +104,7 @@ public class Bag : MonoBehaviour
         if (index < 0 || index >= slots.Length || slots[index] == null || user == null || !user.IsAlive) return false;
         var item = slots[index].item;
         if (!Apply(item, user)) return false;
-        if (--slots[index].count <= 0) slots[index] = null;
+        if (!user.KeepsBerry(item) && --slots[index].count <= 0) slots[index] = null; // Harvest: kept
         progression?.Announce($"{user.Stats.name} utilise {item.name} !");
         return true;
     }

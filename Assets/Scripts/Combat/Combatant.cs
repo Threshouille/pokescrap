@@ -358,7 +358,8 @@ public partial class Combatant : MonoBehaviour
     public float CooldownLeft(int slot) => Mathf.Max(0f, readyAt[slot] - Time.time);
 
     /// Recharge time of a move for this Pokémon, upgrades included.
-    public float CooldownOf(MoveDef move) => move.cooldown * cooldownMul * EnemyBasic(move, SaveData.Settings.enemyBasicCooldownMul);
+    public float CooldownOf(MoveDef move) => move.cooldown * cooldownMul * EnemyBasic(move, SaveData.Settings.enemyBasicCooldownMul)
+        * AbilityCooldownMul(move); // Stall, Prankster
 
     // Enemies fire their basic attack less often but harder: the factor for enemies, 1 otherwise.
     float EnemyBasic(MoveDef move, float factor) => move.basic && team == Team.Enemy ? factor : 1f;
@@ -395,6 +396,7 @@ public partial class Combatant : MonoBehaviour
     {
         var next = GameData.Pokemon(pokemonId);
         if (next == null || Stats == null) return;
+        RevertTypeShift();
         float hpShare = maxHp > 0f ? hp / maxHp : 1f;
         maxHp += next.baseHp - Stats.baseHp;
         if (IsAlive) hp = Mathf.Max(1f, maxHp * hpShare);
@@ -418,6 +420,7 @@ public partial class Combatant : MonoBehaviour
     public void MegaEvolve(MegaDef mega)
     {
         if (Mega != null || Stats == null || mega == null) return;
+        RevertTypeShift();
         Mega = mega;
         beforeMega = Stats;
         var form = Stats.Clone();
@@ -467,6 +470,7 @@ public partial class Combatant : MonoBehaviour
     public void Terastallize(int type)
     {
         if (TeraType >= 0 || Stats == null) return;
+        RevertTypeShift();
         beforeTera = Stats;
         var form = Stats.Clone();
         form.types = new[] { type };
@@ -594,6 +598,7 @@ public partial class Combatant : MonoBehaviour
     public void AddModifier(string stat, float value, float duration)
     {
         if (!IsAlive || string.IsNullOrEmpty(stat) || value <= 0f) return;
+        value = Abilities.ChangedModifier(Ability, value); // Simple, Contrary
         modifiers.RemoveAll(m => Time.time >= m.until || (m.stat == stat && m.value > 1f == value > 1f));
         modifiers.Add(new TimedModifier { stat = stat, value = value, until = Time.time + duration });
     }
@@ -692,7 +697,7 @@ public partial class Combatant : MonoBehaviour
         }
 
         if (string.IsNullOrEmpty(move.status)) return;
-        float chance = move.statusChance > 0f ? Mathf.Min(1f, move.statusChance * more) : 1f;
+        float chance = (move.statusChance > 0f ? Mathf.Min(1f, move.statusChance * more) : 1f) * (Ability?.statusChanceMul ?? 1f); // Wonder Skin
         if (!sure && UnityEngine.Random.value > chance) return;
         AddStatus(move.status, move.statusDuration > 0f ? move.statusDuration : DefaultStatusDuration, source);
     }
@@ -807,7 +812,8 @@ public partial class Combatant : MonoBehaviour
         if (direction == Vector2.zero) return false;
         readyAt[slot] = Time.time + CooldownOf(move);
         direction = Steer(direction.normalized);
-        if ((move.family == "projectile" || move.family == "melee" || move.family == "zone") && move.castTime > 0f)
+        bool casts = move.castTime > 0f && !(Ability is { prankster: true } && move.power <= 0); // Prankster: at once
+        if ((move.family == "projectile" || move.family == "melee" || move.family == "zone") && casts)
         {
             // The move goes off once the cast is over, toward where the player aims then.
             castMove = move;
@@ -818,7 +824,8 @@ public partial class Combatant : MonoBehaviour
         else if (move.family == "projectile") Shoot(move, direction, distance);
         else if (move.family == "zone") PlaceZone(move, direction, distance);
         else if (move.family == "melee") Melee(move, direction);
-        if (move.castTime <= 0f) UseModifier(move);
+        if (!casts) UseModifier(move);
+        AbilityAttacked(move); // Truant, Protean, Analytic
         return true;
     }
 
@@ -939,7 +946,7 @@ public partial class Combatant : MonoBehaviour
     /// followAim: each strike goes where the player aims when it lands rather than at the start (blow after a dash).
     void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f, bool followAim = false)
     {
-        int count = Mathf.Max(1, move.hits);
+        int count = Mathf.Max(1, move.hits) + (move.hits > 1 ? ExtraHits : 0); // Skill Link
         for (int i = 0; i < count; i++)
         {
             float angle = move.hitAngles != null && move.hitAngles.Length > 0 ? move.hitAngles[i % move.hitAngles.Length] : 0f;
@@ -1224,8 +1231,9 @@ public partial class Combatant : MonoBehaviour
     void FireProjectiles(MoveDef move, Vector2 direction, float distance)
     {
         int shots = Mathf.Max(1, move.count);
-        if (AimTarget != null && distance <= 0f && !move.noAutoAim) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
-        for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
+        int bursts = Mathf.Max(1, move.burst) + (move.burst > 1 ? ExtraHits : 0); // Skill Link
+        if (AimTarget != null && distance <= 0f && !move.noAutoAim) AutoAim(move, shots * bursts, ref direction, ref distance);
+        for (int volley = 0; volley < bursts; volley++)
             for (int i = 0; i < shots; i++)
             {
                 float angle = shots == 1 ? 0f : Mathf.Lerp(-move.spread / 2f, move.spread / 2f, i / (shots - 1f));
@@ -1531,10 +1539,12 @@ public partial class Combatant : MonoBehaviour
     {
         float raw = DamageOf(move);
         if (raw <= 0f || target == null) return 0f;
-        if (Abilities.Absorbs(target.Ability, move.type)) return 0f; // Water Absorb, Lightning Rod…
+        int type = Abilities.TypeOf(move, Ability);
+        if (Abilities.Absorbs(target.Ability, type) && Ability is not { moldBreaker: true }) return 0f; // Water Absorb, Lightning Rod…
         float defence = move.category == "physical" ? target.def : target.spDef;
-        float typeMul = TypeChart.Multiplier(move.type, target.Stats?.types, out var efficacy);
-        float abilities = target.AbilityHitMul(move, this, ref typeMul, ref efficacy);
+        float typeMul = TypeChart.Multiplier(type, target.Stats?.types, out var efficacy);
+        float abilities = target.AbilityHitMul(move, type, this, ref typeMul, ref efficacy);
+        if (target.Ability is { onlySuperEffective: true } && efficacy != Efficacy.Super && Ability is not { moldBreaker: true }) return 0f;
         return raw * typeMul * abilities * DefenseScale / (DefenseScale + defence) / target.Modifier("defense");
     }
 
@@ -1551,24 +1561,28 @@ public partial class Combatant : MonoBehaviour
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
         if (BodyIgnoresHit()) return false; // untouchable, or Coup Bas answers it
         if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
-        if (TryAbsorb(move)) return false; // Water Absorb, Flash Fire…: nothing else happens
+        var attacker = HitSource;
+        if (TryAbsorb(move, attacker)) return false; // Water Absorb, Flash Fire…: nothing else happens
+        if (AbilityIgnoresHit(move, attacker, raw)) return false; // Soundproof, Overcoat, Magic Bounce, Anticipation
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = move.category == "physical" ? def : spDef;
-        float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
-        var attacker = HitSource;
-        float abilities = AbilityHitMul(move, attacker, ref typeMul, ref efficacy);
-        dealt = Mathf.Max(1f, raw * typeMul * abilities * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this)
+        int type = Abilities.TypeOf(move, attacker?.Ability); // Normalize
+        float typeMul = TypeChart.Multiplier(type, Stats?.types, out var efficacy);
+        float abilities = AbilityHitMul(move, type, attacker, ref typeMul, ref efficacy);
+        if (AbilityShrugs(efficacy, attacker)) return false; // Wonder Guard
+        dealt = Mathf.Max(1f, raw * typeMul * abilities * DefenseScale / (DefenseScale + defence) / DefenseAgainst(attacker) / Obstacles.DefenseMul(this)
             * Climate.DamageMul(move.type, transform.position)); // weather, sports around it
         if (cap > 0f) dealt = Mathf.Min(dealt, maxHp * cap);
-        dealt = AbilityEndure(dealt); // Sturdy
+        if (attacker == null || attacker.Ability is not { moldBreaker: true }) dealt = AbilityEndure(dealt); // Sturdy
+        LastAttacker = attacker;
         AbilityPressure(move, attacker);
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
         lastHurtAt = Time.time;
         LastHit = this;
-        AbilityAfterHit(move, attacker, dealt); // Anger Point, Justified, Cursed Body, Moxie…
+        AbilityAfterHit(move, attacker, dealt, type); // Anger Point, Justified, Cursed Body, Moxie…
         if (Held != null && Held.popOnHit && IsAlive) // a Balloon bursts at the first blow
         {
             Hold(null);
@@ -1595,6 +1609,7 @@ public partial class Combatant : MonoBehaviour
     public void Heal(float amount)
     {
         if (!IsAlive || amount <= 0f) return;
+        amount *= UnnerveMul(); // Unnerve of a foe nearby
         float healed = Mathf.Min(maxHp, hp + amount) - hp;
         if (healed >= 0.5f) DamageNumber.Heal(transform.position, healed);
         hp = Mathf.Min(maxHp, hp + amount);
