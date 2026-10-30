@@ -91,6 +91,7 @@ public class Projectile : MonoBehaviour
         projectile.piercing = owner != null && owner.PiercesWith(move); // Latios
         projectile.turnRate = owner != null ? owner.HomingTurn : 0f; // Lucario
         projectile.aimAtSpawn = owner.LiveAim;
+        if (owner != null) owner.DecorateShot(go, move, direction); // Lucario's aura, Latios's trail
         projectile.renderers = go.GetComponentsInChildren<Renderer>();
         if (delay > 0f) projectile.Show(false);
     }

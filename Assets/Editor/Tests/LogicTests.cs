@@ -16,6 +16,33 @@ public class LogicTests
         return -1;
     }
 
+    // ---- Test arena ----
+
+    [Test]
+    public void AbilityRoomFocusIsRead()
+    {
+        var (abilities, megas) = TerrainSandbox.AbilityFocus();
+        string raw = Resources.Load<TextAsset>("Data/terrain_sandbox").text;
+        if (System.Text.RegularExpressions.Regex.IsMatch(raw, "\"abilityFocus\"[^}]*\\[\\s*\\d"))
+            Assert.IsNotEmpty(abilities.Concat(megas).ToArray(), "abilityFocus de terrain_sandbox.json lu vide");
+        foreach (int id in abilities) Assert.IsNotNull(Abilities.Effect(id), $"talent {id} sans effet");
+        foreach (int id in megas) Assert.IsTrue(GameData.AllMegas.Exists(m => m.id == id), $"méga {id} inconnue");
+    }
+
+    [Test]
+    public void WardsReplaceTheRadius()
+    {
+        var radius = new AbilityEffect { allyGuardRadius = 3f };
+        Assert.IsTrue(Abilities.Covers(radius, 3f, false, 2f), "allié dans le rayon");
+        Assert.IsFalse(Abilities.Covers(radius, 3f, false, 4f), "allié hors du rayon");
+        var warded = new AbilityEffect { wards = 2, wardLeash = 8f };
+        Assert.IsFalse(Abilities.Covers(warded, 3f, false, 1f), "allié proche mais pas protégé");
+        Assert.IsTrue(Abilities.Covers(warded, 3f, true, 7f), "protégé dans le lien");
+        Assert.IsFalse(Abilities.Covers(warded, 3f, true, 9f), "protégé trop loin");
+        foreach (var m in Abilities.Megas)
+            if (m.wards > 0) Assert.Greater(m.wardLeash, 0f, $"méga {m.mega} sans portée de lien");
+    }
+
     // ---- Items ----
 
     [Test]

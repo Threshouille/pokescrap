@@ -62,11 +62,42 @@ public partial class Combatant
         abilityBeforeMega = AbilityId;
         if (mega.ability == 0) return;
         SetAbilityId(mega.ability, Abilities.ForMega(mega)); // its ability and the mega's own effect
+        wards.Clear();
+        RefreshWards(); // its protégés, chosen now
         // Steelix, Houndoom: their weather as they mega evolve.
         if (Ability != null && Ability.arrivalClimate != 0 && GameData.Move(Ability.arrivalClimate) is { } climate) Climate.Cast(climate, this);
     }
 
     void AbilityFromMega() => SetAbilityId(abilityBeforeMega);
+
+    readonly List<Combatant> wards = new(); // the team-mates its mega's effects go to (AbilityEffect.wards)
+
+    /// Its team-mate effect reaches "c": one of its wards within the leash, or close enough when it has none.
+    bool Covers(Combatant c, float radius) => c != null && c != this && c.team == team && c.IsAlive
+        && Abilities.Covers(Ability, radius, wards.Contains(c), Vector2.Distance(c.transform.position, transform.position));
+
+    /// Keeps its wards: the fallen and the ones gone to the other side dropped, filled up again from its group first
+    /// (enemies), then team-mates within the leash, the supports first, the nearest first.
+    void RefreshWards()
+    {
+        int want = Ability?.wards ?? 0;
+        wards.RemoveAll(w => w == null || !w.IsAlive || w.team != team);
+        if (want <= 0) { wards.Clear(); return; }
+        if (wards.Count >= want) return;
+        var group = TryGetComponent<EnemyAI>(out var ai) ? ai.group : null;
+        float leash = Ability.wardLeash;
+        var pool = new List<Combatant>();
+        foreach (var c in all)
+            if (c != this && c.team == team && c.IsAlive && !wards.Contains(c)) pool.Add(c);
+        int Rank(Combatant c) =>
+            (group != null && group.members.Contains(c) ? 0 : 4)
+            + (Vector2.Distance(c.transform.position, transform.position) <= leash ? 0 : 2)
+            + (c.Role == "support" ? 0 : 1);
+        Vector2 me = transform.position;
+        pool.Sort((x, y) => Rank(x) != Rank(y) ? Rank(x).CompareTo(Rank(y))
+            : Vector2.Distance(x.transform.position, me).CompareTo(Vector2.Distance(y.transform.position, me)));
+        for (int i = 0; i < pool.Count && wards.Count < want; i++) wards.Add(pool[i]);
+    }
 
     public string AbilityName => AbilityLibrary.Get(AbilityId)?.name;
 
@@ -177,6 +208,7 @@ public partial class Combatant
         if (!string.IsNullOrEmpty(Ability.absorbStat)) AddModifier(Ability.absorbStat, Ability.absorbValue, Ability.absorbDuration);
         if (Ability.absorbBoost != 1f) absorbBoostUntil = Time.time + Ability.absorbDuration;
         ShowAbility("absorbe " + GameData.TypeName(move.type));
+        AbilityFx();
     }
 
     /// The Pokémon of another team whose ability draws in a shot of this move passing at "at" (Lightning Rod), or null.
@@ -196,7 +228,11 @@ public partial class Combatant
     float AbilityEndure(float amount)
     {
         float taken = Abilities.Endure(Ability, hp, maxHp, amount);
-        if (taken < amount) ShowAbility("tient bon");
+        if (taken < amount)
+        {
+            ShowAbility("tient bon");
+            AbilityFx();
+        }
         return taken;
     }
 
@@ -271,11 +307,13 @@ public partial class Combatant
         {
             attacker.ApplyEffects(move, false, this); // back to its user
             ShowAbility("renvoyé");
+            AbilityFx();
             return true;
         }
         if (mine.ignoreHitChance > 0f && raw > 0f && Random.value < mine.ignoreHitChance)
         {
             ShowAbility("évité");
+            AbilityFx();
             return true;
         }
         return false;
@@ -287,7 +325,7 @@ public partial class Combatant
     {
         var mine = attacker?.Ability is { moldBreaker: true } ? null : Ability;
         if (mine == null) return false;
-        if (mine.superEffectiveDodge && efficacy == Efficacy.Super) dodgeReadyAt = 0f;
+        if (mine.superEffectiveDodge && efficacy == Efficacy.Super) dodgeReadyAt = 0f; // no fx: only a dodged hit shows
         if (mine.onlySuperEffective && efficacy != Efficacy.Super)
         {
             ShowAbility("sans effet");
@@ -359,9 +397,10 @@ public partial class Combatant
             if (foe != null && foe.Ability != null && !foe.Ability.copyAbility)
             {
                 copied = true;
-                string from = foe.AbilityName;
+                string from = foe.AbilityName, fx = a.fx;
                 SetAbilityId(foe.AbilityId);
                 ShowAbility($"copie {from}");
+                AbilityFx(fx);
                 return;
             }
         }
@@ -505,6 +544,7 @@ public partial class Combatant
             if (c.KeepsStat(Ability.arrivalModStat, Ability.arrivalModValue) || c.Ability is { oblivious: true }) continue;
             c.AddModifier(Ability.arrivalModStat, Ability.arrivalModValue, Ability.arrivalModDuration);
             c.Lowered();
+            c.TargetFx(Ability.targetFx);
             any = true;
         }
         if (any) ShowAbility();
@@ -553,7 +593,7 @@ public partial class Combatant
         {
             var a = c.Ability;
             if (c == this || c.team != team || !c.IsAlive || a == null || a.allyGuardRadius <= 0f) continue;
-            if (Vector2.Distance(c.transform.position, transform.position) <= a.allyGuardRadius) mul = Mathf.Min(mul, a.allyGuardMul);
+            if (c.Covers(this, a.allyGuardRadius)) mul = Mathf.Min(mul, a.allyGuardMul);
         }
         return mul;
     }
@@ -593,7 +633,8 @@ public partial class Combatant
                     if (attacker.Moves[i] == move)
                     {
                         attacker.readyAt[i] = Mathf.Max(attacker.readyAt[i], Time.time + a.curseTime);
-                        ShowAbility();
+                        ShowAbility("attaque bloquée");
+                        attacker.Cursed(a.targetFx, a.curseTime);
                     }
         }
         if (!IsAlive && attacker != null && attacker != this && attacker.IsAlive && attacker.Ability is { koAttackStep: > 1f } m
@@ -607,9 +648,12 @@ public partial class Combatant
         var their = attacker != null && attacker != this ? attacker.Ability : null;
         if (their == null) return;
         if (!string.IsNullOrEmpty(their.hitTerrain) && (!their.hitTerrainMeleeOnly || move.family == "melee"))
-            Terrain.PaintArea(their.hitTerrain, transform.position, their.hitTerrainRadius, their.hitTerrainDuration, attacker);
+            Terrain.PaintArea(their.hitTerrain, transform.position, their.hitTerrainRadius, their.hitTerrainDuration, attacker, spareTeam: true); // its own ice never trips it
         if (IsAlive && !string.IsNullOrEmpty(their.anyHitStatus) && Random.value < their.anyHitChance)
+        {
             AddStatus(their.anyHitStatus, DefaultStatusDuration, attacker);
+            TargetFx(their.targetFx); // Glalie, Darkrai
+        }
         if (their.echoShare > 0f && !echoing && IsAlive) attacker.StartCoroutine(attacker.Echo(this, move, dealt));
     }
 
@@ -623,7 +667,11 @@ public partial class Combatant
         echoing = true;
         var previous = HitSource;
         HitSource = this;
-        if (target.TakeHit(DamageOf(move) * Ability.echoShare, move, out _, hitCap) && Ability.echoStun > 0f) target.Stun(Ability.echoStun);
+        if (target.TakeHit(DamageOf(move) * Ability.echoShare, move, out _, hitCap))
+        {
+            target.TargetFx(Ability.targetFx); // the little one's punch
+            if (Ability.echoStun > 0f) target.Stun(Ability.echoStun);
+        }
         HitSource = previous;
         echoing = false;
     }
@@ -639,7 +687,13 @@ public partial class Combatant
     }
 
     /// Sableye: this shot goes back to its shooter.
-    public bool ReflectsShot() => Ability is { reflectShotChance: > 0f } a && IsAlive && Random.value < a.reflectShotChance;
+    public bool ReflectsShot()
+    {
+        if (Ability is not { reflectShotChance: > 0f } a || !IsAlive || Random.value >= a.reflectShotChance) return false;
+        ShowAbility("tir renvoyé");
+        AbilityFx(); // its gem
+        return true;
+    }
 
     /// Latios, Lucario: its shots of this move pierce / turn toward their target (degrees a second, 0: no).
     public bool PiercesWith(MoveDef move) => Ability != null && System.Array.IndexOf(Ability.piercingTypes, Abilities.TypeOf(move, Ability)) >= 0;
@@ -650,7 +704,7 @@ public partial class Combatant
     {
         foreach (var c in all)
             if (c != this && c.team == team && c.IsAlive && c.Ability is { allyStatusShieldRadius: > 0f } a
-                && Vector2.Distance(c.transform.position, transform.position) <= a.allyStatusShieldRadius) return true;
+                && c.Covers(this, a.allyStatusShieldRadius)) return true;
         return false;
     }
 
@@ -664,7 +718,8 @@ public partial class Combatant
         if (!string.IsNullOrEmpty(a.trailTerrain) && Time.time >= nextTrail && body != null && body.linearVelocity.sqrMagnitude > 0.5f)
         {
             nextTrail = Time.time + 0.25f;
-            Terrain.PaintArea(a.trailTerrain, transform.position, 0.4f, 3f, this);
+            Vector2 behind = (Vector2)transform.position - body.linearVelocity.normalized * 0.6f; // a trail, not a carpet ahead
+            Terrain.PaintArea(a.trailTerrain, behind, 0.4f, 3f, this, spareTeam: true);
         }
     }
 
@@ -674,10 +729,15 @@ public partial class Combatant
         if (a == null) return;
         if (a.trappedDrain > 0f && a.trapRadius > 0f)
             foreach (var c in new List<Combatant>(all))
-                if (c.team != team && c.IsAlive && c.Trapped()) c.TakeIndirectDamage(c.maxHp * a.trappedDrain);
+                if (c.team != team && c.IsAlive && c.Trapped())
+                {
+                    c.TakeIndirectDamage(c.maxHp * a.trappedDrain);
+                    c.TargetFx(a.targetFx);
+                }
+        RefreshWards();
         if (a.allyHealShare > 0f)
             foreach (var c in all)
-                if (c.team == team && c.IsAlive && c.hp < c.maxHp && Vector2.Distance(c.transform.position, transform.position) <= a.allyHealRadius)
+                if (c.IsAlive && c.hp < c.maxHp && (c == this || Covers(c, a.allyHealRadius)))
                     c.Heal(c.maxHp * a.allyHealShare);
     }
 
@@ -698,6 +758,7 @@ public partial class Combatant
         source.AddStatus(key, duration, this);
         synchronizing = false;
         ShowAbility();
+        AbilityFx();
     }
 
     /// Steadfast: stunned, it gets faster.
@@ -721,11 +782,9 @@ public partial class Combatant
     /// Arena Trap, Magnet Pull, Shadow Tag: a foe close by keeps it from dodging.
     bool Trapped()
     {
-        bool flies = Stats != null && (Stats.movementType == 2 || Stats.movementType == 3
-            || (Stats.types != null && System.Array.IndexOf(Stats.types, 10) >= 0));
         foreach (var c in all)
             if (c.team != team && c.IsAlive && c.Ability is { trapRadius: > 0f } a
-                && Abilities.Traps(a, Vector2.Distance(c.transform.position, transform.position), Stats?.types, flies)) return true;
+                && Abilities.Traps(a, Vector2.Distance(c.transform.position, transform.position), Stats?.types, Flies)) return true;
         return false;
     }
 
@@ -778,7 +837,11 @@ public partial class Combatant
         }
         if (!string.IsNullOrEmpty(Ability.absorbStat)) { AddModifier(Ability.absorbStat, Ability.absorbValue, 1.5f); acts = true; }
         if (Ability.absorbBoost != 1f) { absorbBoostUntil = Mathf.Max(absorbBoostUntil, Time.time + 1.5f); acts = true; }
-        if (acts) ShowAbility(def.name);
+        if (acts)
+        {
+            ShowAbility(def.name);
+            AbilityFx(null, 3f);
+        }
     }
 
     /// Its ability takes this terrain in: it does it no harm (Terrain.Immune).

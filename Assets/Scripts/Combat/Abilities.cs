@@ -197,12 +197,32 @@ public class AbilityEffect
     public string trailTerrain; // terrain it leaves where it walks
     public float allyHealShare, allyHealRadius = 4f; // it and its team-mates this close heal each second
     public float allyStatusShieldRadius; // team-mates this close get no status
+    public int wards; // > 0: its team-mate effects (guard, shield, heal) go to this many chosen team-mates instead (megas)
+    public float wardLeash = 8f; // …while they stay this close
     public int[] piercingTypes = new int[0]; // its shots of these types go through foes
     public float homingTurn; // degrees a second its shots turn toward their target
     public float speedMul = 1f; // its movement
     public float meleeKnockback; // tiles its close-range hits push the target
     public string anyHitStatus; // any of its hits may give it…
     public float anyHitChance;
+    public bool dodgeTeleport; // its dodge is a blink to a free spot, no slide (Alakazam)
+
+    // ---- Visuals (sheets of Resources/Effects: Combatant.AbilityFx.cs) ----
+    public string fx; // played on it when the ability acts (absorbs, holds on, copies, sends back, dodges a hit)
+    public string targetFx; // played on the Pokémon its effect lands on (Intimidate, Cursed Body, mega hits)
+    public string trapMark; // under each foe it keeps from dodging
+    public string foeMark; // above each foe its aura reaches (Unnerve)
+    public string sleepMark; // above each sleeping foe it reaches (Bad Dreams)
+    public string allyMark; // above each team-mate its aura reaches (Gardevoir, Latias)
+    public string aura; // on it, looping (Charizard X, Manectric)
+    public string groundAura; // under it, looping (Altaria)
+    public string field; // around it, as wide as shotSlowRadius (Mewtwo Y)
+    public string shotFx; // on each of its shots (Lucario)
+    public string shotTrail; // behind each of its shots, repeated (Latios)
+    public string dodgeFx, dodgeEndFx; // where its dodge starts / ends (Alakazam)
+    public string wardMark; // under each of its wards, smaller: the same look as its own (Altaria's cloud)
+    public float wardMarkSize = 1.4f; // tiles
+    public string wardColor; // a small light goes from it to each ward now and then (empty: none)
 
     public WeatherBonus Under(string weather)
     {
@@ -244,6 +264,7 @@ public static class Abilities
         public bool bossHidden = true; // a boss takes its hidden ability when it has one
         public float arrivalRadius = 5f; // tiles: foes Intimidate reaches
         public bool enemyClimate; // ordinary enemies cast their arrival weather too (bosses and elites always do)
+        public string megaAura = "mega_aura", megaAuraRise = "mega_aura_rise"; // on every mega while it lasts
     }
 
     /// A family of abilities (dev picker filter, demo room): key as FamilyOf gives it, name shown.
@@ -344,6 +365,15 @@ public static class Abilities
 
     /// The family of an ability, from what it does: weather, team (and items), contact, status, defense, attack,
     /// else combat.
+    // Who its team-mate effects reach, as the description says it.
+    static string AllyReach(AbilityEffect e, float radius) =>
+        e.wards > 0 ? $"{e.wards} allié{(e.wards > 1 ? "s" : "")} choisi{(e.wards > 1 ? "s" : "")} (à moins de {e.wardLeash:0} cases)" : $"alliés à {radius:0.#} cases";
+
+    /// A team-mate effect of "a" reaches a team-mate this far: one of its wards within the leash when it has wards,
+    /// else any within "radius".
+    public static bool Covers(AbilityEffect a, float radius, bool isWard, float distance) =>
+        a != null && (a.wards > 0 ? isWard && distance <= a.wardLeash : distance <= radius);
+
     public static string FamilyOf(AbilityEffect e)
     {
         if (e == null) return "combat";
@@ -629,7 +659,7 @@ public static class Abilities
             parts.Add($"les adversaires {(e.trapTypes.Length > 0 ? string.Join(", ", Array.ConvertAll(e.trapTypes, TypeName)) + " " : "")}à {e.trapRadius:0.#} cases ne peuvent plus esquiver{(e.trapSparesFliers ? " (sauf ceux qui volent)" : "")}");
         if (e.dampRadius > 0f) parts.Add($"empêche {string.Join(", ", Array.ConvertAll(e.dampMoves, m => GameData.Move(m)?.name ?? m.ToString()))} à {e.dampRadius:0.#} cases");
         if (e.nightmareRadius > 0f) parts.Add($"adversaires endormis à {e.nightmareRadius:0.#} cases : −{Pct(e.nightmareShare)} des PV par seconde");
-        if (e.allyGuardRadius > 0f) parts.Add($"alliés à {e.allyGuardRadius:0.#} cases : dégâts reçus {Times(e.allyGuardMul)}");
+        if (e.allyGuardRadius > 0f) parts.Add($"{AllyReach(e, e.allyGuardRadius)} : dégâts reçus {Times(e.allyGuardMul)}");
         if (e.allyTypeBoost != 0) parts.Add($"un allié {TypeName(e.allyTypeBoost)} à {e.allyTypeRadius:0.#} cases : attaques {Times(e.allyTypeMul)}");
         if (e.pickupChance > 0f) parts.Add($"{Pct(e.pickupChance)} de trouver un objet à chaque K.O. ennemi");
         if (e.bagHealMul != 1f) parts.Add($"soins du sac {Times(e.bagHealMul)}");
@@ -661,7 +691,7 @@ public static class Abilities
         if (e.statusedTakenMul != 1f) parts.Add($"sous statut, dégâts reçus {Times(e.statusedTakenMul)}");
         if (e.onlySuperEffective) parts.Add("seuls les coups super efficaces le blessent");
         if (e.punchMul != 1f) parts.Add($"attaques de poing {Times(e.punchMul)}");
-        if (e.foesHealMul != 1f) parts.Add($"adversaires à {e.foesHealRadius:0} cases : soins {Times(e.foesHealMul)}");
+        if (e.foesHealMul != 1f) parts.Add(e.foesHealMul <= 0f ? $"adversaires à {e.foesHealRadius:0} cases : aucun soin" : $"adversaires à {e.foesHealRadius:0} cases : soins {Times(e.foesHealMul)}");
         if (e.zoneTakenMul != 1f) parts.Add($"dégâts des zones reçus {Times(e.zoneTakenMul)}");
         if (e.weatherProof) parts.Add("aucun dégât de météo");
         if (e.infiltrator) parts.Add("ignore les bonus de défense et Garde-Ami");
@@ -692,8 +722,8 @@ public static class Abilities
         if (e.reflectShotChance > 0f) parts.Add($"{Pct(e.reflectShotChance)} de renvoyer un tir");
         if (e.meleeDrain > 0f) parts.Add($"corps à corps : draine {Pct(e.meleeDrain)}");
         if (!string.IsNullOrEmpty(e.trailTerrain)) parts.Add($"laisse en marchant : {Terrain.Def(e.trailTerrain)?.name ?? e.trailTerrain}");
-        if (e.allyHealShare > 0f) parts.Add($"lui et ses alliés à {e.allyHealRadius:0} cases : +{Pct(e.allyHealShare)} des PV par seconde");
-        if (e.allyStatusShieldRadius > 0f) parts.Add($"alliés à {e.allyStatusShieldRadius:0} cases : aucun statut");
+        if (e.allyHealShare > 0f) parts.Add($"lui et {(e.wards > 0 ? AllyReach(e, e.allyHealRadius) : $"ses alliés à {e.allyHealRadius:0} cases")} : +{Pct(e.allyHealShare)} des PV par seconde");
+        if (e.allyStatusShieldRadius > 0f) parts.Add($"{AllyReach(e, e.allyStatusShieldRadius)} : aucun statut");
         if (e.piercingTypes.Length > 0) parts.Add($"tirs {string.Join(", ", Array.ConvertAll(e.piercingTypes, TypeName))} perçants");
         if (e.homingTurn > 0f) parts.Add("ses tirs suivent la cible");
         if (e.speedMul != 1f) parts.Add($"vitesse {Times(e.speedMul)}");

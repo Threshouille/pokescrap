@@ -8,7 +8,9 @@ using UnityEngine.InputSystem;
 /// after the other on a loop: on the left a Pokémon with the ability, on the right the same without, in the same
 /// situation, and the banner compares what happened (health, statuses, distance walked, dodges…). The situation is
 /// worked out from the ability's data (Plan), so a new ability gets its demo without code. ←/→ another ability,
-/// ↑/↓ another family, R / Select again. The team stands aside and watches (its AIs off while here).
+/// ↑/↓ another family, R / Select again. The team stands aside and watches (its AIs off while here). It opens on the
+/// abilities and megas that have a look of their own (visual fields of ability_effects.json, Combatant.AbilityFx.cs),
+/// staged so that each one shows, the megas really mega evolved (their aura).
 public class AbilityDemos : MonoBehaviour
 {
     const float CaseTime = 7f, ActEvery = 1.2f, SideOffset = 4f;
@@ -35,6 +37,8 @@ public class AbilityDemos : MonoBehaviour
         public bool balloon; // the target holds an Air Balloon (Unburden)
         public bool respawn; // knocked-out targets come back (Moxie)
         public bool attackerItem; // the attacker holds an item (Pickpocket)
+        public int otherAbility; // the Pokémon in front of the holder has this ability (Trace copies it)
+        public string targetStatus; // given to the target before the act (Healer cures it)
     }
 
     class Side
@@ -49,13 +53,16 @@ public class AbilityDemos : MonoBehaviour
 
     readonly List<AbilityEffect> list = new();
     // The megas (Abilities.ForMega: ability + own effect): their name and species in the list.
-    readonly Dictionary<AbilityEffect, (string name, int species)> megas = new();
+    readonly Dictionary<AbilityEffect, (string name, int species, MegaDef def)> megas = new();
     readonly List<Combatant> spawned = new();
     readonly List<AllyAI> paused = new();
+    readonly Dictionary<Combatant, int> teamAbilities = new(); // the team's abilities, off while it watches
     PlayerController team;
     EnemySpawner spawner;
-    int index, family = -1;
-    float endsAt;
+    int index, family = Visuals; // Focus, Visuals, All, or a family of Abilities.Families
+    const int Focus = -3, Visuals = -2, All = -1;
+    int[] focusAbilities = new int[0], focusMegas = new int[0];
+    float endsAt, playedAt;
     Plan plan;
     Side with, without;
     string error;
@@ -67,20 +74,29 @@ public class AbilityDemos : MonoBehaviour
     public int Index => index;
     public string Error => error;
 
-    void Awake() => Build();
+    void Awake()
+    {
+        (focusAbilities, focusMegas) = TerrainSandbox.AbilityFocus();
+        if (focusAbilities.Length + focusMegas.Length > 0) family = Focus; // the cases to check again
+        Build();
+        Debug.Log($"Salle des talents : {list.Count} cas, liste {family} (-3 à revérifier, -2 visuels), focus {focusAbilities.Length} talents + {focusMegas.Length} mégas"
+            + (list.Count > 0 ? $", d'abord {NameOf(list[0])}" : ""));
+    }
 
     void Build()
     {
         list.Clear();
         megas.Clear();
         foreach (var e in Abilities.All)
-            if (family < 0 || Abilities.FamilyOf(e) == Abilities.Families[family].key) list.Add(e);
+            if (family == All || (family == Focus ? Array.IndexOf(focusAbilities, e.id) >= 0
+                : family == Visuals ? HasVisual(e) : Abilities.FamilyOf(e) == Abilities.Families[family].key)) list.Add(e);
         list.Sort((a, b) => string.CompareOrdinal(Abilities.FamilyOf(a) + NameOf(a), Abilities.FamilyOf(b) + NameOf(b)));
         if (family < 0 || Abilities.Families[family].key == "mega")
             foreach (var mega in GameData.AllMegas)
-                if (Abilities.ForMega(mega) is { } effect && PokemonRoster.Has(mega.@base))
+                if (Abilities.ForMega(mega) is { } effect && PokemonRoster.Has(mega.@base)
+                    && (family == Focus ? Array.IndexOf(focusMegas, mega.id) >= 0 : family != Visuals || HasVisual(effect)))
                 {
-                    megas[effect] = (mega.name, mega.@base);
+                    megas[effect] = (mega.name, mega.@base, mega);
                     list.Add(effect);
                 }
     }
@@ -89,6 +105,20 @@ public class AbilityDemos : MonoBehaviour
 
     string FamilyOf(AbilityEffect e) => megas.ContainsKey(e) ? "mega" : Abilities.FamilyOf(e);
 
+    /// The AI bench: every ability and mega, whatever its look.
+    public void ShowAll() { family = All; Build(); }
+
+    /// The abilities and megas with a look of their own only (the room's first list).
+    public void ShowVisuals() { family = Visuals; Build(); }
+
+    static bool HasVisual(AbilityEffect e)
+    {
+        if (e == null) return false;
+        foreach (var sheet in new[] { e.fx, e.targetFx, e.trapMark, e.foeMark, e.sleepMark, e.allyMark, e.aura, e.groundAura, e.field, e.shotFx, e.shotTrail, e.dodgeFx })
+            if (!string.IsNullOrEmpty(sheet)) return true;
+        return false;
+    }
+
     IEnumerator Start()
     {
         team = FindAnyObjectByType<PlayerController>();
@@ -96,11 +126,19 @@ public class AbilityDemos : MonoBehaviour
         yield return null;
         if (team != null)
             foreach (var m in team.Members)
+            {
                 if (m.GetComponent<AllyAI>() is { enabled: true } ai)
                 {
                     ai.enabled = false;
                     paused.Add(ai);
                 }
+                // Its Intimidate, Unnerve… would act on the cast (and announce itself before the case).
+                if (m != null && m.AbilityId != 0)
+                {
+                    teamAbilities[m] = m.AbilityId;
+                    m.SetAbility(0);
+                }
+            }
         Play(0);
     }
 
@@ -110,6 +148,8 @@ public class AbilityDemos : MonoBehaviour
         Clear();
         foreach (var ai in paused) if (ai != null) ai.enabled = true;
         paused.Clear();
+        foreach (var pair in teamAbilities) if (pair.Key != null) pair.Key.SetAbility(pair.Value);
+        teamAbilities.Clear();
         if (team != null) team.ScriptedMove = null;
         Climate.Clear();
     }
@@ -125,10 +165,12 @@ public class AbilityDemos : MonoBehaviour
         if ((pad != null && pad.dpad.up.wasPressedThisFrame) || (kb != null && kb.upArrowKey.wasPressedThisFrame)) familyStep = -1;
         if ((pad != null && pad.dpad.down.wasPressedThisFrame) || (kb != null && kb.downArrowKey.wasPressedThisFrame)) familyStep = 1;
         bool again = (pad != null && pad.selectButton.wasPressedThisFrame) || (kb != null && kb.rKey.wasPressedThisFrame);
+        if (Time.time - playedAt < 0.3f) step = familyStep = 0; // a case gets set up before the next one (rapid presses)
+        if (Time.time - playedAt < 0.3f) again = false;
         if (familyStep != 0)
         {
-            int count = Abilities.Families.Count + 1;
-            family = (family + 1 + familyStep + count) % count - 1;
+            int count = Abilities.Families.Count + 3;
+            family = (family + 3 + familyStep + count) % count - 3;
             Build();
             Play(0);
         }
@@ -142,6 +184,7 @@ public class AbilityDemos : MonoBehaviour
     {
         if (list.Count == 0) return;
         index = which;
+        playedAt = Time.time;
         endsAt = Time.time + (caseTime > 0f ? caseTime : CaseTime);
         StopAllCoroutines();
         if (team != null) team.ScriptedMove = Vector2.zero; // the player only watches
@@ -154,7 +197,7 @@ public class AbilityDemos : MonoBehaviour
     {
         if (list.Count == 0) return "Démo des talents : aucun talent";
         var e = list[index];
-        string fam = family < 0 ? "toutes familles" : Abilities.Families[family].name;
+        string fam = family == Focus ? "à revérifier" : family == Visuals ? "nouveaux visuels" : family == All ? "toutes familles" : Abilities.Families[family].name;
         string head = $"Talents ({index + 1}/{list.Count}, {fam}) : {NameOf(e)} [{Abilities.FamilyName(FamilyOf(e))}] — {Abilities.Describe(e)}";
         string body = plan == null ? "" : plan.act == Act.Explain ? $"     {plan.watch}"
             : $"     {plan.watch}     Avec : {Measure(with)}     Sans : {Measure(without)}";
@@ -220,7 +263,7 @@ public class AbilityDemos : MonoBehaviour
         team.PrepareForNextArena(Centre + new Vector2(0f, -9f), 1f);
         Climate.Clear();
         plan = null;
-        try { plan = PlanFor(e); }
+        try { plan = (family <= Visuals ? VisualPlan(e) : null) ?? PlanFor(e); }
         catch (Exception ex) { error = ex.Message; Debug.LogException(ex); }
         if (plan == null || plan.act == Act.Explain) yield break;
         CameraFollow.Focus(Centre + new Vector2(0f, 1f), (caseTime > 0f ? caseTime : CaseTime) + 0.5f, 0.2f); // the cast, not the team
@@ -267,13 +310,25 @@ public class AbilityDemos : MonoBehaviour
         }
         s.target.hp = s.target.maxHp * plan.targetHpShare;
         if (plan.holderBeside) s.extra = Cast(plan.targetSpecies, s.targetAt + Vector2.right * 1.2f, Team.Enemy);
+        // A mega with wards protects two: a second team-mate by the target, on both sides (the same situation).
+        if (plan.holderBeside && (effect ?? list[index]).wards > 1) Cast(plan.targetSpecies, s.targetAt + Vector2.left * 1.2f, Team.Enemy);
         if (plan.allyType != 0 && FindSpecies(t => Array.IndexOf(t, plan.allyType) >= 0) is var mate and > 0)
             Cast(mate, s.attackerAt + Vector2.left * 1.2f, Team.Player);
         if (plan.balloon) s.target.Hold(HeldItems.Get("air_balloon"));
         if (plan.attackerItem && s.attacker != null) s.attacker.Hold(HeldItems.Get("leftovers"));
         var holder = Holder(s);
         if (holder != null) holder.SetAbility(ability, effect);
+        if (plan.otherAbility != 0)
+            foreach (var c in new[] { s.attacker, s.target })
+                if (c != null && c != holder) c.SetAbility(plan.otherAbility);
+        // The visuals room shows a mega as a mega: its sprites, the common aura.
+        if (family <= Visuals && holder != null && effect != null && megas.TryGetValue(effect, out var mega))
+        {
+            holder.MegaEvolve(mega.def);
+            if (PokemonRoster.Get(mega.def.id) is { } set && holder.GetComponent<PmdAnimator>() is { } animator) animator.SetAnimSet(set);
+        }
         if (!string.IsNullOrEmpty(plan.preStatus) && holder != null) holder.AddStatus(plan.preStatus, 30f);
+        if (!string.IsNullOrEmpty(plan.targetStatus)) s.target.AddStatus(plan.targetStatus, 30f);
         return s;
     }
 
@@ -591,6 +646,93 @@ public class AbilityDemos : MonoBehaviour
         p.act = Act.Explain;
         p.watch = "pas de démo pour ce talent : description seulement.";
         return p;
+    }
+
+    /// The visuals room: a situation where the look of the ability shows for sure (null: the usual demo).
+    Plan VisualPlan(AbilityEffect e)
+    {
+        int holder = megas.TryGetValue(e, out var mega) ? mega.species : SpeciesWith(e.id);
+        var p = new Plan { attackerSpecies = Fallback, targetSpecies = holder };
+        var shot = FindMove(m => m.family == "projectile" && m.path != "arc");
+        var melee = FindMove(m => m.family == "melee" && m.lunge <= 0f);
+
+        void Attacker() { p.holderAttacks = true; p.attackerSpecies = holder; p.targetSpecies = Fallback; }
+        void Close() { p.distance = p.move != null && p.move.family == "melee" ? 1.2f : 3f; }
+
+        if (e.absorbType != 0) { p.move = TypedMove(e.absorbType); p.watch = $"tirs {GameData.TypeName(e.absorbType)} : à gauche ils sont absorbés (effet d'absorption sur le porteur)."; return p; }
+        if (!string.IsNullOrEmpty(e.dodgeFx)) { p.act = Act.Dodge; p.watch = "à chaque esquive, la gauche disparaît et réapparaît plus loin."; return p; }
+        if (!string.IsNullOrEmpty(e.trapMark) || e.trappedDrain > 0f)
+        {
+            Attacker();
+            p.act = Act.Dodge;
+            p.distance = Mathf.Min(2f, e.trapRadius * 0.7f);
+            p.targetSpecies = e.trapTypes.Length > 0 ? FindSpecies(t => Array.IndexOf(t, e.trapTypes[0]) >= 0) : FindSpecies(t => Array.IndexOf(t, 10) < 0);
+            p.watch = e.trappedDrain > 0f ? "sceau sous la cible piégée, volute de drain chaque seconde." : "marque sous la cible piégée près du porteur (elle ne peut plus esquiver).";
+            return p;
+        }
+        if (!string.IsNullOrEmpty(e.sleepMark)) { Attacker(); p.act = Act.Idle; p.distance = 2f; p.watch = "cauchemar au-dessus de la cible endormie près du porteur."; return Sleepy(p); }
+        if (!string.IsNullOrEmpty(e.foeMark)) { Attacker(); p.act = Act.Heal; p.distance = 2f; p.watch = e.foesHealMul <= 0f ? "cœur barré au-dessus de la cible proche du porteur : aucun soin (+0)." : "cœur barré au-dessus de la cible proche du porteur : soins réduits."; return p; }
+        if (e.allyHealShare > 0f)
+        {
+            p.holderBeside = true;
+            p.act = Act.Idle;
+            p.targetHpShare = 0.5f;
+            p.watch = e.wards > 0 ? $"ses {e.wards} protégés (petit nuage) à mi-PV se soignent ; une lumière part d'elle vers eux." : "les alliés proches à mi-PV se soignent.";
+            return p;
+        }
+        if (e.allyCureEvery > 0f) { p.holderBeside = true; p.act = Act.Idle; p.targetStatus = "poison"; p.watch = $"la cible empoisonnée, à côté du porteur (à gauche) : {e.allyCureChance:P0} de guérir toutes les {e.allyCureEvery:0} s."; return p; }
+        if (e.allyWeatherRadius > 0f) { p.holderBeside = true; p.act = Act.Idle; p.weather = "sun"; p.watch = "sous le soleil, la cible à côté du porteur (à gauche) gagne attaque + (icône)."; return p; }
+        if (!string.IsNullOrEmpty(e.allyMark))
+        {
+            p.holderBeside = true;
+            p.move = e.allyStatusShieldRadius > 0f ? StatusMove("poison") ?? shot : shot;
+            p.watch = e.wards > 0 ? $"halo au-dessus des {e.wards} protégés choisis par la méga (à gauche), tant qu'ils restent à moins de {e.wardLeash:0} cases." : "halo au-dessus de la cible, protégée par son coéquipier à gauche.";
+            return p;
+        }
+        if (!string.IsNullOrEmpty(e.field)) { p.move = shot; p.distance = 5f; p.watch = "bulle autour de la gauche : les tirs y ralentissent."; return p; }
+        if (e.reflectShotChance > 0f) { p.act = Act.Count; p.move = shot; p.distance = 4f; p.watch = $"tirs en rafale sur les deux : à gauche, la gemme renvoie {e.reflectShotChance:P0} des tirs vers l'attaquant (bandeau)."; return p; }
+        if (e.superEffectiveDodge) { p.act = Act.Count; p.move = SuperEffective(holder) ?? shot; p.watch = $"tirs super efficaces en rafale : image fantôme à gauche seulement quand un coup est évité ({e.ignoreHitChance:P0})."; return p; }
+        if (e.magicBounce) { p.move = FindStatusOnly() ?? StatusMove("poison") ?? shot; Close(); p.watch = "une attaque de statut : miroir à gauche, le statut repart vers l'attaquant."; return p; }
+        if (e.synchronize) { p.move = StatusMove("burn") ?? StatusMove("poison") ?? shot; Close(); p.watch = "un statut sur les deux : miroir à gauche, il repart vers l'attaquant."; return p; }
+        if (e.endure) { p.move = StrongMove(); p.targetHp = 30f; p.watch = "un coup fatal à PV pleins : bouclier qui se fissure à gauche."; return p; }
+        if (e.copyAbility) { Attacker(); p.act = Act.Idle; p.distance = 2f; p.otherAbility = 6; p.watch = "la gauche copie Intimidation de l'adversaire en face (photocopie)."; return p; }
+        if (!string.IsNullOrEmpty(e.trailTerrain)) { p.act = Act.Walk; p.watch = "les deux marchent : à gauche, la traînée se pose derrière lui, et il n'en subit rien."; return p; }
+        if (!string.IsNullOrEmpty(e.arrivalModStat)) { Attacker(); p.act = Act.Idle; p.watch = "œil menaçant au-dessus de l'adversaire qui approche."; return p; }
+        if (e.curseChance > 0f) { p.act = Act.Count; p.move = shot; p.watch = $"l'attaquant tire dès qu'il peut : à gauche, {e.curseChance:P0} des coups bloquent son attaque {e.curseTime:0} s (cadenas au-dessus de lui, moins d'attaques lancées)."; return p; }
+        if (!string.IsNullOrEmpty(e.shotFx) || !string.IsNullOrEmpty(e.shotTrail))
+        {
+            Attacker();
+            p.move = e.piercingTypes.Length > 0 ? TypedMove(e.piercingTypes[0]) : shot;
+            p.distance = 5f;
+            p.watch = !string.IsNullOrEmpty(e.shotFx) ? "aura bleue sur chacun de ses tirs." : "traînée derrière chacun de ses tirs.";
+            return p;
+        }
+        if (!string.IsNullOrEmpty(e.targetFx) || e.meleeDrain > 0f)
+        {
+            Attacker();
+            p.move = e.meleeDrain > 0f || e.hitTerrainMeleeOnly ? melee : shot;
+            Close();
+            p.watch = e.anyHitStatus != null && e.anyHitChance > 0f ? "coups répétés : effet sur la cible quand le statut passe." : "coups répétés : effet sur la cible à chaque fois.";
+            return p;
+        }
+        if (!string.IsNullOrEmpty(e.aura) || !string.IsNullOrEmpty(e.groundAura))
+        {
+            Attacker();
+            p.move = e.hitTerrainMeleeOnly ? melee : shot;
+            Close();
+            p.watch = "aura de la méga autour d'elle pendant qu'elle attaque.";
+            return p;
+        }
+        if (!string.IsNullOrEmpty(e.hitTerrain))
+        {
+            Attacker();
+            p.move = e.hitTerrainMeleeOnly ? melee : shot;
+            Close();
+            p.watch = "ses coups posent leur terrain sous la cible (plus de flammes autour de lui).";
+            return p;
+        }
+        if (e.piercingTypes.Length > 0) { Attacker(); p.move = TypedMove(e.piercingTypes[0]); p.distance = 5f; p.watch = "tirs perçants, sans traînée."; return p; }
+        return null;
     }
 
     // Bad Dreams: the targets sleep (the holder attacks nothing).

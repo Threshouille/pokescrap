@@ -188,6 +188,11 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   électrique, Camérupt braises, Altaria soigne les alliés, Branette statuts plus longs, Absol anticipe, Oniglali gèle,
   Latias protège des statuts, Latios tirs perçants, Rayquaza Dragon / Vol, Lockpin vitesse et poussée, Lucario tirs
   qui suivent, Gallame coups plus larges, Darkrai endort. Peau Féérique : attaques Normal → type de la méga.
+- Protégés des mégas (30/10/2026, Robin) : Gardevoir (dégâts reçus), Latias (statuts) et Altaria (soin) ne touchent plus
+  tous les alliés proches mais 2 protégés choisis à la méga-évolution (`wards`), marqués d'un halo, tant qu'ils restent
+  à moins de 8 cases (`wardLeash`) : côté joueur ses coéquipiers, côté boss ou élite deux sbires de son groupe (soutiens
+  puis les plus proches) ; un protégé K.O. est remplacé. Les talents permanents (Garde-Ami…) gardent leur rayon.
+  Méga-Alakazam : l'esquive devient une téléportation. Tension : aucun soin (« +0 »).
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.

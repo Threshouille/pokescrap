@@ -706,7 +706,11 @@ public partial class Combatant : MonoBehaviour
     /// Called on the attacker when one of its moves lands: drain, recoil and bonuses it gives itself.
     public void HitLanded(MoveDef move, float dealt)
     {
-        if (dealt > 0f && move.family == "melee" && Ability is { meleeDrain: > 0f } jaws) Heal(dealt * jaws.meleeDrain); // Mawile
+        if (dealt > 0f && move.family == "melee" && Ability is { meleeDrain: > 0f } jaws) // Mawile
+        {
+            Heal(dealt * jaws.meleeDrain);
+            if (LastHit != null) LastHit.TargetFx(jaws.targetFx);
+        }
         if (Held != null && dealt > 0f)
         {
             if (Held.drainShare > 0f) Heal(dealt * Held.drainShare); // a Shell Bell
@@ -1112,7 +1116,13 @@ public partial class Combatant : MonoBehaviour
         dodgeDirection = direction.normalized;
         dodgeUntil = Time.time + settings.dodgeTime * AbilityDodgeTimeMul; // Light Metal
         dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown) * AbilityDodgeCooldownMul;
+        if (Ability is { dodgeTeleport: true } && TeleportDodge(dodgeDirection, settings.dodgeDistance * AbilityDodgeTimeMul))
+        {
+            dodgeUntil = Time.time; // no slide
+            return true;
+        }
         PassThroughOpponents();
+        DodgeFx(); // Alakazam
         return true;
     }
 
@@ -1278,6 +1288,7 @@ public partial class Combatant : MonoBehaviour
     {
         UpdateDelayedKnock();
         UpdateAbility();
+        UpdateAbilityMarks();
         UpdateRolloutBadge();
         if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
         {
@@ -1611,7 +1622,13 @@ public partial class Combatant : MonoBehaviour
     public void Heal(float amount)
     {
         if (!IsAlive || amount <= 0f) return;
-        amount *= UnnerveMul(); // Unnerve of a foe nearby
+        float unnerve = UnnerveMul(); // Unnerve of a foe nearby
+        if (unnerve <= 0f)
+        {
+            DamageNumber.Heal(transform.position, 0f); // "+0": the heal is there, and stopped
+            return;
+        }
+        amount *= unnerve;
         float healed = Mathf.Min(maxHp, hp + amount) - hp;
         if (healed >= 0.5f) DamageNumber.Heal(transform.position, healed);
         hp = Mathf.Min(maxHp, hp + amount);

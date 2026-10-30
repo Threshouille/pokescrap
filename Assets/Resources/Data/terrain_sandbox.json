@@ -5,6 +5,7 @@
   "zDemoCount": 8, "zDemoRadius": 4.5, "zDemoHealth": 30, "zDemoRespawn": 2,
   "encounterLab": {"roundTime": 45, "teamHealth": 4, "distance": 8, "stageEvery": 3, "watch": false},
   "eliteRoom": {"pokemon": 131, "moves": [42, 53], "level": 8, "health": 3, "respawn": 6, "offset": [9, 0]},
+  "abilityFocus": {"comment": "the ability room (AbilityDemos) opens on these when not empty: ids of abilities, ids of megas.json", "abilities": [1132, 1131, 113], "megas": [22821, 23801, 23341]},
   "bossRoom": {"pokemon": 150, "moves": [109, 127, 508, 345], "level": 12, "health": 6, "respawn": 8, "offset": [0, 6]},
   "galleryColumns": 9, "gallerySpacing": 3,
   "emitters": [

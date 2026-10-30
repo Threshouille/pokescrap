@@ -1794,6 +1794,14 @@ public class AiScenarios : MonoBehaviour
         demos.caseTime = 100f; // the scenario moves on itself
         yield return null;
         yield return null;
+        demos.ShowVisuals(); // the abilities with a look of their own (the room may open on a shorter list)
+        int visuals = demos.Count;
+        for (int i = 0; i < visuals; i++)
+        {
+            demos.Play(i);
+            yield return new WaitForSeconds(0.5f);
+        }
+        demos.ShowAll();
         int cases = demos.Count;
         for (int i = 0; i < cases; i++)
         {
@@ -1804,8 +1812,8 @@ public class AiScenarios : MonoBehaviour
         Destroy(demos);
         yield return null;
         int megas = GameData.AllMegas.FindAll(m => Abilities.ForMega(m) != null && PokemonRoster.Has(m.@base)).Count;
-        Report(errors == 0 && cases == Abilities.All.Count + megas,
-            $"{cases} démos pour {Abilities.All.Count} talents et {megas} mégas, {errors} erreur(s){(first != null ? " : " + first : "")}");
+        Report(errors == 0 && cases == Abilities.All.Count + megas && visuals > 0,
+            $"{cases} démos pour {Abilities.All.Count} talents et {megas} mégas, {visuals} visuels, {errors} erreur(s){(first != null ? " : " + first : "")}");
     }
 
     // Synchronize sends a burn back to who gave it; Magic Guard takes no poison damage; Shadow Tag keeps the

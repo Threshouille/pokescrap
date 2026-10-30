@@ -42,7 +42,17 @@ public class TerrainSandbox : MonoBehaviour
     [Serializable] class SandboxFile { public bool enemyWaves = true; public Emitter[] emitters; public int galleryColumns = 9; public float gallerySpacing = 3f;
         public int[] dummies = new int[0]; public int dummyCount = 6, dummyLevel = 5; public float dummyRespawn = 4f, dummyHealth = 3f, dummyMinDistance = 4f;
         public int zDemoCount = 8; public float zDemoRadius = 4.5f, zDemoHealth = 30f, zDemoRespawn = 2f;
-        public Fighter eliteRoom = new(), bossRoom = new(); }
+        public Fighter eliteRoom = new(), bossRoom = new(); public Focus abilityFocus = new(); }
+
+    /// The cases the ability room opens on (AbilityDemos), when not empty.
+    [Serializable] class Focus { public int[] abilities = new int[0], megas = new int[0]; }
+
+    /// Ability ids and megas.json ids the ability room opens on (both empty: its usual first list).
+    public static (int[] abilities, int[] megas) AbilityFocus()
+    {
+        var f = Settings().abilityFocus ?? new Focus();
+        return (f.abilities ?? new int[0], f.megas ?? new int[0]);
+    }
 
     /// The opponent of the elite or boss room: a real fight (its AI, its moves, its ultimate).
     [Serializable]

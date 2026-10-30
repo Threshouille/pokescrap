@@ -4772,6 +4772,716 @@
         "#c8ccd6",
         "#ffffff"
       ]
+    },
+    {
+      "file": "ability_trap_shadow.png",
+      "frame_width": 48,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#1a1024",
+        "#4a2a6a",
+        "#8a5ac8",
+        "#d0b0ff"
+      ],
+      "below": true
+    },
+    {
+      "file": "ability_trap_shadow_drain.png",
+      "frame_width": 16,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#1a1024",
+        "#4a2a6a",
+        "#8a5ac8",
+        "#d0b0ff"
+      ]
+    },
+    {
+      "file": "ability_trap_sand.png",
+      "frame_width": 48,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#7a5a2a",
+        "#c09a50",
+        "#f0d890"
+      ],
+      "below": true
+    },
+    {
+      "file": "ability_trap_magnet.png",
+      "frame_width": 48,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#2a2a34",
+        "#6a6a7a",
+        "#b0b4c0",
+        "#c42418",
+        "#2a5ad0",
+        "#8ac8ff"
+      ],
+      "below": true
+    },
+    {
+      "file": "ability_intimidate.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": false,
+      "palette": [
+        "#6a1010",
+        "#d02020",
+        "#ff8a6a",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_unnerve.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "palette": [
+        "#2a7a3a",
+        "#6ad07a",
+        "#ffffff",
+        "#d02020",
+        "#6a1010"
+      ]
+    },
+    {
+      "file": "ability_curse.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": false,
+      "palette": [
+        "#2a1040",
+        "#7a3ab0",
+        "#c890ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_nightmare.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        140,
+        140,
+        140,
+        140,
+        140,
+        140
+      ],
+      "loop": true,
+      "palette": [
+        "#140a14",
+        "#6a1a4a",
+        "#e03a8a",
+        "#ff4040"
+      ]
+    },
+    {
+      "file": "ability_absorb_water.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#1a3a6a",
+        "#2a6ab0",
+        "#6ab0e8",
+        "#e0f4ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_absorb_electric.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#a07010",
+        "#f0c030",
+        "#fff6a0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_absorb_fire.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#c42418",
+        "#f0741a",
+        "#ffd23a",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_absorb_grass.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#2a6a2a",
+        "#6aa03a",
+        "#b0e070",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_endure.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#a07010",
+        "#f0c030",
+        "#fff0a0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_copy.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#1a3a4a",
+        "#3a9aa0",
+        "#8ae0d0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_reflect.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a6aa0",
+        "#a0d0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "ability_evade.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#0a1430",
+        "#2a3a7a",
+        "#6a8ad0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_aura.png",
+      "frame_width": 48,
+      "frame_height": 24,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#5a2a8a",
+        "#2a6ad0",
+        "#e05ab0",
+        "#f0c030",
+        "#ffffff"
+      ],
+      "below": true
+    },
+    {
+      "file": "mega_aura_rise.png",
+      "frame_width": 32,
+      "frame_height": 48,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#5a2a8a",
+        "#2a6ad0",
+        "#e05ab0",
+        "#f0c030",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_alakazam_out.png",
+      "frame_width": 32,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": false,
+      "palette": [
+        "#4a2a6a",
+        "#8a5ac8",
+        "#d0b0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_alakazam_in.png",
+      "frame_width": 32,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": false,
+      "palette": [
+        "#4a2a6a",
+        "#8a5ac8",
+        "#d0b0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_charizardx_aura.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#101830",
+        "#2a4ab0",
+        "#4ab0ff",
+        "#c0f0ff"
+      ]
+    },
+    {
+      "file": "mega_kangaskhan_echo.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": false,
+      "palette": [
+        "#a07010",
+        "#f0c030",
+        "#fff6a0",
+        "#6a4a1a",
+        "#d8b078",
+        "#f0dcb0"
+      ]
+    },
+    {
+      "file": "mega_mewtwo_field.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true,
+      "palette": [
+        "#4a2a6a",
+        "#8a5ac8",
+        "#d0b0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_ally_guard.png",
+      "frame_width": 32,
+      "frame_height": 16,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#2a7a4a",
+        "#6ad08a",
+        "#f0a0c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_ally_shield.png",
+      "frame_width": 32,
+      "frame_height": 16,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#a02020",
+        "#f05050",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_altaria_cloud.png",
+      "frame_width": 72,
+      "frame_height": 36,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        130,
+        130,
+        130,
+        130,
+        130,
+        130,
+        130,
+        130
+      ],
+      "loop": true,
+      "palette": [
+        "#5a7aa0",
+        "#a0c8e8",
+        "#e0f0ff",
+        "#ffffff",
+        "#6ad07a"
+      ],
+      "below": true
+    },
+    {
+      "file": "mega_manectric_sparks.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": true,
+      "palette": [
+        "#a07010",
+        "#f0c030",
+        "#6ab0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_sableye_gem.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#6a1020",
+        "#d02040",
+        "#ff8aa0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_mawile_bite.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#1a1a20",
+        "#4a4a54",
+        "#9a9aa8",
+        "#ffffff",
+        "#d02040",
+        "#ff8aa0"
+      ]
+    },
+    {
+      "file": "mega_glalie_frost.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#3a6aa0",
+        "#a0d0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mega_darkrai_dream.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#140a14",
+        "#6a1a2a",
+        "#e03a3a"
+      ]
+    },
+    {
+      "file": "mega_lucario_aura.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#1a3a8a",
+        "#4a8aff",
+        "#c0e0ff"
+      ]
+    },
+    {
+      "file": "mega_latios_trail.png",
+      "frame_width": 24,
+      "frame_height": 12,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true,
+      "palette": [
+        "#1a3a8a",
+        "#4a8aff",
+        "#c0e0ff",
+        "#ffffff"
+      ]
     }
   ]
 }
