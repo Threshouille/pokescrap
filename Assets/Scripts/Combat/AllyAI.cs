@@ -194,7 +194,8 @@ public class AllyAI : MonoBehaviour
         if (bag == null) return;
         var ai = BagItems.AiSettings;
         int slot = -1;
-        if (combatant.hp < combatant.maxHp * ai.healBelow) slot = bag.Find(i => i.effect == "heal");
+        if (combatant.hp < combatant.maxHp * ai.healBelow && !AbilityAi.HealStopped(combatant, combatant)) // not "+0" (Unnerve)
+            slot = bag.Find(i => i.effect == "heal");
         if (slot < 0) slot = bag.Find(i => i.effect == "cure" && combatant.HasStatus(i.status));
         if (slot < 0 && TeamRescue.Downed(combatant) != null) slot = bag.Find(i => i.effect == "revive");
         if (slot >= 0 && bag.Use(slot, combatant)) nextBagAt = Time.time + ai.cooldown;

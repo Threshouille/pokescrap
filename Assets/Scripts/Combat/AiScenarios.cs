@@ -163,6 +163,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Talents : l'allié ne tire pas de l'Eau sur un Absorbe-Eau", AbilityTarget());
         yield return Scenario("Talents IA : pas de statut sur Miroir Magik ni Synchro, peu de tirs sur Ténéfix", AbilityAiLotOne());
         yield return Scenario("Talents IA : flaque d'Absorbe-Eau, piégeur au contact, protégé près de sa méga", AbilityAiLotTwo());
+        yield return Scenario("Talents IA : pas de soin sous Tension, recul face au piégeur, protégés visés après", AbilityAiLotThree());
         yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
         yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
         yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
@@ -1769,6 +1770,84 @@ public class AiScenarios : MonoBehaviour
         bool ok = puddleKnown && !puddleBlind && trapKnown && trapBlind && ward && wardKnown && !wardBlind;
         Report(ok, $"flaque {puddleKnown} (sans connaissance {puddleBlind}), piégeur s'approche {trapKnown} (reste {trapBlind}), "
             + $"protégé {ward} revient {wardKnown} ({wardBlind})");
+    }
+
+    // AIs and abilities, lot 3 (AbilityAi): a support keeps its heal when an Unnerve stops it, a shooter backs off out
+    // of a Shadow Tag's reach, an AI picks an unprotected foe before a mega's ward; with no knowledge, none of it.
+    IEnumerator AbilityAiLotThree()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        if (ally.GetComponent<AllyAI>() is { } ai) ai.enabled = false; // only its decisions are read
+        var kept = (MoveDef[])ally.Moves.Clone();
+        MoveDef heal = null, shot = null;
+        foreach (var m in GameData.AllMoves)
+        {
+            if (heal == null && m.family == "heal" && m.range >= 2f) heal = m;
+            if (shot == null && m.family == "projectile" && m.power > 0 && m.path != "arc" && m.range >= 5f) shot = m;
+        }
+        var gardevoir = GameData.AllMegas.Find(m => Abilities.ForMega(m) is { wards: > 0, allyGuardRadius: > 0f });
+        if (heal == null || shot == null || gardevoir == null)
+        {
+            Report(false, "pas de soin, de tir ou de méga à protégés");
+            yield break;
+        }
+        var navigator = new Navigator();
+        void Only(MoveDef move, bool recharging)
+        {
+            for (int i = 0; i < ally.Moves.Length; i++) ally.LearnMove(i, i == 0 ? move : null);
+            if (recharging) ally.TryUseMove(0, Vector2.down);
+        }
+        RoleTactics.Decision Decide(float knowledge, Combatant target)
+        {
+            AbilityAi.ForcedKnowledge = knowledge;
+            return RoleTactics.Decide(ally, navigator, 30f, target);
+        }
+        Vector2 Leader() => leader.transform.position;
+
+        // Unnerve: the leader hurt next to the ally, a foe with Unnerve 2 tiles from it.
+        Teleport(ally, Leader() + Vector2.right);
+        var unnerve = Enemy(BatchTeam[1], (Vector2)Leader() - Centre + new Vector2(1f, 2f));
+        unnerve.maxHp = unnerve.hp = 100000f;
+        unnerve.SetAbility(1127); // Tension
+        leader.hp = leader.maxHp * 0.3f;
+        Only(heal, false);
+        yield return new WaitForFixedUpdate();
+        int healKnown = Decide(1f, unnerve).slot, healBlind = Decide(0f, unnerve).slot;
+        leader.hp = leader.maxHp;
+        Destroy(unnerve.gameObject);
+
+        // Shadow Tag: the ally shooter (its shot recharging), its target 3.8 tiles away (trap: 3).
+        Teleport(ally, Centre);
+        var trapper = Enemy(BatchTeam[1], new Vector2(3.8f, 0f));
+        trapper.maxHp = trapper.hp = 100000f;
+        trapper.SetAbility(10); // Marque Ombre
+        Only(shot, true);
+        yield return new WaitForFixedUpdate();
+        Vector2 away = ((Vector2)ally.transform.position - (Vector2)trapper.transform.position).normalized;
+        Vector2 known = Decide(1f, trapper).move, blind = Decide(0f, trapper).move;
+        bool backsOff = known.sqrMagnitude > 0.01f && Vector2.Dot(known.normalized, away) > 0.5f;
+        bool stays = blind.sqrMagnitude < 0.01f;
+        Destroy(trapper.gameObject);
+
+        // A mega's ward a little closer than an unprotected foe (the better target otherwise), the leader out of the way.
+        Teleport(leader, Centre + new Vector2(0f, -9f));
+        var warded = Enemy(BatchTeam[1], new Vector2(3f, 2.5f));
+        var free = Enemy(BatchTeam[1], new Vector2(-4f, 3f));
+        var mega = Enemy(BatchTeam[1], new Vector2(6f, 8f));
+        foreach (var c in new[] { warded, free, mega }) c.maxHp = c.hp = 100000f;
+        mega.SetAbility(gardevoir.ability, Abilities.ForMega(gardevoir));
+        yield return new WaitForSeconds(1.3f); // its wards are chosen each second
+        bool protectedNow = mega.Protects(warded) && !mega.Protects(free);
+        AbilityAi.ForcedKnowledge = 1f;
+        var pickKnown = TargetChoice.Best(ally, ally.transform.position, 30f);
+        AbilityAi.ForcedKnowledge = 0f;
+        var pickBlind = TargetChoice.Best(ally, ally.transform.position, 30f);
+        AbilityAi.ForcedKnowledge = -1f;
+        for (int i = 0; i < kept.Length; i++) ally.LearnMove(i, kept[i]);
+        bool ok = healKnown < 0 && healBlind == 0 && backsOff && stays && protectedNow && pickKnown == free && pickBlind == warded;
+        Report(ok, $"{heal.name} sous Tension {healKnown} (sans connaissance {healBlind}), recul face au piégeur {backsOff} (reste {stays}), "
+            + $"protégé {protectedNow}, cible {Which(pickKnown)} (sans connaissance {Which(pickBlind)})");
+        string Which(Combatant c) => c == free ? "libre" : c == warded ? "protégé" : c == mega ? "la méga" : c == null ? "aucune" : Name(c);
     }
 
     // Water Absorb heals instead of taking a Water hit; Sturdy leaves 1 HP from full health; Inner Focus is never stunned.

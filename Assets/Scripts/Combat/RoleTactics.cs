@@ -89,6 +89,10 @@ public static class RoleTactics
         if (foe != null && self.Ability is { trapRadius: > 0f } trap && Abilities.Traps(trap, 0f, foe.Stats?.types, foe.Flies)
             && AbilityAi.KnowsAbilityOf(self, self))
             (band, retreatAt) = AbilityAi.TrapperBand(trap.trapRadius, band, retreatAt);
+        // Its target can trap it (and it knows): it keeps out of the trap's reach, its dodge would not work there.
+        if (foe != null && !melee && foe.Ability is { trapRadius: > 0f } theirTrap && Abilities.Traps(theirTrap, 0f, self.Stats?.types, self.Flies)
+            && AbilityAi.KnowsAbilityOf(self, foe))
+            (band, retreatAt) = AbilityAi.TrappedBand(theirTrap.trapRadius, band, retreatAt);
         bool tooClose = !melee && foe != null && foeDistance < retreatAt;
         Vector2 retreat = tooClose ? Away(self, grid, position, toFoe) : Vector2.zero;
 
@@ -132,7 +136,7 @@ public static class RoleTactics
                 if (move.family == "heal")
                 {
                     var wounded = Combatant.MostWounded(self.team, position, float.MaxValue, HealThreshold);
-                    if (wounded == null) continue;
+                    if (wounded == null || AbilityAi.HealStopped(self, wounded)) continue; // an Unnerve it knows: wasted
                     Vector2 toWounded = (Vector2)wounded.transform.position - position;
                     if (toWounded.magnitude <= move.range) return Use(decision, slot, toWounded == Vector2.zero ? Vector2.right : toWounded, toWounded.magnitude);
                     // A support walks to anyone it can heal; the others only to a team-mate low on health. Never

@@ -100,6 +100,30 @@ public static class AbilityAi
     public static (float band, float retreat) TrapperBand(float trapRadius, float band, float retreat) =>
         trapRadius <= 0f ? (band, retreat) : (Mathf.Min(band, trapRadius), Mathf.Min(retreat, trapRadius * 0.7f));
 
+    /// Lot 3 rule: how far it stands from a foe that can trap it (pure): out of the trap's reach, never closer than it
+    /// already would. band, retreat: its usual distances.
+    public static (float band, float retreat) TrappedBand(float trapRadius, float band, float retreat) =>
+        trapRadius <= 0f ? (band, retreat) : (Mathf.Max(band, trapRadius + 2f), Mathf.Max(retreat, trapRadius + 1f));
+
+    /// A heal on "patient" would do nothing: a foe of its with an Unnerve that stops every heal is close by, and "self"
+    /// knows it (an ally keeps its berries, a support its heal).
+    public static bool HealStopped(Combatant self, Combatant patient)
+    {
+        if (self == null || patient == null) return false;
+        foreach (var c in Combatant.All)
+            if (c.team != patient.team && c.IsAlive && c.Ability is { foesHealMul: <= 0.01f } a
+                && Vector2.Distance(c.transform.position, patient.transform.position) <= a.foesHealRadius && KnowsAbilityOf(self, c))
+                return true;
+        return false;
+    }
+
+    /// "foe" is under a mega's protection and "self" knows it (it looks for another target first).
+    public static bool Warded(Combatant self, Combatant foe)
+    {
+        var protector = Combatant.ProtectorOf(foe);
+        return protector != null && protector.Protects(foe) && KnowsAbilityOf(self, protector);
+    }
+
     /// A move it uses sparingly may go now (then not again for aiReluctantEvery seconds).
     public static bool MaySpare(Combatant self)
     {

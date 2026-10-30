@@ -80,6 +80,9 @@ public partial class Combatant
         return null;
     }
 
+    /// "ward" is protected right now: one of this mega's wards, within its leash.
+    public bool Protects(Combatant ward) => Ability is { wards: > 0 } && Covers(ward, 0f);
+
     /// Its team-mate effect reaches "c": one of its wards within the leash, or close enough when it has none.
     bool Covers(Combatant c, float radius) => c != null && c != this && c.team == team && c.IsAlive
         && Abilities.Covers(Ability, radius, wards.Contains(c), Vector2.Distance(c.transform.position, transform.position));

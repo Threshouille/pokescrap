@@ -33,6 +33,7 @@
   "aiTargetFocus": 0.5,
   "aiTargetKeep": 1,
   "aiTargetTaunt": 3,
+  "aiTargetWarded": 1,
   "allyAggroRange": 9,
   "allyLeash": 9,
   "allyFollowBreak": 4,

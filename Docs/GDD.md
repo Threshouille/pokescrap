@@ -200,8 +200,11 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   toutes les 2,5 s au plus, s'il n'a rien d'autre), corps à corps évité contre les talents de contact s'il a mieux,
   attaques absorbées jamais lancées. Lot 2 (exploiter son talent, s'il le connaît) : blessé, il rejoint un terrain que
   son talent absorbe et qui le soigne à moins de 3 cases (flaque d'Absorbe-Eau…) ; un piégeur à distance garde sa cible
-  à portée du piège (recule plus tard) ; un protégé de méga revient vers elle au-delà de 6 des 8 cases du lien. Lot
-  suivant : lire les talents des adversaires (Tension, piégeurs, protégés).
+  à portée du piège (recule plus tard) ; un protégé de méga revient vers elle au-delà de 6 des 8 cases du lien. Lot 3
+  (lire les talents adverses, s'il les connaît) : pas de soin (attaque ou objet du sac) sur un Pokémon qu'une Tension
+  adverse empêche de se soigner ; un tireur ou un soutien se tient hors du piège de sa cible (recule dès la portée du
+  piège + 1 case) ; une cible protégée par une méga passe après les autres (`aiTargetWarded` 1 dans `meta.json`).
+  Corps Maudit, Garde Mystik… volontairement ignorés : l'IA deviendrait pénible.
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.

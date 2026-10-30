@@ -65,6 +65,13 @@ public class LogicTests
         Assert.AreEqual(2.1f, retreat, 0.001f, "piégeur : recule moins tôt");
         Assert.AreEqual((2f, 1.5f), AbilityAi.TrapperBand(3f, 2f, 1.5f), "jamais plus loin qu'avant");
         Assert.AreEqual((6f, 3.5f), AbilityAi.TrapperBand(0f, 6f, 3.5f), "sans piège : inchangé");
+        var (outside, back) = AbilityAi.TrappedBand(3f, 6f, 3.5f);
+        Assert.AreEqual(6f, outside, 0.001f, "face à un piégeur : sa zone habituelle déjà hors du piège");
+        Assert.AreEqual(4f, back, 0.001f, "recule dès 4 cases (piège de 3)");
+        (outside, back) = AbilityAi.TrappedBand(5f, 6f, 3.5f);
+        Assert.AreEqual(7f, outside, 0.001f, "piège de 5 : se tient au-delà de 7 cases");
+        Assert.AreEqual(6f, back, 0.001f, "piège de 5 : recule dès 6 cases");
+        Assert.AreEqual((6f, 3.5f), AbilityAi.TrappedBand(0f, 6f, 3.5f), "sans piège : inchangé");
     }
 
     // ---- Items ----

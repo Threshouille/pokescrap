@@ -83,6 +83,7 @@ public static class SaveData
         public float aiTargetThreat = 1f; // when it is close to a team-mate its moves hit hard (more when that one is hurt)
         public float aiTargetFocus = 0.5f; // per team-mate already after it
         public float aiTargetKeep = 1f; // for the current target, so that the AI does not switch back and forth
+        public float aiTargetWarded = 1f; // taken off for an opponent a mega protects, when the AI knows it (AbilityAi lot 3)
         public float aiTargetTaunt = 3f; // for a team member guarding a knocked-out team-mate (TeamRescue): it draws the opponents near it
         // Allies (AllyAI.cs).
         public float allyAggroRange = 9f; // opponents farther than this are ignored

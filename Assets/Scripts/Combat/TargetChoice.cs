@@ -87,6 +87,7 @@ public static class TargetChoice
             score += s.aiTargetFocus * Focus(foe, self);
             if (foe == current) score += s.aiTargetKeep;
             if (Taunting(foe) && !self.IgnoresTaunts) score += s.aiTargetTaunt; // Oblivious
+            if (AbilityAi.Warded(self, foe)) score -= s.aiTargetWarded; // a mega's ward: another one first
             if (score > bestScore)
             {
                 best = foe;
