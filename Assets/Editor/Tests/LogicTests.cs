@@ -43,6 +43,25 @@ public class LogicTests
             if (m.wards > 0) Assert.Greater(m.wardLeash, 0f, $"méga {m.mega} sans portée de lien");
     }
 
+    [Test]
+    public void AbilityAiJudgesMovesAgainstAbilities()
+    {
+        var status = new MoveDef { family = "projectile", power = 0, status = "paralysis" };
+        var shot = new MoveDef { family = "projectile", power = 4 };
+        var blow = new MoveDef { family = "melee", power = 4 };
+        Assert.AreEqual(AbilityAi.Stance.Avoid, AbilityAi.Against(new AbilityEffect { magicBounce = true }, status, 1, false, false), "Miroir Magik");
+        Assert.AreEqual(AbilityAi.Stance.Free, AbilityAi.Against(new AbilityEffect { magicBounce = true }, status, 1, false, true), "Brise Moule");
+        Assert.AreEqual(AbilityAi.Stance.Avoid, AbilityAi.Against(new AbilityEffect { synchronize = true }, status, 1, false, false), "Synchro");
+        Assert.AreEqual(AbilityAi.Stance.Sparing, AbilityAi.Against(new AbilityEffect { reflectShotChance = 0.2f }, shot, 1, false, false), "Ténéfix");
+        Assert.AreEqual(AbilityAi.Stance.Sparing, AbilityAi.Against(null, shot, 1, true, false), "bulle de Mewtwo Y");
+        Assert.AreEqual(AbilityAi.Stance.Reluctant, AbilityAi.Against(new AbilityEffect { contactShare = 0.1f }, blow, 1, false, false), "Peau Dure");
+        Assert.AreEqual(AbilityAi.Stance.Free, AbilityAi.Against(null, status, 1, false, false), "talent inconnu");
+        int known = 0;
+        for (int id = 1; id <= 1000; id++) if (AbilityAi.Knows(0.3f, 12345, id)) known++;
+        Assert.That(known, Is.InRange(230, 370), "connaissance 0,3 : environ 30 % des talents");
+        Assert.AreEqual(AbilityAi.Knows(0.5f, 7, 42), AbilityAi.Knows(0.5f, 7, 42), "même réponse à chaque fois");
+    }
+
     // ---- Items ----
 
     [Test]

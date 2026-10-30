@@ -265,6 +265,10 @@ public static class Abilities
         public float arrivalRadius = 5f; // tiles: foes Intimidate reaches
         public bool enemyClimate; // ordinary enemies cast their arrival weather too (bosses and elites always do)
         public string megaAura = "mega_aura", megaAuraRise = "mega_aura_rise"; // on every mega while it lasts
+        // How well the AIs know abilities (AbilityAi): the share of abilities each one takes into account, drawn once.
+        // Ranks: aiKnowledge of encounters.json rarities.
+        public float aiKnowledgeAllies = 0.6f, aiKnowledgeEnemies = 0.3f, aiKnowledgeElites = 0.7f, aiKnowledgeBosses = 0.8f;
+        public float aiReluctantEvery = 2.5f; // seconds between two moves it would rather not use (a reflected shot…)
     }
 
     /// A family of abilities (dev picker filter, demo room): key as FamilyOf gives it, name shown.

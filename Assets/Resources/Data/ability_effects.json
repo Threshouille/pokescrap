@@ -1,7 +1,7 @@
 {
  "comment": "Effects of the abilities in real time (Abilities.cs, lots 1 to 3 of Docs/TALENTS.md). id: AbilityLibrary id; name: for reading only. Fields: AbilityEffect. Types: ROM ids. Weathers: keys of climates.json. Statuses: keys of statuses.json. Power: Mystery Dungeon scale (basic moves 2, Charge 6). megas: the effect of each mega's own, on top of its ability (Abilities.ForMega); mega: id of megas.json.",
  "families": [{"key": "defense", "name": "Défense"}, {"key": "attack", "name": "Attaque"}, {"key": "status", "name": "Statuts"}, {"key": "contact", "name": "Contact"}, {"key": "weather", "name": "Météo"}, {"key": "combat", "name": "Combat"}, {"key": "team", "name": "Équipe et objets"}, {"key": "mega", "name": "Mégas"}],
- "settings": {"hiddenChance": 0.05, "eliteHiddenChance": 0.5, "bossHidden": true, "arrivalRadius": 5, "enemyClimate": false, "megaAura": "mega_aura", "megaAuraRise": "mega_aura_rise"},
+ "settings": {"hiddenChance": 0.05, "eliteHiddenChance": 0.5, "bossHidden": true, "arrivalRadius": 5, "enemyClimate": false, "megaAura": "mega_aura", "megaAuraRise": "mega_aura_rise", "aiKnowledgeAllies": 0.6, "aiKnowledgeEnemies": 0.3, "aiKnowledgeElites": 0.7, "aiKnowledgeBosses": 0.8, "aiReluctantEvery": 2.5},
  "abilities": [
   {"id": 2, "name": "Isograisse", "takenTypes": [{"type": 2, "mul": 0.6}, {"type": 6, "mul": 0.6}]},
   {"id": 95, "name": "Ignifugé", "takenTypes": [{"type": 2, "mul": 0.6}], "statusDurations": [{"status": "burn", "mul": 0.5}]},

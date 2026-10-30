@@ -193,6 +193,13 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   à moins de 8 cases (`wardLeash`) : côté joueur ses coéquipiers, côté boss ou élite deux sbires de son groupe (soutiens
   puis les plus proches) ; un protégé K.O. est remplacé. Les talents permanents (Garde-Ami…) gardent leur rayon.
   Méga-Alakazam : l'esquive devient une téléportation. Tension : aucun soin (« +0 »).
+- IA et talents (30/10/2026, Robin) : les IA tiennent compte des talents, sans devenir trop fortes. Chaque IA connaît
+  une part des talents, tirée une fois (alliés 0,6, ennemis 0,3, rangs rare et épique 0,5, élites 0,7, boss 0,8) ; un
+  talent pèse sur un choix sans tout interdire. Lot 1 (ne pas se nuire) : pas d'attaque de statut sur Miroir Magik ni de
+  brûlure / poison / paralysie sur Synchro, tirs rares sur Méga-Ténéfix et dans la bulle de Méga-Mewtwo Y (une fois
+  toutes les 2,5 s au plus, s'il n'a rien d'autre), corps à corps évité contre les talents de contact s'il a mieux,
+  attaques absorbées jamais lancées. Lots suivants : exploiter son talent (terrain absorbé, pièges, protégés), lire ceux
+  des adversaires (Tension, piégeurs, protégés).
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.

@@ -101,6 +101,11 @@ public static class RoleTactics
         int fallback = -1;
         Vector2 fallbackAim = Vector2.zero;
         float fallbackDistance = 0f;
+        // An attack an ability it knows makes it reluctant to use (AbilityAi): kept for when nothing else is ready.
+        int spare = -1;
+        Vector2 spareAim = Vector2.zero;
+        float spareDistance = 0f;
+        var spareStance = AbilityAi.Stance.Free;
 
         // A support looks at its heals and bonuses before anything else (pass 0), then at its attacks (pass 1).
         // The other roles take their moves in slot order (basic attack last), so a tank can still raise its defence between two blows.
@@ -157,6 +162,9 @@ public static class RoleTactics
                 // Attacks: projectile, melee, zone.
                 if (foe == null || toFoe == Vector2.zero) continue;
                 if (move.power <= 0 && !string.IsNullOrEmpty(move.status) && foe.HasStatus(move.status)) continue; // already has it
+                var stance = AbilityAi.Judge(self, move, foe); // Magic Bounce, Synchronize, Sableye… when it knows them
+                if (stance == AbilityAi.Stance.Avoid) continue;
+                bool spared = stance != AbilityAi.Stance.Free;
 
                 if (move.family == "melee")
                 {
@@ -165,6 +173,11 @@ public static class RoleTactics
                     bool intoCloud = move.lunge > 0f && Zone.Inside(foe.transform.position, self.team, ZoneMargin);
                     if (foeDistance <= reach && lineOfReach && !intoCloud)
                     {
+                        if (spared)
+                        {
+                            if (spare < 0 || stance < spareStance) (spare, spareAim, spareDistance, spareStance) = (slot, toFoe, foeDistance, stance);
+                            continue;
+                        }
                         int value = TerrainValue(self, move, foe);
                         if (value > 0) return Use(decision, slot, toFoe, foeDistance);
                         if (value == 0 && fallback < 0) (fallback, fallbackAim, fallbackDistance) = (slot, toFoe, foeDistance);
@@ -178,6 +191,11 @@ public static class RoleTactics
                 bool usable = foeDistance <= move.Reach && (lineOfFire || move.family == "zone") && retreat == Vector2.zero;
                 if (usable)
                 {
+                    if (spared)
+                    {
+                        if (spare < 0 || stance < spareStance) (spare, spareAim, spareDistance, spareStance) = (slot, toFoe, foeDistance, stance);
+                        continue;
+                    }
                     int value = TerrainValue(self, move, foe);
                     if (value > 0) return Use(decision, slot, toFoe, foeDistance);
                     if (value == 0 && fallback < 0) (fallback, fallbackAim, fallbackDistance) = (slot, toFoe, foeDistance);
@@ -187,6 +205,8 @@ public static class RoleTactics
             }
         }
         if (fallback >= 0) return Use(decision, fallback, fallbackAim, fallbackDistance);
+        if (spare >= 0 && (spareStance == AbilityAi.Stance.Reluctant || AbilityAi.MaySpare(self)))
+            return Use(decision, spare, spareAim, spareDistance);
 
         // Hurt: heads for a terrain that helps it, and stays there.
         if (refuge != null)

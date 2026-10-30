@@ -161,6 +161,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Sac : un élite lâche un objet, ramassé en marchant dessus", EliteDropsConsumable());
         yield return Scenario("Objets tenus : Bandeau Choix, Restes, Ballon", HeldEffects());
         yield return Scenario("Talents : l'allié ne tire pas de l'Eau sur un Absorbe-Eau", AbilityTarget());
+        yield return Scenario("Talents IA : pas de statut sur Miroir Magik ni Synchro, peu de tirs sur Ténéfix", AbilityAiLotOne());
         yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
         yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
         yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
@@ -1647,6 +1648,52 @@ public class AiScenarios : MonoBehaviour
         var chosen = TargetChoice.Current(ally);
         for (int i = 0; i < kept.Length; i++) ally.Moves[i] = kept[i];
         Report(chosen == far, $"{water.name} ; près {Name(near)} (Absorbe-Eau), loin {Name(far)} ; choisit {Name(chosen)}");
+    }
+
+    // AIs and abilities, lot 1 (AbilityAi): an AI that knows them sends no status move to a Magic Bounce nor a
+    // Synchronize and shoots a Sableye only now and then; one that knows nothing makes all these mistakes.
+    IEnumerator AbilityAiLotOne()
+    {
+        var (_, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        MoveDef status = null, shot = null;
+        foreach (var m in GameData.AllMoves)
+        {
+            if (status == null && m.family == "projectile" && m.power <= 0 && m.range >= 5f && m.status is "paralysis" or "burn" or "poison") status = m;
+            if (shot == null && m.family == "projectile" && m.power > 0 && string.IsNullOrEmpty(m.status) && m.path != "arc" && m.range >= 5f) shot = m;
+        }
+        var sableye = GameData.AllMegas.Find(m => Abilities.ForMega(m)?.reflectShotChance > 0f);
+        int neutral = FindSpecies(t => true);
+        if (status == null || shot == null || sableye == null)
+        {
+            Report(false, "pas d'attaque de statut, de tir ou de Méga-Ténéfix");
+            yield break;
+        }
+        if (ally.GetComponent<AllyAI>() is { } ai) ai.enabled = false; // only its decisions are read
+        var kept = (MoveDef[])ally.Moves.Clone();
+        var foe = Enemy(neutral, new Vector2(4.5f, 0f)); // in reach, beyond the ranged retreat
+        foe.maxHp = foe.hp = 100000f;
+        yield return new WaitForFixedUpdate();
+        var navigator = new Navigator();
+        int Pick(float knowledge, params MoveDef[] moves)
+        {
+            AbilityAi.ForcedKnowledge = knowledge;
+            for (int i = 0; i < ally.Moves.Length; i++) ally.LearnMove(i, i < moves.Length ? moves[i] : null);
+            return RoleTactics.Decide(ally, navigator, 20f, foe).slot;
+        }
+        foe.SetAbility(1156); // Miroir Magik
+        int bounceKnown = Pick(1f, status, shot), bounceBlind = Pick(0f, status, shot);
+        foe.SetAbility(25); // Synchro
+        int syncKnown = Pick(1f, status, shot), syncBlind = Pick(0f, status, shot);
+        foe.SetAbility(sableye.ability, Abilities.ForMega(sableye));
+        int first = Pick(1f, shot), second = Pick(1f, shot), blind = Pick(0f, shot);
+        AbilityAi.ForcedKnowledge = -1f;
+        for (int i = 0; i < kept.Length; i++) ally.LearnMove(i, kept[i]);
+        bool ok = bounceKnown == 1 && bounceBlind == 0 && syncKnown == 1 && syncBlind == 0 && first == 0 && second < 0 && blind == 0;
+        var grid = DungeonGenerator.Current;
+        string why = ok ? "" : $" [rôle {ally.Role}, distance {Vector2.Distance(ally.transform.position, foe.transform.position):0.0}, portées {status.Reach:0.0} / {shot.Reach:0.0}, "
+            + $"ligne {(grid == null || grid.ShotClear(ally.transform.position, foe.transform.position, 0.2f))}, vivant {foe.IsAlive} {ally.IsAlive}, équipes {ally.team} {foe.team}]";
+        Report(ok, $"{status.name} / {shot.name}{why} : Miroir Magik {bounceKnown} (sans connaissance {bounceBlind}), Synchro {syncKnown} ({syncBlind}), "
+            + $"Ténéfix tir {first} puis {second} ({blind})");
     }
 
     // Water Absorb heals instead of taking a Water hit; Sturdy leaves 1 HP from full health; Inner Focus is never stunned.

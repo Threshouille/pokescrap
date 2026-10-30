@@ -167,6 +167,7 @@
   {
    "key": "rare",
    "hiddenAbility": 0.25,
+   "aiKnowledge": 0.5,
    "name": "Rare",
    "weight": [
     5,
@@ -185,6 +186,7 @@
   {
    "key": "epic",
    "hiddenAbility": 0.5,
+   "aiKnowledge": 0.5,
    "name": "Épique",
    "weight": [
     0,
