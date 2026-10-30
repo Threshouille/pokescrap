@@ -60,6 +60,11 @@ public class LogicTests
         for (int id = 1; id <= 1000; id++) if (AbilityAi.Knows(0.3f, 12345, id)) known++;
         Assert.That(known, Is.InRange(230, 370), "connaissance 0,3 : environ 30 % des talents");
         Assert.AreEqual(AbilityAi.Knows(0.5f, 7, 42), AbilityAi.Knows(0.5f, 7, 42), "même réponse à chaque fois");
+        var (band, retreat) = AbilityAi.TrapperBand(3f, 6f, 3.5f);
+        Assert.AreEqual(3f, band, 0.001f, "piégeur : sa cible à portée du piège");
+        Assert.AreEqual(2.1f, retreat, 0.001f, "piégeur : recule moins tôt");
+        Assert.AreEqual((2f, 1.5f), AbilityAi.TrapperBand(3f, 2f, 1.5f), "jamais plus loin qu'avant");
+        Assert.AreEqual((6f, 3.5f), AbilityAi.TrapperBand(0f, 6f, 3.5f), "sans piège : inchangé");
     }
 
     // ---- Items ----

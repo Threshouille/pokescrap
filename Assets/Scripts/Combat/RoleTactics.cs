@@ -20,6 +20,8 @@ public static class RoleTactics
     // seconds or until RefugeLeave of its health, then not again for RefugeCooldown seconds.
     const float RefugeEnter = 0.35f, RefugeLeave = 0.6f, RefugeTime = 8f, RefugeCooldown = 12f;
     const float RefugeSearch = 6f, RefugeSafe = 2f, RefugeReached = 0.4f;
+    const float AbsorbSearch = 3f; // a terrain its ability heals it on is a refuge this close only (AbilityAi lot 2)
+    const float WardReturn = 0.75f; // a ward walks back toward its mega beyond this share of the leash
     const float SpreadReach = 8f; // a reaction spreading over a puddle may reach a team-mate this far from the target
 
     class RefugeState { public float until, cooldownUntil; }
@@ -82,7 +84,12 @@ public static class RoleTactics
 
         // Ranged and support Pokémon back away from an opponent that gets too close. When cornered (no way to
         // step back), "retreat" stays zero and they fight where they stand.
-        bool tooClose = !melee && foe != null && foeDistance < (support ? SupportRetreat : RangedRetreat);
+        // A trapper it knows it is (Shadow Tag, Arena Trap…) keeps a foe it can trap within the trap's reach.
+        float band = support ? SupportMax : RangedMax, retreatAt = support ? SupportRetreat : RangedRetreat;
+        if (foe != null && self.Ability is { trapRadius: > 0f } trap && Abilities.Traps(trap, 0f, foe.Stats?.types, foe.Flies)
+            && AbilityAi.KnowsAbilityOf(self, self))
+            (band, retreatAt) = AbilityAi.TrapperBand(trap.trapRadius, band, retreatAt);
+        bool tooClose = !melee && foe != null && foeDistance < retreatAt;
         Vector2 retreat = tooClose ? Away(self, grid, position, toFoe) : Vector2.zero;
 
         Combatant patient = null; // wounded ally that is out of reach
@@ -218,6 +225,17 @@ public static class RoleTactics
             return decision;
         }
 
+        // A mega's ward that knows it drifts back toward it before the leash breaks (Gardevoir, Latias, Altaria).
+        var protector = Combatant.ProtectorOf(self);
+        if (protector != null && protector.Ability is { wards: > 0 } warding && retreat == Vector2.zero
+            && Vector2.Distance(protector.transform.position, position) > warding.wardLeash * WardReturn
+            && AbilityAi.KnowsAbilityOf(self, protector))
+        {
+            decision.engaged = true;
+            decision.move = Separate(self, grid, position, navigator.Direction(position, protector.transform.position, self));
+            return decision;
+        }
+
         // A team-mate to heal out of reach: walks to where the heal reaches it (unless it has to back off first).
         if (patient != null && retreat == Vector2.zero)
         {
@@ -261,7 +279,7 @@ public static class RoleTactics
                 if (!tooClose)
                 {
                     // Stays in its band: walks in only as far as needed to have the target in reach and in sight.
-                    float far = Mathf.Min(support ? SupportMax : RangedMax, wanted);
+                    float far = Mathf.Min(band, wanted);
                     bool hasShot = wanted < float.MaxValue;
                     if (foeDistance > far && (hasShot || ranged) || (hasShot && !lineOfFire))
                         decision.move = navigator.Direction(position, foe.transform.position, self);
@@ -285,16 +303,20 @@ public static class RoleTactics
             state.cooldownUntil = Time.time + RefugeCooldown;
             return null;
         }
-        if (going) return Terrain.FindRefuge(self, RefugeSearch); // looked for again: the terrain may be gone
+        if (going) return FindRefuge(self); // looked for again: the terrain may be gone
         if (health >= RefugeEnter || (state != null && Time.time < state.cooldownUntil)) return null;
         if (hasFoe && foeDistance < RefugeSafe) return null; // in the thick of the fight
-        var spot = Terrain.FindRefuge(self, RefugeSearch);
+        var spot = FindRefuge(self);
         if (spot == null) return null;
         if (state == null) refuges[self] = state = new RefugeState();
         state.until = Time.time + RefugeTime;
         state.cooldownUntil = state.until + RefugeCooldown;
         return spot;
     }
+
+    // A terrain that helps it, else one its ability heals it on, close by and when it knows its ability (Water Absorb…).
+    static Vector2? FindRefuge(Combatant self) =>
+        Terrain.FindRefuge(self, RefugeSearch) ?? (AbilityAi.KnowsAbilityOf(self, self) ? Terrain.FindAbsorbing(self, AbsorbSearch) : null);
 
     /// What the ground effect of an attack is worth against "foe": +1 when it reacts with the terrain under the
     /// opponent into something that hurts it (lightning on the puddle it stands in), -1 when it would hurt a

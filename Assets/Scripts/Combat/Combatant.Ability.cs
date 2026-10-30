@@ -72,6 +72,14 @@ public partial class Combatant
 
     readonly List<Combatant> wards = new(); // the team-mates its mega's effects go to (AbilityEffect.wards)
 
+    /// The mega whose ward this Pokémon is (Gardevoir, Latias, Altaria), or null.
+    public static Combatant ProtectorOf(Combatant ward)
+    {
+        foreach (var c in all)
+            if (c != ward && c.IsAlive && c.wards.Contains(ward)) return c;
+        return null;
+    }
+
     /// Its team-mate effect reaches "c": one of its wards within the leash, or close enough when it has none.
     bool Covers(Combatant c, float radius) => c != null && c != this && c.team == team && c.IsAlive
         && Abilities.Covers(Ability, radius, wards.Contains(c), Vector2.Distance(c.transform.position, transform.position));

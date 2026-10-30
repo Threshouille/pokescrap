@@ -198,8 +198,10 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   talent pèse sur un choix sans tout interdire. Lot 1 (ne pas se nuire) : pas d'attaque de statut sur Miroir Magik ni de
   brûlure / poison / paralysie sur Synchro, tirs rares sur Méga-Ténéfix et dans la bulle de Méga-Mewtwo Y (une fois
   toutes les 2,5 s au plus, s'il n'a rien d'autre), corps à corps évité contre les talents de contact s'il a mieux,
-  attaques absorbées jamais lancées. Lots suivants : exploiter son talent (terrain absorbé, pièges, protégés), lire ceux
-  des adversaires (Tension, piégeurs, protégés).
+  attaques absorbées jamais lancées. Lot 2 (exploiter son talent, s'il le connaît) : blessé, il rejoint un terrain que
+  son talent absorbe et qui le soigne à moins de 3 cases (flaque d'Absorbe-Eau…) ; un piégeur à distance garde sa cible
+  à portée du piège (recule plus tard) ; un protégé de méga revient vers elle au-delà de 6 des 8 cases du lien. Lot
+  suivant : lire les talents des adversaires (Tension, piégeurs, protégés).
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.

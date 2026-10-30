@@ -162,6 +162,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Objets tenus : Bandeau Choix, Restes, Ballon", HeldEffects());
         yield return Scenario("Talents : l'allié ne tire pas de l'Eau sur un Absorbe-Eau", AbilityTarget());
         yield return Scenario("Talents IA : pas de statut sur Miroir Magik ni Synchro, peu de tirs sur Ténéfix", AbilityAiLotOne());
+        yield return Scenario("Talents IA : flaque d'Absorbe-Eau, piégeur au contact, protégé près de sa méga", AbilityAiLotTwo());
         yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
         yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
         yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
@@ -1694,6 +1695,76 @@ public class AiScenarios : MonoBehaviour
             + $"ligne {(grid == null || grid.ShotClear(ally.transform.position, foe.transform.position, 0.2f))}, vivant {foe.IsAlive} {ally.IsAlive}, équipes {ally.team} {foe.team}]";
         Report(ok, $"{status.name} / {shot.name}{why} : Miroir Magik {bounceKnown} (sans connaissance {bounceBlind}), Synchro {syncKnown} ({syncBlind}), "
             + $"Ténéfix tir {first} puis {second} ({blind})");
+    }
+
+    // AIs and abilities, lot 2 (AbilityAi): a hurt Water Absorb heads for the puddle close by, a Shadow Tag shooter
+    // keeps its target within the trap's reach, a mega's ward walks back toward it before the leash breaks; an AI that
+    // knows nothing does none of it.
+    IEnumerator AbilityAiLotTwo()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        if (ally.GetComponent<AllyAI>() is { } ai) ai.enabled = false; // only its decisions are read
+        var kept = (MoveDef[])ally.Moves.Clone();
+        MoveDef shot = null;
+        foreach (var m in GameData.AllMoves)
+            if (shot == null && m.family == "projectile" && m.power > 0 && m.path != "arc" && m.range >= 5f) shot = m;
+        var gardevoir = GameData.AllMegas.Find(m => Abilities.ForMega(m) is { wards: > 0, allyGuardRadius: > 0f });
+        if (shot == null || gardevoir == null)
+        {
+            Report(false, "pas de tir ou pas de méga à protégés");
+            yield break;
+        }
+        var navigator = new Navigator();
+        // Its only shot recharging: it only places itself.
+        void Arm()
+        {
+            for (int i = 0; i < ally.Moves.Length; i++) ally.LearnMove(i, i == 0 ? shot : null);
+            ally.TryUseMove(0, Vector2.down);
+        }
+        Vector2 Move(float knowledge, Combatant target)
+        {
+            AbilityAi.ForcedKnowledge = knowledge;
+            return RoleTactics.Decide(ally, navigator, 30f, target).move;
+        }
+        bool Towards(Vector2 move, Vector2 to) => move.sqrMagnitude > 0.01f && Vector2.Dot(move.normalized, (to - (Vector2)ally.transform.position).normalized) > 0.7f;
+
+        // Hurt, a puddle 2.5 tiles away, the foe far off.
+        var far = Enemy(BatchTeam[1], new Vector2(0f, 7f));
+        far.maxHp = far.hp = 100000f;
+        ally.SetAbility(36); // Absorbe-Eau
+        ally.hp = ally.maxHp * 0.25f;
+        Vector2 puddle = Centre + new Vector2(2.5f, 0f);
+        Terrain.PaintArea("water", puddle, 0.7f, 60f);
+        Arm();
+        yield return new WaitForFixedUpdate();
+        bool puddleKnown = Towards(Move(1f, far), puddle), puddleBlind = Towards(Move(0f, far), puddle);
+        ally.hp = ally.maxHp;
+        Destroy(far.gameObject);
+
+        // A Shadow Tag shooter, its target 5 tiles away (in its usual band, out of the trap's reach).
+        var near = Enemy(BatchTeam[1], new Vector2(5f, 0f));
+        near.maxHp = near.hp = 100000f;
+        ally.SetAbility(10); // Marque Ombre
+        Arm();
+        yield return new WaitForFixedUpdate();
+        bool trapKnown = Towards(Move(1f, near), near.transform.position);
+        bool trapBlind = Move(0f, near).sqrMagnitude < 0.01f;
+        ally.SetAbility(0);
+
+        // The leader as Mega-Gardevoir: the ally becomes its ward, then stands 7 tiles away (leash 8).
+        leader.SetAbility(gardevoir.ability, Abilities.ForMega(gardevoir));
+        yield return new WaitForSeconds(1.3f); // its wards are chosen each second
+        Teleport(ally, (Vector2)leader.transform.position + new Vector2(5f, 5f));
+        Arm();
+        yield return new WaitForFixedUpdate();
+        bool ward = Combatant.ProtectorOf(ally) == leader;
+        bool wardKnown = Towards(Move(1f, near), leader.transform.position), wardBlind = Towards(Move(0f, near), leader.transform.position);
+        AbilityAi.ForcedKnowledge = -1f;
+        leader.SetAbility(0);
+        for (int i = 0; i < kept.Length; i++) ally.LearnMove(i, kept[i]);
+        bool ok = puddleKnown && !puddleBlind && trapKnown && trapBlind && ward && wardKnown && !wardBlind;
+        Report(ok, $"flaque {puddleKnown} (sans connaissance {puddleBlind}), piégeur s'approche {trapKnown} (reste {trapBlind}), "
+            + $"protégé {ward} revient {wardKnown} ({wardBlind})");
     }
 
     // Water Absorb heals instead of taking a Water hit; Sturdy leaves 1 HP from full health; Inner Focus is never stunned.

@@ -91,6 +91,15 @@ public static class AbilityAi
         return Against(theirs, move, Abilities.TypeOf(move, self.Ability), slow, self.Ability is { moldBreaker: true });
     }
 
+    /// Whether "self" knows this Pokémon's ability (its own, a team-mate's): what it does with it, within its knowledge.
+    public static bool KnowsAbilityOf(Combatant self, Combatant holder) =>
+        self != null && holder != null && Knows(KnowledgeOf(self), self.GetHashCode(), holder.AbilityId);
+
+    /// Lot 2 rule: how far it wants to stand from a foe it can trap (pure): within the trap's reach, never closer than
+    /// it already would. band, retreat: its usual distances.
+    public static (float band, float retreat) TrapperBand(float trapRadius, float band, float retreat) =>
+        trapRadius <= 0f ? (band, retreat) : (Mathf.Min(band, trapRadius), Mathf.Min(retreat, trapRadius * 0.7f));
+
     /// A move it uses sparingly may go now (then not again for aiReluctantEvery seconds).
     public static bool MaySpare(Combatant self)
     {

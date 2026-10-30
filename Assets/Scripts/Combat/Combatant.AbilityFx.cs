@@ -148,7 +148,8 @@ public partial class Combatant
         r.sortingOrder = 2; // under the shot
     }
 
-    bool Flies => Stats != null && (Stats.movementType == 2 || Stats.movementType == 3
+    /// Above the ground (flying, floating, Vol type): pits, sand and the like do not reach it.
+    public bool Flies => Stats != null && (Stats.movementType == 2 || Stats.movementType == 3
         || (Stats.types != null && System.Array.IndexOf(Stats.types, 10) >= 0));
 
     void Want(string name, MarkPlace place, float size = 0f)
