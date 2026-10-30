@@ -253,16 +253,17 @@ public class Ultimates : MonoBehaviour
         progression.Announce($"{member.Stats.name} : {zMove.name} !");
     }
 
-    /// The Z version of a move: power × ZPower(level), the crystal's name, and its effect on each opponent struck.
+    /// The Z version of a move: its damage × ZPower(level) × the crystal's bonus (through damageScale: the power alone
+    /// would leave the attacker's stat out, Combatant.DamageOf, and a weak move barely stronger), the crystal's name,
+    /// and its effect on each opponent struck.
     public static MoveDef ZVersion(MoveDef move, int type, int level)
     {
         var z = JsonUtility.FromJson<MoveDef>(JsonUtility.ToJson(move));
         var crystal = SpecialItems.Crystal(type);
         var hit = crystal?.hit ?? new SpecialItems.ZHit();
         z.name = crystal?.move ?? $"{move.name} Z";
-        z.power = Mathf.RoundToInt(move.power * SpecialItems.ZPower(level) * hit.bonus);
         z.basic = false;
-        z.damageScale = 1f;
+        z.damageScale = SpecialItems.ZPower(level) * hit.bonus; // the move's own damageScale left out
         z.status = hit.status;
         z.statusChance = 1f;
         z.statusDuration = hit.statusDuration;

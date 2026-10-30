@@ -28,9 +28,10 @@ Test en jeu prévu (éditeur, profil de dev) :
 7. Marque Ombre / Piège Sable : esquive refusée près du porteur ; Ventouse : pas de recul.
 8. Ramassage : objets qui arrivent dans le sac au fil des K.O.
 9. À noter : bandeaux trop fréquents ou pas assez, valeurs trop fortes ou trop faibles.
-Banc complet le 29/10 (mégas) : 80/82 ; échecs antérieurs aux talents (toujours là avec les talents coupés), à corriger à
-part : « capacité Z frappe et paralyse » (16 et 18 dégâts pour un seuil de 17,5) et « Secours : le plus apte éloigne
-l'ennemi » (allié K.O. jamais réanimé). « Groupe : pas d'à-coups » et « Peuplement : camps et rondes », instables, corrigés le 29/10 (8 passages sur 8) :
+Banc complet le 29/10 (mégas) : 80/82 ; les deux échecs, antérieurs aux talents, corrigés le 30/10 : « capacité Z
+frappe et paralyse » (le Z ne multipliait que la puissance, pas la stat du lanceur : Onde de Choc, puissance 7, à peine
+×2,4 ; visible depuis que Fatal-Foudre est une zone) et « Secours : le plus apte éloigne l'ennemi » (Charge repousse
+désormais le meneur immobile hors de portée de la réanimation : le scénario le ramène sur le K.O.). « Groupe : pas d'à-coups » et « Peuplement : camps et rondes », instables, corrigés le 29/10 (8 passages sur 8) :
 reculs dus aux coups et aux esquives exclus ; population de nuit acceptée, équipe placée sur une case libre près
 du camp.
 

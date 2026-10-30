@@ -1176,6 +1176,10 @@ public class AiScenarios : MonoBehaviour
         while (Time.time - started < 6f)
         {
             yield return new WaitForFixedUpdate();
+            // Pushed off by a blow (Charge throws back), the controlled Pokémon steps back onto the K.O., as a player
+            // would: standing still, it would end up out of reach of the revive whatever the guard does.
+            if (!leader.IsHurt && Vector2.Distance(leader.transform.position, third.transform.position) > 0.5f)
+                Teleport(leader, third.transform.position);
             if (Time.time - started < 2f) continue; // the time for the guard to step in
             sum += Vector2.Distance(foe.transform.position, Centre);
             samples++;
