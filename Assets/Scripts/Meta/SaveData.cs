@@ -83,6 +83,7 @@ public static class SaveData
         public float aiTargetThreat = 1f; // when it is close to a team-mate its moves hit hard (more when that one is hurt)
         public float aiTargetFocus = 0.5f; // per team-mate already after it
         public float aiTargetKeep = 1f; // for the current target, so that the AI does not switch back and forth
+        public float aiTargetWarded = 1f; // taken off for an opponent a mega protects, when the AI knows it (AbilityAi lot 3)
         public float aiTargetTaunt = 3f; // for a team member guarding a knocked-out team-mate (TeamRescue): it draws the opponents near it
         // Allies (AllyAI.cs).
         public float allyAggroRange = 9f; // opponents farther than this are ignored
@@ -204,6 +205,20 @@ public static class SaveData
             return choice.moves;
         return GameData.DefaultStartingMoves(pokemonId, count);
     }
+
+    // Ability picked in the menu for a dev character (Abilities), for this session only: never written to the save.
+    static readonly Dictionary<int, int> devAbilities = new();
+
+    /// The ability a dev character fights with: the one picked in the menu, else its own in dev_characters.json
+    /// (abilities), else the first with an effect.
+    public static int DevAbility(int pokemonId)
+    {
+        if (devAbilities.TryGetValue(pokemonId, out int id)) return id;
+        if (GameData.Pokemon(pokemonId)?.abilities is { Length: > 0 } own && Abilities.Effect(own[0]) != null) return own[0];
+        return Abilities.All.Count > 0 ? Abilities.All[0].id : 0;
+    }
+
+    public static void SetDevAbility(int pokemonId, int abilityId) => devAbilities[pokemonId] = abilityId;
 
     public static void SetStartingMoves(int pokemonId, int[] moves)
     {

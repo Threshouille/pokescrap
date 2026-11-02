@@ -94,6 +94,9 @@ public class AiScenarios : MonoBehaviour
         var progression = team.GetComponent<Progression>();
         if (progression != null) progression.enabled = false;
         if (team.Count < 2) team.AddMember(BatchTeam[1], team.Controlled.transform.position + Vector3.right);
+        // Abilities drawn at random would change the scenarios: none, unless a scenario gives one.
+        Abilities.Suspended = true;
+        foreach (var member in team.Members) member.SetAbility(0);
 
         yield return Scenario("Ne suit pas le Pokémon joué dans le danger", NoFollowIntoDanger());
         yield return Scenario("Contourne un danger pour le rejoindre", WalkAround());
@@ -157,6 +160,16 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Sac : 4 emplacements, piles de 9, plein ensuite", BagCapacity());
         yield return Scenario("Sac : un élite lâche un objet, ramassé en marchant dessus", EliteDropsConsumable());
         yield return Scenario("Objets tenus : Bandeau Choix, Restes, Ballon", HeldEffects());
+        yield return Scenario("Talents : l'allié ne tire pas de l'Eau sur un Absorbe-Eau", AbilityTarget());
+        yield return Scenario("Talents IA : pas de statut sur Miroir Magik ni Synchro, peu de tirs sur Ténéfix", AbilityAiLotOne());
+        yield return Scenario("Talents IA : flaque d'Absorbe-Eau, piégeur au contact, protégé près de sa méga", AbilityAiLotTwo());
+        yield return Scenario("Talents IA : pas de soin sous Tension, recul face au piégeur, protégés visés après", AbilityAiLotThree());
+        yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
+        yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
+        yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
+        yield return Scenario("Talents : Garde Mystik, Brise Moule, Pickpocket", AbilityRulesThree());
+        yield return Scenario("Talents : une méga prend son talent et son effet, puis les rend", MegaAbility());
+        yield return Scenario("Talents : la démo de chaque talent se joue sans erreur", AbilityDemosRun());
         yield return Scenario("Objets tenus : Ceinture Force et Casque Brut", HeldLastStand());
         yield return Scenario("Objets tenus : pris en marchant dessus, l'ancien tombe à ses pieds", HeldSwap());
         yield return Scenario("Objets tenus : un ennemi qui en tient un le lâche", EnemyDropsHeld());
@@ -178,6 +191,7 @@ public class AiScenarios : MonoBehaviour
 
         Clear();
         if (progression != null) progression.enabled = true;
+        Abilities.Suspended = false;
         Failures = results.FindAll(r => !r.passed).Count;
         Debug.Log($"AISCENARIO DONE {results.Count - Failures}/{results.Count}");
         current = null;
@@ -1165,6 +1179,10 @@ public class AiScenarios : MonoBehaviour
         while (Time.time - started < 6f)
         {
             yield return new WaitForFixedUpdate();
+            // Pushed off by a blow (Charge throws back), the controlled Pokémon steps back onto the K.O., as a player
+            // would: standing still, it would end up out of reach of the revive whatever the guard does.
+            if (!leader.IsHurt && Vector2.Distance(leader.transform.position, third.transform.position) > 0.5f)
+                Teleport(leader, third.transform.position);
             if (Time.time - started < 2f) continue; // the time for the guard to step in
             sum += Vector2.Distance(foe.transform.position, Centre);
             samples++;
@@ -1376,6 +1394,8 @@ public class AiScenarios : MonoBehaviour
                 if (dir != lastDir[i]) turns[i]++;
                 lastDir[i] = dir;
                 var v = c.GetComponent<Rigidbody2D>().linearVelocity;
+                // A push from a hit or a dodge is not a jolt of its own walking: only its walking counts.
+                if (c.IsHurt || c.IsDodging) { lastVel[i] = Vector2.zero; continue; }
                 if (v.magnitude > 0.5f && lastVel[i].magnitude > 0.5f && Vector2.Dot(v.normalized, lastVel[i].normalized) < -0.3f) reversals[i]++;
                 lastVel[i] = v;
             }
@@ -1613,6 +1633,416 @@ public class AiScenarios : MonoBehaviour
             $"Bandeau {(band ? "oui" : "non")} (rendu {(back ? "oui" : "non")}), Restes {(regen ? "oui" : "non")}, Ballon : {(floats ? "flotte" : "tombe")} puis {(burst ? "éclate" : "reste")}");
     }
 
+    // Only Water moves, two identical opponents, the nearer one with Water Absorb: the ally picks the other one.
+    IEnumerator AbilityTarget()
+    {
+        var (_, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        var water = FindMove(3, m => m.family == "projectile");
+        int neutral = FindSpecies(t => Mathf.Approximately(TypeChart.Multiplier(3, t, out _), 1f));
+        if (water == null || neutral < 0)
+        {
+            Report(false, "pas d'attaque Eau ou pas d'espèce neutre");
+            yield break;
+        }
+        var kept = (MoveDef[])ally.Moves.Clone();
+        for (int i = 0; i < ally.Moves.Length; i++) ally.Moves[i] = water;
+        var near = Enemy(neutral, new Vector2(3f, 0f));
+        var far = Enemy(neutral, new Vector2(0f, 5f));
+        near.SetAbility(36); // Absorbe-Eau
+        near.maxHp = near.hp = far.maxHp = far.hp = 100000f;
+        yield return new WaitForSeconds(Choose);
+        var chosen = TargetChoice.Current(ally);
+        for (int i = 0; i < kept.Length; i++) ally.Moves[i] = kept[i];
+        Report(chosen == far, $"{water.name} ; près {Name(near)} (Absorbe-Eau), loin {Name(far)} ; choisit {Name(chosen)}");
+    }
+
+    // AIs and abilities, lot 1 (AbilityAi): an AI that knows them sends no status move to a Magic Bounce nor a
+    // Synchronize and shoots a Sableye only now and then; one that knows nothing makes all these mistakes.
+    IEnumerator AbilityAiLotOne()
+    {
+        var (_, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        MoveDef status = null, shot = null;
+        foreach (var m in GameData.AllMoves)
+        {
+            if (status == null && m.family == "projectile" && m.power <= 0 && m.range >= 5f && m.status is "paralysis" or "burn" or "poison") status = m;
+            if (shot == null && m.family == "projectile" && m.power > 0 && string.IsNullOrEmpty(m.status) && m.path != "arc" && m.range >= 5f) shot = m;
+        }
+        var sableye = GameData.AllMegas.Find(m => Abilities.ForMega(m)?.reflectShotChance > 0f);
+        int neutral = FindSpecies(t => true);
+        if (status == null || shot == null || sableye == null)
+        {
+            Report(false, "pas d'attaque de statut, de tir ou de Méga-Ténéfix");
+            yield break;
+        }
+        if (ally.GetComponent<AllyAI>() is { } ai) ai.enabled = false; // only its decisions are read
+        var kept = (MoveDef[])ally.Moves.Clone();
+        var foe = Enemy(neutral, new Vector2(4.5f, 0f)); // in reach, beyond the ranged retreat
+        foe.maxHp = foe.hp = 100000f;
+        yield return new WaitForFixedUpdate();
+        var navigator = new Navigator();
+        int Pick(float knowledge, params MoveDef[] moves)
+        {
+            AbilityAi.ForcedKnowledge = knowledge;
+            for (int i = 0; i < ally.Moves.Length; i++) ally.LearnMove(i, i < moves.Length ? moves[i] : null);
+            return RoleTactics.Decide(ally, navigator, 20f, foe).slot;
+        }
+        foe.SetAbility(1156); // Miroir Magik
+        int bounceKnown = Pick(1f, status, shot), bounceBlind = Pick(0f, status, shot);
+        foe.SetAbility(25); // Synchro
+        int syncKnown = Pick(1f, status, shot), syncBlind = Pick(0f, status, shot);
+        foe.SetAbility(sableye.ability, Abilities.ForMega(sableye));
+        int first = Pick(1f, shot), second = Pick(1f, shot), blind = Pick(0f, shot);
+        AbilityAi.ForcedKnowledge = -1f;
+        for (int i = 0; i < kept.Length; i++) ally.LearnMove(i, kept[i]);
+        bool ok = bounceKnown == 1 && bounceBlind == 0 && syncKnown == 1 && syncBlind == 0 && first == 0 && second < 0 && blind == 0;
+        var grid = DungeonGenerator.Current;
+        string why = ok ? "" : $" [rôle {ally.Role}, distance {Vector2.Distance(ally.transform.position, foe.transform.position):0.0}, portées {status.Reach:0.0} / {shot.Reach:0.0}, "
+            + $"ligne {(grid == null || grid.ShotClear(ally.transform.position, foe.transform.position, 0.2f))}, vivant {foe.IsAlive} {ally.IsAlive}, équipes {ally.team} {foe.team}]";
+        Report(ok, $"{status.name} / {shot.name}{why} : Miroir Magik {bounceKnown} (sans connaissance {bounceBlind}), Synchro {syncKnown} ({syncBlind}), "
+            + $"Ténéfix tir {first} puis {second} ({blind})");
+    }
+
+    // AIs and abilities, lot 2 (AbilityAi): a hurt Water Absorb heads for the puddle close by, a Shadow Tag shooter
+    // keeps its target within the trap's reach, a mega's ward walks back toward it before the leash breaks; an AI that
+    // knows nothing does none of it.
+    IEnumerator AbilityAiLotTwo()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        if (ally.GetComponent<AllyAI>() is { } ai) ai.enabled = false; // only its decisions are read
+        var kept = (MoveDef[])ally.Moves.Clone();
+        MoveDef shot = null;
+        foreach (var m in GameData.AllMoves)
+            if (shot == null && m.family == "projectile" && m.power > 0 && m.path != "arc" && m.range >= 5f) shot = m;
+        var gardevoir = GameData.AllMegas.Find(m => Abilities.ForMega(m) is { wards: > 0, allyGuardRadius: > 0f });
+        if (shot == null || gardevoir == null)
+        {
+            Report(false, "pas de tir ou pas de méga à protégés");
+            yield break;
+        }
+        var navigator = new Navigator();
+        // Its only shot recharging: it only places itself.
+        void Arm()
+        {
+            for (int i = 0; i < ally.Moves.Length; i++) ally.LearnMove(i, i == 0 ? shot : null);
+            ally.TryUseMove(0, Vector2.down);
+        }
+        Vector2 Move(float knowledge, Combatant target)
+        {
+            AbilityAi.ForcedKnowledge = knowledge;
+            return RoleTactics.Decide(ally, navigator, 30f, target).move;
+        }
+        bool Towards(Vector2 move, Vector2 to) => move.sqrMagnitude > 0.01f && Vector2.Dot(move.normalized, (to - (Vector2)ally.transform.position).normalized) > 0.7f;
+
+        // Hurt, a puddle 2.5 tiles away, the foe far off.
+        var far = Enemy(BatchTeam[1], new Vector2(0f, 7f));
+        far.maxHp = far.hp = 100000f;
+        ally.SetAbility(36); // Absorbe-Eau
+        ally.hp = ally.maxHp * 0.25f;
+        Vector2 puddle = Centre + new Vector2(2.5f, 0f);
+        Terrain.PaintArea("water", puddle, 0.7f, 60f);
+        Arm();
+        yield return new WaitForFixedUpdate();
+        bool puddleKnown = Towards(Move(1f, far), puddle), puddleBlind = Towards(Move(0f, far), puddle);
+        ally.hp = ally.maxHp;
+        Destroy(far.gameObject);
+
+        // A Shadow Tag shooter, its target 5 tiles away (in its usual band, out of the trap's reach).
+        var near = Enemy(BatchTeam[1], new Vector2(5f, 0f));
+        near.maxHp = near.hp = 100000f;
+        ally.SetAbility(10); // Marque Ombre
+        Arm();
+        yield return new WaitForFixedUpdate();
+        bool trapKnown = Towards(Move(1f, near), near.transform.position);
+        bool trapBlind = Move(0f, near).sqrMagnitude < 0.01f;
+        ally.SetAbility(0);
+
+        // The leader as Mega-Gardevoir: the ally becomes its ward, then stands 7 tiles away (leash 8).
+        leader.SetAbility(gardevoir.ability, Abilities.ForMega(gardevoir));
+        yield return new WaitForSeconds(1.3f); // its wards are chosen each second
+        Teleport(ally, (Vector2)leader.transform.position + new Vector2(5f, 5f));
+        Arm();
+        yield return new WaitForFixedUpdate();
+        bool ward = Combatant.ProtectorOf(ally) == leader;
+        bool wardKnown = Towards(Move(1f, near), leader.transform.position), wardBlind = Towards(Move(0f, near), leader.transform.position);
+        AbilityAi.ForcedKnowledge = -1f;
+        leader.SetAbility(0);
+        for (int i = 0; i < kept.Length; i++) ally.LearnMove(i, kept[i]);
+        bool ok = puddleKnown && !puddleBlind && trapKnown && trapBlind && ward && wardKnown && !wardBlind;
+        Report(ok, $"flaque {puddleKnown} (sans connaissance {puddleBlind}), piégeur s'approche {trapKnown} (reste {trapBlind}), "
+            + $"protégé {ward} revient {wardKnown} ({wardBlind})");
+    }
+
+    // AIs and abilities, lot 3 (AbilityAi): a support keeps its heal when an Unnerve stops it, a shooter backs off out
+    // of a Shadow Tag's reach, an AI picks an unprotected foe before a mega's ward; with no knowledge, none of it.
+    IEnumerator AbilityAiLotThree()
+    {
+        var (leader, ally) = Place(new Vector2(-3f, -3f), Vector2.zero);
+        if (ally.GetComponent<AllyAI>() is { } ai) ai.enabled = false; // only its decisions are read
+        var kept = (MoveDef[])ally.Moves.Clone();
+        MoveDef heal = null, shot = null;
+        foreach (var m in GameData.AllMoves)
+        {
+            if (heal == null && m.family == "heal" && m.range >= 2f) heal = m;
+            if (shot == null && m.family == "projectile" && m.power > 0 && m.path != "arc" && m.range >= 5f) shot = m;
+        }
+        var gardevoir = GameData.AllMegas.Find(m => Abilities.ForMega(m) is { wards: > 0, allyGuardRadius: > 0f });
+        if (heal == null || shot == null || gardevoir == null)
+        {
+            Report(false, "pas de soin, de tir ou de méga à protégés");
+            yield break;
+        }
+        var navigator = new Navigator();
+        void Only(MoveDef move, bool recharging)
+        {
+            for (int i = 0; i < ally.Moves.Length; i++) ally.LearnMove(i, i == 0 ? move : null);
+            if (recharging) ally.TryUseMove(0, Vector2.down);
+        }
+        RoleTactics.Decision Decide(float knowledge, Combatant target)
+        {
+            AbilityAi.ForcedKnowledge = knowledge;
+            return RoleTactics.Decide(ally, navigator, 30f, target);
+        }
+        Vector2 Leader() => leader.transform.position;
+
+        // Unnerve: the leader hurt next to the ally, a foe with Unnerve 2 tiles from it.
+        Teleport(ally, Leader() + Vector2.right);
+        var unnerve = Enemy(BatchTeam[1], (Vector2)Leader() - Centre + new Vector2(1f, 2f));
+        unnerve.maxHp = unnerve.hp = 100000f;
+        unnerve.SetAbility(1127); // Tension
+        leader.hp = leader.maxHp * 0.3f;
+        Only(heal, false);
+        yield return new WaitForFixedUpdate();
+        int healKnown = Decide(1f, unnerve).slot, healBlind = Decide(0f, unnerve).slot;
+        leader.hp = leader.maxHp;
+        Destroy(unnerve.gameObject);
+
+        // Shadow Tag: the ally shooter (its shot recharging), its target 3.8 tiles away (trap: 3).
+        Teleport(ally, Centre);
+        var trapper = Enemy(BatchTeam[1], new Vector2(3.8f, 0f));
+        trapper.maxHp = trapper.hp = 100000f;
+        trapper.SetAbility(10); // Marque Ombre
+        Only(shot, true);
+        yield return new WaitForFixedUpdate();
+        Vector2 away = ((Vector2)ally.transform.position - (Vector2)trapper.transform.position).normalized;
+        Vector2 known = Decide(1f, trapper).move, blind = Decide(0f, trapper).move;
+        bool backsOff = known.sqrMagnitude > 0.01f && Vector2.Dot(known.normalized, away) > 0.5f;
+        bool stays = blind.sqrMagnitude < 0.01f;
+        Destroy(trapper.gameObject);
+
+        // A mega's ward a little closer than an unprotected foe (the better target otherwise), the leader out of the way.
+        Teleport(leader, Centre + new Vector2(0f, -9f));
+        var warded = Enemy(BatchTeam[1], new Vector2(3f, 2.5f));
+        var free = Enemy(BatchTeam[1], new Vector2(-4f, 3f));
+        var mega = Enemy(BatchTeam[1], new Vector2(6f, 8f));
+        foreach (var c in new[] { warded, free, mega }) c.maxHp = c.hp = 100000f;
+        mega.SetAbility(gardevoir.ability, Abilities.ForMega(gardevoir));
+        yield return new WaitForSeconds(1.3f); // its wards are chosen each second
+        bool protectedNow = mega.Protects(warded) && !mega.Protects(free);
+        AbilityAi.ForcedKnowledge = 1f;
+        var pickKnown = TargetChoice.Best(ally, ally.transform.position, 30f);
+        AbilityAi.ForcedKnowledge = 0f;
+        var pickBlind = TargetChoice.Best(ally, ally.transform.position, 30f);
+        AbilityAi.ForcedKnowledge = -1f;
+        for (int i = 0; i < kept.Length; i++) ally.LearnMove(i, kept[i]);
+        bool ok = healKnown < 0 && healBlind == 0 && backsOff && stays && protectedNow && pickKnown == free && pickBlind == warded;
+        Report(ok, $"{heal.name} sous Tension {healKnown} (sans connaissance {healBlind}), recul face au piégeur {backsOff} (reste {stays}), "
+            + $"protégé {protectedNow}, cible {Which(pickKnown)} (sans connaissance {Which(pickBlind)})");
+        string Which(Combatant c) => c == free ? "libre" : c == warded ? "protégé" : c == mega ? "la méga" : c == null ? "aucune" : Name(c);
+    }
+
+    // Water Absorb heals instead of taking a Water hit; Sturdy leaves 1 HP from full health; Inner Focus is never stunned.
+    IEnumerator AbilityRules()
+    {
+        Place(new Vector2(-3f, -3f), new Vector2(-6f, -3f), settle: false);
+        var water = FindMove(3, m => true);
+        var other = FindMove(1, m => true) ?? FindMove(7, m => true);
+        int neutral = FindSpecies(t => Mathf.Approximately(TypeChart.Multiplier(3, t, out _), 1f));
+        var foe = Enemy(neutral, new Vector2(4f, 0f));
+        yield return null;
+        foe.SetAbility(36);
+        foe.hp = foe.maxHp * 0.5f;
+        float before = foe.hp;
+        bool landed = foe.TakeHit(50f, water, out _);
+        bool absorbed = !landed && foe.hp > before;
+        foe.SetAbility(13);
+        foe.hp = foe.maxHp;
+        foe.TakeHit(foe.maxHp * 50f, other, out _);
+        bool sturdy = foe.IsAlive && foe.hp <= 1.01f;
+        foe.SetAbility(31);
+        foe.Stun(1f);
+        bool focus = !foe.IsHurt;
+        Report(absorbed && sturdy && focus,
+            $"absorption {(absorbed ? "oui" : "non")}, Fermeté {(sturdy ? "oui" : "non")}, Attention {(focus ? "oui" : "non")}");
+    }
+
+    // Water Absorb on a puddle heals and is not slowed; Sap Sipper on brambles is neither slowed nor hurt.
+    IEnumerator AbilityTerrain()
+    {
+        Place(new Vector2(-3f, -3f), new Vector2(-6f, -3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(3f, 2f));
+        yield return new WaitForFixedUpdate();
+        Vector2 at = foe.transform.position;
+        foe.SetAbility(36); // Absorbe-Eau
+        foe.hp = foe.maxHp * 0.5f;
+        Terrain.PaintArea("water", at, 1f, 10f);
+        float before = foe.hp;
+        yield return new WaitForSeconds(2.2f);
+        bool heals = foe.hp > before;
+        bool unslowedWater = Mathf.Approximately(Terrain.SpeedMul(foe), 1f);
+        Terrain.ClearArea("water", at, 1.5f);
+        foe.SetAbility(1157); // Herbivore
+        foe.hp = foe.maxHp * 0.5f;
+        Terrain.PaintArea("brambles", at, 1f, 10f);
+        before = foe.hp;
+        yield return new WaitForSeconds(2.2f);
+        bool unhurt = foe.hp >= before - 0.01f;
+        bool unslowedBrambles = Mathf.Approximately(Terrain.SpeedMul(foe), 1f);
+        bool boosted = foe.HasModifier("attack", true);
+        Terrain.ClearArea("brambles", at, 1.5f);
+        Report(heals && unslowedWater && unhurt && unslowedBrambles && boosted,
+            $"Flaque : {(heals ? "soigne" : "ne soigne pas")}, {(unslowedWater ? "pas ralenti" : "ralenti")} ; Ronces : {(unhurt ? "pas de dégâts" : "blessé")}, {(unslowedBrambles ? "pas ralenti" : "ralenti")}, attaque {(boosted ? "+" : "inchangée")}");
+    }
+
+    // Wonder Guard shrugs off a neutral hit, which Mold Breaker gets through; Pickpocket takes the item of whoever
+    // strikes it at close range.
+    IEnumerator AbilityRulesThree()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(2f, 0f));
+        yield return new WaitForFixedUpdate();
+        var move = FindMove(1, m => true) ?? FindMove(7, m => true);
+        foe.SetAbility(AbilityId("Garde Mystik"));
+        float before = foe.hp;
+        Combatant.HitSource = leader;
+        bool landed = foe.TakeHit(20f, move, out _);
+        bool guarded = !landed && Mathf.Approximately(foe.hp, before);
+        leader.SetAbility(AbilityId("Brise Moule"));
+        bool broken = foe.TakeHit(20f, move, out _) && foe.hp < before;
+        Combatant.HitSource = null;
+        leader.SetAbility(0);
+        foe.SetAbility(AbilityId("Pickpocket"));
+        var item = HeldItems.Get("leftovers");
+        var kept = leader.Hold(item);
+        Combatant.AbilityContact(leader, foe);
+        bool stolen = foe.Held == item && leader.Held == null;
+        leader.Hold(kept);
+        Report(guarded && broken && stolen,
+            $"Garde Mystik {(guarded ? "bloque" : "laisse passer")}, Brise Moule {(broken ? "passe" : "bloqué")}, Pickpocket {(stolen ? "vole" : "ne vole pas")}");
+    }
+
+    // A walkable spot about "distance" tiles from a point, nothing in the way (a wall, a tree, water).
+    static Vector2 FreeNear(Vector2 point, float distance)
+    {
+        var arena = DungeonGenerator.Current;
+        for (int i = 0; i < 16; i++)
+        {
+            float angle = i * Mathf.PI / 8f;
+            var spot = point + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
+            if (arena == null || (arena.WalkableAt(spot, 0.3f) && !Obstacles.BlocksAt(spot, null))) return spot;
+        }
+        return point;
+    }
+
+    // Méga-Kangourex: during the mega, Parental Bond and the stun of its own effect; back to its ability after.
+    IEnumerator MegaAbility()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var mega = GameData.AllMegas.Find(m => m.id == 21151);
+        if (mega == null) { Report(false, "pas de Méga-Kangourex dans megas.json"); yield break; }
+        leader.SetAbility(AbilityId("Fermeté"));
+        leader.MegaEvolve(mega);
+        yield return null;
+        bool during = leader.AbilityId == mega.ability && leader.Ability != null && leader.Ability.echoShare > 0f && leader.Ability.echoStun > 0f;
+        // Its second strike lands.
+        var foe = Enemy(BatchTeam[1], new Vector2(1.2f, 0f));
+        foe.maxHp = foe.hp = 100000f; // the first strike must not knock it out
+        yield return new WaitForFixedUpdate();
+        var punch = FindMove(1, m => m.family == "melee") ?? FindMove(7, m => true);
+        float before = foe.hp;
+        Combatant.HitSource = leader;
+        foe.TakeHit(leader.DamageOf(punch), punch, out float first);
+        Combatant.HitSource = null;
+        yield return new WaitForSeconds(0.4f);
+        bool echoed = before - foe.hp > first + 0.5f;
+        leader.RevertMega();
+        bool after = leader.AbilityId == AbilityId("Fermeté") && leader.Ability != null && leader.Ability.echoShare <= 0f;
+        leader.SetAbility(0);
+        Report(during && echoed && after, $"en méga {(during ? "Amour Filial + étourdissement" : "talent manquant")}, second coup {(echoed ? "oui" : "non")}, retour {(after ? "Fermeté" : "raté")}");
+    }
+
+    static int AbilityId(string name)
+    {
+        foreach (var a in AbilityLibrary.All)
+            if (a.name == name) return a.id;
+        return 0;
+    }
+
+    // The ability demo room (AbilityDemos) plays every case for a moment: no error logged, every ability has a demo.
+    IEnumerator AbilityDemosRun()
+    {
+        var sandbox = FindAnyObjectByType<TerrainSandbox>();
+        if (sandbox == null) { Report(false, "pas de terrain de test"); yield break; }
+        int errors = 0;
+        string first = null;
+        void Count(string message, string trace, LogType type)
+        {
+            if (type != LogType.Error && type != LogType.Exception) return;
+            errors++;
+            first ??= message;
+        }
+        Application.logMessageReceived += Count;
+        var demos = sandbox.gameObject.AddComponent<AbilityDemos>();
+        demos.caseTime = 100f; // the scenario moves on itself
+        yield return null;
+        yield return null;
+        demos.ShowVisuals(); // the abilities with a look of their own (the room may open on a shorter list)
+        int visuals = demos.Count;
+        for (int i = 0; i < visuals; i++)
+        {
+            demos.Play(i);
+            yield return new WaitForSeconds(0.5f);
+        }
+        demos.ShowAll();
+        int cases = demos.Count;
+        for (int i = 0; i < cases; i++)
+        {
+            demos.Play(i);
+            yield return new WaitForSeconds(0.5f);
+        }
+        Application.logMessageReceived -= Count;
+        Destroy(demos);
+        yield return null;
+        int megas = GameData.AllMegas.FindAll(m => Abilities.ForMega(m) != null && PokemonRoster.Has(m.@base)).Count;
+        Report(errors == 0 && cases == Abilities.All.Count + megas && visuals > 0,
+            $"{cases} démos pour {Abilities.All.Count} talents et {megas} mégas, {visuals} visuels, {errors} erreur(s){(first != null ? " : " + first : "")}");
+    }
+
+    // Synchronize sends a burn back to who gave it; Magic Guard takes no poison damage; Shadow Tag keeps the
+    // controlled Pokémon from dodging while near, and no longer once the ability is gone.
+    IEnumerator AbilityRulesTwo()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(2f, 0f));
+        yield return new WaitForFixedUpdate();
+        foe.SetAbility(25); // Synchro
+        foe.AddStatus("burn", 3f, leader);
+        bool synced = leader.HasStatus("burn");
+        leader.Cleanse();
+        foe.Cleanse();
+        foe.SetAbility(115); // Garde Magik
+        foe.AddStatus("poison", 3f, leader);
+        float before = foe.hp;
+        yield return new WaitForSeconds(1.5f);
+        bool guarded = Mathf.Approximately(foe.hp, before);
+        foe.Cleanse();
+        foe.SetAbility(10); // Marque Ombre
+        bool trapped = !leader.TryDodge(Vector2.left);
+        foe.SetAbility(0);
+        bool free = leader.TryDodge(Vector2.left);
+        Report(synced && guarded && trapped && free,
+            $"Synchro {(synced ? "oui" : "non")}, Garde Magik {(guarded ? "oui" : "non")}, Marque Ombre {(trapped ? "bloque" : "laisse esquiver")} puis {(free ? "libre" : "bloqué")}");
+    }
+
     // A Focus Sash leaves 1 HP after a knock-out blow, once, and breaks; a Rocky Helmet hurts who strikes it at close range.
     IEnumerator HeldLastStand()
     {
@@ -1790,7 +2220,8 @@ public class AiScenarios : MonoBehaviour
         var camps = places.Where(p => p.sort == IslandPopulation.Sort.Camp).ToList();
         var patrols = places.Where(p => p.sort == IslandPopulation.Sort.Patrol).ToList();
         int spawns = places.Count(p => p.sort == IslandPopulation.Sort.Spawn);
-        bool fitting = camps.All(c => c.lot != null && c.lot.members.All(m => Populations.Lives(c.habitat, m.pokemonId, false) || m.lot != c.lot.category));
+        // Day or night population: the clock starts at random (DayNight), so a camp may be a night one.
+        bool fitting = camps.All(c => c.lot != null && c.lot.members.All(m => Populations.Lives(c.habitat, m.pokemonId, true) || m.lot != c.lot.category));
         string result = $"{camps.Count} camps, {patrols.Count} rondes, {spawns} points d'apparition";
         bool ok = camps.Count > 0 && patrols.Count > 0 && fitting;
         var members = team.Members.ToArray();
@@ -1805,9 +2236,15 @@ public class AiScenarios : MonoBehaviour
             foreach (var m in members) Teleport(m, far);
             yield return new WaitForSeconds(1f);
             bool restsFar = !group.Engaged;
-            foreach (var m in members) Teleport(m, home + Vector2.right * 3f);
-            yield return new WaitForSeconds(1f);
-            bool wakes = group.Engaged;
+            // Right by a member of the camp (its home spot may lie in a wall or a tree): it must wake within 2 s.
+            Vector2 sleeper = camp.spawned[0].transform.position;
+            foreach (var m in members) Teleport(m, FreeNear(sleeper, 2f));
+            bool wakes = false;
+            for (float t = 0f; t < 2f && !wakes; t += Time.fixedDeltaTime)
+            {
+                yield return new WaitForFixedUpdate();
+                wakes = group.Engaged;
+            }
             foreach (var m in members) Teleport(m, far);
             yield return new WaitForSeconds(group.roam.giveUp + 1.5f);
             bool backToRest = !group.Engaged;

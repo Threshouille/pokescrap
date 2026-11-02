@@ -1,8 +1,43 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 26/10/2026 (Robin : socle technique fusionné dans `feature/engrenages` ; peuplement, engrenages et boss de quartier ; voir le README). À lire en début de session avec `CLAUDE.md` (détails
+Dernière mise à jour : 02/11/2026 (Robin : `feature/engrenages` fusionnée dans `dev` le 26/10 ; `feature/talents` prête à fusionner, voir ci-dessous). À lire en début de session avec `CLAUDE.md` (détails
 techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons). Bilan complet du 25/10 : avancement,
 branches, axes de refonte et questions de conception (page partagée par Robin).
+
+## Talents (02/11/2026, branche `feature/talents`, poussée, pas encore fusionnée dans `dev`)
+
+Fait : catalogue `abilities_rt.json` (talents ROM + caché PokéAPI par Pokémon, talents des mégas, rapport
+`Docs/TALENTS.md`) ; effets des lots 1 à 3 (tous les talents des Pokémon) et passifs des 27 mégas
+(`ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`) ; visuels des talents et des mégas (Claude Design,
+`Design/effects_v18_talents/`, `effects_v19_megas/`), salle de démo 21, protégés des mégas ; IA et talents, lots 1 à 3
+(`AbilityAi` : connaissance bornée, exploiter son talent, lire ceux des adversaires) ; persos de dev avec talent de
+départ. Banc complet 85/85 le 30/10 (avant le dernier commit du 02/11, retouches des persos de dev). `dev` n'a pas
+bougé depuis : fusion sans conflit attendue. Restent à part : `feature/attaques-type-lot4` (Owen), `feature/refonte-visuelle`
+(Owen, à fusionner avec lui). Suite : réglage des valeurs en jeu.
+
+Test en jeu prévu (éditeur, profil de dev) :
+0. Démo de tous les talents : terrain de test, escalier rose (en bas, à droite de l'orange) ; regarder chaque talent
+   (←/→, ↑/↓ par famille) et noter ceux dont la démo ne montre rien de clair.
+1. Menu : un perso de dev, R2 / Tab ouvre la liste des talents (filtre par famille, description) ; un Pokémon normal
+   montre ses talents et son caché. En partie, J ouvre la même liste (Maj+J : le suivant).
+2. Partie normale : le nom du talent tiré s'affiche dans le HUD après le niveau ; il reste après une évolution ; une
+   méga prend celui de la méga puis rend l'ancien.
+3. Terrain de test (Select / T) avec un perso de dev, J pour choisir un talent :
+   cibles d'entraînement de la salle 0 pour Sniper (dégâts plus forts de loin), Chanceux (tirs plus gros),
+   Technicien, Brasier sous 1/3 des PV ; Statik / Peau Dure en frappant au corps à corps une cible avec le talent
+   (élite de la salle 7 : J ne change que le Pokémon joué, donc tester le talent de l'élite par son tirage).
+4. Météo : Sécheresse / Crachin au début d'une arène ; Glissade, Chlorophylle (vitesse), Voile Sable (pas de dégâts).
+5. Intimidation : bandeau et icône de malus d'attaque sur les ennemis qui approchent.
+6. Paratonnerre / Lavabo : les tirs Électrik / Eau des ennemis sont attirés et absorbés.
+7. Marque Ombre / Piège Sable : esquive refusée près du porteur ; Ventouse : pas de recul.
+8. Ramassage : objets qui arrivent dans le sac au fil des K.O.
+9. À noter : bandeaux trop fréquents ou pas assez, valeurs trop fortes ou trop faibles.
+Banc complet le 29/10 (mégas) : 80/82 ; les deux échecs, antérieurs aux talents, corrigés le 30/10 : « capacité Z
+frappe et paralyse » (le Z ne multipliait que la puissance, pas la stat du lanceur : Onde de Choc, puissance 7, à peine
+×2,4 ; visible depuis que Fatal-Foudre est une zone) et « Secours : le plus apte éloigne l'ennemi » (Charge repousse
+désormais le meneur immobile hors de portée de la réanimation : le scénario le ramène sur le K.O.). « Groupe : pas d'à-coups » et « Peuplement : camps et rondes », instables, corrigés le 29/10 (8 passages sur 8) :
+reculs dus aux coups et aux esquives exclus ; population de nuit acceptée, équipe placée sur une case libre près
+du camp.
 
 ## Reprise (26/10/2026, Robin) : où on s'est arrêté
 

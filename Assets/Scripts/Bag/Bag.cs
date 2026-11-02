@@ -104,7 +104,7 @@ public class Bag : MonoBehaviour
         if (index < 0 || index >= slots.Length || slots[index] == null || user == null || !user.IsAlive) return false;
         var item = slots[index].item;
         if (!Apply(item, user)) return false;
-        if (--slots[index].count <= 0) slots[index] = null;
+        if (!user.KeepsBerry(item) && --slots[index].count <= 0) slots[index] = null; // Harvest: kept
         progression?.Announce($"{user.Stats.name} utilise {item.name} !");
         return true;
     }
@@ -118,7 +118,7 @@ public class Bag : MonoBehaviour
         {
             case "heal":
                 if (user.hp >= user.maxHp) return false;
-                user.Heal(user.maxHp * item.value);
+                user.Heal(user.maxHp * item.value * user.BagHealMul); // Gluttony
                 Burst("evolution_eclat", at, item.Colour, 1.5f);
                 return true;
             case "cure":

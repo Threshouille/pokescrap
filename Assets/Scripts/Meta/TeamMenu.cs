@@ -33,6 +33,7 @@ public class TeamMenu : MonoBehaviour
     // Starting moves screen: open for one Pokémon, with its move pool and the moves picked so far.
     // The pool can be filtered by type: "pool" holds the moves shown, "fullPool" all of them.
     bool editingMoves;
+    AbilityPicker abilityPicker; // a dev character's ability list (R2 / Tab)
     List<MoveDef> fullPool, pool;
     readonly List<int> filterTypes = new(); // types found in the pool; filter -1 shows every move
     int filter = -1;
@@ -80,6 +81,18 @@ public class TeamMenu : MonoBehaviour
             if (circle || square) CloseItems();
             return;
         }
+        if (abilityPicker != null)
+        {
+            bool previous = (pad != null && pad.leftShoulder.wasPressedThisFrame) || (repeat && direction.x < 0);
+            bool next = (pad != null && pad.rightShoulder.wasPressedThisFrame) || (repeat && direction.x > 0);
+            bool closing = circle || triangle || (kb != null && kb.tabKey.wasPressedThisFrame);
+            if (abilityPicker.Handle(repeat ? direction.y : 0, previous ? -1 : next ? 1 : 0, cross, closing))
+            {
+                if (cross) SaveData.SetDevAbility(choices[cursor], abilityPicker.Chosen);
+                abilityPicker = null;
+            }
+            return;
+        }
         if (editingMoves)
         {
             if (repeat && direction.y != 0) moveCursor = Mathf.Clamp(moveCursor + direction.y, 0, pool.Count - 1);
@@ -93,6 +106,13 @@ public class TeamMenu : MonoBehaviour
         if (triangle && SaveData.IsUnlocked(choices[cursor]))
         {
             OpenMoves(choices[cursor]);
+            return;
+        }
+        // A dev character: R2 (Tab) opens the list of the abilities that do something (Abilities).
+        if (GameData.IsDev(choices[cursor]) && Abilities.All.Count > 0
+            && ((pad != null && pad.rightTrigger.wasPressedThisFrame) || (kb != null && kb.tabKey.wasPressedThisFrame)))
+        {
+            abilityPicker = new AbilityPicker(SaveData.DevAbility(choices[cursor]));
             return;
         }
         if (square && SaveData.IsUnlocked(choices[cursor]) && !GameData.IsDev(choices[cursor]))
@@ -117,6 +137,16 @@ public class TeamMenu : MonoBehaviour
         if (team.Count > 0 && SaveData.Settings.devMode
             && ((pad != null && pad.selectButton.wasPressedThisFrame) || (kb != null && kb.tKey.wasPressedThisFrame)))
             Run.Start(team.ToArray(), true);
+    }
+
+    /// Its abilities as the menu shows them: the dev character's pick, else the regular ones and the hidden one.
+    static string AbilityLine(int id, PokemonStats stats)
+    {
+        if (GameData.IsDev(id)) return $"Talent : {AbilityLibrary.Get(SaveData.DevAbility(id))?.name} (R2 / Tab)";
+        if (stats?.abilities == null || stats.abilities.Length == 0) return "Talent : aucun";
+        var names = System.Array.ConvertAll(stats.abilities, a => AbilityLibrary.Get(a)?.name ?? "?");
+        string hidden = stats.hiddenAbility != 0 ? $" (caché : {AbilityLibrary.Get(stats.hiddenAbility)?.name})" : "";
+        return $"Talent{(names.Length > 1 ? "s" : "")} : {string.Join(" / ", names)}{hidden}";
     }
 
     static Vector2Int ReadDirection(Gamepad pad, Keyboard kb)
@@ -460,7 +490,8 @@ public class TeamMenu : MonoBehaviour
         float px = left + (gridWidth + 16f) * s;
         var panel = new Rect(px, top, panelWidth * s, PanelHeight * s);
         Fill(panel, Frame);
-        if (editingItems) DrawItems(choices[cursor], panel, s);
+        if (abilityPicker != null) abilityPicker.Draw(panel, s, $"Talent de {GameData.Pokemon(choices[cursor])?.name}");
+        else if (editingItems) DrawItems(choices[cursor], panel, s);
         else if (editingMoves) DrawMoves(choices[cursor], panel, s);
         else if (choices.Count > 0) DrawDetails(choices[cursor], panel, s);
 
@@ -520,6 +551,8 @@ public class TeamMenu : MonoBehaviour
             y += line;
         }
         Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), $"{GameData.MovePool(id).Count} attaques au choix", TextAnchor.MiddleLeft);
+        y += line;
+        Label(new Rect(panel.x + pad, y, panel.width - 2f * pad, line), AbilityLine(id, stats), TextAnchor.MiddleLeft);
     }
 
     // The move pool, the picked moves ticked, and what the move under the cursor does.

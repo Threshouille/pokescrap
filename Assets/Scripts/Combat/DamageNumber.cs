@@ -54,12 +54,12 @@ public class DamageNumber : MonoBehaviour
     public static void Status(Vector3 at, float amount, Color statusColor) =>
         Spawn(at, amount, statusColor, SaveData.Settings.smallNumberScale, "");
 
-    public static void Heal(Vector3 at, float amount) => Spawn(at, amount, SaveData.Settings.healColor, 1f, "+");
+    public static void Heal(Vector3 at, float amount) => Spawn(at, amount, SaveData.Settings.healColor, 1f, "+", 0); // "+0": a heal stopped (Unnerve)
 
-    static void Spawn(Vector3 at, float amount, string hex, float scale, string prefix)
+    static void Spawn(Vector3 at, float amount, string hex, float scale, string prefix, int least = 1)
     {
         ColorUtility.TryParseHtmlString(hex, out var c);
-        Spawn(at, amount, c, scale, prefix);
+        Spawn(at, amount, c, scale, prefix, least);
     }
 
     /// Damage multiplier of a chained strike (Taillade), above the damage numbers: "x1.5".
@@ -93,8 +93,9 @@ public class DamageNumber : MonoBehaviour
         return go;
     }
 
-    static void Spawn(Vector3 at, float amount, Color color, float scale, string prefix) =>
-        Show(at, prefix + Mathf.Max(1, Mathf.RoundToInt(amount)), color, scale, true);
+    // least: the smallest number shown (a hit that lands shows at least 1).
+    static void Spawn(Vector3 at, float amount, Color color, float scale, string prefix, int least = 1) =>
+        Show(at, prefix + Mathf.Max(least, Mathf.RoundToInt(amount)), color, scale, true);
 
     static void Show(Vector3 at, string text, Color color, float scale, bool jitter)
     {

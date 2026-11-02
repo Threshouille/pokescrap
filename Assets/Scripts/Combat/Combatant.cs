@@ -151,7 +151,7 @@ public partial class Combatant : MonoBehaviour
     /// A melee charge with channelSpeedMul (Ultimapoing) lets the user walk, slowed, while it charges.
     bool WalksWhileCharging => chargeMove != null && chargeMove.channelSpeedMul > 0f && castMove == null && blinkMove == null;
     public float CurrentSpeed => CanMove && (!IsCasting || WalksWhileCharging) && !BodyRoots && Time.time >= recoverUntil
-        ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul * BodySpeedMul : 0f;
+        ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul * BodySpeedMul * AbilitySpeedMul : 0f;
 
     class TimedModifier
     {
@@ -340,6 +340,7 @@ public partial class Combatant : MonoBehaviour
         for (int i = 0; moveIds != null && i < MoveSlots && i < moveIds.Length; i++) Moves[i] = GameData.Move(moveIds[i]);
         // Bosses keep the role written with their fixed moves; the others get it from the moves they have.
         Role = moveIds == null ? GameData.Role(pokemonId) : GameData.RoleFromMoves(Moves);
+        SetAbilitySlot(Abilities.DrawSlot(Stats, 0f, new System.Random(UnityEngine.Random.Range(0, int.MaxValue))));
         if (Stats == null) return;
         maxHp = hp = Stats.baseHp;
         level = 1;
@@ -361,7 +362,8 @@ public partial class Combatant : MonoBehaviour
     public float CooldownLeft(int slot) => Mathf.Max(0f, readyAt[slot] - Time.time);
 
     /// Recharge time of a move for this Pokémon, upgrades included.
-    public float CooldownOf(MoveDef move) => move.cooldown * cooldownMul * EnemyBasic(move, SaveData.Settings.enemyBasicCooldownMul);
+    public float CooldownOf(MoveDef move) => move.cooldown * cooldownMul * EnemyBasic(move, SaveData.Settings.enemyBasicCooldownMul)
+        * AbilityCooldownMul(move); // Stall, Prankster
 
     // Enemies fire their basic attack less often but harder: the factor for enemies, 1 otherwise.
     float EnemyBasic(MoveDef move, float factor) => move.basic && team == Team.Enemy ? factor : 1f;
@@ -398,6 +400,7 @@ public partial class Combatant : MonoBehaviour
     {
         var next = GameData.Pokemon(pokemonId);
         if (next == null || Stats == null) return;
+        RevertTypeShift();
         float hpShare = maxHp > 0f ? hp / maxHp : 1f;
         maxHp += next.baseHp - Stats.baseHp;
         if (IsAlive) hp = Mathf.Max(1f, maxHp * hpShare);
@@ -407,6 +410,7 @@ public partial class Combatant : MonoBehaviour
         spDef += next.baseSpDef - Stats.baseSpDef;
         moveSpeed *= GameData.MoveSpeed(next.baseSpeed) / GameData.MoveSpeed(Stats.baseSpeed);
         Stats = next;
+        RefreshAbility();
     }
 
     /// The mega evolution this Pokémon is in, or null.
@@ -420,6 +424,7 @@ public partial class Combatant : MonoBehaviour
     public void MegaEvolve(MegaDef mega)
     {
         if (Mega != null || Stats == null || mega == null) return;
+        RevertTypeShift();
         Mega = mega;
         beforeMega = Stats;
         var form = Stats.Clone();
@@ -437,6 +442,7 @@ public partial class Combatant : MonoBehaviour
         spDef += megaSpDef = Gain(spDef, mega.stats.spDef, mega.baseStats.spDef);
         megaSpeedMul = GameData.MoveSpeed(mega.stats.speed) / GameData.MoveSpeed(mega.baseStats.speed);
         moveSpeed *= megaSpeedMul;
+        AbilityToMega(mega);
     }
 
     public void RevertMega()
@@ -453,6 +459,7 @@ public partial class Combatant : MonoBehaviour
         moveSpeed /= megaSpeedMul;
         Stats = beforeMega;
         Mega = null;
+        AbilityFromMega();
     }
 
     /// The special item this Pokémon brings into the run (its ultimate: Ultimates), or null.
@@ -467,6 +474,7 @@ public partial class Combatant : MonoBehaviour
     public void Terastallize(int type)
     {
         if (TeraType >= 0 || Stats == null) return;
+        RevertTypeShift();
         beforeTera = Stats;
         var form = Stats.Clone();
         form.types = new[] { type };
@@ -594,6 +602,7 @@ public partial class Combatant : MonoBehaviour
     public void AddModifier(string stat, float value, float duration)
     {
         if (!IsAlive || string.IsNullOrEmpty(stat) || value <= 0f) return;
+        value = Abilities.ChangedModifier(Ability, value); // Simple, Contrary
         modifiers.RemoveAll(m => Time.time >= m.until || (m.stat == stat && m.value > 1f == value > 1f));
         modifiers.Add(new TimedModifier { stat = stat, value = value, until = Time.time + duration });
     }
@@ -660,6 +669,10 @@ public partial class Combatant : MonoBehaviour
     {
         var def = StatusLibrary.Get(key);
         if (!IsAlive || def == null) return;
+        if (AbilityBlocksStatus(key)) return; // Insomnia, Limber…
+        Synchronize(key, duration, source);
+        duration *= AbilityStatusDuration(key); // Early Bird
+        if (source != null && source != this && source.Ability != null) duration *= source.Ability.statusGivenMul; // Banette
         duration *= team == Team.Player ? def.playerDurationFactor : 1f;
         if (isBoss) duration *= def.bossDurationFactor;
         foreach (var st in statuses)
@@ -679,12 +692,17 @@ public partial class Combatant : MonoBehaviour
     {
         if (!IsAlive) return;
         statuses.RemoveAll(st => st.def.thawType == move.type); // a fire move thaws a frozen Pokémon
-        if (!string.IsNullOrEmpty(move.modStat) && move.family != "modifier"
-            && (sure || move.statChance <= 0f || UnityEngine.Random.value <= move.statChance))
+        if (SideEffectsDropped(source, move)) return; // Sheer Force
+        float more = EffectChanceMul(source); // Serene Grace
+        if (!string.IsNullOrEmpty(move.modStat) && move.family != "modifier" && !KeepsStat(move.modStat, move.modValue)
+            && (sure || move.statChance <= 0f || UnityEngine.Random.value <= move.statChance * more))
+        {
             AddModifier(move.modStat, move.modValue, move.modDuration > 0f ? move.modDuration : DefaultStatusDuration);
+            if (move.modValue < 1f) Lowered(); // Defiant
+        }
 
         if (string.IsNullOrEmpty(move.status)) return;
-        float chance = move.statusChance > 0f ? move.statusChance : 1f;
+        float chance = (move.statusChance > 0f ? Mathf.Min(1f, move.statusChance * more) : 1f) * (Ability?.statusChanceMul ?? 1f); // Wonder Skin
         if (!sure && UnityEngine.Random.value > chance) return;
         AddStatus(move.status, move.statusDuration > 0f ? move.statusDuration : DefaultStatusDuration, source);
     }
@@ -692,20 +710,28 @@ public partial class Combatant : MonoBehaviour
     /// Called on the attacker when one of its moves lands: drain, recoil and bonuses it gives itself.
     public void HitLanded(MoveDef move, float dealt)
     {
+        if (dealt > 0f && move.family == "melee" && Ability is { meleeDrain: > 0f } jaws) // Mawile
+        {
+            Heal(dealt * jaws.meleeDrain);
+            if (LastHit != null) LastHit.TargetFx(jaws.targetFx);
+        }
         if (Held != null && dealt > 0f)
         {
             if (Held.drainShare > 0f) Heal(dealt * Held.drainShare); // a Shell Bell
             if (Held.recoilShare > 0f && IsAlive && recoiledAttack != attackCount) // a Life Orb: once per attack, not per hit
             {
                 recoiledAttack = attackCount;
-                TakeFixedDamage(maxHp * Held.recoilShare);
+                TakeIndirectDamage(maxHp * Held.recoilShare);
             }
         }
         if (dealt > 0f && move.drain > 0f)
-            MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
+        {
+            if (DrainSign(LastHit) < 0f) TakeIndirectDamage(dealt * move.drain); // Liquid Ooze
+            else MostWounded(team, transform.position, float.MaxValue, 1f)?.Heal(dealt * move.drain);
+        }
         if (!string.IsNullOrEmpty(move.selfModStat) && (move.selfStatChance <= 0f || UnityEngine.Random.value <= move.selfStatChance))
             AddModifier(move.selfModStat, move.selfModValue, move.selfModDuration > 0f ? move.selfModDuration : DefaultStatusDuration);
-        if (dealt > 0f && move.recoil > 0f && IsAlive)
+        if (dealt > 0f && move.recoil > 0f && IsAlive && Ability is not { noRecoil: true } && !MagicGuard) // Rock Head: none
         {
             float recoil = Mathf.Max(1f, dealt * move.recoil);
             DamageNumber.Damage(transform.position, recoil, Efficacy.Normal);
@@ -722,6 +748,7 @@ public partial class Combatant : MonoBehaviour
         if (move == null || Time.time < readyAt[slot] || !CanAttack || IsCasting || IsLunging || IsDodging || Time.time < recoverUntil) return false;
         if (Holding || InBody) return false; // a held move or a body move is going on
         if (InRollout && move.rolloutMax <= 0) return false; // a Roulade series: nothing else
+        if (Damped(move)) return false; // Damp
         if (move.noAutoAim && RawAim != Vector2.zero) direction = RawAim; // the player's own direction, not the target's
         attackCount++; // a new attack (a Life Orb takes its toll once per attack)
         if (StartHeld(slot, move, direction, out bool refused)) return !refused;
@@ -795,7 +822,8 @@ public partial class Combatant : MonoBehaviour
         if (direction == Vector2.zero) return false;
         readyAt[slot] = Time.time + CooldownOf(move);
         direction = Steer(direction.normalized);
-        if ((move.family == "projectile" || move.family == "melee" || move.family == "zone") && move.castTime > 0f)
+        bool casts = move.castTime > 0f && !(Ability is { prankster: true } && move.power <= 0); // Prankster: at once
+        if ((move.family == "projectile" || move.family == "melee" || move.family == "zone") && casts)
         {
             // The move goes off once the cast is over, toward where the player aims then.
             castMove = move;
@@ -807,7 +835,8 @@ public partial class Combatant : MonoBehaviour
         else if (move.family == "projectile") Shoot(move, direction, distance);
         else if (move.family == "zone") PlaceZone(move, direction, distance);
         else if (move.family == "melee") Melee(move, direction);
-        if (move.castTime <= 0f) UseModifier(move);
+        if (!casts) UseModifier(move);
+        AbilityAttacked(move); // Truant, Protean, Analytic
         return true;
     }
 
@@ -887,6 +916,9 @@ public partial class Combatant : MonoBehaviour
     public void Knockback(Vector2 velocity, float time)
     {
         if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this)) return; // an Acier on metal holds firm
+        float held = AbilityKnockbackMul; // Suction Cups, Heavy Metal
+        if (held <= 0f) return;
+        velocity *= held;
         time *= Terrain.KnockbackMul(this); // slippery ground: the push carries further
         knockVelocity = velocity;
         knockTime = time;
@@ -957,15 +989,17 @@ public partial class Combatant : MonoBehaviour
     /// Neither moving nor attacking for a moment (bosses are immune).
     public void Stun(float duration)
     {
-        if (isBoss || duration <= 0f) return;
+        if (isBoss || duration <= 0f || Ability is { stunImmune: true }) return; // Inner Focus
         stunUntil = Mathf.Max(stunUntil, Time.time + duration);
+        AbilityStunned(); // Steadfast
     }
 
     /// followAim: each strike goes where the player aims when it lands rather than at the start (blow after a dash).
     void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f, bool followAim = false, Vector2 extra = default)
     {
-        // hitsMax: a random number of strikes, hitsMin to hitsMax (Combo-Griffe).
-        int count = move.hitsMax > 0 ? UnityEngine.Random.Range(Mathf.Max(1, move.hitsMin), move.hitsMax + 1) : Mathf.Max(1, move.hits);
+        // hitsMax: a random number of strikes, hitsMin to hitsMax (Combo-Griffe); Skill Link adds to a combo.
+        int count = move.hitsMax > 0 ? UnityEngine.Random.Range(Mathf.Max(1, move.hitsMin), move.hitsMax + 1) + ExtraHits
+            : Mathf.Max(1, move.hits) + (move.hits > 1 ? ExtraHits : 0); // Skill Link
         for (int i = 0; i < count; i++)
         {
             float angle = move.hitAngles != null && move.hitAngles.Length > 0 ? move.hitAngles[i % move.hitAngles.Length] : 0f;
@@ -1097,7 +1131,7 @@ public partial class Combatant : MonoBehaviour
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             HitSource = this;
-            if (target.TakeHit(DamageOf(move) * factor * chargedStrike, move, out float dealt, hitCap))
+            if (target.TakeHit(DamageOf(move) * (target.Ability is { noChainBonus: true } ? 1f : factor) * chargedStrike, move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
@@ -1106,6 +1140,7 @@ public partial class Combatant : MonoBehaviour
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target); // a Rocky Helmet
                 if (move.barrage > 0) StartBarrage(move, target);
+                AbilityContact(this, target);
             }
         }
         if (move.chainBonus > 0f && hit.Count > 0)
@@ -1161,11 +1196,22 @@ public partial class Combatant : MonoBehaviour
     public bool TryDodge(Vector2 direction)
     {
         if (!IsAlive || Time.time < dodgeReadyAt || !CanMove || IsCasting || IsLunging || direction == Vector2.zero || body == null) return false;
+        if (TrappedBy() is { } trapper) // Arena Trap, Shadow Tag…: the trapper says so
+        {
+            trapper.ShowAbility($"esquive de {Stats?.name} bloquée");
+            return false;
+        }
         var settings = SaveData.Settings;
         dodgeDirection = direction.normalized;
-        dodgeUntil = Time.time + settings.dodgeTime;
-        dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown);
+        dodgeUntil = Time.time + settings.dodgeTime * AbilityDodgeTimeMul; // Light Metal
+        dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown) * AbilityDodgeCooldownMul;
+        if (Ability is { dodgeTeleport: true } && TeleportDodge(dodgeDirection, settings.dodgeDistance * AbilityDodgeTimeMul))
+        {
+            dodgeUntil = Time.time; // no slide
+            return true;
+        }
         PassThroughOpponents();
+        DodgeFx(); // Alakazam
         return true;
     }
 
@@ -1286,8 +1332,9 @@ public partial class Combatant : MonoBehaviour
     void FireProjectiles(MoveDef move, Vector2 direction, float distance)
     {
         int shots = Mathf.Max(1, move.count);
-        if (AimTarget != null && distance <= 0f && !move.noAutoAim) AutoAim(move, shots * Mathf.Max(1, move.burst), ref direction, ref distance);
-        for (int volley = 0; volley < Mathf.Max(1, move.burst); volley++)
+        int bursts = Mathf.Max(1, move.burst) + (move.burst > 1 ? ExtraHits : 0); // Skill Link
+        if (AimTarget != null && distance <= 0f && !move.noAutoAim) AutoAim(move, shots * bursts, ref direction, ref distance);
+        for (int volley = 0; volley < bursts; volley++)
             for (int i = 0; i < shots; i++)
             {
                 float angle = shots == 1 ? 0f : Mathf.Lerp(-move.spread / 2f, move.spread / 2f, i / (shots - 1f));
@@ -1298,7 +1345,8 @@ public partial class Combatant : MonoBehaviour
                     int rank = Mathf.RoundToInt(2f * Mathf.Abs(i - centre)) - (i > centre ? 1 : 0); // i > centre: left side
                     delay += rank * move.burstInterval;
                 }
-                angle += UnityEngine.Random.Range(-move.jitter, move.jitter);
+                float stray = move.jitter + (Ability?.shotJitter ?? 0f); // Hustle
+                angle += UnityEngine.Random.Range(-stray, stray);
                 Projectile.Spawn(this, move, Quaternion.Euler(0f, 0f, angle) * direction, i, delay, distance,
                     (volley * shots + i) * move.rangeStep);
             }
@@ -1330,6 +1378,8 @@ public partial class Combatant : MonoBehaviour
         UpdateDelayedKnock();
         UpdateArc();
         UpdateBarrages();
+        UpdateAbility();
+        UpdateAbilityMarks();
         UpdateRolloutBadge();
         if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
         {
@@ -1395,6 +1445,7 @@ public partial class Combatant : MonoBehaviour
                 target.ApplyEffects(delayedMove, false, this);
                 HitLanded(delayedMove, dealt);
                 HeldItems.OnContact(this, target);
+                AbilityContact(this, target);
             }
             delayedTargets.Clear();
             delayedMove = null;
@@ -1519,6 +1570,12 @@ public partial class Combatant : MonoBehaviour
             if (IsEvolving) continue; // nothing hurts during the evolution
             // Damage over time ignores defence and the post-hit protection.
             float amount = Mathf.Max(1f, maxHp * st.def.damageShare * (isBoss ? st.def.bossDamageFactor : 1f));
+            if (st.def.key == "poison" && Ability is { poisonHeals: true }) // Poison Heal
+            {
+                Heal(amount);
+                continue;
+            }
+            if (MagicGuard) continue;
             DamageNumber.Status(transform.position, amount, st.def.color);
             LoseHp(amount);
             if (st.def.drainToSource && st.source != null && st.source.IsAlive) st.source.Heal(amount);
@@ -1560,6 +1617,7 @@ public partial class Combatant : MonoBehaviour
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target);
+                AbilityContact(this, target);
             }
         }
         return count;
@@ -1570,7 +1628,7 @@ public partial class Combatant : MonoBehaviour
     {
         if (move.power <= 0) return 0f; // pure status moves
         float stat = move.category == "physical" ? atk * attackMul : spAtk * specialAttackMul;
-        float burn = move.category == "physical" ? StatusProduct(def => def.physicalAttackMul) : 1f;
+        float burn = move.category == "physical" && !IgnoresStatusAttackLoss ? StatusProduct(def => def.physicalAttackMul) : 1f;
         float scale = (move.damageScale > 0f ? move.damageScale : 1f) * EnemyBasic(move, SaveData.Settings.enemyBasicDamageMul);
         // Same-type bonus: its own types; Terastallized, the Tera type too, and more when it was already one of them.
         var own = TeraType >= 0 && beforeTera != null ? beforeTera.types : Stats?.types;
@@ -1578,7 +1636,7 @@ public partial class Combatant : MonoBehaviour
         float stab = TeraType == move.type ? (native ? SaveData.Settings.teraStab : SaveData.Settings.stab)
             : native ? SaveData.Settings.stab : 1f;
         float held = Held != null ? Held.damageMul : 1f; // an Orbe Vie
-        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * stab * held;
+        return (move.power + stat) * Modifier("attack") * burn * damageFactor * scale * AbilityStab(stab) * held * AbilityDealtMul(move);
     }
 
     /// The damage a hit of this move would roughly deal to "target" (types, defence; weather and terrain aside),
@@ -1587,9 +1645,13 @@ public partial class Combatant : MonoBehaviour
     {
         float raw = DamageOf(move);
         if (raw <= 0f || target == null) return 0f;
+        int type = Abilities.TypeOf(move, Ability);
+        if (Abilities.Absorbs(target.Ability, type) && Ability is not { moldBreaker: true }) return 0f; // Water Absorb, Lightning Rod…
         float defence = move.category == "physical" ? target.def : target.spDef;
-        return raw * TypeChart.Multiplier(move.type, target.Stats?.types, out _) * DefenseScale / (DefenseScale + defence)
-            / target.Modifier("defense");
+        float typeMul = TypeChart.Multiplier(type, target.Stats?.types, out var efficacy);
+        float abilities = target.AbilityHitMul(move, type, this, ref typeMul, ref efficacy);
+        if (target.Ability is { onlySuperEffective: true } && efficacy != Efficacy.Super && Ability is not { moldBreaker: true }) return 0f;
+        return raw * typeMul * abilities * DefenseScale / (DefenseScale + defence) / target.Modifier("defense");
     }
 
     /// A hit from a move: the target's types and defence (physical or special) change it. Returns false when the hit
@@ -1605,21 +1667,33 @@ public partial class Combatant : MonoBehaviour
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
         if (BodyIgnoresHit()) return false; // untouchable, or Coup Bas answers it
         if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
+        var attacker = HitSource;
+        if (TryAbsorb(move, attacker)) return false; // Water Absorb, Flash Fire…: nothing else happens
+        if (AbilityIgnoresHit(move, attacker, raw)) return false; // Soundproof, Overcoat, Magic Bounce, Anticipation
         if (raw <= 0f) return true; // a status-only hit lands without damage
         if (team == Team.Player) invulnerableUntil = Time.time + PlayerInvulnerability;
         float defence = move.category == "physical" ? def : spDef;
-        float typeMul = TypeChart.Multiplier(move.type, Stats?.types, out var efficacy);
-        dealt = Mathf.Max(1f, raw * typeMul * DefenseScale / (DefenseScale + defence) / Modifier("defense") / Obstacles.DefenseMul(this)
+        int type = Abilities.TypeOf(move, attacker?.Ability); // Normalize
+        float typeMul = TypeChart.Multiplier(type, Stats?.types, out var efficacy);
+        float abilities = AbilityHitMul(move, type, attacker, ref typeMul, ref efficacy);
+        if (AbilityShrugs(efficacy, attacker)) return false; // Wonder Guard
+        dealt = Mathf.Max(1f, raw * typeMul * abilities * DefenseScale / (DefenseScale + defence) / DefenseAgainst(attacker) / Obstacles.DefenseMul(this)
             * Climate.DamageMul(move.type, transform.position)); // weather, sports around it
         if (cap > 0f) dealt = Mathf.Min(dealt, maxHp * cap);
+        if (attacker == null || attacker.Ability is not { moldBreaker: true }) dealt = AbilityEndure(dealt); // Sturdy
+        LastAttacker = attacker;
+        AbilityPressure(move, attacker);
         statuses.RemoveAll(st => st.def.wakeOnHit);
         DamageNumber.Damage(transform.position, dealt, efficacy);
         LoseHp(dealt);
         lastHurtAt = Time.time;
+        LastHit = this;
+        AbilityAfterHit(move, attacker, dealt, type); // Anger Point, Justified, Cursed Body, Moxie…
         if (Held != null && Held.popOnHit && IsAlive) // a Balloon bursts at the first blow
         {
             Hold(null);
             EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+            ItemUsedUp(); // Unburden
         }
         Hurt?.Invoke(this);
         return true;
@@ -1641,6 +1715,13 @@ public partial class Combatant : MonoBehaviour
     public void Heal(float amount)
     {
         if (!IsAlive || amount <= 0f) return;
+        float unnerve = UnnerveMul(); // Unnerve of a foe nearby
+        if (unnerve <= 0f)
+        {
+            DamageNumber.Heal(transform.position, 0f); // "+0": the heal is there, and stopped
+            return;
+        }
+        amount *= unnerve;
         float healed = Mathf.Min(maxHp, hp + amount) - hp;
         if (healed >= 0.5f) DamageNumber.Heal(transform.position, healed);
         hp = Mathf.Min(maxHp, hp + amount);
@@ -1661,6 +1742,7 @@ public partial class Combatant : MonoBehaviour
             amount = hp - 1f;
             Hold(null);
             EffectPlayer.Spawn("evolution_eclat", transform.position, Vector2.right);
+            ItemUsedUp(); // Unburden
         }
         hp = Mathf.Max(0f, hp - amount);
         flashUntil = Time.time + HitFlashTime;
