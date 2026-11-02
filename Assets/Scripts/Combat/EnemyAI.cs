@@ -108,6 +108,9 @@ public class EnemyAI : MonoBehaviour
 
         bool canAttack = Time.time >= nextAttackAt;
         var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target(), canAttack);
+        // Abri against a shot about to land (ShotLookahead), when it has it ready.
+        Vector2 shot = Projectile.Threat(position, combatant.team, 0.35f, 0.4f);
+        if (shot != Vector2.zero && SupportMoves.TryGuard(combatant, shot)) return;
         if (TryDodge(decision, position, grid)) return;
         // Elites and the higher ranks (RarityMark.Repairs) make a way to a target they cannot reach.
         if (decision.slot < 0 && decision.foe != null && (combatant.IsElite || RarityMark.Repairs(combatant)))

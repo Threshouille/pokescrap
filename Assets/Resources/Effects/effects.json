@@ -6285,6 +6285,281 @@
         "#a8b4c0",
         "#f0f6ff"
       ]
+    },
+    {
+      "file": "mur_lumiere_mur.png",
+      "frame_width": 72,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#4a3200",
+        "#b07a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mur_lumiere_renvoi.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#4a3200",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "mur_lumiere_fin.png",
+      "frame_width": 72,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        70,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#4a3200",
+        "#b07a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "protection_mur.png",
+      "frame_width": 72,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "palette": [
+        "#12264a",
+        "#2f5fb0",
+        "#6fb0ff",
+        "#d8f0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "protection_choc.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        40,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#12264a",
+        "#2f5fb0",
+        "#6fb0ff",
+        "#d8f0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "protection_fin.png",
+      "frame_width": 72,
+      "frame_height": 16,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        60,
+        70,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#12264a",
+        "#2f5fb0",
+        "#6fb0ff",
+        "#d8f0ff",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "abri_bulle.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#12361a",
+        "#2e8a3a",
+        "#6fdc6a",
+        "#d8ffd0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "clonage_fumee.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        60,
+        60,
+        70,
+        80,
+        90
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "picots_pose.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#2a1408",
+        "#4a2610",
+        "#7c4620",
+        "#b0763a"
+      ],
+      "below": true
+    },
+    {
+      "file": "terrain_spikes.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        400,
+        400
+      ],
+      "loop": true,
+      "palette": [
+        "#24242e",
+        "#7c4620",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "terrain_spikes_b.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        400,
+        400
+      ],
+      "loop": true,
+      "palette": [
+        "#24242e",
+        "#7c4620",
+        "#6a6a6a",
+        "#c8c8c8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "voeu_cercle.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#4a3200",
+        "#b07a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ],
+      "below": true
+    },
+    {
+      "file": "voeu_etoile.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true,
+      "palette": [
+        "#4a3200",
+        "#b07a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "voeu_soin.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        50,
+        60,
+        70,
+        80,
+        90
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#ffd21f",
+        "#6fdc6a",
+        "#fff6a8"
+      ]
     }
   ]
 }

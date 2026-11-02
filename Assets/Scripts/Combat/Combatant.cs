@@ -111,6 +111,19 @@ public partial class Combatant : MonoBehaviour
     public bool IsElite => GetComponent<EliteMark>() != null;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
+    /// Clonage: a decoy left by its user (Decoy), which the opponents take for a target.
+    public bool IsDecoy { get; set; }
+    /// While its decoy stands, its user is out of sight: the opponents only see the decoy (TargetChoice, Nearest).
+    public bool Hidden => Decoy.Has(this);
+
+    /// Stops a dash where it is (Protection's wall).
+    public void StopLunge()
+    {
+        if (!IsLunging) return;
+        lungeUntil = Time.time;
+        lungeFinishPending = lungeStrikePending = false;
+        if (body != null) body.linearVelocity = Vector2.zero;
+    }
     public bool IsDodging => Time.time < dodgeUntil;
     /// True while a dash (melee lunge or dodge) drives the body: controllers leave its velocity alone.
     public bool IsDashing => IsLunging || IsDodging || Time.time < knockUntil;
@@ -277,7 +290,7 @@ public partial class Combatant : MonoBehaviour
         float bestDistance = maxDistance;
         foreach (var c in all)
         {
-            if (c.team != team || !c.IsAlive || c == except) continue;
+            if (c.team != team || !c.IsAlive || c == except || c.Hidden) continue;
             float distance = Vector2.Distance(from, c.transform.position);
             if (distance <= bestDistance)
             {
@@ -319,7 +332,7 @@ public partial class Combatant : MonoBehaviour
         float bestRatio = maxRatio;
         foreach (var c in all)
         {
-            if (c.team != team || !c.IsAlive || c.maxHp <= 0f) continue;
+            if (c.team != team || !c.IsAlive || c.maxHp <= 0f || c.IsDecoy) continue;
             if (Vector2.Distance(from, c.transform.position) > range) continue;
             float ratio = c.hp / c.maxHp;
             if (ratio < bestRatio)
@@ -669,7 +682,7 @@ public partial class Combatant : MonoBehaviour
     public void AddStatus(string key, float duration, Combatant source = null)
     {
         var def = StatusLibrary.Get(key);
-        if (!IsAlive || def == null) return;
+        if (!IsAlive || def == null || Guarding || IsDecoy) return;
         if (AbilityBlocksStatus(key)) return; // Insomnia, Limber…
         Synchronize(key, duration, source);
         duration *= AbilityStatusDuration(key); // Early Bird
@@ -762,6 +775,14 @@ public partial class Combatant : MonoBehaviour
             patient.Heal(patient.maxHp * move.healShare);
             if (EffectLibrary.Get(move.effect) != null) EffectPlayer.Spawn(move.effect, patient.transform.position, Vector2.right);
             else Shapes.Pulse(patient.transform.position, 0.6f, HealTint);
+            return true;
+        }
+
+        if (SupportMoves.IsSupport(move))
+        {
+            // A wall, a decoy, spikes or a wish laid in the arena (SupportMoves).
+            if (!SupportMoves.Cast(this, move, direction, distance)) return false;
+            readyAt[slot] = Time.time + CooldownOf(move);
             return true;
         }
 
@@ -916,7 +937,7 @@ public partial class Combatant : MonoBehaviour
     /// Pushes this Pokémon away for "time" seconds (bosses do not budge).
     public void Knockback(Vector2 velocity, float time)
     {
-        if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this)) return; // an Acier on metal holds firm
+        if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this) || Guarding) return; // an Acier on metal holds firm
         float held = AbilityKnockbackMul; // Suction Cups, Heavy Metal
         if (held <= 0f) return;
         velocity *= held;
@@ -1032,7 +1053,7 @@ public partial class Combatant : MonoBehaviour
     /// Neither moving nor attacking for a moment (bosses are immune).
     public void Stun(float duration)
     {
-        if (isBoss || duration <= 0f || Ability is { stunImmune: true }) return; // Inner Focus
+        if (isBoss || duration <= 0f || Guarding || Ability is { stunImmune: true }) return; // Inner Focus; Abri
         stunUntil = Mathf.Max(stunUntil, Time.time + duration);
         AbilityStunned(); // Steadfast
     }
@@ -1717,6 +1738,8 @@ public partial class Combatant : MonoBehaviour
     {
         dealt = 0f;
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
+        if (Guarding) { Shapes.Pulse(transform.position, 0.6f, new Color(0.7f, 1f, 0.8f)); return false; } // Abri
+        if (IsDecoy) { Decoy.Burst(this); dealt = 0f; return true; } // Clonage: the first blow ends the decoy
         if (BodyIgnoresHit()) return false; // untouchable, or Coup Bas answers it
         if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
         var attacker = HitSource;
