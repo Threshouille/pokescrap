@@ -192,6 +192,29 @@ public class LogicTests
     // ---- Data ----
 
     [Test]
+    public void PunchesOfLot5AreWired()
+    {
+        var mitra = GameData.AllMoves.First(x => x.id == 75);
+        Assert.Greater(mitra.barrageDelay, 0f);
+        Assert.GreaterOrEqual(mitra.barrage, 8);
+        var ultima = GameData.AllMoves.First(x => x.id == 322);
+        Assert.AreEqual("melee", ultima.family);
+        Assert.Greater(ultima.chargeMax, 0f);
+        Assert.Greater(ultima.waveCone, 0f);
+        Assert.AreEqual("zone", GameData.AllMoves.First(x => x.id == 430).family);
+    }
+
+    [Test]
+    public void RandomHitCountsAreOrdered()
+    {
+        foreach (var m in GameData.AllMoves)
+            if (m.hitsMax > 0) Assert.IsTrue(m.hitsMin >= 1 && m.hitsMin <= m.hitsMax, $"{m.name} : hitsMin {m.hitsMin}, hitsMax {m.hitsMax}");
+        var combo = GameData.AllMoves.First(x => x.id == 312);
+        Assert.AreEqual(2, combo.hitsMin);
+        Assert.AreEqual(5, combo.hitsMax);
+    }
+
+    [Test]
     public void KarateChopSweepsAndThrowsSideways()
     {
         var m = GameData.AllMoves.First(x => x.id == 68);
