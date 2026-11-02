@@ -546,7 +546,9 @@ public class Terrain : MonoBehaviour
         return Current.KindAt(cell.x, cell.y);
     }
 
-    public static bool Immune(Combatant c, TerrainDef def) => Immune(c.Stats, def) || HeldItems.TerrainImmune(c, def.key); // a Sand Cloak
+    public static bool Immune(Combatant c, TerrainDef def) =>
+        Immune(c.Stats, def) || HeldItems.TerrainImmune(c, def.key) // a Sand Cloak
+        || Combatant.AbsorbsTerrain(c, def.key); // Water Absorb on a puddle…
 
     /// Not affected by that terrain: one of its types, or floating above the ground.
     public static bool Immune(PokemonStats stats, TerrainDef def)
@@ -641,6 +643,29 @@ public class Terrain : MonoBehaviour
         return def.navCost >= HazardCost && !HurtsAt(x, y, c) && !Hinders(ActingAt(x, y, c));
     }
 
+    /// Centre of the nearest tile within maxDistance whose terrain its ability takes in and heals it on (Water Absorb on
+    /// a puddle, Volt Absorb on charged ground), or null.
+    public static Vector2? FindAbsorbing(Combatant c, float maxDistance)
+    {
+        if (Current == null || Current.grid == null || Current.active <= 0 || c.Ability == null || c.Ability.terrainHeal <= 0f) return null;
+        var grid = Current.grid;
+        Vector2 position = c.transform.position;
+        var cell = grid.CellOf(position);
+        int r = Mathf.CeilToInt(maxDistance);
+        Vector2? best = null;
+        float bestDistance = maxDistance * maxDistance;
+        for (int x = cell.x - r; x <= cell.x + r; x++)
+            for (int y = cell.y - r; y <= cell.y + r; y++)
+            {
+                var def = Current.KindAt(x, y);
+                if (def == null || !Combatant.AbsorbsTerrain(c, def.key)) continue;
+                Vector2 centre = grid.CentreOf(x, y);
+                float d = (centre - position).sqrMagnitude;
+                if (d <= bestDistance) { bestDistance = d; best = centre; }
+            }
+        return best;
+    }
+
     /// Centre of the nearest refuge tile within maxDistance tiles, or null.
     public static Vector2? FindRefuge(Combatant c, float maxDistance)
     {
@@ -702,7 +727,7 @@ public class Terrain : MonoBehaviour
             if (!nextTick.TryGetValue(c, out float at)) nextTick[c] = at = Time.time + Tick;
             if (Time.time < at) continue;
             nextTick[c] = Time.time + Tick;
-            if (hurts && def.damageShare > 0f) c.TakeFixedDamage(c.maxHp * def.damageShare * Tick);
+            if (hurts && def.damageShare > 0f) c.TakeIndirectDamage(c.maxHp * def.damageShare * Tick); // none with Magic Guard
             if (hurts && def.stun > 0f) c.Stun(def.stun);
             if (regen) c.Heal(c.maxHp * def.regenShare * Tick);
         }

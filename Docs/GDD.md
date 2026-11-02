@@ -153,7 +153,58 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Visée libre au stick droit ; le Pokémon se tourne dans la direction du stick quand il attaque.
 - Les attaques sont regroupées en familles paramétrables (projectile, corps à corps, zone, ruée, mur, amélioration temporaire…), avec quelques attaques faites sur mesure (ex. : Mur Lumière devient un vrai mur posé sur le terrain).
 - Attaques de statut : on en garde un maximum, traitées au cas par cas (plus fortes ou transformées).
-- Talents réadaptés au temps réel.
+- Talents réadaptés au temps réel. Données (décidé le 29/10/2026, Robin) : les 1 ou 2 talents de la ROM pour chaque
+  Pokémon, plus son talent caché (PokéAPI, 5e génération et après) gardé à part, et le talent officiel de chaque méga ;
+  catalogue de tous les talents de la série principale (314, dont 122 dans la ROM). Les talents changés après la
+  4e génération restent ceux de la ROM. Statistiques et familles d'adaptation : `Docs/TALENTS.md`. Pas encore d'effet
+  en jeu ; choix des talents à adapter et rôle du talent caché à venir.
+- Talents en jeu (décidé le 29/10/2026, Robin) : un seul talent actif, passif, **jamais choisi** : tiré au hasard
+  parmi les talents normaux au début de la partie (le caché avec une petite chance, 5 %), gardé à l'évolution ; celui
+  de la méga pendant la méga. Seuls les persos de dev choisissent (menu, J en partie). Ennemis : talent normal au
+  hasard ; caché pour les boss, une élite sur deux, 25 % des rares, 50 % des épiques. Pas de coup critique : les talents
+  de critique seront adaptés en « coups dans le dos » (lot 2). Valeurs adoucies comme la table des types (Isograisse
+  × 0,6, Filtre × 0,8, Adaptabilité : bonus de type 1,5). Fermeté : survit à 1 PV à un coup reçu à PV pleins, sans
+  limite. Talents de météo d'arrivée : équipe, boss et élites seulement. Lot 1 fait (70 talents : types, absorption,
+  bas PV, statuts, contact, météo, Intimidation, Fuite, Pression, Technicien…). Lot 2 fait (39 talents, 29/10/2026) :
+  pas de « coups dans le dos » ; Sniper = tirs plus rapides, plus longs, jusqu'à × 1,3 en bout de course ; Chanceux =
+  tirs plus gros, coups plus larges ; Coque Armure / Armurbaston = corps à corps reçu × 0,85, pas de bonus de série ;
+  Colérique = attaque × 1,5 après un coup de plus de 25 % des PV ; Lévitation = Sol × 0,25 ; réactions (Synchro,
+  Cœur Noble, Phobique, Acharné, Corps Maudit, Suintement), combat (Impudence, Turbo, Agitation, Annule Garde,
+  Garde Magik, Multiécaille, poussée, pièges qui empêchent d'esquiver, Moiteur, Mauvais Rêve), équipe et butin
+  (Garde-Ami, Plus / Moins, Ramassage, Cherche Miel, Gloutonnerie, Délestage). ≈ 89 % de chances que le talent tiré
+  agisse. Absorption aussi sur les terrains de leur élément (Robin, 29/10) : aucun mal, + 3 % des PV par seconde pour
+  Absorbe-Eau / Absorbe-Volt / Peau Sèche, bonus de stat ou de puissance gardé tant qu'il y reste pour les autres.
+  Lot 3 fait (46 talents, 29/10/2026) : tous les talents des Pokémon ont un effet, sauf Imposteur et Maladresse,
+  abandonnés : le tirage ne tombe jamais sur un talent sans effet quand la forme en a un autre. Adaptations : Rivalité
+  (même type, pas de genre), Glu (ralentit au corps à corps), Anticipation (esquive rechargée par un coup super
+  efficace, 5 % d'ignorer un coup), Calque (copie à la rencontre), Lumiattirance (expérience), Météo, Homochromie,
+  Protéen (changement de type, un seul, jamais en Téra ni en méga), Télépathe (zones), Tension (soins des adversaires),
+  Régé-Force (hors contrôle), Coloforce / Force Pure (× 1,5)…
+- Passifs des mégas (29/10/2026, Robin) : pendant la méga, son talent officiel et un effet propre en plus
+  (`ability_effects.json`, `megas`) : Dracaufeu X braises au corps à corps, Alakazam esquive 60 % plus longue,
+  Ectoplasma piégés drainés, Kangourex second coup qui étourdit, Ptéra Roche × 1,25 et vitesse, Mewtwo Y tirs
+  ennemis ralentis, Steelix et Démolosse lancent leur météo, Airmure peau dure, Tyranocif inébranlable, Gardevoir
+  protège les alliés, Ténéfix renvoie 20 % des tirs, Mysdibule draine, Charmina sans statut, Élecsprint traînée
+  électrique, Camérupt braises, Altaria soigne les alliés, Branette statuts plus longs, Absol anticipe, Oniglali gèle,
+  Latias protège des statuts, Latios tirs perçants, Rayquaza Dragon / Vol, Lockpin vitesse et poussée, Lucario tirs
+  qui suivent, Gallame coups plus larges, Darkrai endort. Peau Féérique : attaques Normal → type de la méga.
+- Protégés des mégas (30/10/2026, Robin) : Gardevoir (dégâts reçus), Latias (statuts) et Altaria (soin) ne touchent plus
+  tous les alliés proches mais 2 protégés choisis à la méga-évolution (`wards`), marqués d'un halo, tant qu'ils restent
+  à moins de 8 cases (`wardLeash`) : côté joueur ses coéquipiers, côté boss ou élite deux sbires de son groupe (soutiens
+  puis les plus proches) ; un protégé K.O. est remplacé. Les talents permanents (Garde-Ami…) gardent leur rayon.
+  Méga-Alakazam : l'esquive devient une téléportation. Tension : aucun soin (« +0 »).
+- IA et talents (30/10/2026, Robin) : les IA tiennent compte des talents, sans devenir trop fortes. Chaque IA connaît
+  une part des talents, tirée une fois (alliés 0,6, ennemis 0,3, rangs rare et épique 0,5, élites 0,7, boss 0,8) ; un
+  talent pèse sur un choix sans tout interdire. Lot 1 (ne pas se nuire) : pas d'attaque de statut sur Miroir Magik ni de
+  brûlure / poison / paralysie sur Synchro, tirs rares sur Méga-Ténéfix et dans la bulle de Méga-Mewtwo Y (une fois
+  toutes les 2,5 s au plus, s'il n'a rien d'autre), corps à corps évité contre les talents de contact s'il a mieux,
+  attaques absorbées jamais lancées. Lot 2 (exploiter son talent, s'il le connaît) : blessé, il rejoint un terrain que
+  son talent absorbe et qui le soigne à moins de 3 cases (flaque d'Absorbe-Eau…) ; un piégeur à distance garde sa cible
+  à portée du piège (recule plus tard) ; un protégé de méga revient vers elle au-delà de 6 des 8 cases du lien. Lot 3
+  (lire les talents adverses, s'il les connaît) : pas de soin (attaque ou objet du sac) sur un Pokémon qu'une Tension
+  adverse empêche de se soigner ; un tireur ou un soutien se tient hors du piège de sa cible (recule dès la portée du
+  piège + 1 case) ; une cible protégée par une méga passe après les autres (`aiTargetWarded` 1 dans `meta.json`).
+  Corps Maudit, Garde Mystik… volontairement ignorés : l'IA deviendrait pénible.
 
 ### Progression en partie
 - Chaque partie commence au niveau 1 et vise environ le niveau 100 après 30 minutes.
@@ -465,7 +516,7 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
 - Taux de recrutement : 208 Pokémon sur 558 ont un taux nul ou négatif ; la plupart des autres sont entre 5 et 15 % (8,2 % pour les trois starters).
 - 187 évolutions par niveau, niveau médian 28, maximum 55.
 - Chaque attaque a des champs d'IA (poids, portée visée) utilisables pour les alliés et les ennemis.
-- 124 talents, 558 Pokémon.
+- 124 talents, 558 Pokémon (122 talents réellement portés ; 230 espèces ont 1 talent, 262 en ont 2 ; aucune sans talent).
 - Chaque Pokémon a déjà un type de déplacement : standard (305), survol des trous (104), traversée des murs (14, spectres), marche sur la lave (34), nage (101). Les décors contiennent aussi les blocs d'eau et de lave.
 
 ## 4. Points ouverts
@@ -485,7 +536,8 @@ Revus le 25/10/2026 : les points tranchés depuis la première version sont regr
 9. Lisibilité du type d'un ennemi à l'écran (en partie réglée par la couleur des chiffres de dégâts).
 
 ### Progression
-11. Talents : un par Pokémon, passif permanent ou à déclencher ?
+11. Talents : passifs des mégas à valider ; débloquer le talent caché par une amélioration en partie ? Valeurs à
+    régler après le test en jeu.
 12. Recrutement des Pokémon à taux nul (légendaires, boss).
 13. Rythme de l'expérience : régulier, ou rapide au début puis plus lent ?
 

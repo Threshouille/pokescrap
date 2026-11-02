@@ -5,13 +5,17 @@ Usage: python3 -I mega_data.py <project_dir>
 Reads the PokéAPI CSVs of Tools/pmd/external (pokemon.csv, pokemon_stats.csv, pokemon_types.csv, types.csv) and
 Assets/Data/types.json (ROM type ids). Writes, for each mega: "stats" (the mega's official base stats) and
 "baseStats" (those of its base form), as hp, atk, def, spAtk, spDef, speed: the game turns their ratio into a
-bonus on the Pokémon's own stats; "types" in ROM ids (Fairy, absent from the ROM, is left out).
+bonus on the Pokémon's own stats; "types" in ROM ids (Fairy, absent from the ROM, is left out); "ability": the
+mega's ability (its base form's when PokéAPI has none yet), in the game's ability ids (abilities_data.py, Assets/Data/abilities.json).
 """
 import csv
 import json
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from abilities_data import Catalogue  # noqa: E402
 
 STAT_NAMES = {1: "hp", 2: "atk", 3: "def", 4: "spAtk", 5: "spDef", 6: "speed"}
 
@@ -35,6 +39,7 @@ def main(project):
         types.setdefault(int(r["pokemon_id"]), []).append(int(r["type_id"]))
     api_type_names = {int(r["id"]): r["identifier"] for r in rows(ext / "types.csv")}
     rom_types = {t["name_en"].lower(): t["id"] for t in json.loads((project / "Assets/Data/types.json").read_text(encoding="utf-8"))}
+    catalogue = Catalogue(json.loads((project / "Assets/Data/abilities.json").read_text(encoding="utf-8")))
     for m in doc["megas"]:
         # Folder "MegaCharizardX" -> PokéAPI "charizard-mega-x".
         species, suffix = re.fullmatch(r"Mega(.+?)([XY]?)", m["folder"]).groups()
@@ -43,7 +48,9 @@ def main(project):
         m["stats"] = stats[mega_id]
         m["baseStats"] = stats[m["dex"]]
         m["types"] = [rom_types[api_type_names[t]] for t in types[mega_id] if api_type_names[t] in rom_types]
-        print(f"{m['name']}: {identifier} {m['stats']} types {m['types']}")
+        # Megas missing from pokemon_abilities.csv (recent ones, e.g. Darkrai) keep their base form's ability.
+        m["ability"] = (catalogue.by_pokemon(mega_id)[0] or catalogue.by_pokemon(m["dex"])[0])[0]
+        print(f"{m['name']}: {identifier} {m['stats']} types {m['types']} ability {m['ability']}")
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
 

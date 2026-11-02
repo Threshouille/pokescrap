@@ -16,6 +16,64 @@ public class LogicTests
         return -1;
     }
 
+    // ---- Test arena ----
+
+    [Test]
+    public void AbilityRoomFocusIsRead()
+    {
+        var (abilities, megas) = TerrainSandbox.AbilityFocus();
+        string raw = Resources.Load<TextAsset>("Data/terrain_sandbox").text;
+        if (System.Text.RegularExpressions.Regex.IsMatch(raw, "\"abilityFocus\"[^}]*\\[\\s*\\d"))
+            Assert.IsNotEmpty(abilities.Concat(megas).ToArray(), "abilityFocus de terrain_sandbox.json lu vide");
+        foreach (int id in abilities) Assert.IsNotNull(Abilities.Effect(id), $"talent {id} sans effet");
+        foreach (int id in megas) Assert.IsTrue(GameData.AllMegas.Exists(m => m.id == id), $"méga {id} inconnue");
+    }
+
+    [Test]
+    public void WardsReplaceTheRadius()
+    {
+        var radius = new AbilityEffect { allyGuardRadius = 3f };
+        Assert.IsTrue(Abilities.Covers(radius, 3f, false, 2f), "allié dans le rayon");
+        Assert.IsFalse(Abilities.Covers(radius, 3f, false, 4f), "allié hors du rayon");
+        var warded = new AbilityEffect { wards = 2, wardLeash = 8f };
+        Assert.IsFalse(Abilities.Covers(warded, 3f, false, 1f), "allié proche mais pas protégé");
+        Assert.IsTrue(Abilities.Covers(warded, 3f, true, 7f), "protégé dans le lien");
+        Assert.IsFalse(Abilities.Covers(warded, 3f, true, 9f), "protégé trop loin");
+        foreach (var m in Abilities.Megas)
+            if (m.wards > 0) Assert.Greater(m.wardLeash, 0f, $"méga {m.mega} sans portée de lien");
+    }
+
+    [Test]
+    public void AbilityAiJudgesMovesAgainstAbilities()
+    {
+        var status = new MoveDef { family = "projectile", power = 0, status = "paralysis" };
+        var shot = new MoveDef { family = "projectile", power = 4 };
+        var blow = new MoveDef { family = "melee", power = 4 };
+        Assert.AreEqual(AbilityAi.Stance.Avoid, AbilityAi.Against(new AbilityEffect { magicBounce = true }, status, 1, false, false), "Miroir Magik");
+        Assert.AreEqual(AbilityAi.Stance.Free, AbilityAi.Against(new AbilityEffect { magicBounce = true }, status, 1, false, true), "Brise Moule");
+        Assert.AreEqual(AbilityAi.Stance.Avoid, AbilityAi.Against(new AbilityEffect { synchronize = true }, status, 1, false, false), "Synchro");
+        Assert.AreEqual(AbilityAi.Stance.Sparing, AbilityAi.Against(new AbilityEffect { reflectShotChance = 0.2f }, shot, 1, false, false), "Ténéfix");
+        Assert.AreEqual(AbilityAi.Stance.Sparing, AbilityAi.Against(null, shot, 1, true, false), "bulle de Mewtwo Y");
+        Assert.AreEqual(AbilityAi.Stance.Reluctant, AbilityAi.Against(new AbilityEffect { contactShare = 0.1f }, blow, 1, false, false), "Peau Dure");
+        Assert.AreEqual(AbilityAi.Stance.Free, AbilityAi.Against(null, status, 1, false, false), "talent inconnu");
+        int known = 0;
+        for (int id = 1; id <= 1000; id++) if (AbilityAi.Knows(0.3f, 12345, id)) known++;
+        Assert.That(known, Is.InRange(230, 370), "connaissance 0,3 : environ 30 % des talents");
+        Assert.AreEqual(AbilityAi.Knows(0.5f, 7, 42), AbilityAi.Knows(0.5f, 7, 42), "même réponse à chaque fois");
+        var (band, retreat) = AbilityAi.TrapperBand(3f, 6f, 3.5f);
+        Assert.AreEqual(3f, band, 0.001f, "piégeur : sa cible à portée du piège");
+        Assert.AreEqual(2.1f, retreat, 0.001f, "piégeur : recule moins tôt");
+        Assert.AreEqual((2f, 1.5f), AbilityAi.TrapperBand(3f, 2f, 1.5f), "jamais plus loin qu'avant");
+        Assert.AreEqual((6f, 3.5f), AbilityAi.TrapperBand(0f, 6f, 3.5f), "sans piège : inchangé");
+        var (outside, back) = AbilityAi.TrappedBand(3f, 6f, 3.5f);
+        Assert.AreEqual(6f, outside, 0.001f, "face à un piégeur : sa zone habituelle déjà hors du piège");
+        Assert.AreEqual(4f, back, 0.001f, "recule dès 4 cases (piège de 3)");
+        (outside, back) = AbilityAi.TrappedBand(5f, 6f, 3.5f);
+        Assert.AreEqual(7f, outside, 0.001f, "piège de 5 : se tient au-delà de 7 cases");
+        Assert.AreEqual(6f, back, 0.001f, "piège de 5 : recule dès 6 cases");
+        Assert.AreEqual((6f, 3.5f), AbilityAi.TrappedBand(0f, 6f, 3.5f), "sans piège : inchangé");
+    }
+
     // ---- Items ----
 
     [Test]
@@ -183,6 +241,137 @@ public class LogicTests
         Assert.IsFalse(file.devMode, "devMode");
         Assert.IsFalse(file.unlockAll, "unlockAll");
         Assert.IsFalse(file.allItems, "allItems");
+    }
+
+    [Test]
+    public void AbilitiesPointToTheCatalogue()
+    {
+        Assert.Greater(AbilityLibrary.All.Count, 120, "abilities_rt.json");
+        foreach (var p in GameData.AllPokemon)
+        {
+            if (p.id >= 9000) continue; // dev characters have no ability
+            Assert.IsNotEmpty(p.abilities, p.name);
+            foreach (int a in p.abilities) Assert.NotNull(AbilityLibrary.Get(a), $"{p.name} : talent {a}");
+            if (p.hiddenAbility != 0) Assert.NotNull(AbilityLibrary.Get(p.hiddenAbility), $"{p.name} : talent caché {p.hiddenAbility}");
+        }
+        foreach (var m in GameData.AllMegas) Assert.NotNull(AbilityLibrary.Get(m.ability), $"{m.name} : talent {m.ability}");
+    }
+
+    [Test]
+    public void AbilityEffectsUseKnownData()
+    {
+        Assert.Greater(Abilities.All.Count, 0, "ability_effects.json");
+        foreach (var e in Abilities.All)
+        {
+            string name = AbilityLibrary.Get(e.id)?.name;
+            Assert.NotNull(name, $"talent {e.id}");
+            foreach (var s in e.statusImmune) Assert.NotNull(StatusLibrary.Get(s), $"{name} : {s}");
+            foreach (var s in e.contactStatuses) Assert.NotNull(StatusLibrary.Get(s), $"{name} : {s}");
+            foreach (var s in e.statusDurations) Assert.NotNull(StatusLibrary.Get(s.status), $"{name} : {s.status}");
+            if (!string.IsNullOrEmpty(e.hitStatus)) Assert.NotNull(StatusLibrary.Get(e.hitStatus), $"{name} : {e.hitStatus}");
+            if (e.arrivalClimate != 0) Assert.AreEqual("climate", GameData.Move(e.arrivalClimate)?.family, $"{name} : météo");
+            foreach (var w in e.weathers) Assert.AreNotEqual(w.weather, Climate.WeatherName(w.weather), $"{name} : {w.weather}");
+            foreach (var k in e.pickupItems) Assert.NotNull(BagItems.Get(k), $"{name} : objet {k}");
+            foreach (var k in e.absorbTerrains) Assert.NotNull(Terrain.Def(k), $"{name} : terrain {k}");
+            string family = Abilities.FamilyOf(e);
+            Assert.AreNotEqual(family, Abilities.FamilyName(family), $"{name} : famille « {family} » sans nom");
+            foreach (int m in e.dampMoves) Assert.NotNull(GameData.Move(m), $"{name} : attaque {m}");
+            Assert.AreNotEqual("Sans effet pour l'instant.", Abilities.Describe(e), name);
+        }
+    }
+
+    [Test]
+    public void AbilityRulesChangeDamage()
+    {
+        var thickFat = Abilities.Effect(2);
+        Assert.AreEqual(0.6f, Abilities.TakenMul(thickFat, 2, Efficacy.Normal), 1e-4f, "Isograisse, Feu");
+        Assert.AreEqual(1f, Abilities.TakenMul(thickFat, 3, Efficacy.Normal), 1e-4f, "Isograisse, Eau");
+        Assert.AreEqual(0.8f, Abilities.TakenMul(Abilities.Effect(110), 3, Efficacy.Super), 1e-4f, "Filtre");
+
+        var blaze = Abilities.Effect(70);
+        var ember = new MoveDef { type = 2, power = 6, category = "special" };
+        Assert.AreEqual(1.5f, Abilities.DealtMul(blaze, ember, 0.3f, false, null), 1e-4f, "Brasier sous 1/3");
+        Assert.AreEqual(1f, Abilities.DealtMul(blaze, ember, 0.5f, false, null), 1e-4f, "Brasier PV hauts");
+        Assert.AreEqual(1.5f, Abilities.DealtMul(Abilities.Effect(100), ember, 1f, false, null), 1e-4f, "Technicien");
+
+        var sturdy = Abilities.Effect(13);
+        Assert.AreEqual(99f, Abilities.Endure(sturdy, 100f, 100f, 500f), 1e-4f, "Fermeté à PV pleins");
+        Assert.AreEqual(500f, Abilities.Endure(sturdy, 90f, 100f, 500f), 1e-4f, "Fermeté entamée");
+        Assert.IsTrue(Abilities.Absorbs(Abilities.Effect(36), 3), "Absorbe-Eau");
+    }
+
+    [Test]
+    public void SecondLotRules()
+    {
+        var melee = new MoveDef { type = 1, power = 6, category = "physical", family = "melee" };
+        Assert.AreEqual(0.85f, Abilities.TakenFlatMul(Abilities.Effect(19), melee, false), 1e-4f, "Coque Armure");
+        Assert.AreEqual(0.5f, Abilities.TakenFlatMul(Abilities.Effect(1136), melee, true), 1e-4f, "Multiécaille PV pleins");
+        Assert.AreEqual(1f, Abilities.TakenFlatMul(Abilities.Effect(1136), melee, false), 1e-4f, "Multiécaille entamé");
+        Assert.AreEqual(0.25f, Abilities.TakenMul(Abilities.Effect(55), 9, Efficacy.Normal), 1e-4f, "Lévitation, Sol");
+        var sniper = Abilities.Effect(93);
+        Assert.AreEqual(1f, Abilities.FarShotMul(sniper, 0f), 1e-4f, "Sniper à bout portant");
+        Assert.AreEqual(1.3f, Abilities.FarShotMul(sniper, 1f), 1e-4f, "Sniper en bout de course");
+        var arenaTrap = Abilities.Effect(5);
+        Assert.IsTrue(Abilities.Traps(arenaTrap, 2f, new[] { 1 }, false), "Piège Sable : marcheur");
+        Assert.IsFalse(Abilities.Traps(arenaTrap, 2f, new[] { 10 }, true), "Piège Sable : volant");
+        Assert.IsFalse(Abilities.Traps(arenaTrap, 5f, new[] { 1 }, false), "Piège Sable : trop loin");
+        Assert.IsTrue(Abilities.Traps(Abilities.Effect(23), 2f, new[] { 17 }, false), "Magnépiège : Acier");
+        Assert.IsFalse(Abilities.Traps(Abilities.Effect(23), 2f, new[] { 1 }, false), "Magnépiège : autre");
+    }
+
+    [Test]
+    public void AbilityDrawRespectsTheHiddenChance()
+    {
+        var stats = new PokemonStats { abilities = new[] { 26 }, hiddenAbility = 74 }; // Engrais, Chlorophylle
+        var rng = new System.Random(1);
+        Assert.AreEqual(2, Abilities.DrawSlot(stats, 1f, rng));
+        Assert.AreEqual(0, Abilities.DrawSlot(stats, 0f, rng));
+        Assert.AreEqual(74, Abilities.InSlot(stats, 2));
+        Assert.AreEqual(26, Abilities.InSlot(stats, 1), "un seul talent : le second emplacement reprend le premier");
+        // Never an ability without effect when the form has another one: Maladresse (111) is skipped.
+        var klutz = new PokemonStats { abilities = new[] { 111, 43 } };
+        for (int i = 0; i < 20; i++) Assert.AreEqual(1, Abilities.DrawSlot(klutz, 0f, rng), "Maladresse évitée");
+        var imposter = new PokemonStats { abilities = new[] { 22 }, hiddenAbility = 1150 }; // Échauffement, Imposteur
+        for (int i = 0; i < 20; i++) Assert.AreEqual(0, Abilities.DrawSlot(imposter, 1f, rng), "Imposteur jamais tiré");
+    }
+
+    [Test]
+    public void ThirdLotRules()
+    {
+        Assert.AreEqual(0.6f, Abilities.ChangedModifier(Abilities.Effect(IdOf("Simple")), 0.8f), 1e-4f, "Simple");
+        Assert.AreEqual(1.25f, Abilities.ChangedModifier(Abilities.Effect(IdOf("Contestation")), 0.8f), 1e-4f, "Contestation");
+        Assert.AreEqual(1, Abilities.TypeOf(new MoveDef { type = 2 }, Abilities.Effect(IdOf("Normalise"))), "Normalise");
+        Assert.AreEqual(2, Abilities.TypeOf(new MoveDef { type = 2 }, null));
+        var punch = new MoveDef { type = 7, power = 8, category = "physical", punch = true };
+        Assert.AreEqual(1.2f, Abilities.DealtMul(Abilities.Effect(IdOf("Poing de Fer")), punch, 1f, false, null), 1e-4f, "Poing de Fer");
+        Assert.AreEqual(0.75f, Abilities.TakenFlatMul(Abilities.Effect(IdOf("Télépathe")), new MoveDef { family = "zone" }, false), 1e-4f, "Télépathe");
+    }
+
+    [Test]
+    public void MegaEffectsAddToTheirAbility()
+    {
+        foreach (var m in Abilities.Megas)
+            Assert.IsTrue(GameData.AllMegas.Exists(d => d.id == m.mega), $"{m.mega} : méga inconnue");
+        var charizard = GameData.AllMegas.Find(d => d.id == 20061); // Méga-Dracaufeu X : Griffe Dure + braises
+        var both = Abilities.ForMega(charizard);
+        Assert.AreEqual(1.3f, both.contactMul, 1e-4f, "Griffe Dure");
+        Assert.AreEqual("embers", both.hitTerrain, "braises");
+        Assert.AreEqual(charizard.ability, both.id);
+        // Multipliers multiply, flags add up, lists join.
+        var merged = Abilities.Merge(new AbilityEffect { speedMul = 1.2f, statusImmune = new[] { "burn" } },
+            new AbilityEffect { speedMul = 1.5f, noRecoil = true, statusImmune = new[] { "sleep" } });
+        Assert.AreEqual(1.8f, merged.speedMul, 1e-4f);
+        Assert.IsTrue(merged.noRecoil);
+        Assert.AreEqual(2, merged.statusImmune.Length);
+        foreach (var mega in GameData.AllMegas)
+            Assert.AreNotEqual("Sans effet pour l'instant.", Abilities.Describe(Abilities.ForMega(mega)), mega.name);
+    }
+
+    static int IdOf(string name)
+    {
+        foreach (var a in AbilityLibrary.All)
+            if (a.name == name) return a.id;
+        return 0;
     }
 
     [Test]

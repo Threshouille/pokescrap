@@ -127,7 +127,9 @@ public partial class Combatant
         if (linkTarget.TakeHit(DamageOf(linkMove), linkMove, out float dealt, hitCap))
         {
             linkTarget.ApplyEffects(linkMove, false, this);
-            if (dealt > 0f) Heal(dealt * (linkMove.drain > 0f ? linkMove.drain : 1f));
+            float drained = dealt * (linkMove.drain > 0f ? linkMove.drain : 1f);
+            if (dealt > 0f && DrainSign(linkTarget) < 0f) TakeIndirectDamage(drained); // Liquid Ooze
+            else if (dealt > 0f) Heal(drained);
         }
     }
 

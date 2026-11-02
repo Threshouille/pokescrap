@@ -5,12 +5,17 @@ Usage: python3 -I extract_data.py <unpacked_rom_dir> <out_dir>
 Writes pokemon.json, moves.json, types.json, abilities.json into <out_dir>, plus the compact
 Resources/Data/pokemon_rt.json (next to <out_dir>) that the game loads at runtime.
 Base speed is not in the ROM: it is read from external/pokemon_stats.csv (PokéAPI) when present.
+Abilities: ROM ones per Pokémon, plus the hidden ability from PokéAPI ("hiddenAbility"); catalogue of every
+main-series ability in Resources/Data/abilities_rt.json (abilities_data.py).
 """
 import csv
 import json
 import struct
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from abilities_data import Catalogue, rom_descriptions  # noqa: E402
 
 # String block starts in MESSAGE/text_*.str for the EU release.
 STR_MOVES, STR_POKEMON, STR_TYPES, STR_ABILITIES, STR_ITEMS = 8175, 8736, 13772, 13791, 6775
@@ -144,6 +149,16 @@ def main(rom_dir, out_dir):
             ev["condition"] = extra[p2]
         return ev
 
+    abilities = []
+    while "[CS:" not in fr[STR_ABILITIES + len(abilities)]:  # descriptions follow the names
+        abilities.append({"id": len(abilities), **names(STR_ABILITIES, len(abilities))})
+    catalogue = Catalogue(abilities)
+    for e in pokemon:
+        # Hidden ability (5th generation on, absent from the ROM) of the default form, kept apart.
+        hidden = catalogue.by_pokemon(e["dex"])[1]
+        if hidden is not None and hidden not in e["abilities"]:
+            e["hidden_ability"] = hidden
+
     runtime = [{
         "id": e["id"], "name": e["name"], "types": e["types"], "baseHp": e["base_hp"],
         "baseAtk": e["base_atk"], "baseSpAtk": e["base_sp_atk"], "baseDef": e["base_def"],
@@ -151,17 +166,18 @@ def main(rom_dir, out_dir):
         "baseForm": e["base_form"], "evolvesFrom": e["evolution"]["from"],
         "evolveLevel": e["evolution"]["param1"] if e["evolution"]["method"] == 1 and e["evolution"]["param2"] == 0 else 0,
         "recruitRate": e["recruit_rate"],
+        "abilities": e["abilities"], **({"hiddenAbility": e["hidden_ability"]} if "hidden_ability" in e else {}),
         **({"evolution": ev} if (ev := evolution(e)) else {}),
         "levelUpMoves": list(dict.fromkeys(m["move"] for m in e.get("learnset", {}).get("level_up", []))),
     } for e in pokemon]
     rt_dir = out.parent / "Resources" / "Data"
     rt_dir.mkdir(parents=True, exist_ok=True)
     (rt_dir / "pokemon_rt.json").write_text(json.dumps({"pokemon": runtime}, ensure_ascii=False), encoding="utf-8")
+    entries = catalogue.entries(rom_descriptions(fr, STR_ABILITIES, len(abilities)))
+    (rt_dir / "abilities_rt.json").write_text(json.dumps({"abilities": entries}, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"abilities_rt: {len(entries)} ({sum(e['rom'] for e in entries)} from the ROM)")
 
     types = [{"id": i, **names(STR_TYPES, i)} for i in range(N_TYPES)]
-    abilities = []
-    while "[CS:" not in fr[STR_ABILITIES + len(abilities)]:  # descriptions follow the names
-        abilities.append({"id": len(abilities), **names(STR_ABILITIES, len(abilities))})
 
     for name, obj in (("pokemon", pokemon), ("moves", moves), ("types", types), ("abilities", abilities)):
         (out / f"{name}.json").write_text(json.dumps(obj, ensure_ascii=False, indent=1), encoding="utf-8")
