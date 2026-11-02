@@ -186,6 +186,7 @@ public partial class Combatant : MonoBehaviour
     readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
     struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; public bool followAim; public int index; }
+    bool lungeCharged; // the dash comes from a charge: chargedStrike / chargedPush last until it ends
     float chargedStrike = 1f, chargedPush = 1f; // a charged melee blow (Ultimapoing): damage and push multipliers
     int strikeIndex; // rank of the strike being played in its combo (odd ones use the mirrored sheet <effect>_b)
     readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
@@ -927,16 +928,20 @@ public partial class Combatant : MonoBehaviour
 
     Vector2 delayedKnock; // a push held back by knockbackDelay (Mach Punch: stunned, then sent flying)
     float delayedKnockTime, delayedKnockArc, delayedKnockAt = -1f;
+    MoveDef delayedKnockMove;
+    Combatant delayedKnockSource;
 
     /// Pushes along direction by move.knockback tiles, now or after move.knockbackDelay.
     public void PushFrom(MoveDef move, Vector2 direction)
     {
         float time = KnockbackOf(move);
         Vector2 velocity = direction * move.knockback / time;
-        if (move.knockbackDelay <= 0f) { Knockback(velocity, time); StartArc(time, move.knockbackArc); return; }
+        if (move.knockbackDelay <= 0f) { Knockback(velocity, time); StartArc(time, move.knockbackArc, move, HitSource); return; }
         delayedKnock = velocity;
         delayedKnockTime = time;
         delayedKnockArc = move.knockbackArc;
+        delayedKnockMove = move;
+        delayedKnockSource = HitSource;
         delayedKnockAt = Time.time + move.knockbackDelay;
     }
 
@@ -946,35 +951,73 @@ public partial class Combatant : MonoBehaviour
         delayedKnockAt = -1f;
         if (!IsAlive) return;
         Knockback(delayedKnock, delayedKnockTime);
-        StartArc(delayedKnockTime, delayedKnockArc);
+        StartArc(delayedKnockTime, delayedKnockArc, delayedKnockMove, delayedKnockSource);
     }
 
     // knockbackArc: thrown through the air (the sprite swells with the height, as for a leap), then a small bounce.
+    // landingRadius: it comes down heavily, without a bounce, and hurts the thrower's opponents around (Stratopercut).
     float arcStart = -1f, arcTime, arcHeight;
     Vector3 arcScale;
+    MoveDef arcMove;
+    Combatant arcSource;
     const float ArcLanding = 0.75f, ArcBounce = 0.3f; // share of the flight before the bounce, bounce height
+    const float LandBounceTime = 0.3f, LandBounceHeight = 0.2f; // after a heavy landing: one small bounce in place
+    bool arcSingle; // the arc is that single bounce
 
-    void StartArc(float time, float height)
+    void StartArc(float time, float height, MoveDef move = null, Combatant source = null)
     {
         if (height <= 0f || isBoss || body == null) return;
         if (arcStart < 0f) arcScale = transform.localScale;
         arcStart = Time.time;
         arcTime = time;
         arcHeight = height;
+        arcMove = move;
+        arcSource = source;
+        arcSingle = false;
     }
 
     void UpdateArc()
     {
         if (arcStart < 0f) return;
         float t = (Time.time - arcStart) / arcTime;
+        bool heavy = arcMove != null && arcMove.landingRadius > 0f;
         if (t >= 1f || !IsAlive)
         {
             transform.localScale = arcScale;
             arcStart = -1f;
+            arcSingle = false;
+            if (heavy && IsAlive) Land();
             return;
         }
-        float h = t < ArcLanding ? Mathf.Sin(Mathf.PI * t / ArcLanding) : ArcBounce * Mathf.Sin(Mathf.PI * (t - ArcLanding) / (1f - ArcLanding));
+        float h = heavy || arcSingle ? Mathf.Sin(Mathf.PI * t)
+            : t < ArcLanding ? Mathf.Sin(Mathf.PI * t / ArcLanding) : ArcBounce * Mathf.Sin(Mathf.PI * (t - ArcLanding) / (1f - ArcLanding));
         transform.localScale = arcScale * (1f + arcHeight * h);
+    }
+
+    void Land()
+    {
+        var move = arcMove;
+        var source = arcSource;
+        arcMove = null;
+        arcSource = null;
+        // One small bounce on the spot, held still meanwhile.
+        Stun(LandBounceTime + 0.1f);
+        arcScale = transform.localScale;
+        arcStart = Time.time;
+        arcTime = LandBounceTime;
+        arcHeight *= LandBounceHeight;
+        arcSingle = true;
+        EffectPlayer.Spawn(move.landingEffect, transform.position, Vector2.right, null, 0f, move.landingRadius * 2f);
+        if (source == null) return;
+        float damage = source.DamageOf(move) * move.landingDamage;
+        foreach (var other in all.ToArray())
+        {
+            if (other == null || !other.IsAlive || other.team == source.team) continue;
+            if (Vector2.Distance(other.transform.position, transform.position) > move.landingRadius) continue;
+            HitSource = source;
+            if (other.TakeHit(damage, move, out float dealt, source.hitCap)) source.HitLanded(move, dealt);
+            HitSource = null;
+        }
     }
 
     public const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
@@ -1241,13 +1284,13 @@ public partial class Combatant : MonoBehaviour
 
     static float LungeTime(MoveDef move) => move.lungeTime > 0f ? move.lungeTime : DefaultLungeTime;
 
-    void StartLunge(MoveDef move, Vector2 direction)
+    void StartLunge(MoveDef move, Vector2 direction, float distanceMul = 1f)
     {
         lungeMove = move;
         lungeDirection = direction;
         lungeHit.Clear();
         lungeUntil = Time.time + LungeTime(move);
-        lungeSpeed = move.lunge / LungeTime(move);
+        lungeSpeed = move.lunge * distanceMul / LungeTime(move);
         if (move.rolloutMax > 0)
         {
             // Each step of the series dashes faster and further.
@@ -1484,6 +1527,7 @@ public partial class Combatant : MonoBehaviour
         // strike around it, or bounce back off the first one it hits.
         if (!IsLunging)
         {
+            if (lungeCharged) { lungeCharged = false; chargedStrike = chargedPush = 1f; } // a charged dash is over
             if (rolloutPending)
             {
                 // A dash that landed adds a step; a miss ends the series.
@@ -1537,6 +1581,14 @@ public partial class Combatant : MonoBehaviour
         if (lungeBouncing || lungeMove.lungeHarmless || lungeMove.family != "melee") return;
         int landed = MeleeHit(lungeMove, lungeDirection, lungeHit);
         if (landed > 0) rolloutLanded = true;
+        if (landed > 0 && lungeMove.lungeStop)
+        {
+            // Dynamopoing: the dash ends on the first opponent it meets.
+            lungeUntil = Time.time;
+            body.linearVelocity = Vector2.zero;
+            if (lungeMove.recovery > 0f) recoverUntil = Mathf.Max(recoverUntil, Time.time + lungeMove.recovery); // a moment rooted after the blow
+            return;
+        }
         if (landed > 0 && lungeMove.bounceBack > 0f)
         {
             // Both are thrown apart, slowly enough to be seen.
@@ -1608,12 +1660,12 @@ public partial class Combatant : MonoBehaviour
             }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             HitSource = this;
-            if (target.TakeHit(DamageOf(move), move, out float dealt, hitCap))
+            if (target.TakeHit(DamageOf(move) * chargedStrike, move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 // A dash pushes what it hits (a bouncing dash pushes its target when it bounces).
                 if (move.knockback > 0f && move.bounceBack <= 0f)
-                    target.PushFrom(move, direction);
+                    target.PushFrom(move, direction * chargedPush);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target);

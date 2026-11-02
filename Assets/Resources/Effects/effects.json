@@ -6240,6 +6240,51 @@
         "#c8c8c8",
         "#ffffff"
       ]
+    },
+    {
+      "file": "poing_meteor_vol.png",
+      "frame_width": 20,
+      "frame_height": 20,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true,
+      "palette": [
+        "#24242e",
+        "#b07a00",
+        "#ffd21f",
+        "#fff6a8",
+        "#5a6470",
+        "#a8b4c0",
+        "#f0f6ff"
+      ]
+    },
+    {
+      "file": "poing_meteor_impact.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        60,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#24242e",
+        "#ffd21f",
+        "#fff6a8",
+        "#5a6470",
+        "#a8b4c0",
+        "#f0f6ff"
+      ]
     }
   ]
 }
