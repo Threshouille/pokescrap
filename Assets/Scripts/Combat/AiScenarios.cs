@@ -1909,7 +1909,7 @@ public class AiScenarios : MonoBehaviour
     // vanishes at the first blow, a wish that heals where it falls.
     IEnumerator StatusMoves()
     {
-        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var (leader, ally) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
         var foe = Enemy(BatchTeam[1], new Vector2(3f, 0f));
         foe.maxHp = foe.hp = 100000f;
         yield return new WaitForFixedUpdate();
@@ -1934,25 +1934,24 @@ public class AiScenarios : MonoBehaviour
         bool stopped = Mathf.Approximately(leader.hp, leaderBefore);
         foreach (var b in FindObjectsByType<Barrier>()) Destroy(b.gameObject);
 
-        // Abri: held, nothing gets through.
-        var kept = (MoveDef[])leader.Moves.Clone();
-        leader.Moves[0] = GameData.Move(301);
-        leader.HeldButtons[0] = true;
-        leader.TryUseMove(0, Vector2.right);
+        // Abri: held (by the ally: the controller releases the leader's button at once), nothing gets through.
+        var keptAlly = (MoveDef[])ally.Moves.Clone();
+        ally.Moves[0] = GameData.Move(301);
+        bool used = ally.TryUseMove(0, Vector2.right);
         yield return new WaitForFixedUpdate();
         Combatant.HitSource = foe;
-        bool guarded = leader.Guarding && !leader.TakeHit(50f, physical, out _);
+        bool guarded = used && ally.Guarding && !ally.TakeHit(50f, physical, out _);
         Combatant.HitSource = null;
-        leader.HeldButtons[0] = false;
-        yield return new WaitForSeconds(0.2f);
-        bool dodgeReady = !leader.Guarding && leader.DodgeCooldownLeft <= 0f;
-        for (int i = 0; i < kept.Length; i++) leader.Moves[i] = kept[i];
+        yield return new WaitForSeconds(GameData.Move(301).aiChannel + 0.2f);
+        bool dodgeReady = !ally.Guarding && ally.DodgeCooldownLeft <= 0f;
+        for (int i = 0; i < keptAlly.Length; i++) ally.Moves[i] = keptAlly[i];
 
         // Clonage: the decoy runs away from the foe, then a blow ends it.
-        SupportMoves.Cast(leader, GameData.Move(304), Vector2.right, -1f);
-        yield return new WaitForFixedUpdate();
+        bool cast = SupportMoves.Cast(leader, GameData.Move(304), Vector2.right, -1f);
         Combatant decoy = null;
         foreach (var c in Combatant.All) if (c != null && c.IsDecoy) decoy = c;
+        bool appeared = cast && decoy != null;
+        yield return new WaitForFixedUpdate();
         bool fled = false, vanished = false;
         if (decoy != null)
         {
@@ -1977,8 +1976,8 @@ public class AiScenarios : MonoBehaviour
         bool healed = leader.hp > hurt + 1f;
         leader.hp = leader.maxHp;
 
-        Report(reflected && stopped && guarded && dodgeReady && fled && vanished && healed,
-            $"{special.name} {(reflected ? "renvoyé" : "pas renvoyé")}, {physical.name} {(stopped ? "arrêté" : "passe")}, Abri {(guarded ? "protège" : "laisse passer")} (esquive {(dodgeReady ? "prête" : "pas prête")}), clone {(decoy == null ? "absent" : fled ? "fuit" : "ne fuit pas")} et {(vanished ? "disparaît" : "reste")}, Vœu {(healed ? "soigne" : "ne soigne pas")}");
+        Report(reflected && stopped && guarded && dodgeReady && appeared && fled && vanished && healed,
+            $"{special.name} {(reflected ? "renvoyé" : "pas renvoyé")}, {physical.name} {(stopped ? "arrêté" : "passe")}, Abri {(guarded ? "protège" : "laisse passer")} (esquive {(dodgeReady ? "prête" : "pas prête")}), clone {(!appeared ? "absent" : fled ? "fuit" : "ne fuit pas")} et {(vanished ? "disparaît" : "reste")}, Vœu {(healed ? "soigne" : "ne soigne pas")}");
     }
 
     // Wonder Guard shrugs off a neutral hit, which Mold Breaker gets through; Pickpocket takes the item of whoever
