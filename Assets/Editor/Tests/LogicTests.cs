@@ -192,6 +192,21 @@ public class LogicTests
     // ---- Data ----
 
     [Test]
+    public void FightingPunchesAreWired()
+    {
+        var strato = GameData.AllMoves.First(x => x.id == 136);
+        Assert.Greater(strato.landingRadius, 0f);
+        Assert.Greater(strato.knockbackArc, 0f);
+        var dyna = GameData.AllMoves.First(x => x.id == 246);
+        Assert.IsTrue(dyna.lungeStop);
+        Assert.Greater(dyna.chargeMax, 0f);
+        Assert.AreEqual(0.5f, dyna.statusChance, 0.001f);
+        var meteor = GameData.AllMoves.First(x => x.id == 103);
+        Assert.IsTrue(meteor.channelRoot);
+        Assert.Greater(meteor.channelSpread, 0f);
+    }
+
+    [Test]
     public void PunchesOfLot5AreWired()
     {
         var mitra = GameData.AllMoves.First(x => x.id == 75);

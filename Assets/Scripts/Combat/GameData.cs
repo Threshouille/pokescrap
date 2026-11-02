@@ -89,6 +89,10 @@ public class MoveDef
     public float hold; // projectile after a dash: seconds the shots wait in place before leaving toward the opponent targeted at the start
     public float jitter; // degrees: random deviation of each shot, either side
     public float growth; // size multiplier reached at the end of the flight (unchanged when omitted)
+    public bool stunBySize; // projectile: stun × the share of its final size reached (growth)
+    public float specks; // projectile: trail of little sparks, per second
+    public string speckColor; // their colour (#rrggbb; the type's colour when omitted)
+    public float growthStart; // projectile: size at the start of its course, growing to growth at the end (1 when omitted)
     public float accel; // tiles per second², negative to slow down
     public bool pierce; // goes through opponents, hitting each once
     public bool upright; // projectile: the sheet keeps its orientation instead of turning with the flight (clouds)
@@ -174,6 +178,12 @@ public class MoveDef
     public float hop; // tiles: little jump in place during the cast (melee dash)
     public float knockback; // melee: tiles the target is pushed away when hit
     public float knockbackArc; // thrown through the air: extra sprite size at the top of the flight, then a small bounce
+    public float landingRadius, landingDamage; // thrown target comes down heavily and hurts the user's foes around (× the move's damage)
+    public string landingEffect; // its sheet, stretched to the landing area
+    public bool lungeStop; // melee dash that ends on the first opponent it hits (Dynamopoing)
+    public float chargeLunge; // melee charge with a dash: length multiplier at full charge
+    public bool channelRoot; // held stream during which the user cannot move (Poing Météor)
+    public float channelSpread; // held stream: each shot leaves at random within this cone (degrees)
     public float knockbackDelay; // seconds before the push starts (the stun holds the target meanwhile)
     public float knockbackTime; // seconds the push lasts, slowing down (Combatant.KnockbackTime when omitted)
     public float teleportDelay; // melee teleport: seconds the user stays gone before reappearing

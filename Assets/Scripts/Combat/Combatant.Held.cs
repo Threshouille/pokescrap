@@ -24,7 +24,8 @@ public partial class Combatant
     /// True while a held move is going on (no other move can start).
     public bool Holding => channelMove != null || chargeMove != null || linkMove != null;
 
-    float HeldSpeedMul => chargeMove != null && chargeMove.channelSpeedMul > 0f ? chargeMove.channelSpeedMul
+    float HeldSpeedMul => channelMove != null && channelMove.channelRoot ? 0f
+        : chargeMove != null && chargeMove.channelSpeedMul > 0f ? chargeMove.channelSpeedMul
         : channelMove != null && channelMove.channelSpeedMul > 0f ? channelMove.channelSpeedMul
         : linkMove != null && linkMove.channelSpeedMul > 0f ? linkMove.channelSpeedMul : 1f;
 
@@ -99,7 +100,13 @@ public partial class Combatant
             while (Time.time >= nextHeldTick)
             {
                 nextHeldTick += Mathf.Max(0.02f, channelMove.channelInterval);
-                FireProjectiles(channelMove, Steer(CurrentAim()), -1f);
+                if (channelMove.channelSpread > 0f)
+                {
+                    // Poing Météor: each shot leaves at random inside a cone around the aim (no aim correction).
+                    Vector2 aim = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(-channelMove.channelSpread, channelMove.channelSpread) / 2f) * CurrentAim();
+                    FireProjectiles(channelMove, Steer(aim), channelMove.range);
+                }
+                else FireProjectiles(channelMove, Steer(CurrentAim()), -1f);
             }
             return;
         }
@@ -160,6 +167,15 @@ public partial class Combatant
             direction = MeleeAutoAim(direction);
             chargedStrike = damage;
             chargedPush = Mathf.Lerp(1f, move.chargePush > 0f ? move.chargePush : 1f, charged);
+            if (move.lunge > 0f && body != null)
+            {
+                // Dynamopoing: a dash, longer the longer it was charged; its multipliers last until it ends.
+                lungeCharged = true;
+                if (animator != null) { releaseAnim = GameData.AttackAnim(move, animator); releaseUntil = Time.time + ReleaseAnimTime; }
+                StopHeld(true);
+                StartLunge(move, direction, Mathf.Lerp(1f, move.chargeLunge > 0f ? move.chargeLunge : 1f, charged));
+                return;
+            }
             ShockWave(move, direction, charged); // the opponents struck by the blow are left to its own throw
             Strike(move, direction);
             chargedStrike = chargedPush = 1f;
