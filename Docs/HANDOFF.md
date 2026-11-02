@@ -1,15 +1,19 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 26/10/2026 (Robin : socle technique fusionné dans `feature/engrenages` ; peuplement, engrenages et boss de quartier ; voir le README). À lire en début de session avec `CLAUDE.md` (détails
+Dernière mise à jour : 02/11/2026 (Robin : `feature/engrenages` fusionnée dans `dev` le 26/10 ; `feature/talents` prête à fusionner, voir ci-dessous). À lire en début de session avec `CLAUDE.md` (détails
 techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons). Bilan complet du 25/10 : avancement,
 branches, axes de refonte et questions de conception (page partagée par Robin).
 
-## Talents (29/10/2026, branche `feature/talents`)
+## Talents (02/11/2026, branche `feature/talents`, poussée, pas encore fusionnée dans `dev`)
 
-Catalogue `abilities_rt.json`, talents ROM + caché PokéAPI par Pokémon, talent des mégas, rapport `Docs/TALENTS.md`.
-Lots 1 à 3 des effets et passifs des 27 mégas (160 talents + effet propre de chaque méga ; `ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`). Suite : test
-en jeu ci-dessous, réglage des valeurs, passifs des mégas ; ensuite (Robin) : adapter les IA aux talents (les leurs
-et ceux des adversaires : viser autrement, rester sur un terrain absorbé, éviter Statik au corps à corps…).
+Fait : catalogue `abilities_rt.json` (talents ROM + caché PokéAPI par Pokémon, talents des mégas, rapport
+`Docs/TALENTS.md`) ; effets des lots 1 à 3 (tous les talents des Pokémon) et passifs des 27 mégas
+(`ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`) ; visuels des talents et des mégas (Claude Design,
+`Design/effects_v18_talents/`, `effects_v19_megas/`), salle de démo 21, protégés des mégas ; IA et talents, lots 1 à 3
+(`AbilityAi` : connaissance bornée, exploiter son talent, lire ceux des adversaires) ; persos de dev avec talent de
+départ. Banc complet 85/85 le 30/10 (avant le dernier commit du 02/11, retouches des persos de dev). `dev` n'a pas
+bougé depuis : fusion sans conflit attendue. Restent à part : `feature/attaques-type-lot4` (Owen), `feature/refonte-visuelle`
+(Owen, à fusionner avec lui). Suite : réglage des valeurs en jeu.
 
 Test en jeu prévu (éditeur, profil de dev) :
 0. Démo de tous les talents : terrain de test, escalier rose (en bas, à droite de l'orange) ; regarder chaque talent
