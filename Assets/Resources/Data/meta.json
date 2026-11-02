@@ -57,6 +57,8 @@
   "notVeryEffectiveColor": "#8ca4c8",
   "noEffectColor": "#5a5a66",
   "healColor": "#60e070",
+  "telegraphMeleeColor": "#ff26265a",
+  "telegraphShotColor": "#b03cff5a",
   "multiplierColor": "#ffb020",
   "handMadeMoveColor": "#7fd8ff",
   "bigNumberScale": 1.5,

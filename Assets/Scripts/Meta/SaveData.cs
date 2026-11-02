@@ -105,6 +105,8 @@ public static class SaveData
         // Damage numbers.
         public string normalDamageColor = "#ffffff", superEffectiveColor = "#ffb020", notVeryEffectiveColor = "#8ca4c8";
         public string noEffectColor = "#5a5a66", healColor = "#60e070";
+        // Enemy wind-ups (EnemyAI): a melee blow or dash in red, a shot in purple, the rest (zones, penalties) in red.
+        public string telegraphMeleeColor = "#ff26265a", telegraphShotColor = "#b03cff5a";
         public string multiplierColor = "#ffb020"; // damage multiplier of chained strikes (Taillade)
         public string handMadeMoveColor = "#7fd8ff"; // team menu: moves written in realtime_moves.json
         public float bigNumberScale = 1.5f, smallNumberScale = 0.75f;

@@ -192,6 +192,39 @@ public class LogicTests
     // ---- Data ----
 
     [Test]
+    public void BossMovesStayWithTheBosses()
+    {
+        Assert.IsFalse(GameData.AllMoves.Any(m => m.bossOnly), "attaque de boss dans la liste générale");
+        foreach (var p in GameData.AllPokemon)
+            Assert.IsFalse(GameData.MovePool(p.id).Any(m => m.bossOnly), $"{p.name} peut apprendre une attaque de boss");
+        foreach (int id in new[] { 10299, 10081, 10118, 10278 })
+        {
+            var m = GameData.Move(id);
+            Assert.NotNull(m, id.ToString());
+            Assert.IsTrue(m.bossOnly && m.baseId > 0, m.name);
+        }
+    }
+
+    [Test]
+    public void OnlyMovesMadeByHandInPlay()
+    {
+        var rng = new System.Random(7);
+        foreach (int id in new[] { 1, 4, 7, 25, 66, 92, 129, 147, 258, 393 })
+        {
+            if (GameData.Pokemon(id) == null) continue;
+            // The menu's list starts with the moves made by hand.
+            var pool = GameData.MovePool(id);
+            int firstGenerated = pool.FindIndex(m => !GameData.IsHandMade(m.id));
+            if (firstGenerated >= 0)
+                Assert.IsFalse(pool.Skip(firstGenerated).Any(m => GameData.IsHandMade(m.id)), $"{id} : attaque faite à la main après une générée");
+            // An enemy gets only moves made by hand or stat boosts.
+            for (int i = 0; i < 5; i++)
+                foreach (int move in GameData.RandomMoves(id, 4, rng))
+                    Assert.IsTrue(GameData.InPlay(GameData.Move(move)), $"{id} : {GameData.Move(move)?.name}");
+        }
+    }
+
+    [Test]
     public void StatusMovesAreLaidInTheArena()
     {
         var light = GameData.AllMoves.First(x => x.id == 259);

@@ -17,7 +17,6 @@ public class EnemyAI : MonoBehaviour
     const float FleeDistance = 2.5f; // ranged and support: dodge away from an opponent this close
     const float RushMin = 3f, RushMax = 6f; // melee: dodge toward a target this far away
     const float RestReach = 0.6f, RestPace = 0.55f; // at rest: tiles from its place; share of its walking speed
-    static readonly Color TelegraphColor = new(1f, 0.15f, 0.15f, 0.35f);
 
     [Tooltip("Share of the Pokémon's own speed used while moving")]
     public float speedFactor = 0.6f;
@@ -226,7 +225,10 @@ public class EnemyAI : MonoBehaviour
         telegraph = new GameObject("Telegraph");
         var renderer = telegraph.AddComponent<SpriteRenderer>();
         Unlit.Apply(renderer); // keeps its colours at night (DayNight)
-        renderer.color = TelegraphColor;
+        // Red for a blow at close range, purple for a shot (meta.json).
+        var settings = SaveData.Settings;
+        ColorUtility.TryParseHtmlString(move.family == "projectile" ? settings.telegraphShotColor : settings.telegraphMeleeColor, out var tint);
+        renderer.color = tint;
         renderer.sortingOrder = 0; // above the floor, under the Pokémon
 
         if (move.family == "modifier")
