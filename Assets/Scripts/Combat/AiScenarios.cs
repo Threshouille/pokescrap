@@ -167,6 +167,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Talents : absorption, Fermeté, Attention", AbilityRules());
         yield return Scenario("Talents : Synchro, Garde Magik, Marque Ombre", AbilityRulesTwo());
         yield return Scenario("Talents : Absorbe-Eau et Herbivore sur leur terrain", AbilityTerrain());
+        yield return Scenario("Attaques de statut : Mur Lumière renvoie, Protection arrête, Abri protège, le clone fuit, Vœu soigne", StatusMoves());
         yield return Scenario("Talents : Garde Mystik, Brise Moule, Pickpocket", AbilityRulesThree());
         yield return Scenario("Talents : une méga prend son talent et son effet, puis les rend", MegaAbility());
         yield return Scenario("Talents : la démo de chaque talent se joue sans erreur", AbilityDemosRun());
@@ -1901,6 +1902,83 @@ public class AiScenarios : MonoBehaviour
         Terrain.ClearArea("brambles", at, 1.5f);
         Report(heals && unslowedWater && unhurt && unslowedBrambles && boosted,
             $"Flaque : {(heals ? "soigne" : "ne soigne pas")}, {(unslowedWater ? "pas ralenti" : "ralenti")} ; Ronces : {(unhurt ? "pas de dégâts" : "blessé")}, {(unslowedBrambles ? "pas ralenti" : "ralenti")}, attaque {(boosted ? "+" : "inchangée")}");
+    }
+
+    // The status moves laid in the arena (SupportMoves): a special shot sent back to its shooter by Mur Lumière, a
+    // physical one stopped by Protection, nothing through Abri's bubble, a decoy that runs from the opponent and
+    // vanishes at the first blow, a wish that heals where it falls.
+    IEnumerator StatusMoves()
+    {
+        var (leader, _) = Place(Vector2.zero, new Vector2(-6f, -3f), settle: false);
+        var foe = Enemy(BatchTeam[1], new Vector2(3f, 0f));
+        foe.maxHp = foe.hp = 100000f;
+        yield return new WaitForFixedUpdate();
+        var special = FindMove(11, m => m.family == "projectile" && m.category == "special" && m.range >= 4f && string.IsNullOrEmpty(m.path))
+            ?? FindMove(3, m => m.family == "projectile" && m.category == "special" && m.range >= 4f);
+        var physical = FindMove(13, m => m.family == "projectile" && m.category == "physical") ?? FindMove(1, m => m.family == "projectile" && m.category == "physical");
+        if (special == null || physical == null) { Report(false, "pas de tir spécial ou physique"); yield break; }
+
+        // Mur Lumière: the shot comes back to its shooter.
+        Barrier.Spawn(leader, GameData.Move(259), Vector2.right);
+        float before = foe.hp;
+        Projectile.Spawn(foe, special, Vector2.left);
+        yield return new WaitForSeconds(1.2f);
+        bool reflected = foe.hp < before;
+        foreach (var b in FindObjectsByType<Barrier>()) Destroy(b.gameObject);
+
+        // Protection: a physical shot stops on it.
+        Barrier.Spawn(leader, GameData.Move(338), Vector2.right);
+        float leaderBefore = leader.hp;
+        Projectile.Spawn(foe, physical, Vector2.left);
+        yield return new WaitForSeconds(1f);
+        bool stopped = Mathf.Approximately(leader.hp, leaderBefore);
+        foreach (var b in FindObjectsByType<Barrier>()) Destroy(b.gameObject);
+
+        // Abri: held, nothing gets through.
+        var kept = (MoveDef[])leader.Moves.Clone();
+        leader.Moves[0] = GameData.Move(301);
+        leader.HeldButtons[0] = true;
+        leader.TryUseMove(0, Vector2.right);
+        yield return new WaitForFixedUpdate();
+        Combatant.HitSource = foe;
+        bool guarded = leader.Guarding && !leader.TakeHit(50f, physical, out _);
+        Combatant.HitSource = null;
+        leader.HeldButtons[0] = false;
+        yield return new WaitForSeconds(0.2f);
+        bool dodgeReady = !leader.Guarding && leader.DodgeCooldownLeft <= 0f;
+        for (int i = 0; i < kept.Length; i++) leader.Moves[i] = kept[i];
+
+        // Clonage: the decoy runs away from the foe, then a blow ends it.
+        SupportMoves.Cast(leader, GameData.Move(304), Vector2.right, -1f);
+        yield return new WaitForFixedUpdate();
+        Combatant decoy = null;
+        foreach (var c in Combatant.All) if (c != null && c.IsDecoy) decoy = c;
+        bool fled = false, vanished = false;
+        if (decoy != null)
+        {
+            float start = Vector2.Distance(decoy.transform.position, foe.transform.position);
+            yield return new WaitForSeconds(1f);
+            fled = decoy != null && Vector2.Distance(decoy.transform.position, foe.transform.position) > start + 0.5f;
+            if (decoy != null)
+            {
+                Combatant.HitSource = foe;
+                decoy.TakeHit(10f, physical, out _);
+                Combatant.HitSource = null;
+            }
+            yield return null;
+            vanished = decoy == null;
+        }
+
+        // Vœu: whoever stands under the star is healed when it falls.
+        leader.hp = leader.maxHp * 0.3f;
+        float hurt = leader.hp;
+        Wish.Spawn(leader, GameData.Move(225), leader.transform.position);
+        yield return new WaitForSeconds(GameData.Move(225).wishDelay + 0.3f);
+        bool healed = leader.hp > hurt + 1f;
+        leader.hp = leader.maxHp;
+
+        Report(reflected && stopped && guarded && dodgeReady && fled && vanished && healed,
+            $"{special.name} {(reflected ? "renvoyé" : "pas renvoyé")}, {physical.name} {(stopped ? "arrêté" : "passe")}, Abri {(guarded ? "protège" : "laisse passer")} (esquive {(dodgeReady ? "prête" : "pas prête")}), clone {(decoy == null ? "absent" : fled ? "fuit" : "ne fuit pas")} et {(vanished ? "disparaît" : "reste")}, Vœu {(healed ? "soigne" : "ne soigne pas")}");
     }
 
     // Wonder Guard shrugs off a neutral hit, which Mold Breaker gets through; Pickpocket takes the item of whoever

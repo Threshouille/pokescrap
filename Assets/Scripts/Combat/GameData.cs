@@ -177,6 +177,13 @@ public class MoveDef
     public float recovery; // seconds the user stays rooted after the move
     public float hop; // tiles: little jump in place during the cast (melee dash)
     public float knockback; // melee: tiles the target is pushed away when hit
+    public float guard; // held: seconds at most in Abri's bubble, still and untouchable (dodge ready on leaving)
+    public float wallLength; // barrier: tiles across
+    public bool reflectSpecial, blockPhysical, blockBodies; // barrier: sends special shots back (Mur Lumière); stops physical shots, keeps opponents off (Protection)
+    public float reflectWear; // barrier: seconds of its life each shot sent back takes
+    public bool trapAround; // trap: laid everywhere within range of the user rather than in patches ahead
+    public string trapTerrain; // trap: key of terrains.json laid in patches (Picots)
+    public float wishDelay; // wish: seconds before the star falls and heals
     public float knockbackArc; // thrown through the air: extra sprite size at the top of the flight, then a small bounce
     public float landingRadius, landingDamage; // thrown target comes down heavily and hurts the user's foes around (× the move's damage)
     public string landingEffect; // its sheet, stretched to the landing area

@@ -127,7 +127,7 @@ public static class RoleTactics
                 int slot = k % Combatant.MoveSlots;
                 var move = self.Moves[slot];
                 if (move == null || move.basic != (k >= Combatant.MoveSlots)) continue;
-                bool care = move.family == "heal" || move.family == "modifier" || move.family == "climate";
+                bool care = move.family == "heal" || move.family == "modifier" || move.family == "climate" || SupportMoves.IsSupport(move) || move.guard > 0f;
                 if (support && care != (pass == 0)) continue;
                 if (care && fallback >= 0) continue; // an attack is already chosen
                 if (!support && pass == 1) continue;
@@ -153,6 +153,14 @@ public static class RoleTactics
                 if (move.family == "climate")
                 {
                     if (Climate.Worth(self, move)) return Use(decision, slot, Vector2.right, 0f);
+                    continue;
+                }
+
+                if (move.guard > 0f) continue; // Abri answers a threat (SupportMoves.TryGuard), not a decision
+                if (SupportMoves.IsSupport(move))
+                {
+                    if (SupportMoves.Worth(self, move, foe, foeDistance, toFoe, out var supportAim, out float supportDistance))
+                        return Use(decision, slot, supportAim, supportDistance);
                     continue;
                 }
 

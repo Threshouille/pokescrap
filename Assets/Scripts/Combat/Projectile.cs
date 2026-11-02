@@ -231,6 +231,7 @@ public class Projectile : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+        if (MeetBarrier(from, to)) return;
         if (Sweep(from, to)) return;
         Vector2 moved = to - from;
         if (moved.sqrMagnitude > 0.000001f && !move.upright)
@@ -440,6 +441,34 @@ public class Projectile : MonoBehaviour
         if (move.stun > 0f && (move.stunChance <= 0f || Random.value < move.stunChance)) target.Stun(move.stun * stunShare);
         target.ApplyEffects(move, false, owner);
         if (owner != null) owner.HitLanded(move, dealt);
+    }
+
+    // A wall of the other team on the way (Barrier): sent back the other way, now the wall owner's (Mur Lumière), or
+    // stopped there (Protection).
+    bool MeetBarrier(Vector2 from, Vector2 to)
+    {
+        if (!Barrier.Meets(team, move, from, to, out bool reflect, out var point, out var normal, out var newOwner)) return false;
+        if (!reflect)
+        {
+            Terrain.OnImpact(move, point, owner);
+            Destroy(gameObject);
+            return true;
+        }
+        forward = Vector2.Reflect(forward, normal).normalized;
+        origin = point + normal * 0.05f;
+        range = Mathf.Max(1f, range - travelled);
+        travelled = 0f;
+        transform.position = origin;
+        if (!move.upright) transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
+        if (newOwner != null)
+        {
+            team = newOwner.team;
+            owner = newOwner;
+        }
+        homingTarget = null;
+        lockedTarget = null;
+        hit.Clear();
+        return true;
     }
 
     // specks: a trail of little sparks left behind as it flies, at its current size (Poing Météor).

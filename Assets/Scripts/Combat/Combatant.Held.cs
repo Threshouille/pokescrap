@@ -10,7 +10,8 @@ public partial class Combatant
     /// True while a player controls this Pokémon: held moves stop when their button is released.
     public bool PlayerDriven { get; set; }
 
-    MoveDef channelMove, chargeMove, linkMove;
+    MoveDef channelMove, chargeMove, linkMove, guardMove;
+    GameObject guardBubble;
     int heldSlot;
     float heldStart, heldUntil, nextHeldTick;
     Vector2 heldAim;
@@ -22,9 +23,11 @@ public partial class Combatant
     float linkAnimTime;
 
     /// True while a held move is going on (no other move can start).
-    public bool Holding => channelMove != null || chargeMove != null || linkMove != null;
+    public bool Holding => channelMove != null || chargeMove != null || linkMove != null || guardMove != null;
+    /// Abri: in its bubble, nothing reaches it (TakeHit, statuses, pushes, stuns).
+    public bool Guarding => guardMove != null;
 
-    float HeldSpeedMul => channelMove != null && channelMove.channelRoot ? 0f
+    float HeldSpeedMul => guardMove != null || (channelMove != null && channelMove.channelRoot) ? 0f
         : chargeMove != null && chargeMove.channelSpeedMul > 0f ? chargeMove.channelSpeedMul
         : channelMove != null && channelMove.channelSpeedMul > 0f ? channelMove.channelSpeedMul
         : linkMove != null && linkMove.channelSpeedMul > 0f ? linkMove.channelSpeedMul : 1f;
@@ -33,6 +36,7 @@ public partial class Combatant
     {
         get
         {
+            if (guardMove != null) return string.IsNullOrEmpty(guardMove.castAnim) ? "Idle" : guardMove.castAnim;
             var move = channelMove ?? chargeMove ?? linkMove;
             if (move == null) return null;
             if (move == chargeMove && !string.IsNullOrEmpty(move.castAnim)) return move.castAnim;
@@ -46,11 +50,29 @@ public partial class Combatant
     bool StartHeld(int slot, MoveDef move, Vector2 direction, out bool refused)
     {
         refused = false;
-        if (move.channel <= 0f && move.chargeMax <= 0f && move.link <= 0f) return false;
+        if (move.channel <= 0f && move.chargeMax <= 0f && move.link <= 0f && move.guard <= 0f) return false;
         heldSlot = slot;
         heldStart = Time.time;
         heldAim = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
-        if (move.channel > 0f)
+        if (move.guard > 0f)
+        {
+            // Abri: a bubble around the user, as long as the button is held (guard seconds at most).
+            guardMove = move;
+            heldUntil = Time.time + (!PlayerDriven && move.aiChannel > 0f ? move.aiChannel : move.guard);
+            guardBubble = EffectPlayer.Spawn(move.effect, transform.position, Vector2.right, transform);
+            if (guardBubble == null)
+            {
+                guardBubble = new GameObject(move.name + " (bulle)");
+                guardBubble.transform.SetParent(transform, false);
+                var r = guardBubble.AddComponent<SpriteRenderer>();
+                r.sprite = Shapes.Circle;
+                r.color = new Color(0.6f, 1f, 0.7f, 0.35f);
+                r.sortingOrder = 2;
+                Unlit.Apply(r);
+                guardBubble.transform.localScale = Vector3.one * 1.1f;
+            }
+        }
+        else if (move.channel > 0f)
         {
             channelMove = move;
             heldUntil = Time.time + (!PlayerDriven && move.aiChannel > 0f ? move.aiChannel : move.channel);
@@ -87,6 +109,12 @@ public partial class Combatant
         if (!CanAttack)
         {
             StopHeld(false); // asleep, frozen...: a charge is lost
+            return;
+        }
+
+        if (guardMove != null)
+        {
+            if (Time.time >= heldUntil || ButtonUp) StopHeld(true);
             return;
         }
 
@@ -211,10 +239,12 @@ public partial class Combatant
     // Ends the held move; its cooldown starts now (spent) or right away (lost charge, it was not used).
     void StopHeld(bool spent)
     {
-        var move = channelMove ?? chargeMove ?? linkMove;
+        var move = channelMove ?? chargeMove ?? linkMove ?? guardMove;
         if (move == null) return;
         readyAt[heldSlot] = Time.time + (spent ? CooldownOf(move) : 0f);
-        channelMove = chargeMove = linkMove = null;
+        if (guardMove != null) dodgeReadyAt = 0f; // out of the bubble, the dodge is ready to get away
+        if (guardBubble != null) Destroy(guardBubble);
+        channelMove = chargeMove = linkMove = guardMove = null;
         linkTarget = null;
         if (chargeOrb != null) Destroy(chargeOrb);
         if (linkLine != null) Destroy(linkLine.gameObject);

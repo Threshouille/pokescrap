@@ -192,6 +192,25 @@ public class LogicTests
     // ---- Data ----
 
     [Test]
+    public void StatusMovesAreLaidInTheArena()
+    {
+        var light = GameData.AllMoves.First(x => x.id == 259);
+        Assert.AreEqual("barrier", light.family);
+        Assert.IsTrue(light.reflectSpecial && light.wallLength > 0f && light.zoneDuration > 0f);
+        var reflect = GameData.AllMoves.First(x => x.id == 338);
+        Assert.IsTrue(reflect.blockBodies && reflect.blockPhysical);
+        Assert.Greater(GameData.AllMoves.First(x => x.id == 301).guard, 0f);
+        Assert.AreEqual("decoy", GameData.AllMoves.First(x => x.id == 304).family);
+        var spikes = GameData.AllMoves.First(x => x.id == 295);
+        Assert.IsFalse(string.IsNullOrEmpty(spikes.trapTerrain));
+        var wish = GameData.AllMoves.First(x => x.id == 225);
+        Assert.Greater(wish.wishDelay, 0f);
+        Assert.Greater(wish.healShare, 0f);
+        foreach (var m in new[] { light, reflect, spikes, wish })
+            Assert.IsTrue(SupportMoves.IsSupport(m), m.name);
+    }
+
+    [Test]
     public void FightingPunchesAreWired()
     {
         var strato = GameData.AllMoves.First(x => x.id == 136);
@@ -251,7 +270,7 @@ public class LogicTests
     [Test]
     public void MovesUseKnownFamiliesAndStatuses()
     {
-        var families = new HashSet<string> { "projectile", "melee", "zone", "burst", "heal", "modifier", "climate" };
+        var families = new HashSet<string> { "projectile", "melee", "zone", "burst", "heal", "modifier", "climate", "guard", "barrier", "decoy", "trap", "wish" };
         foreach (var m in GameData.AllMoves)
         {
             Assert.IsTrue(string.IsNullOrEmpty(m.family) || families.Contains(m.family), $"{m.name} : famille « {m.family} »");
