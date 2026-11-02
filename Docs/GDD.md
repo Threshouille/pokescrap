@@ -333,6 +333,16 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Fait le 25/10/2026 (Owen) : escalier, cachettes (clairière, rocher fissuré brisé par Combat, Sol, Roche ou Acier),
     salle vide du catalogue et retour, dans le quart de test (`secret_rooms.json`, `SecretStairs`). Reste (Robin) : le
     contenu des salles (trésor, embuscade, gardien) et les thèmes logiques.
+- Entrées des donjons (décidé le 02/11/2026, Robin ; branche `feature/entrees-donjons`, prompt
+  `Design/prompt_entrees.md`) : chaque sorte d'entrée a sa silhouette, dans le style de DM (contour sombre, couleurs de
+  DM, vue de 3/4). Escaliers de 2 × 2 cases (descend, remonte, fermé pendant une embuscade), bordure selon le biome
+  (herbe, sable, roche brune, volcan, glace, ruines), lueur quand l'entrée est active ; passages entre quartiers =
+  arche de pierre à logement d'Engrenage du Temps (voile gris sans l'engrenage, tourbillon turquoise ensuite) ; donjon
+  de la clé hors grotte du sommet = dolmen à clé gravée (3 matières selon le biome) ; escaliers secrets : indice très
+  discret sur la cachette fermée (feuilles mortes sur la clairière, fissure lumineuse sur le rocher), sans éclat ni
+  icône. Repérage : une fois vue, une bulle avec l'icône de l'entrée au-dessus d'elle et la même icône sur la
+  mini-carte. Taux gardés : escalier secret 60 %, grotte scellée 50 % par quartier. Ordre : escaliers et icônes, puis
+  cachettes et bordures, puis donjon de la clé et portes de quartier.
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
   sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
   (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.
