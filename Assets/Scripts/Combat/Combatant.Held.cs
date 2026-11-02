@@ -24,7 +24,8 @@ public partial class Combatant
     /// True while a held move is going on (no other move can start).
     public bool Holding => channelMove != null || chargeMove != null || linkMove != null;
 
-    float HeldSpeedMul => channelMove != null && channelMove.channelSpeedMul > 0f ? channelMove.channelSpeedMul
+    float HeldSpeedMul => chargeMove != null && chargeMove.channelSpeedMul > 0f ? chargeMove.channelSpeedMul
+        : channelMove != null && channelMove.channelSpeedMul > 0f ? channelMove.channelSpeedMul
         : linkMove != null && linkMove.channelSpeedMul > 0f ? linkMove.channelSpeedMul : 1f;
 
     string HeldAnim
@@ -151,8 +152,42 @@ public partial class Combatant
         if (!move.noAutoAim) AutoAim(move, 1, ref direction, ref distance);
         float size = Mathf.Lerp(1f, move.chargeSize > 0f ? move.chargeSize : 1f, charged);
         float damage = Mathf.Lerp(1f, move.chargeDamage > 0f ? move.chargeDamage : 1f, charged);
+        if (move.family == "melee")
+        {
+            // A charged blow: harder and further the longer it was held, then the shock wave.
+            direction = MeleeAutoAim(direction);
+            chargedStrike = damage;
+            chargedPush = Mathf.Lerp(1f, move.chargePush > 0f ? move.chargePush : 1f, charged);
+            ShockWave(move, direction, charged); // the opponents struck by the blow are left to its own throw
+            Strike(move, direction);
+            chargedStrike = chargedPush = 1f;
+            if (animator != null) { releaseAnim = GameData.AttackAnim(move, animator); releaseUntil = Time.time + ReleaseAnimTime; }
+            StopHeld(true);
+            return;
+        }
         Projectile.Spawn(this, move, direction, 0, 0f, -1f, 0f, null, null, size, damage);
         StopHeld(true);
+    }
+
+    // waveCone: a cone of wind from the user that pushes away every opponent in it (Ultimapoing), stronger when charged.
+    void ShockWave(MoveDef move, Vector2 direction, float charged)
+    {
+        if (move.waveCone <= 0f || move.waveRange <= 0f) return;
+        float scale = Mathf.Lerp(0.6f, 1f, charged);
+        float range = move.waveRange * scale;
+        // The cone opens from the point of impact, its sheet's apex at the left middle.
+        Vector2 origin = (Vector2)transform.position + direction * move.range;
+        EffectPlayer.Spawn(move.waveEffect, origin + direction * range * 0.5f, direction, null, 0f, range);
+        foreach (var other in all.ToArray())
+        {
+            if (other == null || other.team == team || !other.IsAlive) continue;
+            Vector2 to = (Vector2)other.transform.position - origin;
+            if (to.magnitude <= move.radius * meleeAreaMul) continue; // struck by the blow itself: its own throw
+            if (to.magnitude > range || Vector2.Angle(direction, to) > move.waveCone / 2f) continue;
+            Vector2 away = to.sqrMagnitude > 0.0001f ? to.normalized : direction;
+            float time = KnockbackOf(move);
+            other.Knockback(away * move.waveKnockback * scale / time, time);
+        }
     }
 
     // Ends the held move; its cooldown starts now (spent) or right away (lost charge, it was not used).
@@ -172,7 +207,7 @@ public partial class Combatant
     void ShowChargeOrb(MoveDef move)
     {
         chargeOrb = new GameObject(move.name + " (charge)");
-        if (EffectPlayer.Attach(chargeOrb, move.effect, Vector2.right))
+        if (EffectPlayer.Attach(chargeOrb, string.IsNullOrEmpty(move.castEffect) ? move.effect : move.castEffect, Vector2.right))
         {
             if (move.effectScale > 0f) chargeOrb.transform.localScale = Vector3.one * move.effectScale;
         }
@@ -185,6 +220,7 @@ public partial class Combatant
             renderer.color = GameData.TypeColor(move.type);
             renderer.sortingOrder = 2;
         }
+        if (move.family == "melee") chargeOrb.transform.localScale = Vector3.one * (move.chargeSize > 0f ? move.chargeSize : 1f); // a glow on the user
         chargeOrbScale = chargeOrb.transform.localScale;
         PlaceChargeOrb(0f);
     }
@@ -192,6 +228,11 @@ public partial class Combatant
     void PlaceChargeOrb(float charged)
     {
         if (chargeOrb == null) return;
+        if (chargeMove.family == "melee")
+        {
+            chargeOrb.transform.position = transform.position; // follows the user, who walks while charging
+            return;
+        }
         Vector2 aim = CurrentAim();
         chargeOrb.transform.position = transform.position + (Vector3)(aim * 0.6f);
         float size = Mathf.Lerp(0.6f, chargeMove.chargeSize > 0f ? chargeMove.chargeSize : 1f, charged);

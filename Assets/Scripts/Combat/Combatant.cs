@@ -148,7 +148,9 @@ public partial class Combatant : MonoBehaviour
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
     public bool IsCasting => castMove != null || blinkMove != null || chargeMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
-    public float CurrentSpeed => CanMove && !IsCasting && !BodyRoots && Time.time >= recoverUntil
+    /// A melee charge with channelSpeedMul (Ultimapoing) lets the user walk, slowed, while it charges.
+    bool WalksWhileCharging => chargeMove != null && chargeMove.channelSpeedMul > 0f && castMove == null && blinkMove == null;
+    public float CurrentSpeed => CanMove && (!IsCasting || WalksWhileCharging) && !BodyRoots && Time.time >= recoverUntil
         ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul * BodySpeedMul : 0f;
 
     class TimedModifier
@@ -184,6 +186,7 @@ public partial class Combatant : MonoBehaviour
     readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
     struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; public bool followAim; public int index; }
+    float chargedStrike = 1f, chargedPush = 1f; // a charged melee blow (Ultimapoing): damage and push multipliers
     int strikeIndex; // rank of the strike being played in its combo (odd ones use the mirrored sheet <effect>_b)
     readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
     int chainCount; // strikes landed in a row (chainBonus)
@@ -799,6 +802,7 @@ public partial class Combatant : MonoBehaviour
             castDirection = direction;
             castDistance = distance;
             castUntil = Time.time + move.castTime;
+            if (!string.IsNullOrEmpty(move.castEffect)) EffectPlayer.Spawn(move.castEffect, transform.position, Vector2.right, transform, move.castTime);
         }
         else if (move.family == "projectile") Shoot(move, direction, distance);
         else if (move.family == "zone") PlaceZone(move, direction, distance);
@@ -890,16 +894,17 @@ public partial class Combatant : MonoBehaviour
     }
 
     Vector2 delayedKnock; // a push held back by knockbackDelay (Mach Punch: stunned, then sent flying)
-    float delayedKnockTime, delayedKnockAt = -1f;
+    float delayedKnockTime, delayedKnockArc, delayedKnockAt = -1f;
 
     /// Pushes along direction by move.knockback tiles, now or after move.knockbackDelay.
     public void PushFrom(MoveDef move, Vector2 direction)
     {
         float time = KnockbackOf(move);
         Vector2 velocity = direction * move.knockback / time;
-        if (move.knockbackDelay <= 0f) { Knockback(velocity, time); return; }
+        if (move.knockbackDelay <= 0f) { Knockback(velocity, time); StartArc(time, move.knockbackArc); return; }
         delayedKnock = velocity;
         delayedKnockTime = time;
+        delayedKnockArc = move.knockbackArc;
         delayedKnockAt = Time.time + move.knockbackDelay;
     }
 
@@ -907,7 +912,37 @@ public partial class Combatant : MonoBehaviour
     {
         if (delayedKnockAt < 0f || Time.time < delayedKnockAt) return;
         delayedKnockAt = -1f;
-        if (IsAlive) Knockback(delayedKnock, delayedKnockTime);
+        if (!IsAlive) return;
+        Knockback(delayedKnock, delayedKnockTime);
+        StartArc(delayedKnockTime, delayedKnockArc);
+    }
+
+    // knockbackArc: thrown through the air (the sprite swells with the height, as for a leap), then a small bounce.
+    float arcStart = -1f, arcTime, arcHeight;
+    Vector3 arcScale;
+    const float ArcLanding = 0.75f, ArcBounce = 0.3f; // share of the flight before the bounce, bounce height
+
+    void StartArc(float time, float height)
+    {
+        if (height <= 0f || isBoss || body == null) return;
+        if (arcStart < 0f) arcScale = transform.localScale;
+        arcStart = Time.time;
+        arcTime = time;
+        arcHeight = height;
+    }
+
+    void UpdateArc()
+    {
+        if (arcStart < 0f) return;
+        float t = (Time.time - arcStart) / arcTime;
+        if (t >= 1f || !IsAlive)
+        {
+            transform.localScale = arcScale;
+            arcStart = -1f;
+            return;
+        }
+        float h = t < ArcLanding ? Mathf.Sin(Mathf.PI * t / ArcLanding) : ArcBounce * Mathf.Sin(Mathf.PI * (t - ArcLanding) / (1f - ArcLanding));
+        transform.localScale = arcScale * (1f + arcHeight * h);
     }
 
     public const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
@@ -947,6 +982,41 @@ public partial class Combatant : MonoBehaviour
         if (AimTarget == null || !AimTarget.IsAlive) return direction;
         Vector2 to = AimTarget.transform.position - transform.position;
         return to.sqrMagnitude > 0.0001f ? to.normalized : direction;
+    }
+
+    // barrage: a target struck by the move is held still barrageDelay seconds, then pummelled barrage times where it
+    // stands, whatever the user does meanwhile (Mitra-Poing).
+    struct Barrage { public MoveDef move; public Combatant target; public int left; public float next; }
+    readonly List<Barrage> barrages = new();
+
+    void StartBarrage(MoveDef move, Combatant target)
+    {
+        target.Stun(move.barrageDelay + move.barrage * move.barrageInterval);
+        barrages.Add(new Barrage { move = move, target = target, left = move.barrage, next = Time.time + move.barrageDelay });
+    }
+
+    void UpdateBarrages()
+    {
+        for (int i = barrages.Count - 1; i >= 0; i--)
+        {
+            var b = barrages[i];
+            if (b.target == null || !b.target.IsAlive || !IsAlive) { barrages.RemoveAt(i); continue; }
+            if (Time.time < b.next) continue;
+            Vector2 at = (Vector2)b.target.transform.position + UnityEngine.Random.insideUnitCircle * 0.35f;
+            Vector2 from = ((Vector2)b.target.transform.position - (Vector2)transform.position).normalized;
+            EffectPlayer.Spawn(b.move.effect, at, Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(-25f, 25f)) * from, null, 0f,
+                b.move.effectScale > 0f && EffectLibrary.Get(b.move.effect) != null ? EffectLibrary.Get(b.move.effect).frame_width / (float)EffectLibrary.PixelsPerUnit * b.move.effectScale : 0f);
+            EffectPlayer.Spawn(b.move.impactEffect, at, from);
+            HitSource = this;
+            if (b.target.TakeHit(DamageOf(b.move) * b.move.barrageDamage, b.move, out float dealt, hitCap))
+            {
+                HitLanded(b.move, dealt);
+                if (b.left == 1 && b.move.knockback > 0f) b.target.PushFrom(b.move, from); // the last blow throws it
+            }
+            b.left--;
+            b.next += b.move.barrageInterval;
+            if (b.left <= 0) barrages.RemoveAt(i); else barrages[i] = b;
+        }
     }
 
     const float BlinkStandoff = 0.6f; // tiles between a teleporting user and its target's centre
@@ -1027,14 +1097,15 @@ public partial class Combatant : MonoBehaviour
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             HitSource = this;
-            if (target.TakeHit(DamageOf(move) * factor, move, out float dealt, hitCap))
+            if (target.TakeHit(DamageOf(move) * factor * chargedStrike, move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
-                if (move.knockback > 0f) target.PushFrom(move, push);
+                if (move.knockback > 0f) target.PushFrom(move, push * chargedPush);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target); // a Rocky Helmet
+                if (move.barrage > 0) StartBarrage(move, target);
             }
         }
         if (move.chainBonus > 0f && hit.Count > 0)
@@ -1257,6 +1328,8 @@ public partial class Combatant : MonoBehaviour
     void FixedUpdate()
     {
         UpdateDelayedKnock();
+        UpdateArc();
+        UpdateBarrages();
         UpdateRolloutBadge();
         if (Held != null && Held.regenShare > 0f && IsAlive && Time.time >= nextRegenAt) // Leftovers, once a second
         {

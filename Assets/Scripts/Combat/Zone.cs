@@ -219,6 +219,7 @@ public class Zone : MonoBehaviour
 public class SkyFall : MonoBehaviour
 {
     static readonly Vector2 Drop = new(-1.5f, 5f); // where it starts, relative to the spot (tiles)
+    static readonly Vector2 StraightDrop = new(0f, 5f);
 
     Vector2 from, to;
     float start, duration;
@@ -226,7 +227,9 @@ public class SkyFall : MonoBehaviour
     public static void Launch(MoveDef move, Vector2 spot, float duration)
     {
         var go = new GameObject(move.name + " (chute)");
-        Vector2 direction = -Drop.normalized;
+        // fallStraight: straight down, the sheet as drawn (Marto-Poing); otherwise at a slant, turned along it.
+        Vector2 drop = move.fallStraight ? StraightDrop : Drop;
+        Vector2 direction = move.fallStraight ? Vector2.right : -Drop.normalized;
         if (EffectPlayer.Attach(go, move.fallEffect, direction))
         {
             if (move.effectScale > 0f) go.transform.localScale = Vector3.one * move.effectScale;
@@ -240,7 +243,7 @@ public class SkyFall : MonoBehaviour
             renderer.sortingOrder = 4;
         }
         var fall = go.AddComponent<SkyFall>();
-        fall.from = spot + Drop;
+        fall.from = spot + drop;
         fall.to = spot;
         fall.start = Time.time;
         fall.duration = duration;

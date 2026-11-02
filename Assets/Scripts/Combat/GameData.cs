@@ -140,6 +140,7 @@ public class MoveDef
     public float repaintEvery; // seconds between two paintings of the move's terrain under the zone (one moving with its user)
     public bool hideZone; // zone drawn with nothing on the ground (its bolts and impacts show it)
     public string boltFallEffect; // zone bolts: sheet of the bolt falling from the sky, its bottom on the struck spot
+    public bool fallStraight; // zone: the falling object comes straight down, its sheet not turned (Marto-Poing)
     public string fallEffect; // zone: sheet (pointing right) of something falling from the sky onto it, landing on the first hit
     public float fallTime; // seconds the fall lasts
     public bool impactOnTargets; // zone: the impact sheet plays on each opponent hit instead of over the whole zone
@@ -169,6 +170,7 @@ public class MoveDef
     public float recovery; // seconds the user stays rooted after the move
     public float hop; // tiles: little jump in place during the cast (melee dash)
     public float knockback; // melee: tiles the target is pushed away when hit
+    public float knockbackArc; // thrown through the air: extra sprite size at the top of the flight, then a small bounce
     public float knockbackDelay; // seconds before the push starts (the stun holds the target meanwhile)
     public float knockbackTime; // seconds the push lasts, slowing down (Combatant.KnockbackTime when omitted)
     public float teleportDelay; // melee teleport: seconds the user stays gone before reappearing
@@ -185,6 +187,12 @@ public class MoveDef
     public string dashAnim; // melee dash: animation during the dash (Walk when omitted)
     public bool lungeAccel; // dash that speeds up from a standstill; bounce and push grow with the speed reached
     public float backstep; // tiles stepped back during the cast (Roue de Feu takes a run-up); negative: a step forward (Aqua-Jet)
+    public string castEffect; // sheet played on the user during the cast or a melee charge (Mitra-Poing, Ultimapoing)
+    public int barrage; // melee: blows that rain on each target struck, where it stands (Mitra-Poing)
+    public float barrageDelay, barrageInterval, barrageDamage; // stillness before them, gap, damage of each × the move's
+    public float chargePush; // melee charge: knockback multiplier at full charge (Ultimapoing)
+    public float waveCone, waveRange, waveKnockback; // shock wave after a charged blow: cone in degrees, tiles, push
+    public string waveEffect; // its sheet, stretched to waveRange
     public string castAnim; // animation during the cast (e.g. Hop)
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back

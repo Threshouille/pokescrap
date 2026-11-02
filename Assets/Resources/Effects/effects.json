@@ -5254,7 +5254,8 @@
         "#8a2a12",
         "#d0562a",
         "#ffb070"
-      ]
+      ],
+      "below": true
     },
     {
       "file": "mitra_poing_coup.png",
@@ -5349,15 +5350,15 @@
     },
     {
       "file": "ultimapoing_onde.png",
-      "frame_width": 72,
-      "frame_height": 72,
+      "frame_width": 96,
+      "frame_height": 96,
       "frame_count": 5,
       "frame_duration_ms": [
-        40,
-        50,
         50,
         60,
-        70
+        70,
+        80,
+        90
       ],
       "loop": false,
       "palette": [
