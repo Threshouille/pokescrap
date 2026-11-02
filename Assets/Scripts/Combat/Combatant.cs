@@ -554,7 +554,7 @@ public partial class Combatant : MonoBehaviour
         var current = Stats.id != OriginId ? GameData.MovePool(Stats.id).ConvertAll(m => m.id) : new List<int>();
         var seen = new HashSet<int>();
         foreach (int form in forms)
-            foreach (var move in GameData.MovePool(form))
+            foreach (var move in GameData.PlayPool(form)) // made by hand, or a stat boost
             {
                 if (!seen.Add(move.id) || Array.Exists(Moves, m => m != null && m.id == move.id)) continue;
                 result.Add((move, current.Contains(move.id) ? evolvedWeight : 1f));

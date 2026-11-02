@@ -181,7 +181,7 @@ public class Terrain : MonoBehaviour
     public static MoveTerrain Of(MoveDef move)
     {
         Load();
-        return move != null && byMove.TryGetValue(move.id, out var t) ? t : null;
+        return move != null && byMove.TryGetValue(move.baseId > 0 ? move.baseId : move.id, out var t) ? t : null;
     }
 
     /// Seconds the trace of a move lasts: given, or from its power.

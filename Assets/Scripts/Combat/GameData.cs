@@ -177,6 +177,8 @@ public class MoveDef
     public float recovery; // seconds the user stays rooted after the move
     public float hop; // tiles: little jump in place during the cast (melee dash)
     public float knockback; // melee: tiles the target is pushed away when hit
+    public bool bossOnly; // a boss's version of a move (its own id, ≥ 10000): only in boss loadouts and movesets, never learnt
+    public int baseId; // the move it is a version of (terrain it leaves: Terrain looks it up by this id)
     public float guard; // held: seconds at most in Abri's bubble, still and untouchable (dodge ready on leaving)
     public float wallLength; // barrier: tiles across
     public bool reflectSpecial, blockPhysical, blockBodies; // barrier: sends special shots back (Mur Lumière); stops physical shots, keeps opponents off (Protection)
@@ -346,6 +348,7 @@ public static class GameData
         }
         // Every move, for the dev characters: by type, the basic attacks of each type first, then by name.
         allMoves = new List<MoveDef>(moves.Values);
+        allMoves.RemoveAll(m => m.bossOnly); // a boss's own moves: never learnt, never a dev character's, never in a list
         allMoves.Sort((a, b) => a.type != b.type ? a.type.CompareTo(b.type)
             : a.basic != b.basic ? b.basic.CompareTo(a.basic) : string.CompareOrdinal(a.name, b.name));
     }
@@ -399,14 +402,29 @@ public static class GameData
     public static List<MoveDef> MovePool(int pokemonId)
     {
         Load();
-        if (devCharacters.Contains(pokemonId)) return new List<MoveDef>(allMoves);
-        var pool = BasicMoves(pokemonId);
+        var pool = devCharacters.Contains(pokemonId) ? new List<MoveDef>(allMoves) : BasicMoves(pokemonId);
         var stats = Pokemon(pokemonId);
-        if (stats?.levelUpMoves != null)
+        if (!devCharacters.Contains(pokemonId) && stats?.levelUpMoves != null)
             foreach (int id in stats.levelUpMoves)
                 if (moves.TryGetValue(id, out var move) && !pool.Contains(move)) pool.Add(move);
-        return pool;
+        // The moves made by hand come first (the menu's list), in their order; the generated ones after.
+        var made = pool.FindAll(m => handMade.Contains(m.id));
+        made.AddRange(pool.FindAll(m => !handMade.Contains(m.id)));
+        return made;
     }
+
+    /// Moves used in play: made by hand, or a plain stat boost for the user or its allies (generated ones too).
+    /// Level-ups offer only these (Combatant.LearnableMoves), and enemies get only these (RandomMoves, bosses).
+    public static bool InPlay(MoveDef move)
+    {
+        Load();
+        return move != null && !move.bossOnly && (handMade.Contains(move.id) || IsStatBoost(move));
+    }
+
+    public static bool IsStatBoost(MoveDef move) => move.family == "modifier" && move.target != "enemies" && move.modValue > 1f;
+
+    /// MovePool restricted to the moves used in play (InPlay).
+    public static List<MoveDef> PlayPool(int pokemonId) => MovePool(pokemonId).FindAll(InPlay);
 
     /// Basic attacks of a Pokémon: its own entries in basicByPokemon, else those of each of its types. style:
     /// "ranged", "melee", or null for both (the style matching its stats first).
@@ -512,7 +530,7 @@ public static class GameData
     public static int[] RandomMoves(int pokemonId, int count, System.Random rng, string role = null, bool strong = false)
     {
         var basics = BasicMoves(pokemonId, StatStyle(pokemonId));
-        var pool = MovePool(pokemonId);
+        var pool = PlayPool(pokemonId); // only the moves made by hand and the stat boosts
         pool.RemoveAll(m => m.basic);
         if (strong)
         {
@@ -541,7 +559,7 @@ public static class GameData
     public static bool CanTakeRole(int pokemonId, string role)
     {
         var basics = BasicMoves(pokemonId);
-        return MovePool(pokemonId).Exists(m => !basics.Contains(m) && FitsRole(m, role));
+        return PlayPool(pokemonId).Exists(m => !basics.Contains(m) && FitsRole(m, role));
     }
 
     static bool IsSupportMove(MoveDef m) => m.family == "heal" || (m.family == "modifier" && m.target == "allies");

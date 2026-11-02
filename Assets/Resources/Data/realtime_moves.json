@@ -46,10 +46,7 @@
   {"id": 231, "name": "Poudre Dodo", "type": 4, "category": "status", "power": 0, "family": "projectile", "cooldown": 8.0, "range": 1.5, "radius": 0.25, "windup": 0.5, "status": "sleep", "statusDuration": 3, "castTime": 0.5, "count": 6, "spread": 300, "speed": 1.75, "growth": 3, "pierce": true, "upright": true, "effectScale": 0.5, "effect": "poudre_dodo_spore", "impactEffect": "poudre_dodo_impact", "endEffect": "poudre_dodo_fin"},
   {"id": 351, "name": "Spore Coton", "type": 4, "category": "status", "power": 0, "family": "projectile", "cooldown": 6.0, "speed": 1.75, "range": 1.5, "radius": 0.25, "windup": 0.5, "modStat": "speed", "modValue": 0.5, "modDuration": 4, "castTime": 0.5, "count": 6, "spread": 300, "growth": 3, "pierce": true, "upright": true, "effectScale": 0.5, "effect": "spore_coton_spore", "impactEffect": "spore_coton_impact", "endEffect": "spore_coton_fin"},
   {"id": 234, "name": "Choc Mental", "type": 11, "category": "special", "power": 2, "family": "projectile", "basic": true, "cooldown": 1.0, "speed": 4, "range": 7, "radius": 0.22, "windup": 0.35, "damageScale": 0.84, "accel": 14, "castTime": 0.25, "effect": "choc_mental_vol", "impactEffect": "choc_mental_impact"},
-  {"id": 299, "name": "Tir de Boue", "type": 9, "category": "special", "power": 12, "family": "projectile", "cooldown": 0.1, "speed": 8, "range": 9, "radius": 0.35, "windup": 0.8, "count": 3, "spread": 40, "modStat": "speed", "modValue": 0.6, "modDuration": 4, "effect": "tir_de_boue_vol", "impactEffect": "tir_de_boue_impact"},
   {"id": 81, "name": "Tranche", "type": 1, "category": "physical", "power": 14, "family": "melee", "cooldown": 2.5, "castTime": 0.5, "windup": 0.2, "shape": "arc", "range": 1.5, "arc": 120, "radius": 0.5, "strikeOffset": 0.3, "effect": "tranche_coup", "impactEffect": "tranche_impact"},
-  {"id": 118, "name": "Séisme", "type": 9, "category": "physical", "power": 5, "family": "burst", "cooldown": 0.1, "radius": 4, "windup": 1.4, "anim": "Hop", "effect": "seisme_onde", "impactEffect": ""},
-  {"id": 278, "name": "Éruption", "type": 2, "category": "special", "power": 40, "family": "zone", "cooldown": 0.1, "range": 0, "radius": 1.3, "windup": 1.0, "zoneDuration": 4, "target": "each", "effect": "eruption_lave", "impactEffect": ""},
   {"id": 145, "name": "Météores", "type": 1, "category": "special", "power": 2, "family": "projectile", "basic": true, "cooldown": 1.0, "speed": 9, "range": 6, "radius": 0.15, "windup": 0.35, "damageScale": 0.46, "path": "orbit", "count": 2, "pathAmplitude": 0.3, "pathPeriod": 2, "castTime": 0.25, "effect": "meteores_vol", "impactEffect": "meteores_impact"},
   {"id": 479, "name": "Onde Vide", "type": 7, "category": "special", "power": 2, "family": "projectile", "basic": true, "cooldown": 1.0, "speed": 8, "range": 3, "radius": 0.2, "windup": 0.35, "damageScale": 0.84, "growth": 2.5, "pierce": true, "castTime": 0.25, "effect": "onde_vide_vol", "impactEffect": "onde_vide_impact"},
   {"id": 332, "name": "Acide", "type": 8, "category": "special", "power": 2, "family": "projectile", "basic": true, "cooldown": 1.1, "speed": 8, "range": 2.0, "radius": 0.22, "windup": 0.35, "damageScale": 0.4, "path": "arc", "pathAmplitude": 1.0, "splash": 0.55, "castTime": 0.25, "effectScale": 1.2, "puddle": 1.5, "rangeStep": 0.75, "burst": 3, "burstInterval": 0.12, "effect": "acide_vol", "impactEffect": "acide_impact"},
@@ -126,7 +123,11 @@
   {"id": 301, "name": "Abri", "type": 1, "category": "status", "power": 0, "family": "guard", "guard": 2, "aiChannel": 1, "cooldown": 8, "windup": 0.2, "range": 0.5, "effect": "abri_bulle"},
   {"id": 304, "name": "Clonage", "type": 1, "category": "status", "power": 0, "family": "decoy", "cooldown": 15, "windup": 0.3, "range": 1, "radius": 6, "zoneDuration": 8, "anim": "Double", "effect": "clonage_fumee", "endEffect": "clonage_fumee"},
   {"id": 295, "name": "Picots", "type": 9, "category": "status", "power": 0, "family": "trap", "cooldown": 10, "windup": 0.4, "range": 3, "zoneDuration": 15, "trapTerrain": "spikes", "anim": "Shoot", "impactEffect": "picots_pose", "trapAround": true},
-  {"id": 225, "name": "Vœu", "type": 1, "category": "status", "power": 0, "family": "wish", "cooldown": 14, "windup": 0.4, "range": 3, "radius": 1.2, "wishDelay": 2, "healShare": 0.4, "fallEffect": "voeu_etoile", "fallStraight": true, "fallTime": 0.4, "anim": "Double", "effect": "voeu_cercle", "impactEffect": "voeu_soin"}
+  {"id": 225, "name": "Vœu", "type": 1, "category": "status", "power": 0, "family": "wish", "cooldown": 14, "windup": 0.4, "range": 3, "radius": 1.2, "wishDelay": 2, "healShare": 0.4, "fallEffect": "voeu_etoile", "fallStraight": true, "fallTime": 0.4, "anim": "Double", "effect": "voeu_cercle", "impactEffect": "voeu_soin"},
+  {"id": 10299, "name": "Tir de Boue", "type": 9, "category": "special", "power": 12, "family": "projectile", "cooldown": 0.1, "speed": 8, "range": 9, "radius": 0.35, "windup": 0.8, "count": 3, "spread": 40, "modStat": "speed", "modValue": 0.6, "modDuration": 4, "effect": "tir_de_boue_vol", "impactEffect": "tir_de_boue_impact", "bossOnly": true, "baseId": 299},
+  {"id": 10081, "name": "Tranche", "type": 1, "category": "physical", "power": 14, "family": "melee", "cooldown": 0.1, "range": 0.6, "radius": 0.9, "windup": 0.9, "lunge": 5, "lungeTime": 0.3, "effect": "tranche_trainee", "impactEffect": "charge_impact", "bossOnly": true, "baseId": 81},
+  {"id": 10118, "name": "Séisme", "type": 9, "category": "physical", "power": 5, "family": "burst", "cooldown": 0.1, "radius": 4, "windup": 1.4, "anim": "Hop", "effect": "seisme_onde", "impactEffect": "", "bossOnly": true, "baseId": 118},
+  {"id": 10278, "name": "Éruption", "type": 2, "category": "special", "power": 40, "family": "zone", "cooldown": 0.1, "range": 0, "radius": 1.3, "windup": 1.0, "zoneDuration": 4, "target": "each", "effect": "eruption_lave", "impactEffect": "", "bossOnly": true, "baseId": 278}
  ],
  "loadouts": [
   {"pokemonId": 1, "role": "support", "moves": [329, 217, 199, 251]},
@@ -141,7 +142,7 @@
   {"pokemonId": 393, "role": "ranged", "moves": [101, 97]},
   {"pokemonId": 187, "role": "support", "moves": [94, 124]},
   {"pokemonId": 308, "role": "support", "moves": [217, 234]},
-  {"pokemonId": 415, "role": "melee", "moves": [299, 81, 118, 278]}
+  {"pokemonId": 415, "role": "melee", "moves": [10299, 10081, 10118, 10278]}
  ],
  "basicByType": [
   {"type": 1, "move": 145},
