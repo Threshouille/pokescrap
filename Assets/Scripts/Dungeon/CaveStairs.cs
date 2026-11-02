@@ -12,4 +12,8 @@ public class CaveStairs : IslandStairs
     protected override Color Colour => new(1f, 0.55f, 0.2f);
     protected override SecretRooms.Room Room => CaveSeals.Data.room;
     protected override bool Hidden(Vector2Int cell) => Plan == null || !Plan.caveOpen;
+    protected override EntranceArt.Icon Icon => EntranceArt.Icon.Sealed;
+    // In the cave: the rock rim, whatever the ground outside.
+    protected override GameObject MakeEntrance(Vector2 at) =>
+        EntranceArt.Stairs(StairsName, at, "entrance_rim_biomes", EntranceArt.RimOf("caves"));
 }

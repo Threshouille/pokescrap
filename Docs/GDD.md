@@ -342,7 +342,11 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   discret sur la cachette fermée (feuilles mortes sur la clairière, fissure lumineuse sur le rocher), sans éclat ni
   icône. Repérage : une fois vue, une bulle avec l'icône de l'entrée au-dessus d'elle et la même icône sur la
   mini-carte. Taux gardés : escalier secret 60 %, grotte scellée 50 % par quartier. Ordre : escaliers et icônes, puis
-  cachettes et bordures, puis donjon de la clé et portes de quartier.
+  cachettes et bordures, puis donjon de la clé et portes de quartier. Retour en jeu (Robin) : l'arche de quartier est remplacée par un
+  **rempart** de pierre ancienne cerclée de bronze vert-de-gris (veines turquoise) sur chaque côté d'un quartier qui
+  donne sur un autre ; au passage, une porte à deux battants dans le rempart et, devant, un **dolmen à engrenage** :
+  y poser l'Engrenage du Temps du quartier allume les veines et écarte les battants comme un mécanisme d'horlogerie
+  (lot 4 du prompt).
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
   sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
   (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.

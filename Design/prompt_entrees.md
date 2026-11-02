@@ -74,3 +74,28 @@ Présente les planches agrandies ×4 : une clairière de forêt de DM (arbres en
 Palettes : pierre moussue `#3a3836 / #6a6560 / #9a948c / #3a6a2a / #6a9a3a`, grès `#7a4a24 / #b07840 / #e0b070`, roche givrée `#2a2a3a / #4a4a64 / #a0b0d0 / #e8f0ff`, or `#a07010 / #f0c030 / #fff0a0`, turquoise `#0a6a72 / #1ec8c8 / #a0fff0`.
 
 Présente les planches agrandies ×4 : l'entrée du donjon de la clé dans ses trois matières sur l'herbe, le sable et la roche, avec ses runes allumées ; la porte de quartier fermée, refusée, en train de s'ouvrir puis ouverte, avec un Pokémon de DM (Pikachu) devant pour l'échelle.
+
+---
+
+## Lot 4 : remparts entre les quartiers et dolmen à engrenage (10 planches)
+
+Remplace les portes de quartier du lot 3 (`quarter_gate*`). Chaque côté d'un quartier qui donne sur un autre quartier est fermé par un **rempart** : un gros mur de **pierre ancienne cerclée de plaques de bronze vert-de-gris**, avec des motifs d'engrenage et de fines **veines turquoise** éteintes. Au passage vers le quartier suivant, le rempart a une **porte** à deux battants de bronze, un emblème d'engrenage vide au centre. Devant elle, un **dolmen à engrenage** : une stèle trapue avec un logement circulaire vide. Quand l'équipe apporte l'**Engrenage du Temps** du quartier (roue dentée turquoise cerclée d'or), il se pose dans le logement, les veines du rempart s'allument et les battants s'écartent en tournant comme un mécanisme d'horlogerie.
+
+Le rempart se pose **case par case** sur la grille (1 case = 24 px), comme les murs de Donjon Mystère : il suit des lignes droites et des angles, vu de 3/4 (on voit le dessus du mur et, côté caméra, sa face avant haute de 2 cases).
+
+| Fichier | Élément | Taille d'une image | Images | Description visuelle | Raccord / transparence |
+|---|---|---|---|---|---|
+| `rampart_top.png` | Dessus du rempart | 72×72 | 1 | le **dessus** du mur vu d'en haut, découpé en 3×3 cases : les 4 angles extérieurs, les 4 bords et le centre (dalles de pierre, liseré de bronze sur les bords) ; le centre se répète sans couture dans les deux sens | opaque, chaque case se raccorde à ses voisines |
+| `rampart_top_inner.png` | Angles rentrants | 48×48 | 1 | les 4 angles rentrants du dessus (2×2 cases), quand le mur tourne vers l'intérieur | idem |
+| `rampart_face.png` | Face avant | 72×48 | 1 | la **face avant** (côté sud) haute de 2 cases, découpée en 3 colonnes : bout gauche, milieu qui se répète sans couture, bout droit ; grosses pierres taillées, deux bandes de bronze rivetées, un motif d'engrenage en relief toutes les 3 cases, veines turquoise éteintes (gris-bleu) | opaque, le bas de la face touche le sol |
+| `rampart_face_lit.png` | Face avant allumée | 72×48 | 6 (boucle, ~120 ms) | la même face, les **veines turquoise allumées** où une lueur court de gauche à droite | idem |
+| `rampart_gate.png` | Porte fermée | 72×72 | 1 | la porte dans le rempart, 3 cases de large : la rangée du haut est le dessus du mur, les 2 du bas la face avec **deux battants de bronze** fermés, un **emblème d'engrenage vide** (logement sombre) au centre | opaque, se raccorde à `rampart_face` à gauche et à droite |
+| `rampart_gate_opening.png` | Ouverture de la porte | 72×72 | 10 (~80 ms) | l'emblème s'allume en turquoise, les veines s'éclairent, les deux battants **s'écartent en tournant** vers les côtés comme des rouages, un passage lumineux apparaît | idem, jouée une fois |
+| `rampart_gate_open.png` | Porte ouverte | 72×72 | 6 (boucle, ~110 ms) | les battants rentrés dans le mur, le passage ouvert au sol (dalles), une **lueur turquoise** qui ondule dans l'ouverture | le passage est praticable : sol visible au bas de l'ouverture |
+| `gear_dolmen.png` | Dolmen à engrenage | 48×72 | 1 | stèle trapue de la même pierre et du même bronze, un **logement circulaire vide** en forme de roue dentée sur sa face, quelques runes éteintes | se dresse, pied au milieu du bord bas |
+| `gear_dolmen_insert.png` | Engrenage posé | 48×72 | 10 (~80 ms) | l'Engrenage du Temps descend dans le logement, s'enclenche avec un éclat blanc, les runes s'allument en turquoise | idem, jouée une fois |
+| `gear_dolmen_active.png` | Dolmen actif | 48×72 | 6 (boucle, ~120 ms) | l'engrenage **tourne lentement** dans son logement, pulsation de lumière turquoise, runes allumées | idem |
+
+Palettes : pierre `#3a3836 / #6a6560 / #9a948c / #c8c0b4`, bronze vert-de-gris `#3a4a3a / #5a7a5a / #8ab08a / #b07840`, or `#a07010 / #f0c030 / #fff0a0`, turquoise `#0a6a72 / #1ec8c8 / #a0fff0`, veines éteintes `#4a5a6a`.
+
+Présente les planches agrandies ×4 : un rempart qui court sur 9 cases puis tourne d'un angle vers le haut, posé sur de l'herbe ; au milieu, la porte fermée avec le dolmen devant elle et un Pokémon de DM (Pikachu) pour l'échelle ; en dessous, la même scène : engrenage posé, veines allumées, battants qui s'écartent, puis passage ouvert.

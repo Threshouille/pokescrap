@@ -16,6 +16,10 @@ public class CameraFollow : MonoBehaviour
     static float shakeStrength, shakeUntil, shakeLength;
     static Vector2 focusPoint;
     static float focusUntil, focusSlide = 0.5f, zoom = 1f, zoomUntil;
+    static bool cut;
+
+    /// The next frame jumps straight to the target instead of sliding (a new arena behind a loading screen).
+    public static void Cut() => cut = true;
 
     /// Centres the camera on a point for a while (a boss's second phase), sliding there and back over "slide"
     /// seconds (eased), then follows its target again.
@@ -77,8 +81,11 @@ public class CameraFollow : MonoBehaviour
             wasFocused = focused;
             slowSlide = true;
         }
-        if (!started)
+        if (!started || cut)
         {
+            cut = false;
+            sliding = slowSlide = false;
+            velocity = Vector2.zero;
             position = goal; // no slide from wherever the camera was placed in the scene
             started = true;
         }

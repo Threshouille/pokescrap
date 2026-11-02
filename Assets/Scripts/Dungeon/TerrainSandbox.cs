@@ -459,18 +459,10 @@ public class TerrainSandbox : MonoBehaviour
     void AddStairs(DungeonGenerator arena, Vector2 offset, int target, string name, Color colour)
     {
         var cell = arena.CellOf(Centre(arena) + offset);
-        var go = new GameObject(name);
-        go.transform.position = arena.CentreOf(cell.x, cell.y);
-        var outer = go.AddComponent<SpriteRenderer>();
-        outer.sprite = Shapes.Square;
-        outer.color = new Color(0.1f, 0.1f, 0.12f);
-        outer.sortingOrder = -1; // under the light square inside (a tie would hide it)
-        var inner = new GameObject("Marches").AddComponent<SpriteRenderer>();
-        inner.transform.SetParent(go.transform, false);
-        inner.transform.localScale = Vector3.one * 0.6f;
-        inner.sprite = Shapes.Square;
-        inner.color = colour;
-        inner.sortingOrder = 0;
+        // Stairs like the island's (EntranceArt), their glow in the colour of the room they lead to.
+        var go = EntranceArt.Stairs(name, arena.CentreOf(cell.x, cell.y), "entrance_stairs_down");
+        var looks = go.GetComponentsInChildren<EntranceSprite>();
+        if (looks.Length > 1) looks[1].Renderer.color = colour;
         stairs.Add((go, target));
     }
 
