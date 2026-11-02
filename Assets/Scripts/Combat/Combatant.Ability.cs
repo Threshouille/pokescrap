@@ -442,7 +442,8 @@ public partial class Combatant
                     && Vector2.Distance(c.transform.position, transform.position) <= a.allyCureRadius)
                 {
                     c.statuses.Clear();
-                    ShowAbility();
+                    c.TargetFx(a.targetFx); // the cured team-mate sparkles
+                    ShowAbility($"guérit {c.Stats?.name}");
                     break;
                 }
         }
@@ -791,12 +792,15 @@ public partial class Combatant
     public static Combatant LastHit;
 
     /// Arena Trap, Magnet Pull, Shadow Tag: a foe close by keeps it from dodging.
-    bool Trapped()
+    bool Trapped() => TrappedBy() != null;
+
+    /// The foe whose ability keeps it from dodging right now (Shadow Tag, Arena Trap, Magnet Pull), or null.
+    Combatant TrappedBy()
     {
         foreach (var c in all)
             if (c.team != team && c.IsAlive && c.Ability is { trapRadius: > 0f } a
-                && Abilities.Traps(a, Vector2.Distance(c.transform.position, transform.position), Stats?.types, Flies)) return true;
-        return false;
+                && Abilities.Traps(a, Vector2.Distance(c.transform.position, transform.position), Stats?.types, Flies)) return c;
+        return null;
     }
 
     /// Damp: a foe (or anyone) close by keeps this move from being used.

@@ -209,10 +209,12 @@ public static class SaveData
     // Ability picked in the menu for a dev character (Abilities), for this session only: never written to the save.
     static readonly Dictionary<int, int> devAbilities = new();
 
-    /// The ability a dev character fights with: the one picked in the menu, else the first with an effect.
+    /// The ability a dev character fights with: the one picked in the menu, else its own in dev_characters.json
+    /// (abilities), else the first with an effect.
     public static int DevAbility(int pokemonId)
     {
         if (devAbilities.TryGetValue(pokemonId, out int id)) return id;
+        if (GameData.Pokemon(pokemonId)?.abilities is { Length: > 0 } own && Abilities.Effect(own[0]) != null) return own[0];
         return Abilities.All.Count > 0 ? Abilities.All[0].id : 0;
     }
 

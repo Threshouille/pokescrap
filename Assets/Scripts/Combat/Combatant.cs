@@ -1111,7 +1111,11 @@ public partial class Combatant : MonoBehaviour
     public bool TryDodge(Vector2 direction)
     {
         if (!IsAlive || Time.time < dodgeReadyAt || !CanMove || IsCasting || IsLunging || direction == Vector2.zero || body == null) return false;
-        if (Trapped()) return false; // Arena Trap, Shadow Tag…
+        if (TrappedBy() is { } trapper) // Arena Trap, Shadow Tag…: the trapper says so
+        {
+            trapper.ShowAbility($"esquive de {Stats?.name} bloquée");
+            return false;
+        }
         var settings = SaveData.Settings;
         dodgeDirection = direction.normalized;
         dodgeUntil = Time.time + settings.dodgeTime * AbilityDodgeTimeMul; // Light Metal

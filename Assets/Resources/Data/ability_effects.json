@@ -152,7 +152,7 @@
   {"id": 1156, "name": "Miroir Magik", "magicBounce": true, "fx": "ability_reflect"},
   {"id": 1147, "name": "Peau Miracle", "statusChanceMul": 0.5},
   {"id": 1172, "name": "Battant", "loweredAttack": 1.4, "loweredDuration": 8},
-  {"id": 1131, "name": "Cœur Soin", "allyCureEvery": 3, "allyCureChance": 0.3, "allyCureRadius": 4},
+  {"id": 1131, "name": "Cœur Soin", "targetFx": "synthese_soin", "allyCureEvery": 3, "allyCureChance": 0.3, "allyCureRadius": 4},
   {"id": 1139, "name": "Récolte", "berryKeepChance": 0.5},
   {"id": 1168, "name": "Protéen", "typeFromMove": true},
   {"id": 1126, "name": "Contestation", "contrary": true},
