@@ -216,7 +216,8 @@ public partial class IslandPlan
                 float coast = t.radius * (1f + t.coastNoise * (Fbm(x * t.coastScale, y * t.coastScale, offsets[0], 3) * 2f - 1f));
                 bool land = dx * dx + dy * dy < coast * coast
                     && dx > t.sideNoise * Fbm(0f, y * 0.04f, offsets[1], 2) && dy > t.sideNoise * Fbm(x * 0.04f, 0f, offsets[2], 2);
-                region[Index(x, y)] = land ? 0 : Void;
+                // Beyond the two sides, within the coast: the neighbouring quarters (the rampart hides them).
+                region[Index(x, y)] = land ? 0 : dx * dx + dy * dy < coast * coast ? Border : Void;
             }
 
         // The river's middle line: along the fan's middle (45°), swinging from side to side, a little at the spring and

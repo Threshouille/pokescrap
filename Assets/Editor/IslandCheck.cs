@@ -184,6 +184,89 @@ public static class IslandCheck
         Debug.Log("ISLANDSHOT DONE");
     }
 
+    /// The rampart around each zone of an island and its gates (EntranceArt.Settings.rampart), Unity closed, with
+    /// graphics: Unity -batchmode -projectPath . -executeMethod IslandCheck.RampartShots -quit
+    /// RAMPART lines: per passage end, the view of its gate, its dolmen, whether it stands on open ground; then the
+    /// opening of one gate (the gear set first). Logs/rampart_shots.png: zone 1 whole, then every gate up close.
+    public static void RampartShots()
+    {
+        EditorSceneManager.OpenScene("Assets/Scenes/SampleScene.unity");
+        var gen = Object.FindAnyObjectByType<DungeonGenerator>();
+        var cam = Camera.main;
+        var plan = IslandPlan.Generate(new System.Random(303));
+        gen.island = plan;
+        cam.backgroundColor = new Color(0.42f, 0.62f, 0.86f);
+        const int W = 600;
+        var shots = new List<Texture2D>();
+        var rt = new RenderTexture(W, W, 24);
+        Texture2D Shoot(Vector2 centre, float half)
+        {
+            cam.transform.position = new Vector3(centre.x, centre.y, -10f);
+            cam.orthographicSize = half;
+            cam.targetTexture = rt;
+            cam.Render();
+            RenderTexture.active = rt;
+            var tex = new Texture2D(W, W, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, W, W), 0, 0);
+            tex.Apply();
+            return tex;
+        }
+        bool Gated(int from, int to) => to == IslandPlan.Centre || System.Array.IndexOf(plan.order, to) == System.Array.IndexOf(plan.order, from) + 1;
+        int problems = 0;
+        bool litShot = false;
+        var zones = new List<int>(plan.order) { IslandPlan.Centre };
+        foreach (int zone in zones)
+        {
+            gen.islandZone = zone;
+            gen.islandArrival = null;
+            gen.Generate();
+            var origin = gen.Interior.min - gen.IslandOrigin;
+            Vector2 Tile(Vector2Int p) => gen.CentreOf(p.x + origin.x, p.y + origin.y);
+            if (zone == plan.order[0]) shots.Add(Shoot(gen.CentreOf(gen.Size / 2, gen.Size / 2), gen.Interior.width / 2f + 2f));
+            foreach (var p in plan.passages)
+            {
+                if (p.from != zone && p.to != zone) continue;
+                var (end, to) = p.from == zone ? (p.a, p.to) : (p.b, p.from);
+                var gate = QuarterGate.Make("Passage (aperçu)", Tile(end), Gated(zone, to), to == IslandPlan.Centre);
+                gate.Set(false, true, 2);
+                var cell = gen.CellOf(gate.transform.position);
+                bool walkable = gen.Walkable(cell.x, cell.y);
+                if (gate.Seen == "Arch" || !walkable) problems++;
+                Debug.Log($"RAMPART {plan.ZoneName(zone)} -> {plan.ZoneName(to)} : vue {gate.Seen}, porte {gate.GateShown}, dolmen {gate.DolmenShown ?? "aucun"}, sol praticable {walkable}");
+                if (shots.Count < 11) shots.Add(Shoot(gate.transform.position, 6f));
+                if (zone == plan.order[0] && p.from == zone)
+                {
+                    gate.Set(true, true, 2);
+                    Debug.Log($"RAMPART ouverture : porte {gate.GateShown} (attend l'engrenage), dolmen {gate.DolmenShown}");
+                }
+                string seen = gate.Seen;
+                Object.DestroyImmediate(gate.gameObject);
+                // A gate already opened (a later visit): its dolmen turning, the veins of the rampart's faces lit.
+                if (!litShot && Gated(zone, to) && seen == "Face")
+                {
+                    litShot = true;
+                    var lit = QuarterGate.Make("Passage ouvert (aperçu)", Tile(end), true, to == IslandPlan.Centre);
+                    lit.Set(true, true, 4);
+                    var update = typeof(RampartVein).GetMethod("Update", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                    int veins = 0;
+                    foreach (var v in lit.GetComponentsInChildren<RampartVein>()) { update.Invoke(v, null); veins++; }
+                    Debug.Log($"RAMPART porte ouverte : {lit.GateShown}, dolmen {lit.DolmenShown}, {veins} veine(s) allumée(s)");
+                    shots.Add(Shoot(lit.transform.position, 6f));
+                    Object.DestroyImmediate(lit.gameObject);
+                }
+            }
+        }
+        cam.targetTexture = null;
+        RenderTexture.active = null;
+        var sheet = new Texture2D(4 * W + 24, 3 * W + 16, TextureFormat.RGB24, false);
+        for (int k = 0; k < shots.Count && k < 12; k++) sheet.SetPixels((k % 4) * (W + 8), (2 - k / 4) * (W + 8), W, W, shots[k].GetPixels());
+        sheet.Apply();
+        File.WriteAllBytes("Logs/rampart_shots.png", sheet.EncodeToPNG());
+        gen.island = null;
+        gen.islandZone = -1;
+        Debug.Log($"RAMPART DONE, {problems} problème(s)");
+    }
+
     /// Test quarter (quarter_test.json), Unity closed: python3 Tools/setup.py --unity-only IslandCheck.Quarter
     /// Four draws side by side in Logs/quarter_preview.png (sub-biomes in their colour, water blue, bridges brown, the
     /// landing point red); QUARTER lines: size, share of each side, water, bridges, all land reached from the landing.
@@ -283,11 +366,19 @@ public static class IslandCheck
             if (plan.obstacle[i] == plan.themes[0].bridgeKind && bridge == plan.start) bridge = p;
             if (plan.obstacle[i] == plan.themes[0].riverKind && p.x + p.y > far) { far = p.x + p.y; mouth = p; }
         }
+        // The portals, as IslandRun lays them (shut): the rampart's gates and dolmens where the rampart is.
+        var gates = new List<GameObject>();
+        foreach (var m in plan.markers)
+        {
+            var gate = QuarterGate.Make("Portail (aperçu)", Tile(m));
+            gate.Set(false, true);
+            gates.Add(gate.gameObject);
+        }
         var views = new List<(Vector2 centre, float half)>
         {
             (gen.CentreOf(gen.Size / 2, gen.Size / 2), gen.Interior.width / 2f + 2f),
-            (Tile(plan.start), 14f),
-            (Tile(bridge), 12f),
+            (Tile(plan.markers.Count > 0 ? plan.markers[0] : plan.start), 9f),
+            (Tile(plan.markers.Count > 1 ? plan.markers[1] : bridge), 9f),
             (Tile(mouth), 14f),
         };
         cam.backgroundColor = new Color(0.42f, 0.62f, 0.86f);
@@ -310,6 +401,7 @@ public static class IslandCheck
         RenderTexture.active = null;
         sheet.Apply();
         File.WriteAllBytes("Logs/quarter_shots.png", sheet.EncodeToPNG());
+        foreach (var g in gates) Object.DestroyImmediate(g);
         gen.island = null;
         Debug.Log("QUARTERSHOT DONE");
     }

@@ -11,6 +11,7 @@ public class IslandRun : MonoBehaviour
 {
     const float RevealRadius = 12f, RevealEvery = 0.2f, MapSize = 140f;
     const float PassageReach = 0.8f, PassageLeave = 1.6f; // tiles: walking onto a passage end; stepping off it again
+    readonly HashSet<(int from, int to)> opened = new(); // passages whose gate has been seen open (for the whole run)
     static readonly Color Sky = new(0.42f, 0.62f, 0.86f);
 
     public IslandPlan Plan { get; private set; }
@@ -84,6 +85,7 @@ public class IslandRun : MonoBehaviour
         pixels = new Color32[Plan.size * Plan.size];
         revealed = new bool[pixels.Length];
         Away = false;
+        opened.Clear();
         if (GetComponent<SecretStairs>() == null) gameObject.AddComponent<SecretStairs>();
         if (GetComponent<CaveSeal>() == null) gameObject.AddComponent<CaveSeal>();
         if (GetComponent<CaveStairs>() == null) gameObject.AddComponent<CaveStairs>();
@@ -123,13 +125,7 @@ public class IslandRun : MonoBehaviour
         arena.islandArrival = arrival;
         arena.Generate();
         if (team != null) team.PrepareForNextArena(arena.SpawnPoint, 0f);
-        foreach (var p in Plan.passages)
-        {
-            if (p.from == zone) AddExit(p.a, p.to, p.b);
-            if (p.to == zone) AddExit(p.b, p.from, p.a);
-        }
-        foreach (var m in Plan.markers)
-            if (Plan.region[Plan.Index(m.x, m.y)] == zone) AddMarker(m, "Portail (test)", new Color(1f, 0.85f, 0.3f));
+        AddExits(zone);
         PlaceProps(zone);
 
         if (revealAll || SaveData.Settings.devMode)
@@ -147,10 +143,52 @@ public class IslandRun : MonoBehaviour
         Built?.Invoke();
     }
 
+    // The zone's passage ends (its gates), and the test quarter's portals.
+    void AddExits(int zone)
+    {
+        foreach (var p in Plan.passages)
+        {
+            if (p.from == zone) AddExit(p.a, p.to, p.b);
+            if (p.to == zone) AddExit(p.b, p.from, p.a);
+        }
+        if (testRedraw != null && Plan.markers.Count >= 2)
+        {
+            // The test quarter's portals as real passages: to a new draw of the test quarter.
+            AddExit(Plan.markers[0], TestPrevious, Plan.markers[0]);
+            AddExit(Plan.markers[1], TestNext, Plan.markers[1]);
+        }
+        else
+            foreach (var m in Plan.markers)
+                if (Plan.region[Plan.Index(m.x, m.y)] == zone) AddMarker(m, "Portail (test)", new Color(1f, 0.85f, 0.3f));
+    }
+
+    /// Dev (Ctrl+G): the zone's gates shut again, as if never opened, so that their opening plays once more.
+    public void ReplayGates()
+    {
+        opened.RemoveWhere(k => k.from == Zone);
+        foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
+        exits.Clear();
+        foreach (var m in markers) if (m != null) Destroy(m);
+        markers.Clear();
+        AddExits(Zone);
+    }
+
+    /// The test quarter (sandbox room 5): a new draw of it, behind its portals (null elsewhere: portals inert).
+    public System.Func<IslandPlan> testRedraw;
+    const int TestPrevious = -11, TestNext = -10; // the test quarter's portals, as zones
+
+    string Towards(int zone) => zone == TestNext ? "le quartier suivant (nouveau tirage)" : zone == TestPrevious ? "le quartier précédent (nouveau tirage)" : Plan.ZoneName(zone);
+
+    // Whether the way to a zone asks for a gear (onward, the centre; the test quarter's next portal).
+    bool GatedTo(int zone) => zone == TestNext || zone >= 0 && gears != null && gears.Gated(Zone, zone);
+
+    // Whether the team may go there as far as the gears go (the test quarter: its own gear for the next portal).
+    bool MayPass(int zone) => zone == TestPrevious || gears == null || (zone == TestNext ? gears.HasGear(Zone) : gears.CanPass(Zone, zone));
+
     // A passage end: a quarter's gate (EntranceArt), open once its Time Gear is found.
     void AddExit(Vector2Int tile, int zone, Vector2Int arrival)
     {
-        var go = QuarterGate.Make($"Passage vers {Plan.ZoneName(zone)}", Cell(tile)).gameObject;
+        var go = QuarterGate.Make($"Passage vers {Towards(zone)}", Cell(tile), GatedTo(zone), zone == IslandPlan.Centre).gameObject;
         exits.Add((go, zone, arrival));
     }
 
@@ -167,6 +205,7 @@ public class IslandRun : MonoBehaviour
         {
             var tile = Vector2Int.FloorToInt(at);
             if (Plan.region[Plan.Index(tile.x, tile.y)] != zone) continue;
+            if (arena.IsRampart(arena.CellOf(Cell(tile)))) continue; // under the rampart made straight at a gate
             var sprite = PropSprite(key);
             if (sprite == null) continue;
             var go = new GameObject(key);
@@ -252,25 +291,53 @@ public class IslandRun : MonoBehaviour
     void FixedUpdate()
     {
         if (Plan == null || Away || team == null || team.Controlled == null || LoadingScreen.Busy) return;
-        // Passage ends: armed once the controlled Pokémon stands clear of them all.
+        // Passage ends: armed once the controlled Pokémon stands clear of them all (out of their gateways).
         Vector2 at = team.Controlled.transform.position;
-        float closest = float.MaxValue;
+        bool near = false;
         foreach (var e in exits)
         {
             float d = Vector2.Distance(at, e.marker.transform.position);
-            closest = Mathf.Min(closest, d);
             // Locked until the quarter's Time Gear is found (TimeGears): grey, and a word when stepped on.
-            bool open = gears == null || gears.CanPass(Zone, e.zone);
+            bool open = MayPass(e.zone);
             var gate = e.marker.GetComponent<QuarterGate>();
-            gate?.Set(open, Revealed(TileOf(e.marker.transform.position)));
-            if (armed && d <= PassageReach && !open)
+            // A gate that asks for a gear stays shut until the team brings it to its dolmen: then it opens before its
+            // eyes (QuarterGate.Unlock), once for the whole run; without the gear, the dolmen refuses.
+            bool gated = GatedTo(e.zone);
+            bool onEnd = gate != null ? gate.InGateway(at, PassageReach) : d <= PassageReach;
+            near |= gate != null ? gate.InGateway(at, PassageLeave) : d <= PassageLeave;
+            bool atDolmen = gate != null && (Vector2.Distance(at, gate.DolmenAt) <= EntranceArt.Data.gateReach || onEnd);
+            if (gated && open && !opened.Contains((Zone, e.zone)) && atDolmen && !Combatant.InCutScene)
+            {
+                opened.Add((Zone, e.zone));
+                gate.Unlock(team.Controlled, Towards(e.zone)); // the team goes through once it has played, if still there
+            }
+            if (gated && !open && atDolmen)
+            {
+                gears.Refuse(e.zone);
+                gate.Deny();
+            }
+            open &= !gated || opened.Contains((Zone, e.zone));
+            gate?.Set(open, Revealed(TileOf(e.marker.transform.position)), gears != null ? gears.Found : 0);
+            if (gate != null && gate.Unlocking)
+            {
+                armed = true; // once it has played, the team at the gate goes through (even if it was refused before)
+                continue;
+            }
+            if (armed && onEnd && !open)
             {
                 armed = false;
                 gears.Refuse(e.zone);
                 gate?.Refuse();
                 continue;
             }
-            if (armed && d <= PassageReach)
+            if (armed && onEnd && (e.zone == TestNext || e.zone == TestPrevious) && testRedraw != null)
+            {
+                armed = false;
+                var next = testRedraw;
+                LoadingScreen.Run("Quart d'île de test", () => Begin(next()));
+                return;
+            }
+            if (armed && onEnd)
             {
                 int zone = e.zone;
                 var arrival = e.arrival;
@@ -279,7 +346,7 @@ public class IslandRun : MonoBehaviour
                 return;
             }
         }
-        if (closest > PassageLeave) armed = true;
+        if (!near) armed = true;
         if (Time.time < nextReveal) return;
         nextReveal = Time.time + RevealEvery;
         var cell = TileOf(at);
@@ -351,8 +418,9 @@ public class IslandRun : MonoBehaviour
             bool open = e.marker.GetComponent<QuarterGate>() is { Open: true };
             IconAt(rect, scale, tile - bounds.min, open ? EntranceArt.Icon.GateOpen : EntranceArt.Icon.GateShut, s);
         }
-        foreach (var m in Plan.markers)
-            if (revealed[Plan.Index(m.x, m.y)]) IconAt(rect, scale, m - bounds.min, EntranceArt.Icon.GateShut, s);
+        if (testRedraw == null)
+            foreach (var m in Plan.markers)
+                if (revealed[Plan.Index(m.x, m.y)]) IconAt(rect, scale, m - bounds.min, EntranceArt.Icon.GateShut, s);
         foreach (var stairs in GetComponents<IslandStairs>())
             if (stairs.Found) IconAt(rect, scale, stairs.MapTile - bounds.min, stairs.MapIcon, s);
         if (Plan.sealedCave.x >= 0 && Plan.region[Plan.Index(Plan.sealedCave.x, Plan.sealedCave.y)] == Zone && revealed[Plan.Index(Plan.sealedCave.x, Plan.sealedCave.y)])

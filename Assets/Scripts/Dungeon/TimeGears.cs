@@ -187,6 +187,18 @@ public class TimeGears : MonoBehaviour
         return quarters[from] == null || quarters[from].gear;
     }
 
+    /// Whether the team holds the Time Gear of that quarter (a quarter without one never asks for it).
+    public bool HasGear(int quarter) => madeFor == null || quarter < 0 || quarter >= quarters.Length || quarters[quarter] == null || quarters[quarter].gear;
+
+    /// Whether a passage from zone "from" to zone "to" asks for a gear at all (onward or to the centre; back is free).
+    public bool Gated(int from, int to)
+    {
+        if (madeFor == null) return false;
+        if (to == IslandPlan.Centre) return true;
+        int at = Array.IndexOf(madeFor.order, from), next = Array.IndexOf(madeFor.order, to);
+        return at >= 0 && next == at + 1;
+    }
+
     /// The team stepped on a locked passage end: a word (not every frame).
     public void Refuse(int to)
     {
@@ -927,12 +939,29 @@ public class TimeGears : MonoBehaviour
             if (!f.taken) island.hints.Add((f.hint, FragmentHint));
     }
 
-    // Dev: G in the test quarter switches its way of giving the gear (boss, fragments).
+    // Dev: Shift+G gives the gear of the quarter the team is in (to try its gate); Ctrl+G shuts its gates again with
+    // the gear in hand, so that their opening plays once more at the dolmen; G in the test quarter switches its way of
+    // giving the gear (boss, fragments).
     void Update()
     {
         AnimateGate();
-        if (!testPlan || !SaveData.Settings.devMode || madeFor == null || UnityEngine.InputSystem.Keyboard.current == null) return;
-        if (!UnityEngine.InputSystem.Keyboard.current.gKey.wasPressedThisFrame) return;
+        var keys = UnityEngine.InputSystem.Keyboard.current;
+        if (!SaveData.Settings.devMode || madeFor == null || keys == null || !keys.gKey.wasPressedThisFrame) return;
+        if (keys.ctrlKey.isPressed)
+        {
+            int here = island != null ? island.Zone : -1;
+            if (here >= 0 && here < quarters.Length && quarters[here] != null) quarters[here].gear = true;
+            if (island != null) island.ReplayGates();
+            progression?.Announce("Dev : portes refermées, engrenage en main — va au dolmen pour rejouer l'ouverture");
+            return;
+        }
+        if (keys.shiftKey.isPressed)
+        {
+            int zone = island != null ? island.Zone : -1;
+            if (zone >= 0 && zone < quarters.Length && quarters[zone] is { gear: false } q) Obtain(q);
+            return;
+        }
+        if (!testPlan) return;
         ForceTestMode(Data.testMode == Boss ? Fragments : Boss);
         progression?.Announce($"Quart de test : engrenage par {(Data.testMode == Boss ? "un boss" : "des fragments")}");
     }

@@ -5979,6 +5979,243 @@
         "#2a2030",
         "#ffffff"
       ]
+    },
+    {
+      "file": "rampart_gate.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_opening.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_open.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true
+    },
+    {
+      "file": "rampart_gate_back.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_back_opening.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_back_open.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true
+    },
+    {
+      "file": "rampart_gate_side.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_side_opening.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_side_open.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true
+    },
+    {
+      "file": "rampart_face_lit.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "gear_dolmen.png",
+      "frame_width": 48,
+      "frame_height": 72,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_insert.png",
+      "frame_width": 48,
+      "frame_height": 72,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_active.png",
+      "frame_width": 48,
+      "frame_height": 72,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "gear_dolmen_quad.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_quad_slot.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_quad_active.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
     }
   ]
 }

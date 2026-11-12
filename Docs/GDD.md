@@ -347,6 +347,25 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   donne sur un autre ; au passage, une porte à deux battants dans le rempart et, devant, un **dolmen à engrenage** :
   y poser l'Engrenage du Temps du quartier allume les veines et écarte les battants comme un mécanisme d'horlogerie
   (lot 4 du prompt).
+  - Rempart en biais (décidé le 03/11/2026, Robin) : les frontières entre quartiers ont un angle au hasard et
+    ondulent, le rempart n'est donc presque jamais face au joueur. Il devient un jeu de tuiles automatique selon les
+    8 voisins (`rampart_auto`, disposition en quarts de case de 12 px : case isolée, angles rentrants, bloc 2 × 2).
+    Il **masque** la zone voisine : dans la zone jouée, toutes les cases hors zone (autres quartiers, barrières,
+    fossé) sont du rempart, sans prendre aucune case de la zone. Dalles jusqu'à 2 cases du bord (face comprise),
+    fond plus sombre au-delà (`rampart_fill`, mêmes joints que les dalles). Face haute d'**une** case
+    (`rampart_face` : bout gauche, milieu, bout droit ; une marche = bout droit en haut, bout gauche en bas) sur
+    chaque case de rempart dont la voisine du sud est libre ; une face compte comme rempart pour les tuiles. Autour
+    d'un passage, la frontière est redressée sur 5 à 7 cases ; chaque côté se voit depuis sa propre zone, d'où trois
+    vues de la porte : joueur au sud, porte de face dans la face (`rampart_gate`) ; joueur au nord, porte vue de
+    dessus dans le bord (`rampart_gate_back`, battants qui rentrent à l'ouest et à l'est, passage sombre derrière) ;
+    joueur à l'est ou à l'ouest, porte vue de dessus dans une alcôve (`rampart_gate_side`, battants qui rentrent au
+    nord et au sud). Pas de tunnel : franchir la porte lance le passage vers l'autre zone. Dolmen à 1 logement
+    inchangé. Lot 4b du prompt (canevas « Remparts et dolmen à engrenage »).
+  - Rempart du centre (proposé le 02/11/2026, à valider par Robin) : le même rempart masque le centre depuis les
+    quartiers, et les quartiers depuis le centre. Porte sur une partie droite redressée.
+  - Dolmen du centre : 4 logements, un par Engrenage du Temps (`gear_dolmen_quad`, sens horaire depuis le haut à
+    gauche) ; chaque engrenage rapporté s'y pose et s'allume (`gear_dolmen_quad_slot`), la porte ne s'ouvre qu'au
+    quatrième. Côté quartier, devant la porte.
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
   sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
   (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.

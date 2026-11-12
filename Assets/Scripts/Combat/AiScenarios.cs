@@ -188,6 +188,8 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Salles de l'île : trésor, embuscade à sortie fermée, gardien sur son coffre", IslandRoomContents());
         yield return Scenario("Engrenages : passages fermés jusqu'à l'engrenage, centre avec les quatre", GearsLockPassages());
         yield return Scenario("Engrenages : donjon de la clé, portail de l'îlot, boss grand et prêt à sa seconde phase ; fragments et indices", GearsFromBossAndFragments());
+        yield return Scenario("Portes : quart de test, le portail suivant s'ouvre au dolmen une fois le boss battu", GearGate(true));
+        yield return Scenario("Portes : île, le passage s'ouvre au dolmen une fois le boss battu et mène au quartier suivant", GearGate(false));
 
         Clear();
         if (progression != null) progression.enabled = true;
@@ -2480,6 +2482,117 @@ public class AiScenarios : MonoBehaviour
         bool themed = dungeonTheme == TimeGears.DungeonTheme(q0);
         Report(bridged && landmark && shut && inDungeon && themed && second && guardianReady && key && big && phase && fixedSet && locked && gear && rate > 0.5f && rate < 7f && fragments == 3 && hints == 3 && together,
             $"pont {bridged}, donjon sur un point d'intérêt {landmark}, portail fermé sans clé {shut} ; donjon {inDungeon} (thème {dungeonTheme}, attendu {TimeGears.DungeonTheme(q0)}), 2e salle {second}, gardien {guardian?.Stats.name} prêt {guardianReady}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, jeu fixe {fixedSet}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
+    }
+
+    // A gate that asks for a gear (the test quarter's next portal, or the first quarter's way to the second): shut at
+    // first, the dolmen refuses the team without the gear and the way through stays closed; the boss falls
+    // (TimeGears.BossBeaten, as when its arena ends); the gate waits for the team, then, the team at its dolmen, plays
+    // its opening (the gear set, the gate open) and leads on; the way back is free (no dolmen, open).
+    IEnumerator GearGate(bool testQuarter)
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var run = gameObject.AddComponent<IslandRun>();
+        var plan = testQuarter ? IslandPlan.QuarterTestPlan(23) : IslandPlan.Generate(new System.Random(77));
+        if (testQuarter) run.testRedraw = () => IslandPlan.QuarterTestPlan(24);
+        run.Begin(plan);
+        var gears = GetComponent<TimeGears>();
+        if (testQuarter) gears.ForceTestMode(TimeGears.Boss);
+        yield return new WaitForSeconds(0.5f);
+        int start = run.Zone;
+        var gates = FindObjectsByType<QuarterGate>();
+        var gate = gates.FirstOrDefault(g => g.DolmenShown != null);
+        var free = gates.FirstOrDefault(g => g.DolmenShown == null);
+        if (gate == null)
+        {
+            Restore(kept, members);
+            EndIsland(run);
+            Report(false, $"aucune porte à dolmen ({gates.Length} portes)");
+            yield break;
+        }
+        Vector2 at = gate.transform.position;
+        Vector2 off = at + ((Vector2)arena.SpawnPoint - at).normalized * 4f;
+        void All(Vector2 p) { foreach (var m in members) Teleport(m, p); }
+        bool shut = !gate.Open && !gate.GateShown.EndsWith("_open");
+        bool backFree = !testQuarter || (free != null && free.Open);
+        // Without the gear: at the dolmen and on the passage end, nothing.
+        All(off);
+        yield return new WaitForSeconds(0.3f);
+        All(at);
+        yield return new WaitForSeconds(0.8f);
+        bool refused = !gate.Open && !gate.Unlocking && run.Plan == plan && run.Zone == start;
+        // The boss falls. Test quarter: the team still pushing at the gate it was refused (the gate opens at once and
+        // the team goes through by itself once it has played). Island: the team away (the gate waits for it, then
+        // opens at its dolmen; the team walks into the gateway afterwards).
+        if (!testQuarter) All(off);
+        yield return new WaitForSeconds(0.3f);
+        gears.BossBeaten(gears.quarters[start], off);
+        bool gear = gears.HasGear(start);
+        bool waits = true;
+        if (!testQuarter)
+        {
+            yield return new WaitForSeconds(0.5f);
+            waits = !gate.Open;
+            All(at);
+        }
+        yield return new WaitForSeconds(0.3f);
+        bool played = gate.Unlocking || gate.Open;
+        if (!testQuarter) All(off); // out of the gateway: the island checks the open gate before walking in
+        bool stayed = true, opened = false;
+        string shown = "";
+        float until = Time.time + 8f;
+        while (gate != null && Time.time < until)
+        {
+            stayed &= !gate.Unlocking || (run.Plan == plan && run.Zone == start); // nobody carried away during the scene
+            if (!gate.Unlocking && gate.Open)
+            {
+                opened = gate.GateShown.EndsWith("_open") && gate.DolmenShown == "gear_dolmen_active";
+                shown = $"{gate.GateShown} / {gate.DolmenShown}, veines {gate.Lit}";
+                break;
+            }
+            yield return null;
+        }
+        // Through it: by itself (test quarter, the team still there), or walking into the gateway (island).
+        if (!testQuarter)
+        {
+            yield return new WaitForSeconds(0.3f);
+            All(at);
+        }
+        float end = Time.realtimeSinceStartup + 10f;
+        yield return new WaitForSecondsRealtime(0.2f);
+        while ((LoadingScreen.Busy || (run.Plan == plan && run.Zone == start)) && Time.realtimeSinceStartup < end) yield return null;
+        yield return new WaitForSeconds(0.5f);
+        bool through = testQuarter ? run.Plan != plan : run.Zone == plan.order[1];
+        // Beyond (the island): the way back is free.
+        if (!testQuarter)
+            backFree = through && FindObjectsByType<QuarterGate>().Any(g => g.DolmenShown == null && g.Open);
+        // Dev (Ctrl+G) where the team now is: the gear in hand, its gates shut again, the opening plays at the dolmen.
+        bool replayed = false;
+        int here = run.Zone;
+        if (here >= 0 && here < gears.quarters.Length && gears.quarters[here] != null) gears.quarters[here].gear = true;
+        run.ReplayGates();
+        yield return null;
+        var again = FindObjectsByType<QuarterGate>().FirstOrDefault(g => g != null && g.DolmenShown != null);
+        if (again != null)
+        {
+            bool shutAgain = !again.Open;
+            Vector2 there = again.transform.position;
+            All(there + ((Vector2)arena.SpawnPoint - there).normalized * 4f);
+            yield return new WaitForSeconds(0.3f);
+            All(there);
+            float limit = Time.time + 8f;
+            yield return new WaitForSeconds(0.3f);
+            while (again != null && (again.Unlocking || !again.Open) && Time.time < limit) yield return null;
+            replayed = shutAgain && again != null && again.Open;
+        }
+        FindAnyObjectByType<Loot>()?.RemoveChest();
+        Restore(kept, members);
+        EndIsland(run);
+        Report(shut && backFree && refused && gear && waits && played && opened && stayed && through && replayed,
+            $"fermée au départ {shut}, retour libre {backFree}, refus sans engrenage {refused}, engrenage après le boss {gear}, attend l'équipe {waits}, ouverture jouée {played}, ouverte {opened} ({shown}), pas emporté pendant la scène {stayed}, passage {(testQuarter ? "tout seul après la scène" : "en entrant dans la porte")} {through}, rejouée (Ctrl+G) {replayed}");
     }
 
     void EndIsland(IslandRun run)

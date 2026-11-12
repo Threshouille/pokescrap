@@ -16,6 +16,67 @@ public class LogicTests
         return -1;
     }
 
+    // ---- Rampart (lot 4b) ----
+
+    [Test]
+    public void RampartBitsCoverEveryNeighbour()
+    {
+        int all = 0;
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                int bit = RampartTiles.Bit(dx, dy);
+                Assert.AreEqual(0, all & bit, $"bit de ({dx}, {dy}) déjà pris");
+                all |= bit;
+            }
+        Assert.AreEqual(255, all);
+    }
+
+    [Test]
+    public void RampartSheetsAreThere()
+    {
+        Assert.IsTrue(RampartTiles.Ready, "rampart_tiles / rampart_faces / rampart_fill manquent dans Resources/Effects");
+        Assert.IsNotNull(RampartTiles.Top(0));
+        Assert.IsNotNull(RampartTiles.Top(255));
+        Assert.IsNotNull(RampartTiles.FaceTile(RampartTiles.Face.Alone));
+        Assert.IsNotNull(RampartTiles.Fill(1, 1));
+        var frames = new Dictionary<string, int>
+        {
+            ["rampart_gate"] = 1, ["rampart_gate_opening"] = 10, ["rampart_gate_open"] = 6,
+            ["rampart_gate_back"] = 1, ["rampart_gate_back_opening"] = 10, ["rampart_gate_back_open"] = 6,
+            ["rampart_gate_side"] = 1, ["rampart_gate_side_opening"] = 10, ["rampart_gate_side_open"] = 6,
+            ["gear_dolmen"] = 1, ["gear_dolmen_insert"] = 10, ["gear_dolmen_active"] = 6,
+            ["gear_dolmen_quad"] = 5, ["gear_dolmen_quad_active"] = 6,
+        };
+        foreach (var (name, count) in frames)
+        {
+            var sheet = EffectLibrary.Get(name);
+            Assert.IsNotNull(sheet, $"{name} absent d'effects.json");
+            Assert.AreEqual(count, sheet.frame_count, name);
+            Assert.AreEqual(name.EndsWith("_open") || name.EndsWith("_active"), sheet.loop, $"{name} : boucle");
+            Assert.IsNotNull(EntranceArt.Frame(name, count - 1, EntranceArt.Centre), $"{name} : dernière image");
+        }
+    }
+
+    [Test]
+    public void DolmenInsertThenActiveThenGate()
+    {
+        var go = new GameObject("Dolmen (test)");
+        try
+        {
+            bool called = false;
+            var dolmen = EntranceSprite.Make(go.transform, Vector2.zero, EntranceArt.Foot, EntranceArt.StandOrder);
+            dolmen.Play("gear_dolmen_insert", false, "gear_dolmen_active", () => called = true);
+            // Its whole duration at once.
+            typeof(EntranceSprite).GetField("timer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).SetValue(dolmen, 1e6f);
+            typeof(EntranceSprite).GetMethod("Update", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(dolmen, null);
+            Assert.AreEqual("gear_dolmen_active", dolmen.Sheet, "après la pose, le dolmen tourne en boucle");
+            Assert.IsTrue(called, "la porte s'ouvre après la pose de l'engrenage");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(go); }
+    }
+
     // ---- Test arena ----
 
     [Test]

@@ -554,6 +554,8 @@ public class TerrainSandbox : MonoBehaviour
                 island.Built += PlaceStairs; // the way back, near where the team arrives in each zone
                 island.revealAll = true; // test island: the whole mini-map at once
             }
+            // The test quarter's portals lead to a new draw of it.
+            island.testRedraw = room == 5 ? () => IslandPlan.QuarterTestPlan(0, quarterRock) : null;
             if (room == 5)
             {
                 island.Begin(IslandPlan.QuarterTestPlan(quarterSeed, quarterRock));
