@@ -361,6 +361,12 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
     joueur à l'est ou à l'ouest, porte vue de dessus dans une alcôve (`rampart_gate_side`, battants qui rentrent au
     nord et au sud). Pas de tunnel : franchir la porte lance le passage vers l'autre zone. Dolmen à 1 logement
     inchangé. Lot 4b du prompt (canevas « Remparts et dolmen à engrenage »).
+  - Ouverture des passages (correctif provisoire du 12/11/2026, Robin, en attendant la spécification) : tous les
+    passages sont fermés au début de la partie, dans les deux sens ; l'Engrenage du Temps d'un quartier n'en ouvre
+    qu'un seul, celui dont le joueur choisit le dolmen (il choisit sa direction), et ce passage reste ouvert dans les
+    deux sens ; le centre s'ouvre avec les quatre engrenages. Les quartiers sont reliés en anneau : depuis le premier,
+    le joueur choisit son sens ; le passage vers le centre part du dernier quartier, celui qu'il n'a pas choisi au
+    départ (Robin, 12/11/2026). Les deux voisins du premier quartier ont donc un boss (l'un ou l'autre finit dernier).
   - Rempart du centre (proposé le 02/11/2026, à valider par Robin) : le même rempart masque le centre depuis les
     quartiers, et les quartiers depuis le centre. Porte sur une partie droite redressée.
   - Dolmen du centre : 4 logements, un par Engrenage du Temps (`gear_dolmen_quad`, sens horaire depuis le haut à

@@ -11,7 +11,6 @@ public class IslandRun : MonoBehaviour
 {
     const float RevealRadius = 12f, RevealEvery = 0.2f, MapSize = 140f;
     const float PassageReach = 0.8f, PassageLeave = 1.6f; // tiles: walking onto a passage end; stepping off it again
-    readonly HashSet<(int from, int to)> opened = new(); // passages whose gate has been seen open (for the whole run)
     static readonly Color Sky = new(0.42f, 0.62f, 0.86f);
 
     public IslandPlan Plan { get; private set; }
@@ -85,7 +84,6 @@ public class IslandRun : MonoBehaviour
         pixels = new Color32[Plan.size * Plan.size];
         revealed = new bool[pixels.Length];
         Away = false;
-        opened.Clear();
         if (GetComponent<SecretStairs>() == null) gameObject.AddComponent<SecretStairs>();
         if (GetComponent<CaveSeal>() == null) gameObject.AddComponent<CaveSeal>();
         if (GetComponent<CaveStairs>() == null) gameObject.AddComponent<CaveStairs>();
@@ -148,6 +146,7 @@ public class IslandRun : MonoBehaviour
     {
         foreach (var p in Plan.passages)
         {
+            if (!Plan.Active(p)) continue; // the centre: only from the last quarter
             if (p.from == zone) AddExit(p.a, p.to, p.b);
             if (p.to == zone) AddExit(p.b, p.from, p.a);
         }
@@ -165,8 +164,11 @@ public class IslandRun : MonoBehaviour
     /// Dev (Ctrl+G): the zone's gates shut again, as if never opened, so that their opening plays once more.
     public void ReplayGates()
     {
-        opened.RemoveWhere(k => k.from == Zone);
-        foreach (var e in exits) if (e.marker != null) Destroy(e.marker);
+        foreach (var e in exits)
+        {
+            if (gears != null) gears.Forget(Zone, e.zone);
+            if (e.marker != null) Destroy(e.marker);
+        }
         exits.Clear();
         foreach (var m in markers) if (m != null) Destroy(m);
         markers.Clear();
@@ -179,11 +181,11 @@ public class IslandRun : MonoBehaviour
 
     string Towards(int zone) => zone == TestNext ? "le quartier suivant (nouveau tirage)" : zone == TestPrevious ? "le quartier précédent (nouveau tirage)" : Plan.ZoneName(zone);
 
-    // Whether the way to a zone asks for a gear (onward, the centre; the test quarter's next portal).
-    bool GatedTo(int zone) => zone == TestNext || zone >= 0 && gears != null && gears.Gated(Zone, zone);
+    // Whether the way to a zone asks for a gear: all of them start shut (TimeGears), the test quarter's portals too.
+    bool GatedTo(int zone) => gears != null && gears.Gated(Zone, zone);
 
-    // Whether the team may go there as far as the gears go (the test quarter: its own gear for the next portal).
-    bool MayPass(int zone) => zone == TestPrevious || gears == null || (zone == TestNext ? gears.HasGear(Zone) : gears.CanPass(Zone, zone));
+    // Whether the way to a zone is open (TimeGears: opened by a gear, the player's choice, both ways).
+    bool MayPass(int zone) => gears == null || gears.CanPass(Zone, zone);
 
     // A passage end: a quarter's gate (EntranceArt), open once its Time Gear is found.
     void AddExit(Vector2Int tile, int zone, Vector2Int arrival)
@@ -300,23 +302,25 @@ public class IslandRun : MonoBehaviour
             // Locked until the quarter's Time Gear is found (TimeGears): grey, and a word when stepped on.
             bool open = MayPass(e.zone);
             var gate = e.marker.GetComponent<QuarterGate>();
-            // A gate that asks for a gear stays shut until the team brings it to its dolmen: then it opens before its
-            // eyes (QuarterGate.Unlock), once for the whole run; without the gear, the dolmen refuses.
-            bool gated = GatedTo(e.zone);
+            // Every gate starts shut; the team brings the quarter's gear to the dolmen of the one it chooses: it opens
+            // before its eyes (QuarterGate.Unlock), for good and both ways, and that gear opens no other; without a gear
+            // to spend, the dolmen refuses.
             bool onEnd = gate != null ? gate.InGateway(at, PassageReach) : d <= PassageReach;
             near |= gate != null ? gate.InGateway(at, PassageLeave) : d <= PassageLeave;
             bool atDolmen = gate != null && (Vector2.Distance(at, gate.DolmenAt) <= EntranceArt.Data.gateReach || onEnd);
-            if (gated && open && !opened.Contains((Zone, e.zone)) && atDolmen && !Combatant.InCutScene)
+            if (!open && gate != null && atDolmen && !Combatant.InCutScene)
             {
-                opened.Add((Zone, e.zone));
-                gate.Unlock(team.Controlled, Towards(e.zone)); // the team goes through once it has played, if still there
+                if (gears.Open(Zone, e.zone))
+                {
+                    open = true;
+                    gate.Unlock(team.Controlled, Towards(e.zone)); // the team goes through once it has played, if still there
+                }
+                else
+                {
+                    gears.Refuse(Zone, e.zone);
+                    gate.Deny();
+                }
             }
-            if (gated && !open && atDolmen)
-            {
-                gears.Refuse(e.zone);
-                gate.Deny();
-            }
-            open &= !gated || opened.Contains((Zone, e.zone));
             gate?.Set(open, Revealed(TileOf(e.marker.transform.position)), gears != null ? gears.Found : 0);
             if (gate != null && gate.Unlocking)
             {
@@ -326,7 +330,7 @@ public class IslandRun : MonoBehaviour
             if (armed && onEnd && !open)
             {
                 armed = false;
-                gears.Refuse(e.zone);
+                gears.Refuse(Zone, e.zone);
                 gate?.Refuse();
                 continue;
             }

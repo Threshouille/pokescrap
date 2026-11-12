@@ -115,6 +115,12 @@ public class IslandPopulation : MonoBehaviour
 
     // ---- Placing ----
 
+    /// The quarters' places in the order changed (TimeGears: the way round picked): the levels follow.
+    public void Rerank(IslandPlan plan)
+    {
+        foreach (var place in places) place.rank = Array.IndexOf(plan.order, place.quarter);
+    }
+
     void Make(IslandPlan plan)
     {
         places.Clear();

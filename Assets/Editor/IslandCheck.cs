@@ -95,18 +95,21 @@ public static class IslandCheck
             int lost = 0;
             for (int i = 0; i < reached.Length; i++)
                 if (plan.region[i] == zone && plan.Walkable(i) && !reached[i]) lost++;
+            // Every end must be reachable, the centre's spare one too (it is the one in play if the team goes round the
+            // other way); only those in play are counted.
             int badEnds = 0, ends = 0;
             foreach (var p in plan.passages)
                 foreach (var (end, z) in new[] { (p.a, p.from), (p.b, p.to) })
                     if (z == zone)
                     {
-                        ends++;
+                        if (plan.Active(p)) ends++;
                         if (!reached[plan.Index(end.x, end.y)]) badEnds++;
                     }
             problems += lost + badEnds + (reached[plan.Index(arrival.x, arrival.y)] ? 0 : 1);
             parts.Add($"{name} {box.width}×{box.height}, {ends} passage(s){(badEnds > 0 ? $" dont {badEnds} INACCESSIBLE(S)" : "")}{(lost > 0 ? $", {lost} cases isolées" : "")}");
         }
-        return $"{plan.passages.Count} passages, {(problems == 0 ? "OK" : $"{problems} PROBLÈME(S)")} ; " + string.Join(" ; ", parts);
+        int active = plan.passages.FindAll(plan.Active).Count;
+        return $"{active} passages (+{plan.passages.Count - active} vers le centre en réserve, si le joueur part dans l'autre sens), {(problems == 0 ? "OK" : $"{problems} PROBLÈME(S)")} ; " + string.Join(" ; ", parts);
     }
 
     static Color32 Lighter(Color32 c, int level) => new((byte)Mathf.Min(255, c.r + 22 * level), (byte)Mathf.Min(255, c.g + 22 * level), (byte)Mathf.Min(255, c.b + 14 * level), 255);
@@ -211,7 +214,7 @@ public static class IslandCheck
             tex.Apply();
             return tex;
         }
-        bool Gated(int from, int to) => to == IslandPlan.Centre || System.Array.IndexOf(plan.order, to) == System.Array.IndexOf(plan.order, from) + 1;
+        bool Gated(int from, int to) => true; // every passage starts shut (TimeGears)
         int problems = 0;
         bool litShot = false;
         var zones = new List<int>(plan.order) { IslandPlan.Centre };
@@ -225,7 +228,7 @@ public static class IslandCheck
             if (zone == plan.order[0]) shots.Add(Shoot(gen.CentreOf(gen.Size / 2, gen.Size / 2), gen.Interior.width / 2f + 2f));
             foreach (var p in plan.passages)
             {
-                if (p.from != zone && p.to != zone) continue;
+                if ((p.from != zone && p.to != zone) || !plan.Active(p)) continue;
                 var (end, to) = p.from == zone ? (p.a, p.to) : (p.b, p.from);
                 var gate = QuarterGate.Make("Passage (aperçu)", Tile(end), Gated(zone, to), to == IslandPlan.Centre);
                 gate.Set(false, true, 2);

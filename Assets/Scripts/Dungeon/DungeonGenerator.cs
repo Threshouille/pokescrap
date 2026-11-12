@@ -359,7 +359,7 @@ public class DungeonGenerator : MonoBehaviour
         var origin = Interior.min;
         foreach (var p in plan.passages)
         {
-            if (p.from != zone && p.to != zone) continue;
+            if ((p.from != zone && p.to != zone) || !plan.Active(p)) continue;
             var end = (p.from == zone ? p.a : p.b) - box.min + origin;
             if (!RampartWay(end, out var dir, out int k)) continue;
             var side = new Vector2Int(dir.y, dir.x); // along the rampart

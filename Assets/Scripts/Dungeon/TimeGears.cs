@@ -163,6 +163,7 @@ public class TimeGears : MonoBehaviour
     {
         Despawn();
         for (int q = 0; q < 4; q++) quarters[q] = null;
+        openWays.Clear();
         madeFor = null;
     }
 
@@ -176,35 +177,65 @@ public class TimeGears : MonoBehaviour
         SpawnZone();
     }
 
-    /// Whether the team may take a passage from zone "from" to zone "to": onward with the quarter's gear, to the
-    /// centre with all of them; back always.
-    public bool CanPass(int from, int to)
-    {
-        if (madeFor == null) return true;
-        if (to == IslandPlan.Centre) return Found >= Total;
-        int at = Array.IndexOf(madeFor.order, from), next = Array.IndexOf(madeFor.order, to);
-        if (at < 0 || next != at + 1) return true;
-        return quarters[from] == null || quarters[from].gear;
-    }
+    // The passages opened so far (both ways), and the quarter whose gear opened each (-1: the centre's, all four).
+    readonly Dictionary<(int, int), int> openWays = new();
+
+    static (int, int) Way(int a, int b) => a < b ? (a, b) : (b, a);
+
+    /// Whether the passage between two zones is open (both ways): every passage starts shut; a quarter's gear opens
+    /// one of its passages, the player's choice (QuarterGate.Unlock at its dolmen); the centre's opens with all four.
+    public bool CanPass(int from, int to) => madeFor == null || openWays.ContainsKey(Way(from, to));
 
     /// Whether the team holds the Time Gear of that quarter (a quarter without one never asks for it).
     public bool HasGear(int quarter) => madeFor == null || quarter < 0 || quarter >= quarters.Length || quarters[quarter] == null || quarters[quarter].gear;
 
-    /// Whether a passage from zone "from" to zone "to" asks for a gear at all (onward or to the centre; back is free).
-    public bool Gated(int from, int to)
+    /// Whether that quarter's gear has already opened a passage.
+    public bool Spent(int quarter) => openWays.ContainsValue(quarter);
+
+    /// Whether the team can open the passage from "from" to "to" now: the quarter's gear in hand and not spent yet;
+    /// the centre with all the gears.
+    public bool CanOpen(int from, int to)
     {
-        if (madeFor == null) return false;
-        if (to == IslandPlan.Centre) return true;
-        int at = Array.IndexOf(madeFor.order, from), next = Array.IndexOf(madeFor.order, to);
-        return at >= 0 && next == at + 1;
+        if (madeFor == null || CanPass(from, to)) return false;
+        if (to == IslandPlan.Centre || from == IslandPlan.Centre) return Found >= Total;
+        return HasGear(from) && !Spent(from);
     }
 
-    /// The team stepped on a locked passage end: a word (not every frame).
-    public void Refuse(int to)
+    /// Opens that passage, spending the quarter's gear (CanOpen first); false when it cannot.
+    public bool Open(int from, int to)
+    {
+        if (!CanOpen(from, to)) return false;
+        openWays[Way(from, to)] = to == IslandPlan.Centre || from == IslandPlan.Centre ? -1 : from;
+        // The way round, picked from the first quarter: the other side first means the order goes the other way.
+        if (!testPlan && from == madeFor.order[0] && to == madeFor.order[3]) TurnRound();
+        return true;
+    }
+
+    // The quarters next to the first swap places in the order (the passage to the centre follows the last one, the
+    // levels the ranks).
+    void TurnRound()
+    {
+        var o = madeFor.order;
+        (o[1], o[3]) = (o[3], o[1]);
+        for (int k = 0; k < 4; k++)
+            if (quarters[o[k]] != null) quarters[o[k]].rank = k;
+        var population = GetComponent<IslandPopulation>();
+        if (population != null) population.Rerank(madeFor);
+    }
+
+    /// Dev (Ctrl+G): that passage shut again, the gear that opened it free again.
+    public void Forget(int from, int to) => openWays.Remove(Way(from, to));
+
+    /// Every passage asks for a gear (nothing to open without the plan).
+    public bool Gated(int from, int to) => madeFor != null;
+
+    /// The team stepped on a shut passage end or came to its dolmen without what opens it: a word (not every frame).
+    public void Refuse(int from, int to)
     {
         if (Time.time - refusedAt < RefuseEvery) return;
         refusedAt = Time.time;
         progression?.Announce(to == IslandPlan.Centre ? $"Il faut les {Total} Engrenages du Temps pour le centre"
+            : HasGear(from) && Spent(from) ? "L'Engrenage du Temps de ce quartier a déjà ouvert un autre passage"
             : "Il faut l'Engrenage du Temps de ce quartier", Notice.Alert);
     }
 
@@ -213,6 +244,7 @@ public class TimeGears : MonoBehaviour
     void Make(IslandPlan plan)
     {
         madeFor = plan;
+        openWays.Clear();
         for (int q = 0; q < 4; q++) quarters[q] = null;
         if (plan == null) return;
         testPlan = plan.themes[0] != null && plan.themes[0].key == "test";
@@ -221,18 +253,22 @@ public class TimeGears : MonoBehaviour
         for (int k = 0; k < Data.modes.boss; k++) modes.Add(Boss);
         for (int k = 0; k < Data.modes.fragments; k++) modes.Add(Fragments);
         for (int k = 0; k < Data.modes.quest; k++) modes.Add(Quest);
-        // The last quarter of the order always ends with a boss; the others draw what is left.
+        // The last quarter of the order always ends with a boss; the player picks the way round from the first (Open),
+        // so either quarter next to it may come last: both end with a boss when there are two. The others draw what
+        // is left.
+        bool both = Data.modes.boss >= 2;
         modes.Remove(Boss);
+        if (both) modes.Remove(Boss);
         for (int i = modes.Count - 1; i > 0; i--)
         {
             int j = rng.Next(i + 1);
             (modes[i], modes[j]) = (modes[j], modes[i]);
         }
-        int quarterCount = testPlan ? 1 : 4;
+        int quarterCount = testPlan ? 1 : 4, drawn = 0;
         for (int k = 0; k < quarterCount; k++)
         {
             int q = plan.order[k];
-            string mode = testPlan ? Data.testMode : k == quarterCount - 1 ? Boss : k < modes.Count ? modes[k] : Boss;
+            string mode = testPlan ? Data.testMode : k == quarterCount - 1 || (both && k == 1) ? Boss : drawn < modes.Count ? modes[drawn++] : Boss;
             quarters[q] = MakeQuarter(plan, q, k, mode, population);
         }
     }

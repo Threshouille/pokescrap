@@ -186,7 +186,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Peuplement : chaque sous-biome a sa population, plus forte en avançant", HabitatsPopulated());
         yield return Scenario("Peuplement : camps et rondes au repos, réveil, laisse, retour d'un autre lot", QuarterPopulated());
         yield return Scenario("Salles de l'île : trésor, embuscade à sortie fermée, gardien sur son coffre", IslandRoomContents());
-        yield return Scenario("Engrenages : passages fermés jusqu'à l'engrenage, centre avec les quatre", GearsLockPassages());
+        yield return Scenario("Engrenages : un passage au choix par engrenage, le centre depuis le dernier quartier", GearsLockPassages());
         yield return Scenario("Engrenages : donjon de la clé, portail de l'îlot, boss grand et prêt à sa seconde phase ; fragments et indices", GearsFromBossAndFragments());
         yield return Scenario("Portes : quart de test, le portail suivant s'ouvre au dolmen une fois le boss battu", GearGate(true));
         yield return Scenario("Portes : île, le passage s'ouvre au dolmen une fois le boss battu et mène au quartier suivant", GearGate(false));
@@ -2353,8 +2353,10 @@ public class AiScenarios : MonoBehaviour
         Report(ok, string.Join(" ; ", lines));
     }
 
-    // A whole island: each quarter has its way of giving its gear (the last one a boss); onward passages and the centre
-    // wait for the gears, the way back never does.
+    // A whole island: each quarter has its way of giving its gear, both quarters next to the first end with a boss
+    // (either may come last); every passage starts shut, a quarter's gear opens one of them (both ways) and no other;
+    // the first quarter's gear spent on the way to its last neighbour turns the order round, and the centre is then
+    // reached from the other neighbour only (the last quarter), with all four gears.
     IEnumerator GearsLockPassages()
     {
         var arena = DungeonGenerator.Current;
@@ -2366,17 +2368,28 @@ public class AiScenarios : MonoBehaviour
         yield return new WaitForSeconds(0.3f);
         var gears = GetComponent<TimeGears>();
         var o = plan.order;
-        bool lastBoss = gears.quarters[o[3]] != null && gears.quarters[o[3]].mode == TimeGears.Boss;
-        bool shut = !gears.CanPass(o[0], o[1]) && !gears.CanPass(o[3], IslandPlan.Centre);
-        bool back = gears.CanPass(o[1], o[0]);
-        gears.quarters[o[0]].gear = true;
-        bool opens = gears.CanPass(o[0], o[1]) && !gears.CanPass(o[1], o[2]);
+        int first = o[0], right = o[1], left = o[3], far = o[2];
+        bool bosses = gears.quarters[right]?.mode == TimeGears.Boss && gears.quarters[left]?.mode == TimeGears.Boss;
+        bool ring = plan.passages.Count(p => p.to != IslandPlan.Centre) == 4 && plan.passages.Count(plan.Active) == 5
+                    && plan.passages.Count(p => p.to == IslandPlan.Centre) == 2;
+        bool shut = !gears.CanPass(first, right) && !gears.CanPass(first, left) && !gears.CanPass(left, IslandPlan.Centre)
+                    && !gears.CanOpen(first, right);
+        // The other way round: the first quarter's gear on its way to the left neighbour.
+        gears.quarters[first].gear = true;
+        bool opens = gears.Open(first, left) && gears.CanPass(first, left) && gears.CanPass(left, first);
+        bool turned = plan.order[1] == left && plan.order[3] == right && gears.quarters[left].rank == 1 && gears.quarters[right].rank == 3;
+        // Its gear spent: it opens nothing more; the next quarter needs its own.
+        bool once = !gears.CanOpen(first, right) && !gears.CanOpen(left, far);
+        // The centre: from the last quarter (now the right neighbour) only.
+        var toCentre = plan.passages.Where(p => p.to == IslandPlan.Centre && plan.Active(p)).ToList();
+        bool centreFromLast = toCentre.Count == 1 && toCentre[0].from == right;
         foreach (var q in gears.quarters) q.gear = true;
-        bool centre = gears.CanPass(o[3], IslandPlan.Centre);
+        bool centreShut = !gears.CanPass(right, IslandPlan.Centre);
+        bool centre = gears.Open(right, IslandPlan.Centre) && gears.CanPass(right, IslandPlan.Centre);
         string modes = string.Join(", ", o.Select(q => gears.quarters[q].mode));
         EndIsland(run);
-        Report(lastBoss && shut && back && opens && centre,
-            $"modes {modes} ; fermés au départ {shut}, retour libre {back}, ouvert avec l'engrenage {opens}, centre avec les quatre {centre}");
+        Report(bosses && ring && shut && opens && turned && once && centreFromLast && centreShut && centre,
+            $"modes {modes} ; boss aux deux voisins du départ {bosses}, 5 passages en jeu (anneau + centre) et 1 vers le centre en réserve {ring} ; tous fermés au départ {shut}, ouvert dans les deux sens {opens}, ordre retourné {turned}, un seul passage par engrenage {once}, centre depuis le dernier quartier seulement {centreFromLast}, fermé tant qu'on ne l'ouvre pas {centreShut}, ouvert avec les quatre {centre}");
     }
 
     // The test quarter with a boss: its islet's portal stays shut; the key dungeon's two rooms (an ambush, then a
@@ -2484,10 +2497,11 @@ public class AiScenarios : MonoBehaviour
             $"pont {bridged}, donjon sur un point d'intérêt {landmark}, portail fermé sans clé {shut} ; donjon {inDungeon} (thème {dungeonTheme}, attendu {TimeGears.DungeonTheme(q0)}), 2e salle {second}, gardien {guardian?.Stats.name} prêt {guardianReady}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, jeu fixe {fixedSet}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
     }
 
-    // A gate that asks for a gear (the test quarter's next portal, or the first quarter's way to the second): shut at
+    // Gates with a dolmen (the test quarter's two portals, or the first quarter's way to the second): all shut at
     // first, the dolmen refuses the team without the gear and the way through stays closed; the boss falls
     // (TimeGears.BossBeaten, as when its arena ends); the gate waits for the team, then, the team at its dolmen, plays
-    // its opening (the gear set, the gate open) and leads on; the way back is free (no dolmen, open).
+    // its opening (the gear set, the gate open) and leads on; the gear opens that gate only (the test quarter's other
+    // portal stays shut); beyond (the island), the way back is open and the next one shut.
     IEnumerator GearGate(bool testQuarter)
     {
         var arena = DungeonGenerator.Current;
@@ -2505,7 +2519,7 @@ public class AiScenarios : MonoBehaviour
         int start = run.Zone;
         var gates = FindObjectsByType<QuarterGate>();
         var gate = gates.FirstOrDefault(g => g.DolmenShown != null);
-        var free = gates.FirstOrDefault(g => g.DolmenShown == null);
+        var other = gates.FirstOrDefault(g => g != gate);
         if (gate == null)
         {
             Restore(kept, members);
@@ -2516,8 +2530,8 @@ public class AiScenarios : MonoBehaviour
         Vector2 at = gate.transform.position;
         Vector2 off = at + ((Vector2)arena.SpawnPoint - at).normalized * 4f;
         void All(Vector2 p) { foreach (var m in members) Teleport(m, p); }
-        bool shut = !gate.Open && !gate.GateShown.EndsWith("_open");
-        bool backFree = !testQuarter || (free != null && free.Open);
+        bool shut = gates.All(g => !g.Open && g.DolmenShown != null) && (!testQuarter || gates.Length == 2);
+        bool choice = !testQuarter, beyond = testQuarter;
         // Without the gear: at the dolmen and on the passage end, nothing.
         All(off);
         yield return new WaitForSeconds(0.3f);
@@ -2549,6 +2563,8 @@ public class AiScenarios : MonoBehaviour
             stayed &= !gate.Unlocking || (run.Plan == plan && run.Zone == start); // nobody carried away during the scene
             if (!gate.Unlocking && gate.Open)
             {
+                // The gear spent on this one: the other portal stays shut and refuses it.
+                if (testQuarter) choice = other != null && !other.Open && gears.Spent(start);
                 opened = gate.GateShown.EndsWith("_open") && gate.DolmenShown == "gear_dolmen_active";
                 shown = $"{gate.GateShown} / {gate.DolmenShown}, veines {gate.Lit}";
                 break;
@@ -2568,7 +2584,10 @@ public class AiScenarios : MonoBehaviour
         bool through = testQuarter ? run.Plan != plan : run.Zone == plan.order[1];
         // Beyond (the island): the way back is free.
         if (!testQuarter)
-            backFree = through && FindObjectsByType<QuarterGate>().Any(g => g.DolmenShown == null && g.Open);
+        {
+            var there = FindObjectsByType<QuarterGate>();
+            beyond = through && there.Any(g => g.Open) && there.Any(g => !g.Open);
+        }
         // Dev (Ctrl+G) where the team now is: the gear in hand, its gates shut again, the opening plays at the dolmen.
         bool replayed = false;
         int here = run.Zone;
@@ -2591,8 +2610,8 @@ public class AiScenarios : MonoBehaviour
         FindAnyObjectByType<Loot>()?.RemoveChest();
         Restore(kept, members);
         EndIsland(run);
-        Report(shut && backFree && refused && gear && waits && played && opened && stayed && through && replayed,
-            $"fermée au départ {shut}, retour libre {backFree}, refus sans engrenage {refused}, engrenage après le boss {gear}, attend l'équipe {waits}, ouverture jouée {played}, ouverte {opened} ({shown}), pas emporté pendant la scène {stayed}, passage {(testQuarter ? "tout seul après la scène" : "en entrant dans la porte")} {through}, rejouée (Ctrl+G) {replayed}");
+        Report(shut && choice && beyond && refused && gear && waits && played && opened && stayed && through && replayed,
+            $"toutes fermées au départ {shut}, refus sans engrenage {refused}, engrenage après le boss {gear}, attend l'équipe {waits}, ouverture jouée {played}, ouverte {opened} ({shown}), pas emporté pendant la scène {stayed}, passage {(testQuarter ? "tout seul après la scène" : "en entrant dans la porte")} {through}, {(testQuarter ? $"l'autre portail reste fermé {choice}" : $"au-delà retour ouvert et suivant fermé {beyond}")}, rejouée (Ctrl+G) {replayed}");
     }
 
     void EndIsland(IslandRun run)
