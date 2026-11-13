@@ -253,6 +253,96 @@ public class LogicTests
     // ---- Data ----
 
     [Test]
+    public void BossMovesStayWithTheBosses()
+    {
+        Assert.IsFalse(GameData.AllMoves.Any(m => m.bossOnly), "attaque de boss dans la liste générale");
+        foreach (var p in GameData.AllPokemon)
+            Assert.IsFalse(GameData.MovePool(p.id).Any(m => m.bossOnly), $"{p.name} peut apprendre une attaque de boss");
+        foreach (int id in new[] { 10299, 10081, 10118, 10278 })
+        {
+            var m = GameData.Move(id);
+            Assert.NotNull(m, id.ToString());
+            Assert.IsTrue(m.bossOnly && m.baseId > 0, m.name);
+        }
+    }
+
+    [Test]
+    public void OnlyMovesMadeByHandInPlay()
+    {
+        var rng = new System.Random(7);
+        foreach (int id in new[] { 1, 4, 7, 25, 66, 92, 129, 147, 258, 393 })
+        {
+            if (GameData.Pokemon(id) == null) continue;
+            // The menu's list starts with the moves made by hand.
+            var pool = GameData.MovePool(id);
+            int firstGenerated = pool.FindIndex(m => !GameData.IsHandMade(m.id));
+            if (firstGenerated >= 0)
+                Assert.IsFalse(pool.Skip(firstGenerated).Any(m => GameData.IsHandMade(m.id)), $"{id} : attaque faite à la main après une générée");
+            // An enemy gets only moves made by hand or stat boosts.
+            for (int i = 0; i < 5; i++)
+                foreach (int move in GameData.RandomMoves(id, 4, rng))
+                    Assert.IsTrue(GameData.InPlay(GameData.Move(move)), $"{id} : {GameData.Move(move)?.name}");
+        }
+    }
+
+    [Test]
+    public void StatusMovesAreLaidInTheArena()
+    {
+        var light = GameData.AllMoves.First(x => x.id == 259);
+        Assert.AreEqual("barrier", light.family);
+        Assert.IsTrue(light.reflectSpecial && light.wallLength > 0f && light.zoneDuration > 0f);
+        var reflect = GameData.AllMoves.First(x => x.id == 338);
+        Assert.IsTrue(reflect.blockBodies && reflect.blockPhysical);
+        Assert.Greater(GameData.AllMoves.First(x => x.id == 301).guard, 0f);
+        Assert.AreEqual("decoy", GameData.AllMoves.First(x => x.id == 304).family);
+        var spikes = GameData.AllMoves.First(x => x.id == 295);
+        Assert.IsFalse(string.IsNullOrEmpty(spikes.trapTerrain));
+        var wish = GameData.AllMoves.First(x => x.id == 225);
+        Assert.Greater(wish.wishDelay, 0f);
+        Assert.Greater(wish.healShare, 0f);
+        foreach (var m in new[] { light, reflect, spikes, wish })
+            Assert.IsTrue(SupportMoves.IsSupport(m), m.name);
+    }
+
+    [Test]
+    public void FightingPunchesAreWired()
+    {
+        var strato = GameData.AllMoves.First(x => x.id == 136);
+        Assert.Greater(strato.landingRadius, 0f);
+        Assert.Greater(strato.knockbackArc, 0f);
+        var dyna = GameData.AllMoves.First(x => x.id == 246);
+        Assert.IsTrue(dyna.lungeStop);
+        Assert.Greater(dyna.chargeMax, 0f);
+        Assert.AreEqual(0.5f, dyna.statusChance, 0.001f);
+        var meteor = GameData.AllMoves.First(x => x.id == 103);
+        Assert.IsTrue(meteor.channelRoot);
+        Assert.Greater(meteor.channelSpread, 0f);
+    }
+
+    [Test]
+    public void PunchesOfLot5AreWired()
+    {
+        var mitra = GameData.AllMoves.First(x => x.id == 75);
+        Assert.Greater(mitra.barrageDelay, 0f);
+        Assert.GreaterOrEqual(mitra.barrage, 8);
+        var ultima = GameData.AllMoves.First(x => x.id == 322);
+        Assert.AreEqual("melee", ultima.family);
+        Assert.Greater(ultima.chargeMax, 0f);
+        Assert.Greater(ultima.waveCone, 0f);
+        Assert.AreEqual("zone", GameData.AllMoves.First(x => x.id == 430).family);
+    }
+
+    [Test]
+    public void RandomHitCountsAreOrdered()
+    {
+        foreach (var m in GameData.AllMoves)
+            if (m.hitsMax > 0) Assert.IsTrue(m.hitsMin >= 1 && m.hitsMin <= m.hitsMax, $"{m.name} : hitsMin {m.hitsMin}, hitsMax {m.hitsMax}");
+        var combo = GameData.AllMoves.First(x => x.id == 312);
+        Assert.AreEqual(2, combo.hitsMin);
+        Assert.AreEqual(5, combo.hitsMax);
+    }
+
+    [Test]
     public void KarateChopSweepsAndThrowsSideways()
     {
         var m = GameData.AllMoves.First(x => x.id == 68);
@@ -274,7 +364,7 @@ public class LogicTests
     [Test]
     public void MovesUseKnownFamiliesAndStatuses()
     {
-        var families = new HashSet<string> { "projectile", "melee", "zone", "burst", "heal", "modifier", "climate" };
+        var families = new HashSet<string> { "projectile", "melee", "zone", "burst", "heal", "modifier", "climate", "guard", "barrier", "decoy", "trap", "wish" };
         foreach (var m in GameData.AllMoves)
         {
             Assert.IsTrue(string.IsNullOrEmpty(m.family) || families.Contains(m.family), $"{m.name} : famille « {m.family} »");

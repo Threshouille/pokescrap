@@ -89,6 +89,10 @@ public class MoveDef
     public float hold; // projectile after a dash: seconds the shots wait in place before leaving toward the opponent targeted at the start
     public float jitter; // degrees: random deviation of each shot, either side
     public float growth; // size multiplier reached at the end of the flight (unchanged when omitted)
+    public bool stunBySize; // projectile: stun × the share of its final size reached (growth)
+    public float specks; // projectile: trail of little sparks, per second
+    public string speckColor; // their colour (#rrggbb; the type's colour when omitted)
+    public float growthStart; // projectile: size at the start of its course, growing to growth at the end (1 when omitted)
     public float accel; // tiles per second², negative to slow down
     public bool pierce; // goes through opponents, hitting each once
     public bool upright; // projectile: the sheet keeps its orientation instead of turning with the flight (clouds)
@@ -143,6 +147,7 @@ public class MoveDef
     public float repaintEvery; // seconds between two paintings of the move's terrain under the zone (one moving with its user)
     public bool hideZone; // zone drawn with nothing on the ground (its bolts and impacts show it)
     public string boltFallEffect; // zone bolts: sheet of the bolt falling from the sky, its bottom on the struck spot
+    public bool fallStraight; // zone: the falling object comes straight down, its sheet not turned (Marto-Poing)
     public string fallEffect; // zone: sheet (pointing right) of something falling from the sky onto it, landing on the first hit
     public float fallTime; // seconds the fall lasts
     public bool impactOnTargets; // zone: the impact sheet plays on each opponent hit instead of over the whole zone
@@ -152,6 +157,7 @@ public class MoveDef
     public bool sequential; // projectile: the shots of a fan leave one by one (burstInterval apart), middle first, then left, right
     public string shape; // melee: circle (default: in front, range away), arc (sector around the user: range, arc), thrust (line from the user: range long, radius wide), around (circle around the user)
     public float arc; // melee arc: total angle in degrees
+    public int hitsMin, hitsMax; // melee: random number of strikes instead of hits (Combo-Griffe)
     public int hits; // melee: strikes in a row (1 when omitted)
     public bool strikeRoot; // melee: the user can neither move nor attack until its last strike (recovery adds to it)
     public float hitInterval; // seconds between two strikes
@@ -162,6 +168,7 @@ public class MoveDef
     public int rolloutMax; // melee dash (Roulade): each dash that lands adds a step, up to rolloutMax; a miss resets; while in a series only this move can be used
     public float rolloutDamage, rolloutSpeed, rolloutRange; // per step: damage, dash speed and dash distance shares
     public float chainBonus, chainMax, chainWindow; // melee: each strike landing within chainWindow seconds of the previous one adds chainBonus to the damage, up to ×chainMax
+    public float strikeAtTarget; // melee: tiles within which the blow lands right on the target, the user staying put (Poing Ombre)
     public bool teleportToTarget; // teleport: reappear in front of the target when it is within lunge + range
     public bool teleport; // melee: the user blinks lunge tiles forward (through opponents, not walls), then strikes
     public string finishEffect; // melee dash: sheet of the strike where the dash ends, stretched to finishRadius
@@ -170,6 +177,22 @@ public class MoveDef
     public float recovery; // seconds the user stays rooted after the move
     public float hop; // tiles: little jump in place during the cast (melee dash)
     public float knockback; // melee: tiles the target is pushed away when hit
+    public bool bossOnly; // a boss's version of a move (its own id, ≥ 10000): only in boss loadouts and movesets, never learnt
+    public int baseId; // the move it is a version of (terrain it leaves: Terrain looks it up by this id)
+    public float guard; // held: seconds at most in Abri's bubble, still and untouchable (dodge ready on leaving)
+    public float wallLength; // barrier: tiles across
+    public bool reflectSpecial, blockPhysical, blockBodies; // barrier: sends special shots back (Mur Lumière); stops physical shots, keeps opponents off (Protection)
+    public float reflectWear; // barrier: seconds of its life each shot sent back takes
+    public bool trapAround; // trap: laid everywhere within range of the user rather than in patches ahead
+    public string trapTerrain; // trap: key of terrains.json laid in patches (Picots)
+    public float wishDelay; // wish: seconds before the star falls and heals
+    public float knockbackArc; // thrown through the air: extra sprite size at the top of the flight, then a small bounce
+    public float landingRadius, landingDamage; // thrown target comes down heavily and hurts the user's foes around (× the move's damage)
+    public string landingEffect; // its sheet, stretched to the landing area
+    public bool lungeStop; // melee dash that ends on the first opponent it hits (Dynamopoing)
+    public float chargeLunge; // melee charge with a dash: length multiplier at full charge
+    public bool channelRoot; // held stream during which the user cannot move (Poing Météor)
+    public float channelSpread; // held stream: each shot leaves at random within this cone (degrees)
     public float knockbackDelay; // seconds before the push starts (the stun holds the target meanwhile)
     public float knockbackTime; // seconds the push lasts, slowing down (Combatant.KnockbackTime when omitted)
     public float teleportDelay; // melee teleport: seconds the user stays gone before reappearing
@@ -186,6 +209,12 @@ public class MoveDef
     public string dashAnim; // melee dash: animation during the dash (Walk when omitted)
     public bool lungeAccel; // dash that speeds up from a standstill; bounce and push grow with the speed reached
     public float backstep; // tiles stepped back during the cast (Roue de Feu takes a run-up); negative: a step forward (Aqua-Jet)
+    public string castEffect; // sheet played on the user during the cast or a melee charge (Mitra-Poing, Ultimapoing)
+    public int barrage; // melee: blows that rain on each target struck, where it stands (Mitra-Poing)
+    public float barrageDelay, barrageInterval, barrageDamage; // stillness before them, gap, damage of each × the move's
+    public float chargePush; // melee charge: knockback multiplier at full charge (Ultimapoing)
+    public float waveCone, waveRange, waveKnockback; // shock wave after a charged blow: cone in degrees, tiles, push
+    public string waveEffect; // its sheet, stretched to waveRange
     public string castAnim; // animation during the cast (e.g. Hop)
     public float bounceBack; // melee dash: tiles the user is thrown back when the dash hits someone
     public float healShare; // heal only: share of the target's max HP given back
@@ -319,6 +348,7 @@ public static class GameData
         }
         // Every move, for the dev characters: by type, the basic attacks of each type first, then by name.
         allMoves = new List<MoveDef>(moves.Values);
+        allMoves.RemoveAll(m => m.bossOnly); // a boss's own moves: never learnt, never a dev character's, never in a list
         allMoves.Sort((a, b) => a.type != b.type ? a.type.CompareTo(b.type)
             : a.basic != b.basic ? b.basic.CompareTo(a.basic) : string.CompareOrdinal(a.name, b.name));
     }
@@ -372,14 +402,29 @@ public static class GameData
     public static List<MoveDef> MovePool(int pokemonId)
     {
         Load();
-        if (devCharacters.Contains(pokemonId)) return new List<MoveDef>(allMoves);
-        var pool = BasicMoves(pokemonId);
+        var pool = devCharacters.Contains(pokemonId) ? new List<MoveDef>(allMoves) : BasicMoves(pokemonId);
         var stats = Pokemon(pokemonId);
-        if (stats?.levelUpMoves != null)
+        if (!devCharacters.Contains(pokemonId) && stats?.levelUpMoves != null)
             foreach (int id in stats.levelUpMoves)
                 if (moves.TryGetValue(id, out var move) && !pool.Contains(move)) pool.Add(move);
-        return pool;
+        // The moves made by hand come first (the menu's list), in their order; the generated ones after.
+        var made = pool.FindAll(m => handMade.Contains(m.id));
+        made.AddRange(pool.FindAll(m => !handMade.Contains(m.id)));
+        return made;
     }
+
+    /// Moves used in play: made by hand, or a plain stat boost for the user or its allies (generated ones too).
+    /// Level-ups offer only these (Combatant.LearnableMoves), and enemies get only these (RandomMoves, bosses).
+    public static bool InPlay(MoveDef move)
+    {
+        Load();
+        return move != null && !move.bossOnly && (handMade.Contains(move.id) || IsStatBoost(move));
+    }
+
+    public static bool IsStatBoost(MoveDef move) => move.family == "modifier" && move.target != "enemies" && move.modValue > 1f;
+
+    /// MovePool restricted to the moves used in play (InPlay).
+    public static List<MoveDef> PlayPool(int pokemonId) => MovePool(pokemonId).FindAll(InPlay);
 
     /// Basic attacks of a Pokémon: its own entries in basicByPokemon, else those of each of its types. style:
     /// "ranged", "melee", or null for both (the style matching its stats first).
@@ -485,7 +530,7 @@ public static class GameData
     public static int[] RandomMoves(int pokemonId, int count, System.Random rng, string role = null, bool strong = false)
     {
         var basics = BasicMoves(pokemonId, StatStyle(pokemonId));
-        var pool = MovePool(pokemonId);
+        var pool = PlayPool(pokemonId); // only the moves made by hand and the stat boosts
         pool.RemoveAll(m => m.basic);
         if (strong)
         {
@@ -514,7 +559,7 @@ public static class GameData
     public static bool CanTakeRole(int pokemonId, string role)
     {
         var basics = BasicMoves(pokemonId);
-        return MovePool(pokemonId).Exists(m => !basics.Contains(m) && FitsRole(m, role));
+        return PlayPool(pokemonId).Exists(m => !basics.Contains(m) && FitsRole(m, role));
     }
 
     static bool IsSupportMove(MoveDef m) => m.family == "heal" || (m.family == "modifier" && m.target == "allies");

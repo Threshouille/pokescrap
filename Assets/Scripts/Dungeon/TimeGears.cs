@@ -692,7 +692,7 @@ public class TimeGears : MonoBehaviour
         var moves = new List<int>();
         var basic = GameData.BasicMoves(id, GameData.StatStyle(id)).FirstOrDefault();
         if (basic != null) moves.Add(basic.id);
-        foreach (var m in GameData.MovePool(id).Where(m => !m.basic && m.power > 0).OrderByDescending(m => m.power).ThenBy(m => m.id))
+        foreach (var m in GameData.PlayPool(id).Where(m => !m.basic && m.power > 0).OrderByDescending(m => m.power).ThenBy(m => m.id))
         {
             if (moves.Count >= Combatant.MoveSlots) break;
             if (!moves.Contains(m.id)) moves.Add(m.id);
@@ -755,7 +755,7 @@ public class TimeGears : MonoBehaviour
         // Recruitable or not (most final forms are not, in the ROM), legendaries and the boss itself left out.
         var types = BossTypes(q);
         var pool = GameData.AllPokemon.Where(p => p.id != q.boss && p.types.Intersect(types).Any() && !GameData.IsDev(p.id) && !Encounters.Excluded(p.id)
-                                                  && PokemonRoster.Has(p.id) && GameData.MovePool(p.id).Count >= 2).Select(p => p.id).ToList();
+                                                  && PokemonRoster.Has(p.id) && GameData.PlayPool(p.id).Count >= 2).Select(p => p.id).ToList();
         if (pool.Count == 0) pool = OfTypes(types, 9);
         if (pool.Count == 0) return all;
         int deepest = pool.Max(id => Encounters.Depth(GameData.Pokemon(id)));

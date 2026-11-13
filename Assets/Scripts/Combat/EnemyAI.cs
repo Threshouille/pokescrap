@@ -17,7 +17,6 @@ public class EnemyAI : MonoBehaviour
     const float FleeDistance = 2.5f; // ranged and support: dodge away from an opponent this close
     const float RushMin = 3f, RushMax = 6f; // melee: dodge toward a target this far away
     const float RestReach = 0.6f, RestPace = 0.55f; // at rest: tiles from its place; share of its walking speed
-    static readonly Color TelegraphColor = new(1f, 0.15f, 0.15f, 0.35f);
 
     [Tooltip("Share of the Pokémon's own speed used while moving")]
     public float speedFactor = 0.6f;
@@ -108,6 +107,9 @@ public class EnemyAI : MonoBehaviour
 
         bool canAttack = Time.time >= nextAttackAt;
         var decision = RoleTactics.Decide(combatant, navigator, float.MaxValue, group?.Target(), canAttack);
+        // Abri against a shot about to land (ShotLookahead), when it has it ready.
+        Vector2 shot = Projectile.Threat(position, combatant.team, 0.35f, 0.4f);
+        if (shot != Vector2.zero && SupportMoves.TryGuard(combatant, shot)) return;
         if (TryDodge(decision, position, grid)) return;
         // Elites and the higher ranks (RarityMark.Repairs) make a way to a target they cannot reach.
         if (decision.slot < 0 && decision.foe != null && (combatant.IsElite || RarityMark.Repairs(combatant)))
@@ -223,7 +225,10 @@ public class EnemyAI : MonoBehaviour
         telegraph = new GameObject("Telegraph");
         var renderer = telegraph.AddComponent<SpriteRenderer>();
         Unlit.Apply(renderer); // keeps its colours at night (DayNight)
-        renderer.color = TelegraphColor;
+        // Red for a blow at close range, purple for a shot (meta.json).
+        var settings = SaveData.Settings;
+        ColorUtility.TryParseHtmlString(move.family == "projectile" ? settings.telegraphShotColor : settings.telegraphMeleeColor, out var tint);
+        renderer.color = tint;
         renderer.sortingOrder = 0; // above the floor, under the Pokémon
 
         if (move.family == "modifier")

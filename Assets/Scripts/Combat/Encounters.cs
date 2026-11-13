@@ -320,7 +320,7 @@ public static class Encounters
     {
         if (everyone.TryGetValue(depth, out var cached)) return cached;
         return everyone[depth] = GameData.AllPokemon.Where(p => p.recruitRate > 0f && !GameData.IsDev(p.id) && Array.IndexOf(Data.exclude, p.id) < 0
-                                                              && Depth(p) <= depth && PokemonRoster.Has(p.id) && GameData.MovePool(p.id).Count >= 2)
+                                                              && Depth(p) <= depth && PokemonRoster.Has(p.id) && GameData.PlayPool(p.id).Count >= 2)
             .Select(p => p.id).ToList();
     }
 

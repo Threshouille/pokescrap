@@ -64,7 +64,7 @@ public static class TargetChoice
         float bestScore = float.MinValue;
         foreach (var foe in Combatant.All)
         {
-            if (foe == null || foe.team != opponents || !foe.IsAlive) continue;
+            if (foe == null || foe.team != opponents || !foe.IsAlive || foe.Hidden) continue; // hidden behind its decoy
             float distance = Vector2.Distance(from, foe.transform.position);
             if (distance > range) continue;
 

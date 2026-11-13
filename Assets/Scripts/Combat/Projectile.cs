@@ -24,6 +24,8 @@ public class Projectile : MonoBehaviour
     float side; // +1 / -1: which way a curve bends, where an orbit starts
     float delay; // seconds before the shot leaves (bursts)
     float age; // seconds in flight (pulse)
+    float sizeNow = 1f; // growth reached so far
+    float nextSpeck; // specks: time of the next one
     float hoverUntil; // floating at the end of its course until then (hoverTime)
     Vector2 hoverAt;
     Vector2 aimAtSpawn; // the shooter's live aim when the shot was created (zero for an AI)
@@ -195,11 +197,12 @@ public class Projectile : MonoBehaviour
 
         if (move.growth > 0f || move.pulse > 0f)
         {
-            float grown = move.growth > 0f ? Mathf.Lerp(1f, move.growth, Mathf.Clamp01(travelled / range)) : 1f;
+            float grown = move.growth > 0f ? Mathf.Lerp(move.growthStart > 0f ? move.growthStart : 1f, move.growth, Mathf.Clamp01(travelled / range)) : 1f;
             age += dt;
             if (move.pulse > 0f) grown *= 1f + move.pulse * Mathf.Sin(2f * Mathf.PI * age / (move.pulsePeriod > 0f ? move.pulsePeriod : 1f));
             radius = baseRadius * grown;
             transform.localScale = baseScale * grown;
+            sizeNow = grown;
         }
 
         if (move.path == "arc")
@@ -228,11 +231,13 @@ public class Projectile : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+        if (MeetBarrier(from, to)) return;
         if (Sweep(from, to)) return;
         Vector2 moved = to - from;
         if (moved.sqrMagnitude > 0.000001f && !move.upright)
             transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(moved.y, moved.x) * Mathf.Rad2Deg);
         transform.position = to;
+        DropSpecks(moved);
 
         if (!done) return;
         if (move.hoverTime > 0f)
@@ -431,8 +436,87 @@ public class Projectile : MonoBehaviour
         bool landed = target.TakeHit(damage * far, move, out float dealt, owner != null ? owner.hitCap : 0f);
         Combatant.HitSource = null;
         if (!landed) return;
-        if (move.stun > 0f && (move.stunChance <= 0f || Random.value < move.stunChance)) target.Stun(move.stun);
+        // stunBySize: a growing shot stuns longer the bigger it has grown (Poing Météor), up to stun at full size.
+        float stunShare = move.stunBySize && move.growth > 0f ? Mathf.Clamp01(sizeNow / move.growth) : 1f;
+        if (move.stun > 0f && (move.stunChance <= 0f || Random.value < move.stunChance)) target.Stun(move.stun * stunShare);
         target.ApplyEffects(move, false, owner);
         if (owner != null) owner.HitLanded(move, dealt);
+    }
+
+    // A wall of the other team on the way (Barrier): sent back the other way, now the wall owner's (Mur Lumière), or
+    // stopped there (Protection).
+    bool MeetBarrier(Vector2 from, Vector2 to)
+    {
+        if (!Barrier.Meets(team, move, from, to, out bool reflect, out var point, out var normal, out var newOwner)) return false;
+        if (!reflect)
+        {
+            Terrain.OnImpact(move, point, owner);
+            Destroy(gameObject);
+            return true;
+        }
+        forward = Vector2.Reflect(forward, normal).normalized;
+        origin = point + normal * 0.05f;
+        range = Mathf.Max(1f, range - travelled);
+        travelled = 0f;
+        transform.position = origin;
+        if (!move.upright) transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg);
+        if (newOwner != null)
+        {
+            team = newOwner.team;
+            owner = newOwner;
+        }
+        homingTarget = null;
+        lockedTarget = null;
+        hit.Clear();
+        return true;
+    }
+
+    // specks: a trail of little sparks left behind as it flies, at its current size (Poing Météor).
+    void DropSpecks(Vector2 moved)
+    {
+        if (move.specks <= 0f || Time.time < nextSpeck) return;
+        nextSpeck = Time.time + 1f / move.specks;
+        Color color = GameData.TypeColor(move.type);
+        if (!string.IsNullOrEmpty(move.speckColor)) ColorUtility.TryParseHtmlString(move.speckColor, out color);
+        Vector2 back = moved.sqrMagnitude > 0.000001f ? -moved.normalized : Vector2.zero;
+        Speck.Spawn((Vector2)transform.position + back * radius * 0.6f + Random.insideUnitCircle * radius * 0.4f,
+            back * 0.6f + Random.insideUnitCircle * 0.3f, color, 0.08f + 0.06f * sizeNow);
+    }
+}
+
+/// A tiny fading square of colour that drifts and shrinks away (shot trails).
+public class Speck : MonoBehaviour
+{
+    const float Life = 0.35f;
+    Vector2 velocity;
+    float born, size;
+    SpriteRenderer sprite;
+    Color color;
+
+    public static void Spawn(Vector2 at, Vector2 velocity, Color color, float size)
+    {
+        var go = new GameObject("Particule");
+        go.transform.position = at;
+        var speck = go.AddComponent<Speck>();
+        speck.sprite = go.AddComponent<SpriteRenderer>();
+        speck.sprite.sprite = Shapes.Square;
+        speck.sprite.sortingOrder = 2;
+        Unlit.Apply(speck.sprite);
+        speck.velocity = velocity;
+        speck.color = color;
+        speck.size = size;
+        speck.born = Time.time;
+        speck.Update();
+    }
+
+    void Update()
+    {
+        float t = (Time.time - born) / Life;
+        if (t >= 1f) { Destroy(gameObject); return; }
+        transform.position += (Vector3)(velocity * Time.deltaTime);
+        transform.localScale = Vector3.one * size * (1f - 0.6f * t);
+        var c = color;
+        c.a = 1f - t;
+        sprite.color = c;
     }
 }

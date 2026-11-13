@@ -10,7 +10,8 @@ public partial class Combatant
     /// True while a player controls this Pokémon: held moves stop when their button is released.
     public bool PlayerDriven { get; set; }
 
-    MoveDef channelMove, chargeMove, linkMove;
+    MoveDef channelMove, chargeMove, linkMove, guardMove;
+    GameObject guardBubble;
     int heldSlot;
     float heldStart, heldUntil, nextHeldTick;
     Vector2 heldAim;
@@ -22,15 +23,20 @@ public partial class Combatant
     float linkAnimTime;
 
     /// True while a held move is going on (no other move can start).
-    public bool Holding => channelMove != null || chargeMove != null || linkMove != null;
+    public bool Holding => channelMove != null || chargeMove != null || linkMove != null || guardMove != null;
+    /// Abri: in its bubble, nothing reaches it (TakeHit, statuses, pushes, stuns).
+    public bool Guarding => guardMove != null;
 
-    float HeldSpeedMul => channelMove != null && channelMove.channelSpeedMul > 0f ? channelMove.channelSpeedMul
+    float HeldSpeedMul => guardMove != null || (channelMove != null && channelMove.channelRoot) ? 0f
+        : chargeMove != null && chargeMove.channelSpeedMul > 0f ? chargeMove.channelSpeedMul
+        : channelMove != null && channelMove.channelSpeedMul > 0f ? channelMove.channelSpeedMul
         : linkMove != null && linkMove.channelSpeedMul > 0f ? linkMove.channelSpeedMul : 1f;
 
     string HeldAnim
     {
         get
         {
+            if (guardMove != null) return string.IsNullOrEmpty(guardMove.castAnim) ? "Idle" : guardMove.castAnim;
             var move = channelMove ?? chargeMove ?? linkMove;
             if (move == null) return null;
             if (move == chargeMove && !string.IsNullOrEmpty(move.castAnim)) return move.castAnim;
@@ -44,11 +50,29 @@ public partial class Combatant
     bool StartHeld(int slot, MoveDef move, Vector2 direction, out bool refused)
     {
         refused = false;
-        if (move.channel <= 0f && move.chargeMax <= 0f && move.link <= 0f) return false;
+        if (move.channel <= 0f && move.chargeMax <= 0f && move.link <= 0f && move.guard <= 0f) return false;
         heldSlot = slot;
         heldStart = Time.time;
         heldAim = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
-        if (move.channel > 0f)
+        if (move.guard > 0f)
+        {
+            // Abri: a bubble around the user, as long as the button is held (guard seconds at most).
+            guardMove = move;
+            heldUntil = Time.time + (!PlayerDriven && move.aiChannel > 0f ? move.aiChannel : move.guard);
+            guardBubble = EffectPlayer.Spawn(move.effect, transform.position, Vector2.right, transform);
+            if (guardBubble == null)
+            {
+                guardBubble = new GameObject(move.name + " (bulle)");
+                guardBubble.transform.SetParent(transform, false);
+                var r = guardBubble.AddComponent<SpriteRenderer>();
+                r.sprite = Shapes.Circle;
+                r.color = new Color(0.6f, 1f, 0.7f, 0.35f);
+                r.sortingOrder = 2;
+                Unlit.Apply(r);
+                guardBubble.transform.localScale = Vector3.one * 1.1f;
+            }
+        }
+        else if (move.channel > 0f)
         {
             channelMove = move;
             heldUntil = Time.time + (!PlayerDriven && move.aiChannel > 0f ? move.aiChannel : move.channel);
@@ -88,6 +112,12 @@ public partial class Combatant
             return;
         }
 
+        if (guardMove != null)
+        {
+            if (Time.time >= heldUntil || ButtonUp) StopHeld(true);
+            return;
+        }
+
         if (channelMove != null)
         {
             if (Time.time >= heldUntil || ButtonUp)
@@ -98,7 +128,13 @@ public partial class Combatant
             while (Time.time >= nextHeldTick)
             {
                 nextHeldTick += Mathf.Max(0.02f, channelMove.channelInterval);
-                FireProjectiles(channelMove, Steer(CurrentAim()), -1f);
+                if (channelMove.channelSpread > 0f)
+                {
+                    // Poing Météor: each shot leaves at random inside a cone around the aim (no aim correction).
+                    Vector2 aim = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(-channelMove.channelSpread, channelMove.channelSpread) / 2f) * CurrentAim();
+                    FireProjectiles(channelMove, Steer(aim), channelMove.range);
+                }
+                else FireProjectiles(channelMove, Steer(CurrentAim()), -1f);
             }
             return;
         }
@@ -153,17 +189,62 @@ public partial class Combatant
         if (!move.noAutoAim) AutoAim(move, 1, ref direction, ref distance);
         float size = Mathf.Lerp(1f, move.chargeSize > 0f ? move.chargeSize : 1f, charged);
         float damage = Mathf.Lerp(1f, move.chargeDamage > 0f ? move.chargeDamage : 1f, charged);
+        if (move.family == "melee")
+        {
+            // A charged blow: harder and further the longer it was held, then the shock wave.
+            direction = MeleeAutoAim(direction);
+            chargedStrike = damage;
+            chargedPush = Mathf.Lerp(1f, move.chargePush > 0f ? move.chargePush : 1f, charged);
+            if (move.lunge > 0f && body != null)
+            {
+                // Dynamopoing: a dash, longer the longer it was charged; its multipliers last until it ends.
+                lungeCharged = true;
+                if (animator != null) { releaseAnim = GameData.AttackAnim(move, animator); releaseUntil = Time.time + ReleaseAnimTime; }
+                StopHeld(true);
+                StartLunge(move, direction, Mathf.Lerp(1f, move.chargeLunge > 0f ? move.chargeLunge : 1f, charged));
+                return;
+            }
+            ShockWave(move, direction, charged); // the opponents struck by the blow are left to its own throw
+            Strike(move, direction);
+            chargedStrike = chargedPush = 1f;
+            if (animator != null) { releaseAnim = GameData.AttackAnim(move, animator); releaseUntil = Time.time + ReleaseAnimTime; }
+            StopHeld(true);
+            return;
+        }
         Projectile.Spawn(this, move, direction, 0, 0f, -1f, 0f, null, null, size, damage);
         StopHeld(true);
+    }
+
+    // waveCone: a cone of wind from the user that pushes away every opponent in it (Ultimapoing), stronger when charged.
+    void ShockWave(MoveDef move, Vector2 direction, float charged)
+    {
+        if (move.waveCone <= 0f || move.waveRange <= 0f) return;
+        float scale = Mathf.Lerp(0.6f, 1f, charged);
+        float range = move.waveRange * scale;
+        // The cone opens from the point of impact, its sheet's apex at the left middle.
+        Vector2 origin = (Vector2)transform.position + direction * move.range;
+        EffectPlayer.Spawn(move.waveEffect, origin + direction * range * 0.5f, direction, null, 0f, range);
+        foreach (var other in all.ToArray())
+        {
+            if (other == null || other.team == team || !other.IsAlive) continue;
+            Vector2 to = (Vector2)other.transform.position - origin;
+            if (to.magnitude <= move.radius * meleeAreaMul) continue; // struck by the blow itself: its own throw
+            if (to.magnitude > range || Vector2.Angle(direction, to) > move.waveCone / 2f) continue;
+            Vector2 away = to.sqrMagnitude > 0.0001f ? to.normalized : direction;
+            float time = KnockbackOf(move);
+            other.Knockback(away * move.waveKnockback * scale / time, time);
+        }
     }
 
     // Ends the held move; its cooldown starts now (spent) or right away (lost charge, it was not used).
     void StopHeld(bool spent)
     {
-        var move = channelMove ?? chargeMove ?? linkMove;
+        var move = channelMove ?? chargeMove ?? linkMove ?? guardMove;
         if (move == null) return;
         readyAt[heldSlot] = Time.time + (spent ? CooldownOf(move) : 0f);
-        channelMove = chargeMove = linkMove = null;
+        if (guardMove != null) dodgeReadyAt = 0f; // out of the bubble, the dodge is ready to get away
+        if (guardBubble != null) Destroy(guardBubble);
+        channelMove = chargeMove = linkMove = guardMove = null;
         linkTarget = null;
         if (chargeOrb != null) Destroy(chargeOrb);
         if (linkLine != null) Destroy(linkLine.gameObject);
@@ -174,7 +255,7 @@ public partial class Combatant
     void ShowChargeOrb(MoveDef move)
     {
         chargeOrb = new GameObject(move.name + " (charge)");
-        if (EffectPlayer.Attach(chargeOrb, move.effect, Vector2.right))
+        if (EffectPlayer.Attach(chargeOrb, string.IsNullOrEmpty(move.castEffect) ? move.effect : move.castEffect, Vector2.right))
         {
             if (move.effectScale > 0f) chargeOrb.transform.localScale = Vector3.one * move.effectScale;
         }
@@ -187,6 +268,7 @@ public partial class Combatant
             renderer.color = GameData.TypeColor(move.type);
             renderer.sortingOrder = 2;
         }
+        if (move.family == "melee") chargeOrb.transform.localScale = Vector3.one * (move.chargeSize > 0f ? move.chargeSize : 1f); // a glow on the user
         chargeOrbScale = chargeOrb.transform.localScale;
         PlaceChargeOrb(0f);
     }
@@ -194,6 +276,11 @@ public partial class Combatant
     void PlaceChargeOrb(float charged)
     {
         if (chargeOrb == null) return;
+        if (chargeMove.family == "melee")
+        {
+            chargeOrb.transform.position = transform.position; // follows the user, who walks while charging
+            return;
+        }
         Vector2 aim = CurrentAim();
         chargeOrb.transform.position = transform.position + (Vector3)(aim * 0.6f);
         float size = Mathf.Lerp(0.6f, chargeMove.chargeSize > 0f ? chargeMove.chargeSize : 1f, charged);

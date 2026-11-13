@@ -111,6 +111,19 @@ public partial class Combatant : MonoBehaviour
     public bool IsElite => GetComponent<EliteMark>() != null;
     /// True while a melee dash is carrying this Pokémon forward: controllers must not steer it.
     public bool IsLunging => Time.time < lungeUntil;
+    /// Clonage: a decoy left by its user (Decoy), which the opponents take for a target.
+    public bool IsDecoy { get; set; }
+    /// While its decoy stands, its user is out of sight: the opponents only see the decoy (TargetChoice, Nearest).
+    public bool Hidden => Decoy.Has(this);
+
+    /// Stops a dash where it is (Protection's wall).
+    public void StopLunge()
+    {
+        if (!IsLunging) return;
+        lungeUntil = Time.time;
+        lungeFinishPending = lungeStrikePending = false;
+        if (body != null) body.linearVelocity = Vector2.zero;
+    }
     public bool IsDodging => Time.time < dodgeUntil;
     /// When it last dodged (an enemy's Z strike spares it within a window, ZStrike.Dodged).
     public float LastDodgeAt { get; private set; } = -100f;
@@ -150,7 +163,9 @@ public partial class Combatant : MonoBehaviour
     /// True while a move with a cast time is being prepared: the Pokémon stands still and cannot use another move.
     public bool IsCasting => castMove != null || blinkMove != null || chargeMove != null;
     /// Movement speed right now, statuses and temporary modifiers included.
-    public float CurrentSpeed => CanMove && !IsCasting && !BodyRoots && Time.time >= recoverUntil
+    /// A melee charge with channelSpeedMul (Ultimapoing) lets the user walk, slowed, while it charges.
+    bool WalksWhileCharging => chargeMove != null && chargeMove.channelSpeedMul > 0f && castMove == null && blinkMove == null;
+    public float CurrentSpeed => CanMove && (!IsCasting || WalksWhileCharging) && !BodyRoots && Time.time >= recoverUntil
         ? moveSpeed * Modifier("speed") * StatusProduct(def => def.speedMul) * HeldSpeedMul * BodySpeedMul * AbilitySpeedMul : 0f;
 
     class TimedModifier
@@ -185,7 +200,10 @@ public partial class Combatant : MonoBehaviour
     float dodgeUntil, dodgeReadyAt;
     readonly List<Collider2D> dodgeIgnored = new(); // opponents passed through during the current dodge
     MoveDef castMove; // move being cast, fired at castUntil
-    struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; public bool followAim; }
+    struct PendingStrike { public MoveDef move; public Vector2 direction, offset; public float at; public bool followAim; public int index; }
+    bool lungeCharged; // the dash comes from a charge: chargedStrike / chargedPush last until it ends
+    float chargedStrike = 1f, chargedPush = 1f; // a charged melee blow (Ultimapoing): damage and push multipliers
+    int strikeIndex; // rank of the strike being played in its combo (odd ones use the mirrored sheet <effect>_b)
     readonly List<PendingStrike> strikes = new(); // melee strikes still to come (combos)
     int chainCount; // strikes landed in a row (chainBonus)
     float chainUntil;
@@ -274,7 +292,7 @@ public partial class Combatant : MonoBehaviour
         float bestDistance = maxDistance;
         foreach (var c in all)
         {
-            if (c.team != team || !c.IsAlive || c == except) continue;
+            if (c.team != team || !c.IsAlive || c == except || c.Hidden) continue;
             float distance = Vector2.Distance(from, c.transform.position);
             if (distance <= bestDistance)
             {
@@ -316,7 +334,7 @@ public partial class Combatant : MonoBehaviour
         float bestRatio = maxRatio;
         foreach (var c in all)
         {
-            if (c.team != team || !c.IsAlive || c.maxHp <= 0f) continue;
+            if (c.team != team || !c.IsAlive || c.maxHp <= 0f || c.IsDecoy) continue;
             if (Vector2.Distance(from, c.transform.position) > range) continue;
             float ratio = c.hp / c.maxHp;
             if (ratio < bestRatio)
@@ -538,7 +556,7 @@ public partial class Combatant : MonoBehaviour
         var current = Stats.id != OriginId ? GameData.MovePool(Stats.id).ConvertAll(m => m.id) : new List<int>();
         var seen = new HashSet<int>();
         foreach (int form in forms)
-            foreach (var move in GameData.MovePool(form))
+            foreach (var move in GameData.PlayPool(form)) // made by hand, or a stat boost
             {
                 if (!seen.Add(move.id) || Array.Exists(Moves, m => m != null && m.id == move.id)) continue;
                 result.Add((move, current.Contains(move.id) ? evolvedWeight : 1f));
@@ -666,7 +684,7 @@ public partial class Combatant : MonoBehaviour
     public void AddStatus(string key, float duration, Combatant source = null)
     {
         var def = StatusLibrary.Get(key);
-        if (!IsAlive || def == null) return;
+        if (!IsAlive || def == null || Guarding || IsDecoy) return;
         if (AbilityBlocksStatus(key)) return; // Insomnia, Limber…
         Synchronize(key, duration, source);
         duration *= AbilityStatusDuration(key); // Early Bird
@@ -762,6 +780,14 @@ public partial class Combatant : MonoBehaviour
             return true;
         }
 
+        if (SupportMoves.IsSupport(move))
+        {
+            // A wall, a decoy, spikes or a wish laid in the arena (SupportMoves).
+            if (!SupportMoves.Cast(this, move, direction, distance)) return false;
+            readyAt[slot] = Time.time + CooldownOf(move);
+            return true;
+        }
+
         if (move.family == "climate")
         {
             // A weather over the whole arena, or a sport's zone around the user (Climate).
@@ -828,6 +854,7 @@ public partial class Combatant : MonoBehaviour
             castDirection = direction;
             castDistance = distance;
             castUntil = Time.time + move.castTime;
+            if (!string.IsNullOrEmpty(move.castEffect)) EffectPlayer.Spawn(move.castEffect, transform.position, Vector2.right, transform, move.castTime);
         }
         else if (move.family == "projectile") Shoot(move, direction, distance);
         else if (move.family == "zone") PlaceZone(move, direction, distance);
@@ -892,6 +919,15 @@ public partial class Combatant : MonoBehaviour
             return;
         }
         if (move.strikeRoot) recoverUntil = Mathf.Max(recoverUntil, Time.time + (Mathf.Max(1, move.hits) - 1) * move.hitInterval);
+        // strikeAtTarget: the blow lands on the target from where the user stands (Poing Ombre), else in front.
+        var struck = move.strikeAtTarget > 0f ? TeleportTarget(move, direction, move.strikeAtTarget) : null;
+        if (struck != null)
+        {
+            Vector2 to = (Vector2)struck.transform.position - (Vector2)transform.position;
+            if (to.sqrMagnitude > 0.0001f) direction = to.normalized;
+            QueueStrikes(move, direction, extra: to - direction * move.range);
+            return;
+        }
         QueueStrikes(move, direction);
     }
 
@@ -910,7 +946,7 @@ public partial class Combatant : MonoBehaviour
     /// Pushes this Pokémon away for "time" seconds (bosses do not budge).
     public void Knockback(Vector2 velocity, float time)
     {
-        if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this)) return; // an Acier on metal holds firm
+        if (isBoss || !IsAlive || body == null || Obstacles.Anchored(this) || Guarding) return; // an Acier on metal holds firm
         float held = AbilityKnockbackMul; // Suction Cups, Heavy Metal
         if (held <= 0f) return;
         velocity *= held;
@@ -921,16 +957,21 @@ public partial class Combatant : MonoBehaviour
     }
 
     Vector2 delayedKnock; // a push held back by knockbackDelay (Mach Punch: stunned, then sent flying)
-    float delayedKnockTime, delayedKnockAt = -1f;
+    float delayedKnockTime, delayedKnockArc, delayedKnockAt = -1f;
+    MoveDef delayedKnockMove;
+    Combatant delayedKnockSource;
 
     /// Pushes along direction by move.knockback tiles, now or after move.knockbackDelay.
     public void PushFrom(MoveDef move, Vector2 direction)
     {
         float time = KnockbackOf(move);
         Vector2 velocity = direction * move.knockback / time;
-        if (move.knockbackDelay <= 0f) { Knockback(velocity, time); return; }
+        if (move.knockbackDelay <= 0f) { Knockback(velocity, time); StartArc(time, move.knockbackArc, move, HitSource); return; }
         delayedKnock = velocity;
         delayedKnockTime = time;
+        delayedKnockArc = move.knockbackArc;
+        delayedKnockMove = move;
+        delayedKnockSource = HitSource;
         delayedKnockAt = Time.time + move.knockbackDelay;
     }
 
@@ -938,7 +979,75 @@ public partial class Combatant : MonoBehaviour
     {
         if (delayedKnockAt < 0f || Time.time < delayedKnockAt) return;
         delayedKnockAt = -1f;
-        if (IsAlive) Knockback(delayedKnock, delayedKnockTime);
+        if (!IsAlive) return;
+        Knockback(delayedKnock, delayedKnockTime);
+        StartArc(delayedKnockTime, delayedKnockArc, delayedKnockMove, delayedKnockSource);
+    }
+
+    // knockbackArc: thrown through the air (the sprite swells with the height, as for a leap), then a small bounce.
+    // landingRadius: it comes down heavily, without a bounce, and hurts the thrower's opponents around (Stratopercut).
+    float arcStart = -1f, arcTime, arcHeight;
+    Vector3 arcScale;
+    MoveDef arcMove;
+    Combatant arcSource;
+    const float ArcLanding = 0.75f, ArcBounce = 0.3f; // share of the flight before the bounce, bounce height
+    const float LandBounceTime = 0.3f, LandBounceHeight = 0.2f; // after a heavy landing: one small bounce in place
+    bool arcSingle; // the arc is that single bounce
+
+    void StartArc(float time, float height, MoveDef move = null, Combatant source = null)
+    {
+        if (height <= 0f || isBoss || body == null) return;
+        if (arcStart < 0f) arcScale = transform.localScale;
+        arcStart = Time.time;
+        arcTime = time;
+        arcHeight = height;
+        arcMove = move;
+        arcSource = source;
+        arcSingle = false;
+    }
+
+    void UpdateArc()
+    {
+        if (arcStart < 0f) return;
+        float t = (Time.time - arcStart) / arcTime;
+        bool heavy = arcMove != null && arcMove.landingRadius > 0f;
+        if (t >= 1f || !IsAlive)
+        {
+            transform.localScale = arcScale;
+            arcStart = -1f;
+            arcSingle = false;
+            if (heavy && IsAlive) Land();
+            return;
+        }
+        float h = heavy || arcSingle ? Mathf.Sin(Mathf.PI * t)
+            : t < ArcLanding ? Mathf.Sin(Mathf.PI * t / ArcLanding) : ArcBounce * Mathf.Sin(Mathf.PI * (t - ArcLanding) / (1f - ArcLanding));
+        transform.localScale = arcScale * (1f + arcHeight * h);
+    }
+
+    void Land()
+    {
+        var move = arcMove;
+        var source = arcSource;
+        arcMove = null;
+        arcSource = null;
+        // One small bounce on the spot, held still meanwhile.
+        Stun(LandBounceTime + 0.1f);
+        arcScale = transform.localScale;
+        arcStart = Time.time;
+        arcTime = LandBounceTime;
+        arcHeight *= LandBounceHeight;
+        arcSingle = true;
+        EffectPlayer.Spawn(move.landingEffect, transform.position, Vector2.right, null, 0f, move.landingRadius * 2f);
+        if (source == null) return;
+        float damage = source.DamageOf(move) * move.landingDamage;
+        foreach (var other in all.ToArray())
+        {
+            if (other == null || !other.IsAlive || other.team == source.team) continue;
+            if (Vector2.Distance(other.transform.position, transform.position) > move.landingRadius) continue;
+            HitSource = source;
+            if (other.TakeHit(damage, move, out float dealt, source.hitCap)) source.HitLanded(move, dealt);
+            HitSource = null;
+        }
     }
 
     public const float KnockbackTime = 0.3f; // seconds a push lasts: slow enough to be seen
@@ -953,22 +1062,24 @@ public partial class Combatant : MonoBehaviour
     /// Neither moving nor attacking for a moment (bosses are immune).
     public void Stun(float duration)
     {
-        if (isBoss || duration <= 0f || Ability is { stunImmune: true }) return; // Inner Focus
+        if (isBoss || duration <= 0f || Guarding || Ability is { stunImmune: true }) return; // Inner Focus; Abri
         stunUntil = Mathf.Max(stunUntil, Time.time + duration);
         AbilityStunned(); // Steadfast
     }
 
     /// followAim: each strike goes where the player aims when it lands rather than at the start (blow after a dash).
-    void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f, bool followAim = false)
+    void QueueStrikes(MoveDef move, Vector2 direction, float delay = 0f, bool followAim = false, Vector2 extra = default)
     {
-        int count = Mathf.Max(1, move.hits) + (move.hits > 1 ? ExtraHits : 0); // Skill Link
+        // hitsMax: a random number of strikes, hitsMin to hitsMax (Combo-Griffe); Skill Link adds to a combo.
+        int count = move.hitsMax > 0 ? UnityEngine.Random.Range(Mathf.Max(1, move.hitsMin), move.hitsMax + 1) + ExtraHits
+            : Mathf.Max(1, move.hits) + (move.hits > 1 ? ExtraHits : 0); // Skill Link
         for (int i = 0; i < count; i++)
         {
             float angle = move.hitAngles != null && move.hitAngles.Length > 0 ? move.hitAngles[i % move.hitAngles.Length] : 0f;
             // With a side offset, a strike angled to the left starts on the right (and the other way round).
             Vector2 offset = new Vector2(-direction.y, direction.x) * (-Mathf.Sign(angle) * move.sideOffset);
-            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, offset = angle != 0f ? offset : Vector2.zero,
-                at = Time.time + delay + i * move.hitInterval, followAim = followAim });
+            strikes.Add(new PendingStrike { move = move, direction = Quaternion.Euler(0f, 0f, angle) * direction, offset = (angle != 0f ? offset : Vector2.zero) + extra,
+                at = Time.time + delay + i * move.hitInterval, followAim = followAim, index = i });
         }
     }
 
@@ -980,12 +1091,48 @@ public partial class Combatant : MonoBehaviour
         return to.sqrMagnitude > 0.0001f ? to.normalized : direction;
     }
 
+    // barrage: a target struck by the move is held still barrageDelay seconds, then pummelled barrage times where it
+    // stands, whatever the user does meanwhile (Mitra-Poing).
+    struct Barrage { public MoveDef move; public Combatant target; public int left; public float next; }
+    readonly List<Barrage> barrages = new();
+
+    void StartBarrage(MoveDef move, Combatant target)
+    {
+        target.Stun(move.barrageDelay + move.barrage * move.barrageInterval);
+        barrages.Add(new Barrage { move = move, target = target, left = move.barrage, next = Time.time + move.barrageDelay });
+    }
+
+    void UpdateBarrages()
+    {
+        for (int i = barrages.Count - 1; i >= 0; i--)
+        {
+            var b = barrages[i];
+            if (b.target == null || !b.target.IsAlive || !IsAlive) { barrages.RemoveAt(i); continue; }
+            if (Time.time < b.next) continue;
+            Vector2 at = (Vector2)b.target.transform.position + UnityEngine.Random.insideUnitCircle * 0.35f;
+            Vector2 from = ((Vector2)b.target.transform.position - (Vector2)transform.position).normalized;
+            EffectPlayer.Spawn(b.move.effect, at, Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(-25f, 25f)) * from, null, 0f,
+                b.move.effectScale > 0f && EffectLibrary.Get(b.move.effect) != null ? EffectLibrary.Get(b.move.effect).frame_width / (float)EffectLibrary.PixelsPerUnit * b.move.effectScale : 0f);
+            EffectPlayer.Spawn(b.move.impactEffect, at, from);
+            HitSource = this;
+            if (b.target.TakeHit(DamageOf(b.move) * b.move.barrageDamage, b.move, out float dealt, hitCap))
+            {
+                HitLanded(b.move, dealt);
+                if (b.left == 1 && b.move.knockback > 0f) b.target.PushFrom(b.move, from); // the last blow throws it
+            }
+            b.left--;
+            b.next += b.move.barrageInterval;
+            if (b.left <= 0) barrages.RemoveAt(i); else barrages[i] = b;
+        }
+    }
+
     const float BlinkStandoff = 0.6f; // tiles between a teleporting user and its target's centre
 
-    /// teleportToTarget: the aimed opponent if within reach (lunge + range), else the nearest one in front within reach.
-    Combatant TeleportTarget(MoveDef move, Vector2 direction)
+    /// teleportToTarget / strikeAtTarget: the aimed opponent if within reach (lunge + range, or the given reach),
+    /// else the nearest one in front within reach.
+    Combatant TeleportTarget(MoveDef move, Vector2 direction, float reach = -1f)
     {
-        float reach = move.lunge + move.range;
+        if (reach <= 0f) reach = move.lunge + move.range;
         Vector2 at = transform.position;
         if (AimTarget != null && AimTarget.IsAlive && Vector2.Distance(at, AimTarget.transform.position) <= reach) return AimTarget;
         Combatant best = null;
@@ -1057,14 +1204,15 @@ public partial class Combatant : MonoBehaviour
             if (shape == "arc" && to.magnitude > 0.3f && Vector2.Angle(direction, to) > move.arc / 2f) { hit.Remove(target); continue; }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             HitSource = this;
-            if (target.TakeHit(DamageOf(move) * (target.Ability is { noChainBonus: true } ? 1f : factor), move, out float dealt, hitCap))
+            if (target.TakeHit(DamageOf(move) * (target.Ability is { noChainBonus: true } ? 1f : factor) * chargedStrike, move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 if (factor > 1.001f) DamageNumber.Multiplier(target.transform.position, factor);
-                if (move.knockback > 0f) target.PushFrom(move, push);
+                if (move.knockback > 0f) target.PushFrom(move, push * chargedPush);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target); // a Rocky Helmet
+                if (move.barrage > 0) StartBarrage(move, target);
                 AbilityContact(this, target);
             }
         }
@@ -1092,6 +1240,7 @@ public partial class Combatant : MonoBehaviour
             "around" => at,
             _ => at + direction * move.range,
         };
+        if (strikeIndex % 2 == 1 && !string.IsNullOrEmpty(sheet) && EffectLibrary.Get(sheet + "_b") != null) sheet += "_b"; // a combo alternates sides
         if (move.sweep && shape == "arc" && EffectLibrary.Get(sheet) != null)
         {
             // The sheet turns across the arc around the user, the other way at the next strike.
@@ -1166,13 +1315,13 @@ public partial class Combatant : MonoBehaviour
 
     static float LungeTime(MoveDef move) => move.lungeTime > 0f ? move.lungeTime : DefaultLungeTime;
 
-    void StartLunge(MoveDef move, Vector2 direction)
+    void StartLunge(MoveDef move, Vector2 direction, float distanceMul = 1f)
     {
         lungeMove = move;
         lungeDirection = direction;
         lungeHit.Clear();
         lungeUntil = Time.time + LungeTime(move);
-        lungeSpeed = move.lunge / LungeTime(move);
+        lungeSpeed = move.lunge * distanceMul / LungeTime(move);
         if (move.rolloutMax > 0)
         {
             // Each step of the series dashes faster and further.
@@ -1301,6 +1450,8 @@ public partial class Combatant : MonoBehaviour
     void FixedUpdate()
     {
         UpdateDelayedKnock();
+        UpdateArc();
+        UpdateBarrages();
         UpdateAbility();
         UpdateAbilityMarks();
         UpdateRolloutBadge();
@@ -1382,7 +1533,9 @@ public partial class Combatant : MonoBehaviour
             if (!CanAttack) continue;
             if (strike.followAim && LiveAim != Vector2.zero) strike.direction = MeleeAutoAim(Steer(LiveAim.normalized));
             if (strike.move.step > 0f) MoveSafely(strike.direction, strike.move.step);
+            strikeIndex = strike.index;
             Strike(strike.move, strike.direction, -1f, strike.offset);
+            strikeIndex = 0;
             if (strike.move.recovery > 0f && !strikes.Exists(x => x.move == strike.move))
                 recoverUntil = Time.time + strike.move.recovery;
         }
@@ -1405,6 +1558,7 @@ public partial class Combatant : MonoBehaviour
         // strike around it, or bounce back off the first one it hits.
         if (!IsLunging)
         {
+            if (lungeCharged) { lungeCharged = false; chargedStrike = chargedPush = 1f; } // a charged dash is over
             if (rolloutPending)
             {
                 // A dash that landed adds a step; a miss ends the series.
@@ -1458,6 +1612,14 @@ public partial class Combatant : MonoBehaviour
         if (lungeBouncing || lungeMove.lungeHarmless || lungeMove.family != "melee") return;
         int landed = MeleeHit(lungeMove, lungeDirection, lungeHit);
         if (landed > 0) rolloutLanded = true;
+        if (landed > 0 && lungeMove.lungeStop)
+        {
+            // Dynamopoing: the dash ends on the first opponent it meets.
+            lungeUntil = Time.time;
+            body.linearVelocity = Vector2.zero;
+            if (lungeMove.recovery > 0f) recoverUntil = Mathf.Max(recoverUntil, Time.time + lungeMove.recovery); // a moment rooted after the blow
+            return;
+        }
         if (landed > 0 && lungeMove.bounceBack > 0f)
         {
             // Both are thrown apart, slowly enough to be seen.
@@ -1529,12 +1691,12 @@ public partial class Combatant : MonoBehaviour
             }
             EffectPlayer.Spawn(move.impactEffect, target.transform.position, direction);
             HitSource = this;
-            if (target.TakeHit(DamageOf(move), move, out float dealt, hitCap))
+            if (target.TakeHit(DamageOf(move) * chargedStrike, move, out float dealt, hitCap))
             {
                 if (move.power > 0) target.Stun(StunOf(move)); // a status-only move does not stun
                 // A dash pushes what it hits (a bouncing dash pushes its target when it bounces).
                 if (move.knockback > 0f && move.bounceBack <= 0f)
-                    target.PushFrom(move, direction);
+                    target.PushFrom(move, direction * chargedPush);
                 target.ApplyEffects(move, false, this);
                 HitLanded(move, dealt);
                 HeldItems.OnContact(this, target);
@@ -1586,6 +1748,8 @@ public partial class Combatant : MonoBehaviour
     {
         dealt = 0f;
         if (!IsAlive || blinkMove != null || IsEvolving) return false;
+        if (Guarding) { Shapes.Pulse(transform.position, 0.6f, new Color(0.7f, 1f, 0.8f)); return false; } // Abri
+        if (IsDecoy) { Decoy.Burst(this); dealt = 0f; return true; } // Clonage: the first blow ends the decoy
         if (BodyIgnoresHit()) return false; // untouchable, or Coup Bas answers it
         if (Time.time < invulnerableUntil) return false; // enemies only get it through Protect (after a fall)
         var attacker = HitSource;

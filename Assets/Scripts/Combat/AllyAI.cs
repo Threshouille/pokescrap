@@ -115,6 +115,7 @@ public class AllyAI : MonoBehaviour
         {
             Vector2 way = RoleTactics.EscapeStep(grid, position, threat);
             if (combatant.TryDodge(way)) attackUntil = 0f;
+            else if (SupportMoves.TryGuard(combatant, way)) return; // Abri when the dodge is not ready
             Steer(way, way);
             return;
         }
