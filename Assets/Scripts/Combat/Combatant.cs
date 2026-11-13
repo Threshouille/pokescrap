@@ -125,6 +125,8 @@ public partial class Combatant : MonoBehaviour
         if (body != null) body.linearVelocity = Vector2.zero;
     }
     public bool IsDodging => Time.time < dodgeUntil;
+    /// When it last dodged (an enemy's Z strike spares it within a window, ZStrike.Dodged).
+    public float LastDodgeAt { get; private set; } = -100f;
     /// True while a dash (melee lunge or dodge) drives the body: controllers leave its velocity alone.
     public bool IsDashing => IsLunging || IsDodging || Time.time < knockUntil;
     public bool IsKnockedBack => Time.time < knockUntil;
@@ -934,6 +936,13 @@ public partial class Combatant : MonoBehaviour
         foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = visible;
     }
 
+    /// Puts it at once somewhere else (a Psychic Z move's field throws its opponents about).
+    public void Warp(Vector2 to)
+    {
+        if (body != null) body.position = to;
+        transform.position = to;
+    }
+
     /// Pushes this Pokémon away for "time" seconds (bosses do not budge).
     public void Knockback(Vector2 velocity, float time)
     {
@@ -1268,6 +1277,7 @@ public partial class Combatant : MonoBehaviour
         var settings = SaveData.Settings;
         dodgeDirection = direction.normalized;
         dodgeUntil = Time.time + settings.dodgeTime * AbilityDodgeTimeMul; // Light Metal
+        LastDodgeAt = Time.time;
         dodgeReadyAt = Time.time + (team == Team.Enemy ? settings.enemyDodgeCooldown : settings.dodgeCooldown) * AbilityDodgeCooldownMul;
         if (Ability is { dodgeTeleport: true } && TeleportDodge(dodgeDirection, settings.dodgeDistance * AbilityDodgeTimeMul))
         {

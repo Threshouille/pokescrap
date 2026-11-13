@@ -9,9 +9,10 @@ using UnityEngine.InputSystem;
 /// - Mega stone: it turns into its mega evolution (the stone's line, once at the right form; Rayquaza needs no stone but
 ///   a move): still and unharmed while the silhouettes of both forms alternate, then a shock wave; the mega's stats and
 ///   types (Combatant.MegaEvolve) for megaTime seconds.
-/// - Z crystal: a pose (still and unharmed, zPose seconds), then every opponent on screen is struck, one after the
-///   other from the nearest: the damage of its strongest move of the crystal's type × ZPower(level), and the crystal's
-///   own effect (SpecialItems.ZHit: status, penalty, push, terrain, drain, team bonus). Only when an opponent is in view.
+/// - Z crystal: its cut-scene (ZCutScene: everybody else holds still, the title), then every opponent on screen is
+///   struck when the type's show reaches it (ZStrike: a meteor, a wave, a ring closing in...): the damage of its
+///   strongest move of the crystal's type × ZPower(level), and the crystal's own effect (SpecialItems.ZHit: status,
+///   penalty, push, terrain, drain, team bonus). Only when an opponent is in view.
 /// - Tera shard: it takes the shard's type for TeraTime(level) seconds (Combatant.Terastallize).
 /// Being knocked out ends a mega or a Terastal phase at once. In the test arena (Run.Sandbox) the gauge is always
 /// full; in devMode a member without an item may still mega evolve, for tests.
@@ -50,9 +51,8 @@ public class Ultimates : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() => DemoMoves = false;
 
-    // Z move waiting for the end of its pose.
+    // Z move waiting for the end of its cut-scene.
     Combatant posing;
-    MoveDef zMove;
 
     void Awake()
     {
@@ -142,7 +142,7 @@ public class Ultimates : MonoBehaviour
     }
 
     /// Whether the controlled Pokémon can unleash its ultimate right now.
-    public bool Ready => Full && transforming == null && posing == null && KindOf(team.Controlled) switch
+    public bool Ready => Full && transforming == null && posing == null && !ZCutScene.Playing && KindOf(team.Controlled) switch
     {
         SpecialItems.Family.None => false,
         SpecialItems.Family.Z => FoesInView(team.Controlled),
@@ -246,11 +246,14 @@ public class Ultimates : MonoBehaviour
         var e = member.Special;
         var baseMove = BaseMoveFor(member, e.type);
         Gauge = 0f;
-        zMove = ZVersion(baseMove, e.type, e.level);
+        var z = ZVersion(baseMove, e.type, e.level);
+        int type = e.type, level = e.level;
         posing = member;
-        member.BeginEvolution(SpecialItems.ZPose);
-        Aura(member, SpecialItems.ZPose, GameData.TypeColor(e.type));
-        progression.Announce($"{member.Stats.name} : {zMove.name} !");
+        ZCutScene.Play(member, z.name, type, false, () =>
+        {
+            posing = null;
+            if (member != null && member.IsAlive) StartCoroutine(StrikeZ(member, z, type, level));
+        });
     }
 
     /// The Z version of a move: its damage × ZPower(level) × the crystal's bonus (through damageScale: the power alone
@@ -277,50 +280,78 @@ public class Ultimates : MonoBehaviour
         return z;
     }
 
-    // At the end of the pose: the strike, from the nearest opponent on screen to the farthest.
-    void FireZ()
-    {
-        var member = posing;
-        if (member.IsEvolving && member.IsAlive) return;
-        posing = null;
-        if (!member.IsAlive) return;
-        StartCoroutine(StrikeZ(member, zMove, member.Special.type, member.Special.level));
-    }
-
-    const float ZCascade = 0.06f; // seconds between two opponents struck
     const float ZPushTime = 0.5f; // seconds a Z push lasts (ZHit.knockback: tiles)
 
     /// The Z strike itself (the player's, or an enemy's: EnemyUltimate, with a range, and no more than maxShare of each
-    /// target's maximum health when > 0).
-    public static System.Collections.IEnumerator StrikeZ(Combatant member, MoveDef move, int type, int level, float range = 0f, float maxShare = 0f)
+    /// target's maximum health when > 0): the opponents in view, each struck when the type's show reaches it (ZStrike).
+    /// "dodgeable" (an enemy's): an opponent that dodged just before it is reached is spared (ZStrike.Dodged).
+    public static System.Collections.IEnumerator StrikeZ(Combatant member, MoveDef move, int type, int level, float range = 0f, float maxShare = 0f, bool dodgeable = false)
     {
-        var hit = SpecialItems.Crystal(type)?.hit ?? new SpecialItems.ZHit();
+        if (member == null) yield break;
+        var crystal = SpecialItems.Crystal(type);
+        var hit = crystal?.hit ?? new SpecialItems.ZHit();
+        var show = crystal?.show ?? new SpecialItems.ZShow();
+        var style = ZStrike.Parse(show.style);
         float scale = SpecialItems.ZScale(level);
         Color colour = GameData.TypeColor(type);
-        var flash = EffectPlayer.Spawn(SpecialItems.ZFlash, member.transform.position, Vector2.right, null, 0f, 8f * scale);
-        if (flash != null) flash.GetComponent<SpriteRenderer>().color = colour;
-        foreach (var foe in VisibleFoes(member, range))
+        Vector2 origin = member.transform.position;
+        var (centre, halfWidth, halfHeight) = ZStrike.View(origin);
+        var foes = VisibleFoes(member, range);
+        var ctx = ZStrike.Context.Make(origin, centre, halfWidth, halfHeight, foes.Select(f => (Vector2)f.transform.position).ToList());
+        var plan = new List<(Combatant foe, ZChoreo.Hit hit)>();
+        for (int i = 0; i < foes.Count; i++)
+            plan.Add((foes[i], new ZChoreo.Hit { at = ctx.foes[i], index = i, delay = ZStrike.Delay(style, show, i, ctx) }));
+        plan.Sort((a, b) => a.hit.delay.CompareTo(b.hit.delay));
+        ZChoreo.Release(style, show, ctx, plan.Select(p => p.hit).ToList(), member, colour, scale);
+        if (hit.pull > 0f) // drawn in towards the hole before it bursts
         {
+            float time = Mathf.Max(0.25f, show.lead * 0.85f);
+            foreach (var (foe, _) in plan)
+            {
+                Vector2 toward = ctx.hole - (Vector2)foe.transform.position;
+                float distance = Mathf.Min(hit.pull, toward.magnitude - 0.8f);
+                if (distance > 0f) foe.Knockback(toward.normalized * distance / time, time);
+            }
+        }
+        float start = Time.time;
+        if (dodgeable)
+            foreach (var (foe, h) in plan) ZStrike.Expect(foe, start + h.delay, origin);
+        var fallback = EffectLibrary.Get(hit.effect) != null ? hit.effect : move.impactEffect;
+        foreach (var (foe, h) in plan)
+        {
+            float wait = start + h.delay - Time.time;
+            if (wait > 0f) yield return new WaitForSeconds(wait);
+            ZStrike.Reached(foe);
+            if (member == null) yield break;
             if (foe == null || !foe.IsAlive) continue;
             Vector2 at = foe.transform.position;
-            var sheet = EffectLibrary.Get(hit.effect) != null ? hit.effect : move.impactEffect;
-            EffectPlayer.Spawn(sheet, at, Vector2.right, null, 0f, 1.5f * scale);
-            float raw = member != null ? member.DamageOf(move) : 0f;
-            if (maxShare > 0f && member != null)
+            ZChoreo.Impact(style, show, ctx, h.index, at, member, fallback, colour, scale);
+            if (dodgeable && ZStrike.Dodged(foe.LastDodgeAt, Time.time, SpecialItems.Enemy.zDodgeWindow))
+            {
+                Shapes.Pulse(at, 0.7f, Color.white); // dodged: nothing else
+                DamageNumber.Damage(at, 0f, Efficacy.None);
+                continue;
+            }
+            float raw = member.DamageOf(move);
+            if (maxShare > 0f)
             {
                 float estimate = member.EstimateHit(move, foe);
                 if (estimate > foe.maxHp * maxShare) raw *= foe.maxHp * maxShare / estimate;
             }
-            if (member != null && foe.TakeHit(raw, move, out float dealt))
+            if (foe.TakeHit(raw, move, out float dealt))
             {
                 foe.ApplyEffects(move, true, member);
                 member.HitLanded(move, dealt);
                 Vector2 away = at - (Vector2)member.transform.position;
                 if (hit.knockback != 0f && away != Vector2.zero) foe.Knockback(away.normalized * hit.knockback / ZPushTime, ZPushTime);
                 foe.Stun(hit.stun);
+                if (hit.teleport && ZStrike.RandomSpotInView(foe, out var spot))
+                {
+                    ZChoreo.Impact(style, show, ctx, h.index, spot, member, fallback, colour, scale);
+                    foe.Warp(spot);
+                }
             }
             if (!string.IsNullOrEmpty(hit.terrain)) Terrain.PaintArea(hit.terrain, at, hit.terrainRadius * scale, hit.terrainDuration, member, spareTeam: true);
-            yield return new WaitForSeconds(ZCascade);
         }
         if (string.IsNullOrEmpty(hit.teamModStat) || member == null) yield break;
         foreach (var ally in Combatant.All)
@@ -361,7 +392,7 @@ public class Ultimates : MonoBehaviour
     {
         if (Run.Sandbox) Gauge = 1f;
         if (transforming != null) AnimateMega();
-        if (posing != null) FireZ();
+        if (posing != null && !ZCutScene.Playing) posing = null; // its scene cut short
         foreach (var (member, state) in active.ToList())
         {
             if (member == null)

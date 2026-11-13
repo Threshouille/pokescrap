@@ -20,7 +20,7 @@
     {"key": "trunk", "name": "Tronc", "solid": true, "hidden": true, "noCollider": true, "color": "#406030", "comment": "the tiles of a tree (map_props.json trunk): blocked to the AI paths, the collider is the trunk itself (IslandRun.PlaceProps)"},
     {"key": "cave_mechanism", "name": "Mécanisme", "solid": true, "hidden": true, "color": "#806040"},
     {"key": "boulder_big", "name": "Gros rocher", "solid": true, "romRocks": [{"tileset": 9, "cut": "core"}, {"tileset": 18}], "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#5a3a2a", "passTypes": [3], "passPokemonTypes": [14]},
-    {"key": "secret_rock", "name": "Rocher fissuré", "solid": true, "romRocks": [{"tileset": 9, "cut": "core"}, {"tileset": 18}], "spriteTint": "#b0a090", "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#5a4a40"},
+    {"key": "secret_rock", "name": "Rocher fissuré", "solid": true, "hidden": true, "comment": "dessiné par SecretStairs (planche secret_rock)", "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#5a4a40"},
     {"key": "boulder_cracked", "name": "Gros rocher fissuré", "solid": true, "romRocks": [{"tileset": 9, "cut": "core"}, {"tileset": 18}], "spriteTint": "#9a8a80", "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#4a3a32", "passTypes": [3], "passPokemonTypes": [14]},
     {"key": "rubble", "name": "Gravats", "speedMul": 0.7, "decaysTo": "", "decayTime": 6, "color": "#7a6a5a", "flatAlpha": 0.7, "easyTypes": [9, 13]},
     {"key": "pylon", "name": "Pylône", "solid": true, "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#3a3f4a", "passTypes": [3], "passPokemonTypes": [14]},

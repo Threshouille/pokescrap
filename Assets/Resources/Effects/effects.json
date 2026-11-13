@@ -6560,6 +6560,1280 @@
         "#6fdc6a",
         "#fff6a8"
       ]
+    },
+    {
+      "file": "entrance_stairs_down.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#100c14",
+        "#2a2030"
+      ],
+      "below": true
+    },
+    {
+      "file": "entrance_stairs_up.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#2a2030",
+        "#f0c030",
+        "#fff0a0",
+        "#ffffff"
+      ],
+      "below": true
+    },
+    {
+      "file": "entrance_stairs_locked.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#100c14",
+        "#2a2030"
+      ],
+      "below": true
+    },
+    {
+      "file": "entrance_glow.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true,
+      "palette": [
+        "#f0c030",
+        "#fff0a0",
+        "#ffffff"
+      ],
+      "below": true
+    },
+    {
+      "file": "entrance_reveal.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#8a7a64",
+        "#c0b090",
+        "#e8dcc4",
+        "#fff0a0",
+        "#ffffff"
+      ],
+      "below": true
+    },
+    {
+      "file": "entrance_enter.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#fff0a0",
+        "#ffffff"
+      ],
+      "below": true
+    },
+    {
+      "file": "entrance_icons.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#2a2030",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#a07010",
+        "#f0c030",
+        "#fff0a0",
+        "#0a6a72",
+        "#1ec8c8",
+        "#a0fff0",
+        "#4a2a6a",
+        "#8a5ac8",
+        "#d0b0ff"
+      ]
+    },
+    {
+      "file": "entrance_bubble.png",
+      "frame_width": 20,
+      "frame_height": 22,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        160,
+        160,
+        160,
+        160
+      ],
+      "loop": true,
+      "palette": [
+        "#2a2030",
+        "#e8dcc4",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "entrance_shadow.png",
+      "frame_width": 48,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#000000"
+      ],
+      "below": true
+    },
+    {
+      "file": "secret_clearing.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#4a2c18",
+        "#7a4a28",
+        "#a87040",
+        "#3a2414",
+        "#5a3a20",
+        "#8a5a30",
+        "#3a6a2a",
+        "#6a9a3a",
+        "#9ac858",
+        "#902820",
+        "#c03828",
+        "#e05838",
+        "#e8dcc4",
+        "#100c14",
+        "#2a2030",
+        "#2a1810"
+      ],
+      "below": true
+    },
+    {
+      "file": "secret_clearing_hidden.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#8a4a20",
+        "#c07030",
+        "#e0a050",
+        "#a85a28",
+        "#3a6a2a",
+        "#6a9a3a",
+        "#9ac858",
+        "#902820",
+        "#c03828",
+        "#e05838",
+        "#e8dcc4",
+        "#2a1810"
+      ],
+      "below": true
+    },
+    {
+      "file": "secret_rock.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#2a1c14",
+        "#5a4030",
+        "#7a5838",
+        "#a8805a",
+        "#c8a478",
+        "#a07010",
+        "#f0c030",
+        "#2a1810"
+      ]
+    },
+    {
+      "file": "secret_rock_break.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#2a1c14",
+        "#5a4030",
+        "#7a5838",
+        "#a8805a",
+        "#c8a478",
+        "#8a7a64",
+        "#c0b090",
+        "#e8dcc4",
+        "#fff0a0",
+        "#2a1810"
+      ]
+    },
+    {
+      "file": "entrance_rim_biomes.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#141014",
+        "#22304e",
+        "#2a1c14",
+        "#2e262c",
+        "#2e2c22",
+        "#30323a",
+        "#4a2c14",
+        "#4a3e44",
+        "#4a6a9c",
+        "#5a4030",
+        "#5a5a44",
+        "#5a5e66",
+        "#6e6066",
+        "#7a4a24",
+        "#8a8a6c",
+        "#8a9098",
+        "#8eb0dc",
+        "#a8805a",
+        "#b07840",
+        "#b8b496",
+        "#bec4ca",
+        "#c8a478",
+        "#e0b070",
+        "#e8f0ff",
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#100c14",
+        "#2a2030"
+      ],
+      "below": true
+    },
+    {
+      "file": "key_dungeon.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 3,
+      "frame_duration_ms": [
+        0,
+        0,
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#2a2a3a",
+        "#3a3836",
+        "#4a2c14",
+        "#4a4a64",
+        "#6a6560",
+        "#7a4a24",
+        "#9a948c",
+        "#a0b0d0",
+        "#b07840",
+        "#c8c0b4",
+        "#e0b070",
+        "#e8f0ff",
+        "#3a6a2a",
+        "#6a9a3a",
+        "#100c14",
+        "#2a2030",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "key_dungeon_glow.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#a07010",
+        "#f0c030",
+        "#fff0a0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "quarter_gate.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#2a2030"
+      ]
+    },
+    {
+      "file": "quarter_gate_open.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "loop": true,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#2a2030",
+        "#0a6a72",
+        "#1ec8c8",
+        "#a0fff0",
+        "#f0c030",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "quarter_gate_opening.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#2a2030",
+        "#0a6a72",
+        "#1ec8c8",
+        "#a0fff0",
+        "#f0c030",
+        "#fff0a0",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "quarter_gate_refuse.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false,
+      "palette": [
+        "#3a3836",
+        "#6a6560",
+        "#9a948c",
+        "#c8c0b4",
+        "#2a2030",
+        "#ffffff"
+      ]
+    },
+    {
+      "file": "rampart_gate.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_opening.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_open.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true
+    },
+    {
+      "file": "rampart_gate_back.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_back_opening.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_back_open.png",
+      "frame_width": 72,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true
+    },
+    {
+      "file": "rampart_gate_side.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_side_opening.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "rampart_gate_side_open.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "loop": true
+    },
+    {
+      "file": "rampart_face_lit.png",
+      "frame_width": 72,
+      "frame_height": 24,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "gear_dolmen.png",
+      "frame_width": 48,
+      "frame_height": 72,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_insert.png",
+      "frame_width": 48,
+      "frame_height": 72,
+      "frame_count": 10,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_active.png",
+      "frame_width": 48,
+      "frame_height": 72,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "gear_dolmen_quad.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_quad_slot.png",
+      "frame_width": 24,
+      "frame_height": 24,
+      "frame_count": 8,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "gear_dolmen_quad_active.png",
+      "frame_width": 72,
+      "frame_height": 72,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_normal_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_normal_streak.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_fire_sun.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_fire_meteor.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_fire_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_water_wave.png",
+      "frame_width": 32,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_water_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_grass_vine.png",
+      "frame_width": 24,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_grass_petal.png",
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_grass_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_electric_bolt.png",
+      "frame_width": 32,
+      "frame_height": 128,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_electric_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ice_spike.png",
+      "frame_width": 24,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ice_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_fight_fist.png",
+      "frame_width": 40,
+      "frame_height": 40,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_poison_drop.png",
+      "frame_width": 16,
+      "frame_height": 12,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_poison_puddle.png",
+      "frame_width": 48,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_poison_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ground_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_flying_dive.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_flying_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_psychic_field.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_psychic_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_bug_web.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        160,
+        160
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_bug_bind.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_bug_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_rock_boulder.png",
+      "frame_width": 40,
+      "frame_height": 40,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_rock_rest.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        500
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_rock_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ghost_hand.png",
+      "frame_width": 24,
+      "frame_height": 40,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ghost_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_dragon_head.png",
+      "frame_width": 40,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_dragon_scale.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_dragon_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_dark_hole.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_dark_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_steel_drill.png",
+      "frame_width": 40,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_steel_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
     }
   ]
 }

@@ -414,6 +414,7 @@ public class PlayerController : MonoBehaviour
             member.combatant.Arrive(); // Drought…: the weather of the new arena
         }
         SetControlled(current);
+        CameraFollow.Cut(); // a new arena: no slide from where the camera was
     }
 
     // The gauge fills while a living team member (the controlled one, or an ally: TeamRescue) stays on a knocked-out

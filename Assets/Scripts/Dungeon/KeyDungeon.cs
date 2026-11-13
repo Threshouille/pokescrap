@@ -30,10 +30,19 @@ public class KeyDungeon : IslandStairs
         return t.x >= 0 && t.y >= 0 && t.x < Plan.size && t.y < Plan.size && Quarter.cave.Contains(Plan.Index(t.x, t.y));
     }
 
-    // Otherwise a rift on the ground (story art).
-    protected override Sprite[] Frames => RomArt.Frames("GroundObjects/rift_frames", 4);
-    protected override float FramesScale => 0.8f;
-    protected override float FrameTime => 6f / 60f;
+    // Otherwise a stone dolmen over stairs going down, a key carved on it, of the stone of its ground; its runes glow.
+    protected override EntranceArt.Icon Icon => EntranceArt.Icon.Key;
+    protected override float BubbleHeight => EntranceArt.Data.gateBubbleHeight;
+    protected override GameObject MakeEntrance(Vector2 at)
+    {
+        var go = new GameObject(StairsName);
+        go.transform.position = at;
+        var foot = new Vector2(0f, -0.5f); // its foot at the bottom of its tile, its stairs on the tile
+        EntranceSprite.Make(go.transform, foot, EntranceArt.Foot, EntranceArt.StandOrder).Still("key_dungeon", EntranceArt.KeyMaterialOf(BiomeKey));
+        // The runes a hair lower: drawn over the dolmen (sorted by the foot), never level with it.
+        EntranceSprite.Make(go.transform, foot - new Vector2(0f, 0.01f), EntranceArt.Foot, EntranceArt.StandOrder, unlit: true).Play("key_dungeon_glow");
+        return go;
+    }
 
     protected override RoomContent Stored(int room) => Quarter != null && room < Quarter.rooms.Length - 1 ? Quarter.rooms[room] : null;
     protected override void Store(int room, RoomContent content) { if (Quarter != null && room < Quarter.rooms.Length - 1) Quarter.rooms[room] = content; }

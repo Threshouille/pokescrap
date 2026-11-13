@@ -19,8 +19,13 @@ public partial class IslandPlan
         public Vector2Int a, b;
     }
 
-    /// Quarter to quarter in opening order (order[k] to order[k + 1]), then the last quarter to the centre.
+    /// Quarter to quarter all the way round (order[k] to order[k + 1], and the last back to the first), then each of
+    /// the two quarters next to the first to the centre: the player picks the way round (TimeGears.Open), the one
+    /// left for last leads to the centre (Active).
     public readonly List<Passage> passages = new();
+
+    /// Whether a passage is in play: those to the centre only from the last quarter of the order.
+    public bool Active(Passage p) => (p.to != Centre && p.from != Centre) || p.from == order[3] || p.to == order[3];
 
     /// Where the team arrives in a zone: the landing point in the first quarter, else the end of the passage from
     /// the zone before.
@@ -28,7 +33,7 @@ public partial class IslandPlan
     {
         if (zone == order[0]) return start;
         foreach (var p in passages)
-            if (p.to == zone) return p.b;
+            if (p.to == zone && Active(p)) return p.b;
         return start;
     }
 
@@ -79,15 +84,15 @@ public partial class IslandPlan
     void Clear(Vector2Int p) =>
         Stamp(p, 2.2f, i => { if (region[i] == region[Index(p.x, p.y)]) { wall[i] = false; obstacle[i] = null; } });
 
-    // Each pair of quarters that open one after the other: where their barrier is halfway to the coast, the nearest
-    // tile on each side. The last quarter: the tiles facing each other across the void around the centre, in the
-    // middle of its arc.
+    // Each pair of quarters side by side: where their barrier is halfway to the coast, the nearest tile on each side.
+    // The two quarters next to the first (either may come last): the tiles facing each other across the void around
+    // the centre, in the middle of its arc.
     void Passages()
     {
         float c = size / 2f;
-        for (int k = 0; k < 3; k++)
+        for (int k = 0; k < 4; k++)
         {
-            int a = order[k], b = order[k + 1];
+            int a = order[k], b = order[(k + 1) % 4];
             Vector2Int best = default;
             float bestScore = float.MaxValue;
             for (int y = 0; y < size; y++)
@@ -103,14 +108,16 @@ public partial class IslandPlan
             var nb = Nearest(best, b, 14);
             if (na != null && nb != null) passages.Add(new Passage { from = a, to = b, a = Inward(na.Value, a), b = Inward(nb.Value, b) });
         }
-        int last = order[3];
-        float angle = (rotation + last * 90f + 45f) * Mathf.Deg2Rad;
-        var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-        float rim = settings.centreRatio * settings.radius + settings.moat;
-        var toCentre = Nearest(Vector2Int.RoundToInt(new Vector2(c, c) + dir * (rim - settings.moat - 3f)), Centre, 30);
-        var fromLast = Nearest(Vector2Int.RoundToInt(new Vector2(c, c) + dir * (rim + 3f)), last, 30);
-        if (toCentre != null && fromLast != null)
-            passages.Add(new Passage { from = last, to = Centre, a = Inward(fromLast.Value, last), b = Inward(toCentre.Value, Centre) });
+        foreach (int last in new[] { order[3], order[1] })
+        {
+            float angle = (rotation + last * 90f + 45f) * Mathf.Deg2Rad;
+            var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            float rim = settings.centreRatio * settings.radius + settings.moat;
+            var toCentre = Nearest(Vector2Int.RoundToInt(new Vector2(c, c) + dir * (rim - settings.moat - 3f)), Centre, 30);
+            var fromLast = Nearest(Vector2Int.RoundToInt(new Vector2(c, c) + dir * (rim + 3f)), last, 30);
+            if (toCentre != null && fromLast != null)
+                passages.Add(new Passage { from = last, to = Centre, a = Inward(fromLast.Value, last), b = Inward(toCentre.Value, Centre) });
+        }
     }
 
     // A few tiles further into the zone than a tile on its edge, so the passage end has room around it.

@@ -21,6 +21,7 @@ public class BossPortal : IslandStairs
     protected override Color Colour => new(0.75f, 0.5f, 1f);
     protected override SecretRooms.Room Room => new() { type = TimeGears.BossRoomType };
     protected override string Kind => "boss";
+    protected override EntranceArt.Icon Icon => EntranceArt.Icon.Boss;
 
     protected override bool Locked(out string why)
     {

@@ -1,0 +1,499 @@
+{
+  "entrance_stairs_down": {
+    "file": "entrance_stairs_down.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#100c14",
+      "#2a2030"
+    ],
+    "below": true
+  },
+  "entrance_stairs_up": {
+    "file": "entrance_stairs_up.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#2a2030",
+      "#f0c030",
+      "#fff0a0",
+      "#ffffff"
+    ],
+    "below": true
+  },
+  "entrance_stairs_locked": {
+    "file": "entrance_stairs_locked.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#100c14",
+      "#2a2030"
+    ],
+    "below": true
+  },
+  "entrance_glow": {
+    "file": "entrance_glow.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 8,
+    "frame_duration_ms": [
+      110,
+      110,
+      110,
+      110,
+      110,
+      110,
+      110,
+      110
+    ],
+    "loop": true,
+    "palette": [
+      "#f0c030",
+      "#fff0a0",
+      "#ffffff"
+    ],
+    "below": true
+  },
+  "entrance_reveal": {
+    "file": "entrance_reveal.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 8,
+    "frame_duration_ms": [
+      70,
+      70,
+      70,
+      70,
+      70,
+      70,
+      70,
+      70
+    ],
+    "loop": false,
+    "palette": [
+      "#8a7a64",
+      "#c0b090",
+      "#e8dcc4",
+      "#fff0a0",
+      "#ffffff"
+    ],
+    "below": true
+  },
+  "entrance_enter": {
+    "file": "entrance_enter.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 6,
+    "frame_duration_ms": [
+      60,
+      60,
+      60,
+      60,
+      60,
+      60
+    ],
+    "loop": false,
+    "palette": [
+      "#fff0a0",
+      "#ffffff"
+    ],
+    "below": true
+  },
+  "entrance_icons": {
+    "file": "entrance_icons.png",
+    "frame_width": 16,
+    "frame_height": 16,
+    "frame_count": 8,
+    "frame_duration_ms": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#2a2030",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#a07010",
+      "#f0c030",
+      "#fff0a0",
+      "#0a6a72",
+      "#1ec8c8",
+      "#a0fff0",
+      "#4a2a6a",
+      "#8a5ac8",
+      "#d0b0ff"
+    ]
+  },
+  "entrance_bubble": {
+    "file": "entrance_bubble.png",
+    "frame_width": 20,
+    "frame_height": 22,
+    "frame_count": 4,
+    "frame_duration_ms": [
+      160,
+      160,
+      160,
+      160
+    ],
+    "loop": true,
+    "palette": [
+      "#2a2030",
+      "#e8dcc4",
+      "#ffffff"
+    ]
+  },
+  "entrance_shadow": {
+    "file": "entrance_shadow.png",
+    "frame_width": 48,
+    "frame_height": 24,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#000000"
+    ],
+    "below": true
+  },
+  "secret_clearing": {
+    "file": "secret_clearing.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#4a2c18",
+      "#7a4a28",
+      "#a87040",
+      "#3a2414",
+      "#5a3a20",
+      "#8a5a30",
+      "#3a6a2a",
+      "#6a9a3a",
+      "#9ac858",
+      "#902820",
+      "#c03828",
+      "#e05838",
+      "#e8dcc4",
+      "#100c14",
+      "#2a2030",
+      "#2a1810"
+    ],
+    "below": true
+  },
+  "secret_clearing_hidden": {
+    "file": "secret_clearing_hidden.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#8a4a20",
+      "#c07030",
+      "#e0a050",
+      "#a85a28",
+      "#3a6a2a",
+      "#6a9a3a",
+      "#9ac858",
+      "#902820",
+      "#c03828",
+      "#e05838",
+      "#e8dcc4",
+      "#2a1810"
+    ],
+    "below": true
+  },
+  "secret_rock": {
+    "file": "secret_rock.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 3,
+    "frame_duration_ms": [
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#2a1c14",
+      "#5a4030",
+      "#7a5838",
+      "#a8805a",
+      "#c8a478",
+      "#a07010",
+      "#f0c030",
+      "#2a1810"
+    ]
+  },
+  "secret_rock_break": {
+    "file": "secret_rock_break.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 7,
+    "frame_duration_ms": [
+      60,
+      60,
+      60,
+      60,
+      60,
+      60,
+      60
+    ],
+    "loop": false,
+    "palette": [
+      "#2a1c14",
+      "#5a4030",
+      "#7a5838",
+      "#a8805a",
+      "#c8a478",
+      "#8a7a64",
+      "#c0b090",
+      "#e8dcc4",
+      "#fff0a0",
+      "#2a1810"
+    ]
+  },
+  "entrance_rim_biomes": {
+    "file": "entrance_rim_biomes.png",
+    "frame_width": 48,
+    "frame_height": 48,
+    "frame_count": 6,
+    "frame_duration_ms": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#141014",
+      "#22304e",
+      "#2a1c14",
+      "#2e262c",
+      "#2e2c22",
+      "#30323a",
+      "#4a2c14",
+      "#4a3e44",
+      "#4a6a9c",
+      "#5a4030",
+      "#5a5a44",
+      "#5a5e66",
+      "#6e6066",
+      "#7a4a24",
+      "#8a8a6c",
+      "#8a9098",
+      "#8eb0dc",
+      "#a8805a",
+      "#b07840",
+      "#b8b496",
+      "#bec4ca",
+      "#c8a478",
+      "#e0b070",
+      "#e8f0ff",
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#100c14",
+      "#2a2030"
+    ],
+    "below": true
+  },
+  "key_dungeon": {
+    "file": "key_dungeon.png",
+    "frame_width": 72,
+    "frame_height": 72,
+    "frame_count": 3,
+    "frame_duration_ms": [
+      0,
+      0,
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#2a2a3a",
+      "#3a3836",
+      "#4a2c14",
+      "#4a4a64",
+      "#6a6560",
+      "#7a4a24",
+      "#9a948c",
+      "#a0b0d0",
+      "#b07840",
+      "#c8c0b4",
+      "#e0b070",
+      "#e8f0ff",
+      "#3a6a2a",
+      "#6a9a3a",
+      "#100c14",
+      "#2a2030",
+      "#ffffff"
+    ]
+  },
+  "key_dungeon_glow": {
+    "file": "key_dungeon_glow.png",
+    "frame_width": 72,
+    "frame_height": 72,
+    "frame_count": 8,
+    "frame_duration_ms": [
+      120,
+      120,
+      120,
+      120,
+      120,
+      120,
+      120,
+      120
+    ],
+    "loop": true,
+    "palette": [
+      "#a07010",
+      "#f0c030",
+      "#fff0a0",
+      "#ffffff"
+    ]
+  },
+  "quarter_gate": {
+    "file": "quarter_gate.png",
+    "frame_width": 72,
+    "frame_height": 72,
+    "frame_count": 1,
+    "frame_duration_ms": [
+      0
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#2a2030"
+    ]
+  },
+  "quarter_gate_open": {
+    "file": "quarter_gate_open.png",
+    "frame_width": 72,
+    "frame_height": 72,
+    "frame_count": 8,
+    "frame_duration_ms": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100
+    ],
+    "loop": true,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#2a2030",
+      "#0a6a72",
+      "#1ec8c8",
+      "#a0fff0",
+      "#f0c030",
+      "#ffffff"
+    ]
+  },
+  "quarter_gate_opening": {
+    "file": "quarter_gate_opening.png",
+    "frame_width": 72,
+    "frame_height": 72,
+    "frame_count": 10,
+    "frame_duration_ms": [
+      80,
+      80,
+      80,
+      80,
+      80,
+      80,
+      80,
+      80,
+      80,
+      80
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#2a2030",
+      "#0a6a72",
+      "#1ec8c8",
+      "#a0fff0",
+      "#f0c030",
+      "#fff0a0",
+      "#ffffff"
+    ]
+  },
+  "quarter_gate_refuse": {
+    "file": "quarter_gate_refuse.png",
+    "frame_width": 72,
+    "frame_height": 72,
+    "frame_count": 5,
+    "frame_duration_ms": [
+      70,
+      70,
+      70,
+      70,
+      70
+    ],
+    "loop": false,
+    "palette": [
+      "#3a3836",
+      "#6a6560",
+      "#9a948c",
+      "#c8c0b4",
+      "#2a2030",
+      "#ffffff"
+    ]
+  }
+}

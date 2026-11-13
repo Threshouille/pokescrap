@@ -1,0 +1,24 @@
+{
+  "comment": "Entrées des donjons (EntranceArt.cs, GDD « Entrées des donjons » ; planches entrance_*, secret_*, key_dungeon*, quarter_gate* de Resources/Effects, originaux Design/effects_v21_entrees/). rims : bordure d'escalier par sol, index dans entrance_rim_biomes (0 herbe, 1 sable, 2 roche brune, 3 volcan, 4 glace, 5 ruines) ; byBiome : sous-biome ou thème (biomes.json, quart de test) → sol ; defaultRim : sans biome connu. keyMaterials : matière du dolmen du donjon de la clé, index dans key_dungeon (0 pierre moussue, 1 grès, 2 roche givrée) par sol. bubbleHeight : cases au-dessus du pied d'une entrée pour sa bulle (gateBubbleHeight : portes et dolmen) ; bubble montrée une fois la case découverte sur la mini-carte. clearingReveal : cases du Pokémon joué à la cachette de clairière pour qu'elle s'ouvre. mapIcon : taille d'une icône sur la mini-carte (px à l'échelle 1). rampart : les cases hors de la zone jouée de l'île sont du rempart (RampartTiles, planches rampart_* de Design/effects_v22_remparts/), sinon les murs des décors ; les passages entre zones prennent la porte du rempart (de face, de dos ou de côté selon où est le rempart) et un dolmen à engrenage (4 logements vers le centre) ; rampartDepth : cases de rempart posées autour d'une zone. Ouverture d'une porte : le Pokémon joué arrive à gateReach cases du dolmen avec l'engrenage, l'engrenage vole jusqu'au logement en gateFlyTime s (tout le monde figé, caméra sur la porte), les veines du rempart s'allument jusqu'à veinRadius cases de la porte (veinStep s de plus par case), puis les battants s'ouvrent ; sans l'engrenage, refus au dolmen.",
+  "rampart": true,
+  "rampartDepth": 12,
+  "gateReach": 2.5,
+  "gateFlyTime": 0.8,
+  "veinRadius": 8,
+  "veinStep": 0.05,
+  "rims": { "grass": 0, "sand": 1, "rock": 2, "volcano": 3, "ice": 4, "ruins": 5 },
+  "byBiome": {
+    "meadow": "grass", "jungle": "grass", "forest": "grass", "woods": "grass", "deep": "grass", "highwood": "grass",
+    "desert": "sand", "dunes": "sand", "oasis": "sand", "canyon": "sand", "quicksand": "sand",
+    "coast": "sand", "beach": "sand", "lagoon": "sand", "cliffs": "rock", "caves": "rock",
+    "volcano": "volcano", "basalt": "volcano", "ash": "volcano", "magma_caves": "volcano", "flows": "volcano", "crater": "volcano",
+    "glacier": "ice", "tundra": "ice", "frozen_forest": "ice", "ice_fields": "ice", "summit": "ice",
+    "ruins": "ruins", "outskirts": "ruins", "halls": "ruins", "overgrown": "ruins", "temple": "ruins"
+  },
+  "defaultRim": "grass",
+  "keyMaterials": { "grass": 0, "sand": 1, "ruins": 1, "rock": 2, "volcano": 2, "ice": 2 },
+  "bubbleHeight": 1.6,
+  "gateBubbleHeight": 3.4,
+  "clearingReveal": 2.5,
+  "mapIcon": 9
+}

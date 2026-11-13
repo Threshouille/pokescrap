@@ -95,6 +95,12 @@ public class DungeonGenerator : MonoBehaviour
         var plan = island;
         int zone = islandZone >= 0 ? islandZone : plan.order[0];
         var box = plan.ZoneBounds(zone);
+        if (EntranceArt.Data.rampart)
+        {
+            // Enough rampart around the zone to hide what lies beyond it on screen.
+            int grow = EntranceArt.Data.rampartDepth, minX = Mathf.Max(0, box.xMin - grow), minY = Mathf.Max(0, box.yMin - grow);
+            box = new RectInt(minX, minY, Mathf.Min(plan.size, box.xMax + grow) - minX, Mathf.Min(plan.size, box.yMax + grow) - minY);
+        }
         int n = Mathf.Max(box.width, box.height); // the zone in a square of n × n island tiles
         IslandOrigin = box.min;
         width = height = n;
@@ -102,6 +108,8 @@ public class DungeonGenerator : MonoBehaviour
         open = new bool[size, size];
         cellDecor = new DungeonTileset[size * size];
         skyWall = new bool[size * size];
+        // The other zones, the barriers and the void around the centre: the rampart, when its sheets are there.
+        rampart = EntranceArt.Data.rampart && RampartTiles.Ready ? new bool[size * size] : null;
         wallLook = plan.wallLook != null ? new bool[size * size] : null;
         cellShade = plan.height != null ? new float[size * size] : null;
         if (plan.height != null)
@@ -167,6 +175,7 @@ public class DungeonGenerator : MonoBehaviour
                 }
                 cellDecor[g] = nearest[k];
                 open[gx, gy] = r == zone && (zone == IslandPlan.Centre || !plan.wall[PlanIndex(x, y)]);
+                if (rampart != null && r != zone) rampart[g] = true;
                 if (r == zone && wallLook != null) wallLook[g] = plan.wallLook[PlanIndex(x, y)];
                 if (r == zone && plan.cliffStyle != null) LayCliff(plan, PlanIndex(x, y), x, y, gx, gy);
                 if (r == zone && cellHeight != null) cellHeight[g] = plan.height[PlanIndex(x, y)];
@@ -184,6 +193,11 @@ public class DungeonGenerator : MonoBehaviour
                     if (nx >= 0 && ny >= 0 && nx < size && ny < size && !open[nx, ny] && cellDecor[ny * size + nx] == null) skyWall[ny * size + nx] = true;
                 }
             }
+        if (rampart != null)
+        {
+            StraightenAtPassages(plan, zone, box);
+            MeasureRampart();
+        }
         var arrival = (islandArrival ?? plan.Arrival(zone)) - box.min;
         tileset = nearest[Mathf.Clamp(arrival.y, 0, n - 1) * n + Mathf.Clamp(arrival.x, 0, n - 1)] ?? tileset;
         tiles.Clear();
@@ -302,6 +316,122 @@ public class DungeonGenerator : MonoBehaviour
     static readonly Dictionary<(string style, string role), Sprite[]> cliffSprites = new();
     readonly Dictionary<(Sprite, bool), Tile> cliffTileCache = new();
     bool[] skyWall; // island: sky tiles next to land, an invisible wall (nothing drawn, a collider)
+    bool[] rampart; // island: tiles of the rampart hiding the other zones (RampartTiles), may be null
+    byte[] rampartDist; // per rampart tile: tiles to the nearest one that is not (8 neighbours), up to 255
+
+    /// A tile of the rampart (an island's other zones, EntranceArt.Settings.rampart).
+    public bool IsRampart(Vector2Int c) => rampart != null && Interior.Contains(c) && rampart[c.y * size + c.x];
+
+    /// The face of the rampart on a tile: -1 none, 0 left end, 1 middle, 2 right end, 3 alone (RampartTiles.Face).
+    public int RampartFaceAt(Vector2Int c)
+    {
+        if (rampart == null || !RampartFace(c.x, c.y)) return -1;
+        bool left = RampartFace(c.x - 1, c.y), right = RampartFace(c.x + 1, c.y);
+        return left && right ? 1 : left ? 2 : right ? 0 : 3;
+    }
+
+    // Outside the zone's square counts as rampart too (nothing is drawn there).
+    bool RampartOrOut(int x, int y) => !Interior.Contains(new Vector2Int(x, y)) || rampart[y * size + x];
+
+    // A face: a rampart tile above a tile of land that is not (the face of one tile, seen from the south).
+    bool RampartFace(int x, int y) => Interior.Contains(new Vector2Int(x, y)) && rampart[y * size + x]
+        && Interior.Contains(new Vector2Int(x, y - 1)) && !rampart[(y - 1) * size + x] && cellDecor[(y - 1) * size + x] != null;
+
+    public const int RampartReach = 5; // tiles from a passage end to the rampart its gate is drawn in
+
+    /// The nearest rampart in a straight line from a tile (up to RampartReach tiles), looked for to the north, the
+    /// south, the east, then the west: its direction and how many tiles away; false when there is none.
+    public bool RampartWay(Vector2Int cell, out Vector2Int dir, out int distance)
+    {
+        foreach (int k in System.Linq.Enumerable.Range(1, RampartReach))
+            foreach (var w in new[] { Vector2Int.up, Vector2Int.down, Vector2Int.right, Vector2Int.left })
+                if (IsRampart(cell + w * k)) { dir = w; distance = k; return true; }
+        dir = Vector2Int.zero;
+        distance = 0;
+        return false;
+    }
+
+    // Around each passage end of the zone, the rampart made straight (GDD: the border straightened around a gate):
+    // nine tiles wide (five along a side), open ground up to it, then two tiles of rampart, so that its gate and
+    // its dolmen (QuarterGate) fit.
+    void StraightenAtPassages(IslandPlan plan, int zone, RectInt box)
+    {
+        var origin = Interior.min;
+        foreach (var p in plan.passages)
+        {
+            if ((p.from != zone && p.to != zone) || !plan.Active(p)) continue;
+            var end = (p.from == zone ? p.a : p.b) - box.min + origin;
+            if (!RampartWay(end, out var dir, out int k)) continue;
+            var side = new Vector2Int(dir.y, dir.x); // along the rampart
+            int half = dir.y != 0 ? 4 : 2; // a gate in a face or an edge is 3 tiles wide and its dolmen beside; in a side 2 tall
+            int g0 = end.y * size + end.x;
+            for (int s = -half; s <= half; s++)
+                for (int d = 0; d <= k + 1; d++)
+                {
+                    var c = end + side * s + dir * d;
+                    if (!Interior.Contains(c)) continue;
+                    int g = c.y * size + c.x;
+                    if (d >= k)
+                    {
+                        rampart[g] = true;
+                        open[c.x, c.y] = false;
+                    }
+                    else if (rampart[g])
+                    {
+                        // Ground at the passage end's level.
+                        rampart[g] = false;
+                        open[c.x, c.y] = true;
+                        cellDecor[g] ??= cellDecor[g0];
+                        if (cellHeight != null) cellHeight[g] = cellHeight[g0];
+                        if (cellShade != null) cellShade[g] = cellShade[g0];
+                    }
+                }
+        }
+    }
+
+    // How far each rampart tile is from the zone: the top near it in slabs, the fill beyond.
+    void MeasureRampart()
+    {
+        rampartDist = new byte[size * size];
+        var queue = new Queue<int>();
+        var inside = Interior;
+        for (int y = inside.yMin; y < inside.yMax; y++)
+            for (int x = inside.xMin; x < inside.xMax; x++)
+            {
+                int g = y * size + x;
+                if (rampart[g]) rampartDist[g] = 255;
+                else queue.Enqueue(g);
+            }
+        while (queue.Count > 0)
+        {
+            int c = queue.Dequeue();
+            int cx = c % size, cy = c / size;
+            foreach (var d in Neighbours)
+            {
+                int x = cx + d.x, y = cy + d.y;
+                if (!inside.Contains(new Vector2Int(x, y))) continue;
+                int g = y * size + x;
+                if (!rampart[g] || rampartDist[g] <= rampartDist[c] + 1) continue;
+                rampartDist[g] = (byte)Mathf.Min(254, rampartDist[c] + 1);
+                queue.Enqueue(g);
+            }
+        }
+    }
+
+    TileBase RampartTile(int x, int y)
+    {
+        if (RampartFace(x, y))
+        {
+            bool left = RampartFace(x - 1, y), right = RampartFace(x + 1, y);
+            return RampartTiles.FaceTile(left && right ? RampartTiles.Face.Middle : left ? RampartTiles.Face.Right
+                : right ? RampartTiles.Face.Left : RampartTiles.Face.Alone);
+        }
+        if (rampartDist[y * size + x] >= RampartTiles.FillFrom) return RampartTiles.Fill(x, y);
+        int mask = 0;
+        foreach (var d in Neighbours)
+            if (RampartOrOut(x + d.x, y + d.y)) mask |= RampartTiles.Bit(d.x, d.y);
+        return RampartTiles.Top(mask);
+    }
     Tile invisibleWall;
 
     void Start()
@@ -325,6 +455,7 @@ public class DungeonGenerator : MonoBehaviour
         var rng = new System.Random(s != 0 ? s : System.Environment.TickCount);
         cellDecor = null;
         skyWall = null;
+        rampart = null;
         wallLook = null;
         cellShade = null;
         cliffTiles = null;
@@ -455,6 +586,12 @@ public class DungeonGenerator : MonoBehaviour
                         wallCells.Add(new Vector3Int(x, y, 0));
                         wallTiles.Add(InvisibleWall());
                     }
+                    continue;
+                }
+                if (rampart != null && rampart[y * size + x])
+                {
+                    wallCells.Add(new Vector3Int(x, y, 0));
+                    wallTiles.Add(RampartTile(x, y));
                     continue;
                 }
                 int variation = rng.Next(8) == 0 ? rng.Next(1, 3) : 0;

@@ -69,6 +69,30 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   flaque ; Acier : bonus de défense à l'équipe ; détail dans `items.json`). Persos de dev : Dev Mew a un cristal Z Feu,
   Dev Métamorph un Téra-Éclat Spectre. Téracristal : le Pokémon prend le type de l'éclat pendant 40 à 60 s selon le niveau (défense,
   terrains, immunités ; attaques de ce type renforcées).
+  Mise en scène de la capacité Z (décidé le 12/11/2026, Robin) : effet de jeu inchangé (tous les ennemis
+  visibles), refonte graphique pour la rendre imposante. D'abord une cinématique comme pour la méga et la Téra : arrêt sur
+  image, voile sombre sauf le lanceur, cristal au-dessus de sa tête et anneaux de la couleur du type qui convergent, bandes
+  noires, puis grand titre (« CAPACITÉ Z », nom de l'attaque, nom du Pokémon). Ensuite une frappe mise en scène selon le type
+  (chute du ciel, éclair, onde, vague qui balaie l'écran, implosion, tir vers chaque cible, jaillissement du sol), et chaque
+  ennemi est frappé au moment où l'effet l'atteint. Une capacité Z ennemie (élite, boss) n'a pas de cinématique (revu le
+  12/11/2026 : elle cassait le rythme) : avertissement d'une seconde (cristal et anneaux sur l'ennemi, bandeau rouge), le
+  combat continue, et sa frappe s'esquive : une esquive juste avant que l'effet n'atteigne le Pokémon l'épargne ; les
+  alliés IA esquivent au bon moment (pas toujours).
+  Les alliés laissés à l'IA ne lancent toujours pas d'ultime. Visuels : planches d'attaques existantes, teintées et agrandies,
+  remplacées au cas par cas si besoin. Robin prépare une autre proposition sur les Z (à venir).
+  Une mise en scène unique par type (décidé le 12/11/2026, Robin) : Normal, le lanceur trace un Z géant sur l'écran ; Feu,
+  un soleil se forme puis lance des météores (cratères de braises) ; Eau, raz-de-marée ; Plante, lianes sous chaque ennemi
+  et tempête de pétales ; Électrik, éclairs ramifiés et arcs entre ennemis proches ; Glace, le sol gèle puis des pics
+  sortent ; Combat, images rémanentes qui frappent en rafale ; Poison, pluie acide et flaques ; Sol, failles jusqu'à chaque
+  ennemi puis éclats de roche ; Vol, envol puis piqués ; Psy, champ qui s'étend comme celui de Méga-Mewtwo Y ; Insecte,
+  toile géante tissée sur l'écran, fils qui ligotent puis éclatent en aiguilles ; Roche, rochers qui tombent et restent un
+  moment ; Spectre, mains d'ombre ; Dragon, dragon d'énergie qui serpente d'un ennemi à l'autre ; Ténèbres, trou noir qui
+  aspire puis explose ; Acier, vrilles qui forent jusqu'à chaque ennemi. Fabrication : mouvement et particules par code,
+  éléments clés en planches Claude Design (la règle « pas de Claude Design pour les Z » est levée).
+  Retours de Robin (12/11/2026) : Feu, les météores tombent du ciel (hors champ) ; Ténèbres, le trou noir attire les
+  ennemis avant d'exploser ; Psy, chaque ennemi touché par le champ est téléporté sur une case au hasard de l'écran, obstacles dangereux compris
+  (eau, lave, vide : il y tombe), jamais dans un mur ni hors de l'arène ;
+  Insecte, la toile fait tressaillir (étourdit 1 s) chaque ennemi touché.
 - Ultimes ennemis (décidé le 23/10/2026, Robin) : comme tout Pokémon, un élite ou un boss porte un seul objet, donc un
   seul ultime, une seule fois ; l'objet est choisi d'après l'équipe du joueur : Téracristal défensif quand ils sont blessés et qu'un type encaisse mieux les attaques
   de l'équipe, capacité Z quand l'équipe est groupée ou qu'une cible est presque K.O. (bandeau d'alerte pendant la pose,
@@ -335,6 +359,45 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Fait le 25/10/2026 (Owen) : escalier, cachettes (clairière, rocher fissuré brisé par Combat, Sol, Roche ou Acier),
     salle vide du catalogue et retour, dans le quart de test (`secret_rooms.json`, `SecretStairs`). Reste (Robin) : le
     contenu des salles (trésor, embuscade, gardien) et les thèmes logiques.
+- Entrées des donjons (décidé le 02/11/2026, Robin ; branche `feature/entrees-donjons`, prompt
+  `Design/prompt_entrees.md`) : chaque sorte d'entrée a sa silhouette, dans le style de DM (contour sombre, couleurs de
+  DM, vue de 3/4). Escaliers de 2 × 2 cases (descend, remonte, fermé pendant une embuscade), bordure selon le biome
+  (herbe, sable, roche brune, volcan, glace, ruines), lueur quand l'entrée est active ; passages entre quartiers =
+  arche de pierre à logement d'Engrenage du Temps (voile gris sans l'engrenage, tourbillon turquoise ensuite) ; donjon
+  de la clé hors grotte du sommet = dolmen à clé gravée (3 matières selon le biome) ; escaliers secrets : indice très
+  discret sur la cachette fermée (feuilles mortes sur la clairière, fissure lumineuse sur le rocher), sans éclat ni
+  icône. Repérage : une fois vue, une bulle avec l'icône de l'entrée au-dessus d'elle et la même icône sur la
+  mini-carte. Taux gardés : escalier secret 60 %, grotte scellée 50 % par quartier. Ordre : escaliers et icônes, puis
+  cachettes et bordures, puis donjon de la clé et portes de quartier. Retour en jeu (Robin) : l'arche de quartier est remplacée par un
+  **rempart** de pierre ancienne cerclée de bronze vert-de-gris (veines turquoise) sur chaque côté d'un quartier qui
+  donne sur un autre ; au passage, une porte à deux battants dans le rempart et, devant, un **dolmen à engrenage** :
+  y poser l'Engrenage du Temps du quartier allume les veines et écarte les battants comme un mécanisme d'horlogerie
+  (lot 4 du prompt).
+  - Rempart en biais (décidé le 03/11/2026, Robin) : les frontières entre quartiers ont un angle au hasard et
+    ondulent, le rempart n'est donc presque jamais face au joueur. Il devient un jeu de tuiles automatique selon les
+    8 voisins (`rampart_auto`, disposition en quarts de case de 12 px : case isolée, angles rentrants, bloc 2 × 2).
+    Il **masque** la zone voisine : dans la zone jouée, toutes les cases hors zone (autres quartiers, barrières,
+    fossé) sont du rempart, sans prendre aucune case de la zone. Dalles jusqu'à 2 cases du bord (face comprise),
+    fond plus sombre au-delà (`rampart_fill`, mêmes joints que les dalles). Face haute d'**une** case
+    (`rampart_face` : bout gauche, milieu, bout droit ; une marche = bout droit en haut, bout gauche en bas) sur
+    chaque case de rempart dont la voisine du sud est libre ; une face compte comme rempart pour les tuiles. Autour
+    d'un passage, la frontière est redressée sur 5 à 7 cases ; chaque côté se voit depuis sa propre zone, d'où trois
+    vues de la porte : joueur au sud, porte de face dans la face (`rampart_gate`) ; joueur au nord, porte vue de
+    dessus dans le bord (`rampart_gate_back`, battants qui rentrent à l'ouest et à l'est, passage sombre derrière) ;
+    joueur à l'est ou à l'ouest, porte vue de dessus dans une alcôve (`rampart_gate_side`, battants qui rentrent au
+    nord et au sud). Pas de tunnel : franchir la porte lance le passage vers l'autre zone. Dolmen à 1 logement
+    inchangé. Lot 4b du prompt (canevas « Remparts et dolmen à engrenage »).
+  - Ouverture des passages (correctif provisoire du 12/11/2026, Robin, en attendant la spécification) : tous les
+    passages sont fermés au début de la partie, dans les deux sens ; l'Engrenage du Temps d'un quartier n'en ouvre
+    qu'un seul, celui dont le joueur choisit le dolmen (il choisit sa direction), et ce passage reste ouvert dans les
+    deux sens ; le centre s'ouvre avec les quatre engrenages. Les quartiers sont reliés en anneau : depuis le premier,
+    le joueur choisit son sens ; le passage vers le centre part du dernier quartier, celui qu'il n'a pas choisi au
+    départ (Robin, 12/11/2026). Les deux voisins du premier quartier ont donc un boss (l'un ou l'autre finit dernier).
+  - Rempart du centre (proposé le 02/11/2026, à valider par Robin) : le même rempart masque le centre depuis les
+    quartiers, et les quartiers depuis le centre. Porte sur une partie droite redressée.
+  - Dolmen du centre : 4 logements, un par Engrenage du Temps (`gear_dolmen_quad`, sens horaire depuis le haut à
+    gauche) ; chaque engrenage rapporté s'y pose et s'allume (`gear_dolmen_quad_slot`), la porte ne s'ouvre qu'au
+    quatrième. Côté quartier, devant la porte.
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
   sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
   (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.

@@ -459,18 +459,10 @@ public class TerrainSandbox : MonoBehaviour
     void AddStairs(DungeonGenerator arena, Vector2 offset, int target, string name, Color colour)
     {
         var cell = arena.CellOf(Centre(arena) + offset);
-        var go = new GameObject(name);
-        go.transform.position = arena.CentreOf(cell.x, cell.y);
-        var outer = go.AddComponent<SpriteRenderer>();
-        outer.sprite = Shapes.Square;
-        outer.color = new Color(0.1f, 0.1f, 0.12f);
-        outer.sortingOrder = -1; // under the light square inside (a tie would hide it)
-        var inner = new GameObject("Marches").AddComponent<SpriteRenderer>();
-        inner.transform.SetParent(go.transform, false);
-        inner.transform.localScale = Vector3.one * 0.6f;
-        inner.sprite = Shapes.Square;
-        inner.color = colour;
-        inner.sortingOrder = 0;
+        // Stairs like the island's (EntranceArt), their glow in the colour of the room they lead to.
+        var go = EntranceArt.Stairs(name, arena.CentreOf(cell.x, cell.y), "entrance_stairs_down");
+        var looks = go.GetComponentsInChildren<EntranceSprite>();
+        if (looks.Length > 1) looks[1].Renderer.color = colour;
         stairs.Add((go, target));
     }
 
@@ -562,6 +554,8 @@ public class TerrainSandbox : MonoBehaviour
                 island.Built += PlaceStairs; // the way back, near where the team arrives in each zone
                 island.revealAll = true; // test island: the whole mini-map at once
             }
+            // The test quarter's portals lead to a new draw of it.
+            island.testRedraw = room == 5 ? () => IslandPlan.QuarterTestPlan(0, quarterRock) : null;
             if (room == 5)
             {
                 island.Begin(IslandPlan.QuarterTestPlan(quarterSeed, quarterRock));
@@ -654,12 +648,23 @@ public class TerrainSandbox : MonoBehaviour
         }
     }
 
+    static string ZStyleName(string style) => ZStrike.Parse(style) switch
+    {
+        ZStrike.Style.Fall => "chute du ciel",
+        ZStrike.Style.Bolt => "éclairs",
+        ZStrike.Style.Wave => "onde",
+        ZStrike.Style.Implode => "implosion",
+        ZStrike.Style.Sweep => "vague qui balaie",
+        ZStrike.Style.Shot => "tirs",
+        _ => "jaillissement",
+    };
+
     string ZDemoLine()
     {
         var crystals = SpecialItems.Crystals;
         if (crystals.Count == 0) return "Pas de cristal Z dans items.json";
         var c = crystals[zDemoIndex % crystals.Count];
-        return $"Démo Z ({zDemoIndex % crystals.Count + 1}/{crystals.Count}) : {c.name} → {c.move} : {SpecialItems.ZDescription(c.type)}"
+        return $"Démo Z ({zDemoIndex % crystals.Count + 1}/{crystals.Count}) : {c.name} → {c.move} : {SpecialItems.ZDescription(c.type)} · mise en scène {ZStyleName(c.show?.style)}"
                + "     ↑/↓ ou 1/2 : cristal     F ou L3 + R3 : lancer     Escalier (en haut à droite) : retour";
     }
 
