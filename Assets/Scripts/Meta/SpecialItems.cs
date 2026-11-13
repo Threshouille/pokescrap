@@ -11,7 +11,36 @@ public static class SpecialItems
     public enum Family { None, Mega, Z, Tera }
 
     [Serializable] public class MegaStone { public string key, name, icon; public int mega; }
-    [Serializable] public class ZCrystal { public int type; public string name, move, icon; public ZHit hit = new(); }
+    [Serializable] public class ZCrystal { public int type; public string name, move, icon; public ZHit hit = new(); public ZShow show = new(); }
+
+    /// How a Z move's strike looks (one per type; ZStrike): "style" rise (the impact springs up under each opponent),
+    /// fall (the "travel" sheet drops from the sky), bolt (a bolt from the sky), wave (a ring spreading out from the
+    /// user), implode (a ring closing in on it), sweep (a line of "travel" sheets crossing the screen), shot (a "travel"
+    /// sheet flying to each opponent). Each opponent is struck when the show reaches it. "wave": a sheet played once
+    /// on the user at the release; "impact" (else hit.effect) on each opponent, "size" tiles wide (× zScale);
+    /// "travel" "travelSize" tiles wide; "tint": the travel sheets take the type's colour; "speed": tiles per second
+    /// (wave, implode, sweep, shot); "cascade": seconds between two opponents (rise, fall, bolt); "fallTime": seconds
+    /// of a fall; "shake": the camera at each hit; "lead": seconds of build-up before the first hit (a sun forming, the
+    /// user flying up, a black hole opening); "extra": a second sheet some stagings use (ZChoreo); "piece": a third (a vine, an ice spike, a hand, a dragon's scale, a puddle, a cocoon). The first styles
+    /// were joined by one staging per type: zdash, sun, tide, vines, chain, freeze, afterimage, acid, rift, dive,
+    /// field, web, boulders, hands, serpent, blackhole, drill (ZChoreo).
+    [Serializable]
+    public class ZShow
+    {
+        public string style = "rise", travel, wave, impact, extra, piece;
+        public float size = 1.5f, travelSize = 1.5f, speed = 16f, cascade = 0.06f, fallTime = 0.45f, shake = 0.08f, lead;
+        public bool tint;
+    }
+
+    /// The Z cut-scene (ZCutScene): seconds of the opening freeze, of the pose (dark, crystal, rings) and of the title;
+    /// camera zoom, darkness of the veil, height of each black band (share of the screen); everybody else holds still
+    /// strikeHold seconds more, during the strike. An enemy's Z has no cut-scene but a warning of enemyWarn seconds
+    /// (crystal, rings, the fight goes on), and its strike can be dodged (EnemySettings.zDodgeWindow).
+    [Serializable]
+    public class ZCut
+    {
+        public float freeze = 0.2f, pose = 1.1f, title = 0.9f, zoom = 1.35f, dim = 0.7f, bands = 0.11f, enemyWarn = 1f, strikeHold = 1f;
+    }
 
     /// What a Z move does to each opponent it strikes besides damage (one per type): see Ultimates.StrikeZ.
     [Serializable]
@@ -20,6 +49,10 @@ public static class SpecialItems
         public string effect, status, modStat, terrain, teamModStat;
         public float bonus = 1f, statusDuration, modValue = 1f, modDuration, stun, knockback, drain;
         public float terrainRadius = 1f, terrainDuration = 8f, teamModValue = 1f, teamModDuration = 10f;
+        // "pull": tiles each opponent is drawn towards the strike's centre (a black hole) before it is struck;
+        // "teleport": each opponent struck is thrown onto a random free tile in view.
+        public float pull;
+        public bool teleport;
     }
 
     /// An item given for good to a dev character (devMode), at level 1.
@@ -29,6 +62,9 @@ public static class SpecialItems
         public int zMinTargets = 2, level = 1;
         public float startDelay = 4f, checkEvery = 0.5f, teraMinGain = 0.2f, zRange = 8f, zKillShare = 0.6f, zMaxShare = 0.4f;
         public float megaChance = 0.6f, teraCrossBonus = 0.5f;
+        // An enemy's Z strike spares an opponent that dodged at most zDodgeWindow seconds before it is reached; an ally
+        // (AllyAI) dodges it with the chance aiZDodge, aiZDodgeLead seconds before.
+        public float zDodgeWindow = 0.35f, aiZDodge = 0.8f, aiZDodgeLead = 0.25f;
         public float teraTerrainBonus = 0.6f, terrainRadius = 8f;
         public int terrainMinTiles = 4;
         // Second phase (mega or Tera): under phaseHealth of its HP; heal share by kind of enemy; recharges × phaseCooldownMul.
@@ -66,7 +102,7 @@ public static class SpecialItems
         public TeraShard[] teraShards = new TeraShard[0];
         public Rayquaza rayquaza = new();
         public Levels levels = new();
-        public float zPose = 0.8f;
+        public ZCut zCutScene = new();
         public LootSettings loot = new();
         public DevItem[] dev = new DevItem[0];
         public FamilyIcons familyIcons = new();
@@ -109,7 +145,17 @@ public static class SpecialItems
     public static IReadOnlyList<TeraShard> Shards => Data.teraShards;
     public static LootSettings Loot => Data.loot;
     public static EnemySettings Enemy => Data.enemy;
-    public static float ZPose => Data.zPose;
+    public static ZCut ZCutScene => Data.zCutScene;
+
+    /// Seconds from the trigger to the release of a Z move (the cut-scene), the player's or an enemy's.
+    public static float ZCastTime(bool enemy)
+    {
+        var c = Data.zCutScene;
+        return enemy ? c.enemyWarn : c.freeze + c.pose + c.title;
+    }
+
+    /// Seconds from the trigger to the end of the strike's hold (the tests wait that long, plus the show's travel).
+    public static float ZLength(bool enemy) => ZCastTime(enemy) + (enemy ? 0f : Data.zCutScene.strikeHold);
     public static string ZFlash => Data.zFlash;
     public static int RayquazaMega => Data.rayquaza.mega;
     public static int RayquazaMove => Data.rayquaza.move;
@@ -227,6 +273,8 @@ public static class SpecialItems
         if (h.knockback > 0f) parts.Add("repousse");
         if (h.knockback < 0f) parts.Add("attire");
         if (h.drain > 0f) parts.Add("soigne l'équipe");
+        if (h.pull > 0f) parts.Add("attire");
+        if (h.teleport) parts.Add("téléporte");
         if (!string.IsNullOrEmpty(h.terrain)) parts.Add($"terrain {h.terrain}");
         if (!string.IsNullOrEmpty(h.teamModStat)) parts.Add($"équipe : {StatNames.GetValueOrDefault(h.teamModStat, h.teamModStat)} +{(h.teamModValue - 1f) * 100f:0} %");
         return string.Join(", ", parts);

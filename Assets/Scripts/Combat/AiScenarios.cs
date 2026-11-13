@@ -133,6 +133,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Élite : brûle le pont sous un adversaire au corps à corps", EliteBurnsBridge());
         yield return Scenario("Ultime ennemi : se téracristallise dans un type qui résiste", EnemyTera());
         yield return Scenario("Ultime ennemi : capacité Z quand l'équipe est groupée", EnemyZ());
+        yield return Scenario("Ultime ennemi : un allié esquive la capacité Z au bon moment", EnemyZDodge());
         yield return Scenario("Ultime ennemi : méga-évolue à mi-PV, pas avant", EnemyMega());
         yield return Scenario("Seconde phase : seuil infranchissable d'un coup, soin, recharges plus courtes", SecondPhase());
         yield return Scenario("Ultime ennemi : Téra Spectre pour traverser un mur de rochers", EnemyTeraCrosses());
@@ -790,7 +791,7 @@ public class AiScenarios : MonoBehaviour
         yield return new WaitForFixedUpdate();
         float one = leader.EstimateHit(move, near);
         bool triggered = team.GetComponent<Ultimates>().Trigger(leader);
-        yield return new WaitForSeconds(SpecialItems.ZPose + 0.5f);
+        yield return new WaitForSeconds(SpecialItems.ZLength(false) + 1.5f);
         float a = near.maxHp - near.hp, b = far.maxHp - far.hp;
         bool stuck = near.HasStatus("paralysis") && far.HasStatus("paralysis");
         for (int i = 0; i < Combatant.MoveSlots; i++) leader.LearnMove(i, kept[i]);
@@ -817,7 +818,7 @@ public class AiScenarios : MonoBehaviour
             leader.Special = new SpecialItems.Equipped { family = SpecialItems.Family.Z, type = crystal.type, level = 3 };
             yield return new WaitForFixedUpdate();
             if (!ultimates.Trigger(leader)) { faults.Add($"{crystal.name} refusé"); continue; }
-            yield return new WaitForSeconds(SpecialItems.ZPose + 0.6f);
+            yield return new WaitForSeconds(SpecialItems.ZLength(false) + 1.5f);
             var wrong = new List<string>();
             if (ally.hp < ally.maxHp) wrong.Add("PV");
             if (ally.Modifier("attack") < 0.999f || ally.Modifier("defense") < 0.999f || ally.Modifier("speed") < 0.999f) wrong.Add("malus");
@@ -1117,13 +1118,43 @@ public class AiScenarios : MonoBehaviour
         if (elite == null) { Report(false, "pas d'élite"); yield break; }
         var ultimate = elite.GetComponent<EnemyUltimate>();
         ultimate.Carry(SpecialItems.Family.Z, 2); // left alone, it would pick a Tera shard against this team
+        float keptDodge = SpecialItems.Enemy.aiZDodge;
+        SpecialItems.Enemy.aiZDodge = 0f; // nobody dodges it here (EnemyZDodge)
         bool used = ultimate.Decide();
         bool again = ultimate.Decide(); // one item, one ultimate
-        yield return new WaitForSeconds(SpecialItems.ZPose + 0.6f);
+        // Measured right after the meteors land: later, the elite's own attacks and the burn would add to it.
+        var fire = SpecialItems.Crystal(2).show;
+        yield return new WaitForSeconds(SpecialItems.ZCastTime(true) + fire.lead + fire.fallTime + 2f * fire.cascade + 0.15f);
+        SpecialItems.Enemy.aiZDodge = keptDodge;
         bool both = leader.hp < leader.maxHp && ally.hp < ally.maxHp;
         bool capped = leader.hp >= leader.maxHp * (0.99f - SpecialItems.Enemy.zMaxShare) && ally.hp >= ally.maxHp * (0.99f - SpecialItems.Enemy.zMaxShare);
         Report(used && !again && ultimate.LastUsed == "z" && both && capped,
             $"{(used ? ultimate.LastUsed : "rien")}{(again ? " deux fois" : "")} : Pikachu {leader.hp:0}/{leader.maxHp:0}, allié {ally.hp:0}/{ally.maxHp:0}");
+    }
+
+    // The same elite's Z, but the ally always dodges it (aiZDodge 1): it dodges just before the meteor reaches it and
+    // takes nothing from the strike (only, perhaps, a little from the elite's own attacks afterwards).
+    IEnumerator EnemyZDodge()
+    {
+        // The ally stands away from Pikachu, out of the embers the meteor leaves under it.
+        var (leader, ally) = Place(new Vector2(-2.5f, -1.5f), new Vector2(-2f, 3f), settle: false);
+        var elite = Elite(new Vector2(2f, 0f), LanceFlamme);
+        if (elite == null) { Report(false, "pas d'élite"); yield break; }
+        var ultimate = elite.GetComponent<EnemyUltimate>();
+        ultimate.Carry(SpecialItems.Family.Z, 2);
+        float keptDodge = SpecialItems.Enemy.aiZDodge;
+        SpecialItems.Enemy.aiZDodge = 1f;
+        yield return new WaitForFixedUpdate();
+        float start = Time.time;
+        bool used = ultimate.Decide();
+        var fire = SpecialItems.Crystal(2).show;
+        yield return new WaitForSeconds(SpecialItems.ZCastTime(true) + fire.lead + fire.fallTime + 2f * fire.cascade + 0.15f);
+        SpecialItems.Enemy.aiZDodge = keptDodge;
+        bool dodged = ally.LastDodgeAt > start;
+        // Spared by the strike: well under what a Z takes (the elite's own attacks may still touch it afterwards).
+        bool spared = ally.maxHp - ally.hp < ally.maxHp * SpecialItems.Enemy.zMaxShare * 0.5f;
+        Report(used && dodged && spared,
+            $"{(used ? "lancée" : "pas lancée")} ; allié {(dodged ? "a esquivé" : "n'a pas esquivé")}, {ally.hp:0}/{ally.maxHp:0} ; Pikachu {leader.hp:0}/{leader.maxHp:0}");
     }
 
     // ---------------------------------------------------------------- rescue and heals

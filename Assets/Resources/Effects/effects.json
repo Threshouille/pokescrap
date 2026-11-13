@@ -6216,6 +6216,546 @@
         120
       ],
       "loop": true
+    },
+    {
+      "file": "z_normal_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_normal_streak.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_fire_sun.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_fire_meteor.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_fire_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_water_wave.png",
+      "frame_width": 32,
+      "frame_height": 48,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_water_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_grass_vine.png",
+      "frame_width": 24,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_grass_petal.png",
+      "frame_width": 8,
+      "frame_height": 8,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_grass_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_electric_bolt.png",
+      "frame_width": 32,
+      "frame_height": 128,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_electric_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ice_spike.png",
+      "frame_width": 24,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ice_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_fight_fist.png",
+      "frame_width": 40,
+      "frame_height": 40,
+      "frame_count": 5,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_poison_drop.png",
+      "frame_width": 16,
+      "frame_height": 12,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_poison_puddle.png",
+      "frame_width": 48,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_poison_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ground_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_flying_dive.png",
+      "frame_width": 32,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_flying_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_psychic_field.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_psychic_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_bug_web.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        160,
+        160
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_bug_bind.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_bug_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_rock_boulder.png",
+      "frame_width": 40,
+      "frame_height": 40,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_rock_rest.png",
+      "frame_width": 32,
+      "frame_height": 32,
+      "frame_count": 1,
+      "frame_duration_ms": [
+        500
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_rock_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ghost_hand.png",
+      "frame_width": 24,
+      "frame_height": 40,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_ghost_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_dragon_head.png",
+      "frame_width": 40,
+      "frame_height": 32,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_dragon_scale.png",
+      "frame_width": 16,
+      "frame_height": 16,
+      "frame_count": 2,
+      "frame_duration_ms": [
+        120,
+        120
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_dragon_impact.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_dark_hole.png",
+      "frame_width": 96,
+      "frame_height": 96,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_dark_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
+    },
+    {
+      "file": "z_steel_drill.png",
+      "frame_width": 40,
+      "frame_height": 24,
+      "frame_count": 4,
+      "frame_duration_ms": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "loop": true
+    },
+    {
+      "file": "z_steel_impact.png",
+      "frame_width": 48,
+      "frame_height": 48,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false
     }
   ]
 }

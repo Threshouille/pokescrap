@@ -648,12 +648,23 @@ public class TerrainSandbox : MonoBehaviour
         }
     }
 
+    static string ZStyleName(string style) => ZStrike.Parse(style) switch
+    {
+        ZStrike.Style.Fall => "chute du ciel",
+        ZStrike.Style.Bolt => "éclairs",
+        ZStrike.Style.Wave => "onde",
+        ZStrike.Style.Implode => "implosion",
+        ZStrike.Style.Sweep => "vague qui balaie",
+        ZStrike.Style.Shot => "tirs",
+        _ => "jaillissement",
+    };
+
     string ZDemoLine()
     {
         var crystals = SpecialItems.Crystals;
         if (crystals.Count == 0) return "Pas de cristal Z dans items.json";
         var c = crystals[zDemoIndex % crystals.Count];
-        return $"Démo Z ({zDemoIndex % crystals.Count + 1}/{crystals.Count}) : {c.name} → {c.move} : {SpecialItems.ZDescription(c.type)}"
+        return $"Démo Z ({zDemoIndex % crystals.Count + 1}/{crystals.Count}) : {c.name} → {c.move} : {SpecialItems.ZDescription(c.type)} · mise en scène {ZStyleName(c.show?.style)}"
                + "     ↑/↓ ou 1/2 : cristal     F ou L3 + R3 : lancer     Escalier (en haut à droite) : retour";
     }
 

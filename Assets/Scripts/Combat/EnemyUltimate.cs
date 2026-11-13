@@ -12,7 +12,8 @@ using UnityEngine;
 ///   Terastallizes once its health is low, at once when that obstacle stops it, or, picked for the ground, as soon as
 ///   the fight starts; for good;
 /// - else the Z crystal of its strongest damaging move: the Z move goes when several opponents are near, or when one
-///   would lose most of what it has left. A pose with a banner warns first; the strike reaches opponents in view
+///   would lose most of what it has left. A warning (ZCutScene in its enemy form: crystal and rings, the fight goes
+///   on) comes first; the strike (Ultimates.StrikeZ, staged by type, dodgeable) reaches opponents in view
 ///   within zRange and takes at most zMaxShare of each one's health; its terrain never acts on its own team.
 [RequireComponent(typeof(Combatant))]
 public class EnemyUltimate : MonoBehaviour
@@ -122,7 +123,7 @@ public class EnemyUltimate : MonoBehaviour
         }
         if (Item == SpecialItems.Family.Z && ZWorth(out var baseMove))
         {
-            StartCoroutine(ZMove(baseMove));
+            ZMove(baseMove);
             return true;
         }
         return false;
@@ -288,7 +289,7 @@ public class EnemyUltimate : MonoBehaviour
         var s = SpecialItems.Enemy;
         baseMove = self.Moves.Where(m => m != null && SpecialItems.KnowsMoveOfType(new[] { m }, ItemType))
             .OrderByDescending(m => m.power).FirstOrDefault();
-        if (baseMove == null) return false;
+        if (baseMove == null || ZCutScene.Playing) return false; // one Z cut-scene at a time
         var foes = Ultimates.VisibleFoes(self, s.zRange);
         if (foes.Count >= s.zMinTargets) return true;
         var z = Ultimates.ZVersion(baseMove, ItemType, s.level);
@@ -297,17 +298,17 @@ public class EnemyUltimate : MonoBehaviour
         return false;
     }
 
-    System.Collections.IEnumerator ZMove(MoveDef baseMove)
+    void ZMove(MoveDef baseMove)
     {
         var s = SpecialItems.Enemy;
         used = true;
         LastUsed = "z";
         var z = Ultimates.ZVersion(baseMove, ItemType, s.level);
-        self.BeginEvolution(SpecialItems.ZPose);
-        Ultimates.Aura(self, SpecialItems.ZPose, GameData.TypeColor(ItemType));
+        int type = ItemType;
         progression?.Announce($"Attention : {self.Stats.name} ennemi prépare {z.name} !", Notice.Alert);
-        yield return new WaitForSeconds(SpecialItems.ZPose);
-        if (self == null || !self.IsAlive) yield break;
-        yield return Ultimates.StrikeZ(self, z, ItemType, s.level, s.zRange, s.zMaxShare);
+        ZCutScene.Play(self, z.name, type, true, () =>
+        {
+            if (this != null && self != null && self.IsAlive) StartCoroutine(Ultimates.StrikeZ(self, z, type, s.level, s.zRange, s.zMaxShare, dodgeable: true));
+        });
     }
 }

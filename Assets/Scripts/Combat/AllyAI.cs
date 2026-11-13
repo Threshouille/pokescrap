@@ -70,12 +70,42 @@ public class AllyAI : MonoBehaviour
 
     void Start() => team = FindAnyObjectByType<PlayerController>();
 
+    const float ZDodgeReady = 0.6f; // seconds before an enemy's Z hit when it stops starting attacks, to dodge it
+    float zDodgeRolledFor = -1f;
+    bool zDodgeWill;
+
+    /// Dodges an enemy's Z strike aiZDodgeLead seconds before it reaches it, with the chance aiZDodge (rolled once
+    /// per strike); from ZDodgeReady seconds before, it starts nothing else. True while it does that.
+    bool TryDodgeZ(Vector2 position)
+    {
+        var s = SpecialItems.Enemy;
+        float left = ZStrike.IncomingIn(combatant, out var from);
+        if (left < 0f) return false;
+        float hitAt = Time.time + left;
+        if (!Mathf.Approximately(zDodgeRolledFor, hitAt))
+        {
+            zDodgeRolledFor = hitAt;
+            zDodgeWill = Random.value < s.aiZDodge;
+        }
+        if (!zDodgeWill || left > ZDodgeReady || combatant.DodgeCooldownLeft > left) return false;
+        // Starts nothing that would keep it from dodging in time; dodges aiZDodgeLead seconds before the hit.
+        if (left > s.aiZDodgeLead) return true;
+        Vector2 away = position - from;
+        if (away.sqrMagnitude < 0.01f) away = Vector2.right;
+        Vector2 way = RoleTactics.EscapeStep(DungeonGenerator.Current, position, away.normalized);
+        combatant.TryDodge(way == Vector2.zero ? away.normalized : way);
+        return true;
+    }
+
     void FixedUpdate()
     {
         if (leader == null || !combatant.IsAlive || combatant.IsDashing) return; // a melee dash drives the body
 
         Vector2 position = transform.position;
         var grid = DungeonGenerator.Current;
+
+        // An enemy's Z strike about to reach it: a dodge at the right moment (ZStrike; aiZDodge: not always).
+        if (TryDodgeZ(position)) return;
 
         // Getting out of an announced attack or the path of a shot comes first: with a dodge when it is ready,
         // else on foot.

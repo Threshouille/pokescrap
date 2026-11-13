@@ -443,4 +443,70 @@ public class LogicTests
         var roulade = GameData.Move(105);
         Assert.Greater(roulade.rolloutMax, 0, "Roulade en série");
     }
+
+    // The Z cut-scene's phases, and the strike's timing: each opponent struck when the type's show reaches it.
+    [Test]
+    public void ZCutSceneAndStrikeTiming()
+    {
+        Assert.AreEqual(ZCutScene.Phase.Freeze, ZCutScene.PhaseAt(0.1f, 0.2f, 1f, 0.8f));
+        Assert.AreEqual(ZCutScene.Phase.Pose, ZCutScene.PhaseAt(0.5f, 0.2f, 1f, 0.8f));
+        Assert.AreEqual(ZCutScene.Phase.Title, ZCutScene.PhaseAt(1.5f, 0.2f, 1f, 0.8f));
+        Assert.AreEqual(ZCutScene.Phase.Done, ZCutScene.PhaseAt(2.1f, 0.2f, 1f, 0.8f));
+
+        var show = new SpecialItems.ZShow { speed = 10f, cascade = 0.1f, fallTime = 0.5f };
+        Vector2 o = Vector2.zero, near = new(2f, 0f), far = new(8f, 0f);
+        var ctx = ZStrike.Context.Make(o, o, 8f, 6f, new List<Vector2> { near, far }); // half diagonal: 10
+        Assert.AreEqual(10f, ctx.Reach, 1e-4f);
+        Assert.AreEqual(1f, ctx.sweep.x, 1e-4f);
+        Assert.AreEqual(Vector2.right, ZStrike.SweepDirection(o, new List<Vector2>()));
+        float D(ZStrike.Style st, int i) => ZStrike.Delay(st, show, i, ctx);
+        Assert.Less(D(ZStrike.Style.Wave, 0), D(ZStrike.Style.Wave, 1), "une onde atteint d'abord le plus proche");
+        Assert.Less(D(ZStrike.Style.Field, 0), D(ZStrike.Style.Field, 1), "le champ psychique aussi");
+        Assert.AreEqual(0.8f, D(ZStrike.Style.Shot, 1), 1e-4f);
+        Assert.Greater(D(ZStrike.Style.Implode, 0), D(ZStrike.Style.Implode, 1), "un anneau qui se referme atteint d'abord le plus loin");
+        Assert.AreEqual(1.2f, D(ZStrike.Style.Sweep, 0), 1e-4f); // 10 cases derrière le centre, puis 2
+        Assert.AreEqual(D(ZStrike.Style.Sweep, 1), D(ZStrike.Style.Tide, 1), 1e-4f);
+        Assert.AreEqual(0.6f, D(ZStrike.Style.Fall, 1), 1e-4f);
+        Assert.AreEqual(0.1f, D(ZStrike.Style.Rise, 1), 1e-4f);
+        show.lead = 0.5f;
+        Assert.AreEqual(0.6f, D(ZStrike.Style.BlackHole, 1), 1e-4f); // the hole opens first
+        show.lead = 0f;
+        // The serpent goes from the user to the nearest, then on; the Z passes each opponent in turn along its path.
+        Assert.AreEqual(0.2f, D(ZStrike.Style.Serpent, 0), 1e-4f);
+        Assert.AreEqual(0.8f, D(ZStrike.Style.Serpent, 1), 1e-4f);
+        Assert.AreEqual(5, ctx.zPath.Count);
+        Assert.AreEqual(3f, ZStrike.AlongPath(new List<Vector2> { o, new(4f, 0f), new(4f, 4f) }, new Vector2(3f, 1f)), 1e-4f);
+        Assert.AreEqual(6f, ZStrike.AlongPath(new List<Vector2> { o, new(4f, 0f), new(4f, 4f) }, new Vector2(5f, 2f)), 1e-4f);
+        Assert.AreEqual(new Vector2(4f, 2f), Piece.PointAlong(new List<Vector2> { o, new(4f, 0f), new(4f, 4f) }, 0.75f));
+        Assert.AreEqual(ZStrike.Style.Rise, ZStrike.Parse("inconnu"));
+        // An enemy's strike spares who dodged just before being reached, not long before nor after.
+        Assert.IsTrue(ZStrike.Dodged(9.8f, 10f, 0.35f));
+        Assert.IsFalse(ZStrike.Dodged(9.5f, 10f, 0.35f));
+        Assert.IsFalse(ZStrike.Dodged(10.1f, 10f, 0.35f));
+    }
+
+    // Every Z crystal has a show whose sheets exist, and the cut-scene lasts a few seconds.
+    [Test]
+    public void ZCrystalShowsAreValid()
+    {
+        Assert.AreEqual(17, SpecialItems.Crystals.Count);
+        foreach (var c in SpecialItems.Crystals)
+        {
+            Assert.IsNotNull(c.show, c.name);
+            Assert.AreEqual(c.show.style, ZStrike.Parse(c.show.style).ToString().ToLowerInvariant(), $"{c.name} : style {c.show.style}");
+            foreach (var sheet in new[] { c.show.travel, c.show.wave, c.show.impact, c.show.extra, c.show.piece })
+                if (!string.IsNullOrEmpty(sheet)) Assert.IsNotNull(EffectLibrary.Get(sheet), $"{c.name} : planche {sheet}");
+            var style = ZStrike.Parse(c.show.style);
+            if (style is ZStrike.Style.Fall or ZStrike.Style.Bolt or ZStrike.Style.Sweep or ZStrike.Style.Shot or ZStrike.Style.Sun
+                or ZStrike.Style.Tide or ZStrike.Style.Chain or ZStrike.Style.Acid or ZStrike.Style.Boulders or ZStrike.Style.Serpent or ZStrike.Style.Drill)
+            {
+                Assert.IsFalse(string.IsNullOrEmpty(c.show.travel), $"{c.name} : planche travel");
+                if (style is not (ZStrike.Style.Bolt or ZStrike.Style.Chain)) Assert.IsTrue(EffectLibrary.Get(c.show.travel).loop, $"{c.name} : {c.show.travel} doit boucler (elle voyage)");
+            }
+        }
+        // One staging per type.
+        Assert.AreEqual(SpecialItems.Crystals.Count, SpecialItems.Crystals.Select(c => c.show.style).Distinct().Count(), "une mise en scène par type");
+        Assert.That(SpecialItems.ZCastTime(false), Is.InRange(1f, 4f));
+        Assert.Less(SpecialItems.ZCastTime(true), SpecialItems.ZCastTime(false));
+    }
 }

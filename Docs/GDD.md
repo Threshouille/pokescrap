@@ -69,6 +69,30 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   flaque ; Acier : bonus de défense à l'équipe ; détail dans `items.json`). Persos de dev : Dev Mew a un cristal Z Feu,
   Dev Métamorph un Téra-Éclat Spectre. Téracristal : le Pokémon prend le type de l'éclat pendant 40 à 60 s selon le niveau (défense,
   terrains, immunités ; attaques de ce type renforcées).
+  Mise en scène de la capacité Z (décidé le 12/11/2026, Robin) : effet de jeu inchangé (tous les ennemis
+  visibles), refonte graphique pour la rendre imposante. D'abord une cinématique comme pour la méga et la Téra : arrêt sur
+  image, voile sombre sauf le lanceur, cristal au-dessus de sa tête et anneaux de la couleur du type qui convergent, bandes
+  noires, puis grand titre (« CAPACITÉ Z », nom de l'attaque, nom du Pokémon). Ensuite une frappe mise en scène selon le type
+  (chute du ciel, éclair, onde, vague qui balaie l'écran, implosion, tir vers chaque cible, jaillissement du sol), et chaque
+  ennemi est frappé au moment où l'effet l'atteint. Une capacité Z ennemie (élite, boss) n'a pas de cinématique (revu le
+  12/11/2026 : elle cassait le rythme) : avertissement d'une seconde (cristal et anneaux sur l'ennemi, bandeau rouge), le
+  combat continue, et sa frappe s'esquive : une esquive juste avant que l'effet n'atteigne le Pokémon l'épargne ; les
+  alliés IA esquivent au bon moment (pas toujours).
+  Les alliés laissés à l'IA ne lancent toujours pas d'ultime. Visuels : planches d'attaques existantes, teintées et agrandies,
+  remplacées au cas par cas si besoin. Robin prépare une autre proposition sur les Z (à venir).
+  Une mise en scène unique par type (décidé le 12/11/2026, Robin) : Normal, le lanceur trace un Z géant sur l'écran ; Feu,
+  un soleil se forme puis lance des météores (cratères de braises) ; Eau, raz-de-marée ; Plante, lianes sous chaque ennemi
+  et tempête de pétales ; Électrik, éclairs ramifiés et arcs entre ennemis proches ; Glace, le sol gèle puis des pics
+  sortent ; Combat, images rémanentes qui frappent en rafale ; Poison, pluie acide et flaques ; Sol, failles jusqu'à chaque
+  ennemi puis éclats de roche ; Vol, envol puis piqués ; Psy, champ qui s'étend comme celui de Méga-Mewtwo Y ; Insecte,
+  toile géante tissée sur l'écran, fils qui ligotent puis éclatent en aiguilles ; Roche, rochers qui tombent et restent un
+  moment ; Spectre, mains d'ombre ; Dragon, dragon d'énergie qui serpente d'un ennemi à l'autre ; Ténèbres, trou noir qui
+  aspire puis explose ; Acier, vrilles qui forent jusqu'à chaque ennemi. Fabrication : mouvement et particules par code,
+  éléments clés en planches Claude Design (la règle « pas de Claude Design pour les Z » est levée).
+  Retours de Robin (12/11/2026) : Feu, les météores tombent du ciel (hors champ) ; Ténèbres, le trou noir attire les
+  ennemis avant d'exploser ; Psy, chaque ennemi touché par le champ est téléporté sur une case au hasard de l'écran, obstacles dangereux compris
+  (eau, lave, vide : il y tombe), jamais dans un mur ni hors de l'arène ;
+  Insecte, la toile fait tressaillir (étourdit 1 s) chaque ennemi touché.
 - Ultimes ennemis (décidé le 23/10/2026, Robin) : comme tout Pokémon, un élite ou un boss porte un seul objet, donc un
   seul ultime, une seule fois ; l'objet est choisi d'après l'équipe du joueur : Téracristal défensif quand ils sont blessés et qu'un type encaisse mieux les attaques
   de l'équipe, capacité Z quand l'équipe est groupée ou qu'une cible est presque K.O. (bandeau d'alerte pendant la pose,
