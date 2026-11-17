@@ -33,7 +33,9 @@ public class TimeGears : MonoBehaviour
     [Serializable] class Minions { public string[] types = new string[0]; public int count; }
     [Serializable] class Arena { public string[] types = new string[0]; public string theme, variant; public Minions minions = new(); }
     [Serializable] class Moveset { public int pokemon; public string name; public int[] moves = new int[0]; }
-    [Serializable] class GuardianSettings { public float health = 10f, damage = 1.5f; public int level = 4, minions = 2; }
+    // A guardian (the key dungeon's, a fragment's): health and damage factors, level bonus, minions; scale: its size
+    // (the islet's boss is bigger still); its health bar at the top of the screen, like the boss's.
+    [Serializable] class GuardianSettings { public float health = 10f, damage = 1.5f, scale = 1.3f; public int level = 4, minions = 2; }
 
     [Serializable]
     class FragmentSettings
@@ -83,6 +85,12 @@ public class TimeGears : MonoBehaviour
         public Vector2Int tile, hint;
         public string habitat, guard;
         public bool taken, guardBeaten;
+        // A shrine's guardian (guard "shrine", FragmentGuardians): who, its mega or the type of its Tera; its room.
+        public int guardian = -1, tera = -1;
+        public MegaDef mega;
+        public int[] themeTypes = new int[0];
+        public int minions;
+        public RoomContent room;
         public readonly List<Combatant> spawned = new();
     }
 
@@ -128,9 +136,14 @@ public class TimeGears : MonoBehaviour
     Progression progression;
     readonly System.Random rng = new();
     readonly List<Combatant> boss = new();
+    readonly List<Combatant> guardians = new(); // the guardians fought now (key dungeon, fragments): their bar shows
     readonly List<(GameObject go, Fragment fragment)> pickups = new();
     float refusedAt = -10f;
     bool testPlan;
+    static bool forcedTestMode; // G in devMode: time_gears.json's testMode wins over the quarter profile's
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetForced() => forcedTestMode = false;
 
     void Awake()
     {
@@ -268,7 +281,8 @@ public class TimeGears : MonoBehaviour
         for (int k = 0; k < quarterCount; k++)
         {
             int q = plan.order[k];
-            string mode = testPlan ? Data.testMode : k == quarterCount - 1 || (both && k == 1) ? Boss : drawn < modes.Count ? modes[drawn++] : Boss;
+            string testMode = !string.IsNullOrEmpty(plan.fragmentRules?.mode) && !forcedTestMode ? plan.fragmentRules.mode : Data.testMode;
+            string mode = testPlan ? testMode : k == quarterCount - 1 || (both && k == 1) ? Boss : drawn < modes.Count ? modes[drawn++] : Boss;
             quarters[q] = MakeQuarter(plan, q, k, mode, population);
         }
     }
@@ -326,17 +340,40 @@ public class TimeGears : MonoBehaviour
             if (quarter.boss <= 0) quarter.gear = true; // no boss at all: the way stays open
             return quarter;
         }
-        // Fragments: in different sub-biomes when there are enough.
+        // Fragments: in different sub-biomes when there are enough; their hideouts drawn first (at least minElite of
+        // them guarded by an elite, the quarter profile's rules).
+        var rules = plan.fragmentRules;
         var byHabitat = land.GroupBy(t => plan.biome[plan.Index(t.x, t.y)].key).OrderBy(_ => rng.Next()).ToList();
+        var hideouts = new List<string>();
+        for (int k = 0; k < Data.fragments.count; k++) hideouts.Add(PickGuard(rules));
+        if (hideouts.Contains(Shrine)) return ShrineFragments(plan, q, quarter, land, arrival, byHabitat, rules);
+        for (int k = 0; k < hideouts.Count && hideouts.Count(h => h == "elite") < (rules?.minElite ?? 0); k++)
+            if (hideouts[k] != "elite") hideouts[k] = "elite";
         for (int k = 0; k < Data.fragments.count; k++)
         {
             var group = byHabitat[k % byHabitat.Count].Where(t => quarter.fragments.All(f => Vector2.Distance(f.tile, t) >= 10f) && ClearOfCamps(t, 5f)).ToList();
             if (group.Count == 0) group = byHabitat[k % byHabitat.Count].ToList();
-            string guard = PickGuard();
-            var tile = guard == "nook"
+            string guard = hideouts[k];
+            Vector2Int tile;
+            if (guard == "rock" || guard == "lava")
+            {
+                // Under a cracked rock to break, or on a pocket of land ringed by lava: on open ground of one level.
+                float outer = guard == "lava" ? FragmentIsland + FragmentMoat : 1.5f;
+                var fit = group.Where(t => Vector2.Distance(t, arrival) >= 0.3f * far && plan.CanRing(t, outer)).ToList();
+                if (fit.Count == 0) guard = "nook";
+                else
+                {
+                    tile = fit[rng.Next(fit.Count)];
+                    if (guard == "lava") plan.Ring(tile, FragmentIsland, outer);
+                    else plan.obstacle[plan.Index(tile.x, tile.y)] = FragmentRock;
+                    goto Placed;
+                }
+            }
+            tile = guard == "nook"
                 ? group.OrderByDescending(Height).ThenByDescending(t => Vector2.Distance(t, arrival)).First()
                 : group.Where(t => Vector2.Distance(t, arrival) >= 0.4f * far).DefaultIfEmpty(group[rng.Next(group.Count)]).OrderBy(_ => rng.Next()).First();
-            float spread = Data.fragments.hint;
+            Placed:
+            float spread = rules != null && rules.hint >= 0f ? rules.hint : Data.fragments.hint;
             var hint = tile + new Vector2Int(rng.Next(-(int)spread, (int)spread + 1), rng.Next(-(int)spread, (int)spread + 1));
             quarter.fragments.Add(new Fragment { tile = tile, hint = hint, habitat = byHabitat[k % byHabitat.Count].Key, guard = guard });
         }
@@ -551,9 +588,12 @@ public class TimeGears : MonoBehaviour
     }
 
     // The first entry holding one of the boss's types, taken in the boss's own order (Altaria: Dragon, then Vol).
-    static T ByType<T>(T[] entries, Func<T, string[]> types, Quarter q) where T : class
+    static T ByType<T>(T[] entries, Func<T, string[]> types, Quarter q) where T : class => ByTypes(entries, types, BossTypes(q));
+
+    // The first entry holding one of those types, taken in their order.
+    static T ByTypes<T>(T[] entries, Func<T, string[]> types, int[] wanted) where T : class
     {
-        foreach (int t in BossTypes(q))
+        foreach (int t in wanted)
             foreach (var e in entries)
                 if (types(e).Any(n => TypeId(n) == t)) return e;
         return entries.FirstOrDefault(e => types(e).Length == 0);
@@ -568,9 +608,134 @@ public class TimeGears : MonoBehaviour
     /// The islet's room theme and variant (rooms.json).
     public static (string theme, string variant) ArenaRoom(Quarter q) => ArenaOf(q) is { } a ? (a.theme, a.variant) : (null, null);
 
-    string PickGuard()
+    public const string Shrine = "shrine"; // a fragment's hideout: a guardian's room behind a shrine (FragmentShrine)
+
+    // Every fragment behind a shrine: among the hardest tiles to walk to from the arrival (the farthest on foot, the
+    // highest) yet reached on foot, in different sub-biomes when there are enough, apart; each with its guardian.
+    Quarter ShrineFragments(IslandPlan plan, int q, Quarter quarter, List<Vector2Int> land, Vector2Int arrival,
+        List<IGrouping<string, Vector2Int>> byHabitat, IslandPlan.QuarterFragments rules)
     {
-        var guards = Data.fragments.guards.Where(g => g.weight > 0f).ToList();
+        var steps = WalkSteps(plan, arrival);
+        int Height(Vector2Int t) => plan.height != null ? plan.height[plan.Index(t.x, t.y)] : 0;
+        float Hard(Vector2Int t) => steps[plan.Index(t.x, t.y)] + 25f * Height(t);
+        var walkable = land.Where(t => steps[plan.Index(t.x, t.y)] >= 0 && Free(plan, q, t)).ToList();
+        int[] theme = (rules?.themeTypes ?? new string[0]).Select(TypeId).Where(t => t > 0).ToArray();
+        var guardians = FragmentGuardians.Choose(theme, Data.fragments.count, rng, GuardianPool(theme),
+            id => GameData.MegasOf(id).FirstOrDefault(m => PokemonRoster.Has(m.id)), GameData.PlayPool,
+            p => Encounters.Depth(p), (t, d) => TypeChart.Multiplier(t, d, out _));
+        float share = rules != null && rules.hardShare > 0f ? rules.hardShare : 0.15f;
+        float gap = rules != null && rules.shrineGap > 0f ? rules.shrineGap : 18f;
+        for (int k = 0; k < Data.fragments.count; k++)
+        {
+            var habitat = byHabitat[k % byHabitat.Count].Key;
+            var group = walkable.Where(t => plan.biome[plan.Index(t.x, t.y)].key == habitat).ToList();
+            if (group.Count < 10) group = walkable;
+            var apart = group.Where(t => quarter.fragments.All(f => Vector2.Distance(f.tile, t) >= gap)).ToList();
+            if (apart.Count > 0) group = apart;
+            if (group.Count == 0) break;
+            var hardest = group.OrderByDescending(Hard).Take(Mathf.Max(1, Mathf.RoundToInt(group.Count * share))).ToList();
+            var tile = hardest[rng.Next(hardest.Count)];
+            plan.reserved.Add(tile);
+            var g = k < guardians.Count ? guardians[k] : new FragmentGuardians.Pick { id = -1, tera = -1 };
+            quarter.fragments.Add(new Fragment
+            {
+                tile = tile, hint = tile, habitat = plan.biome[plan.Index(tile.x, tile.y)].key, guard = Shrine,
+                guardian = g.id, mega = g.mega, tera = g.tera, themeTypes = theme, minions = rules?.minions ?? 2,
+            });
+        }
+        quarter.distance = 0.5f;
+        return quarter;
+    }
+
+    // Steps on foot from a tile to every tile of the plan (-1: not reached), as IslandPlan.Reach walks.
+    static int[] WalkSteps(IslandPlan plan, Vector2Int from)
+    {
+        var steps = new int[plan.region.Length];
+        for (int i = 0; i < steps.Length; i++) steps[i] = -1;
+        int start = plan.Index(from.x, from.y);
+        if (!plan.Walkable(start)) return steps;
+        var queue = new Queue<int>();
+        steps[start] = 0;
+        queue.Enqueue(start);
+        var around = new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
+        while (queue.Count > 0)
+        {
+            int c = queue.Dequeue();
+            foreach (var d in around)
+            {
+                int nx = c % plan.size + d.x, ny = c / plan.size + d.y;
+                if (nx < 0 || ny < 0 || nx >= plan.size || ny >= plan.size) continue;
+                int n = plan.Index(nx, ny);
+                if (steps[n] >= 0 || !plan.Walkable(n) || plan.region[n] != plan.region[start]) continue;
+                steps[n] = steps[c] + 1;
+                queue.Enqueue(n);
+            }
+        }
+        return steps;
+    }
+
+    // Pokémon that may guard a fragment: of the theme's types, with sprites and moves, neither dev characters nor
+    // excluded ones (legendaries).
+    static IEnumerable<PokemonStats> GuardianPool(int[] types) =>
+        GameData.AllPokemon.Where(p => p.types != null && p.types.Intersect(types).Any() && !GameData.IsDev(p.id) && !Encounters.Excluded(p.id)
+                                       && PokemonRoster.Has(p.id) && GameData.PlayPool(p.id).Count >= 2);
+
+    /// A fragment's guardian in its room: an elite at the key dungeon's guardian's strength, its second phase ready
+    /// (its mega, or its Tera into the type that takes the advantage back), with minions of the theme's types.
+    public List<Combatant> SpawnFragmentGuardian(Quarter q, Fragment f, EnemySpawner by, Vector2 at)
+    {
+        var all = new List<Combatant>();
+        if (q == null || f == null || by == null || f.guardian <= 0) return all;
+        var guardian = Fighter(by, f.guardian, at, false, Level(q, Data.guardian.level), Data.guardian.health);
+        if (guardian == null) return all;
+        AsGuardian(guardian);
+        Loot.Mark(guardian);
+        guardian.damageFactor *= Data.guardian.damage;
+        var ultimate = guardian.GetComponent<EnemyUltimate>() ?? guardian.gameObject.AddComponent<EnemyUltimate>();
+        ultimate.cutScene = true;
+        if (f.mega != null) ultimate.Carry(SpecialItems.Family.Mega, -1, f.mega);
+        else if (f.tera > 0) ultimate.Carry(SpecialItems.Family.Tera, f.tera);
+        guardian.Died += BossDefeat.PlayGuardian;
+        all.Add(guardian);
+        var minions = OfTypes(f.themeTypes, Populations.Stage(q.rank, q.distance)).Where(id => id != f.guardian).ToList();
+        for (int k = 0; k < f.minions && minions.Count > 0; k++)
+        {
+            var m = Fighter(by, minions[rng.Next(minions.Count)], at + new Vector2(k % 2 == 0 ? -2.5f : 2.5f, -1.5f), false, Level(q, 0), 1.5f);
+            if (m != null) all.Add(m);
+        }
+        progression?.Announce($"Le gardien du fragment : {guardian.Stats.name} !", Notice.Elite);
+        return all;
+    }
+
+    /// The room of a fragment's guardian (rooms.json theme, variant): the arena of its Tera type, else of its types.
+    public static (string theme, string variant) FragmentArena(Fragment f)
+    {
+        if (f == null) return (null, null);
+        int[] types = f.tera > 0 ? new[] { f.tera } : f.mega != null && f.mega.types != null && f.mega.types.Length > 0 ? f.mega.types
+            : GameData.Pokemon(f.guardian)?.types ?? new int[0];
+        var a = ByTypes(Data.arenas, x => x.types, types);
+        return a != null ? (a.theme, a.variant) : (null, null);
+    }
+
+    /// A fragment handed over (picked up, or its guardian beaten in its room).
+    public void TakeFragment(Quarter q, Fragment f)
+    {
+        if (q == null || f == null || f.taken) return;
+        f.taken = true;
+        int taken = q.fragments.Count(x => x.taken);
+        if (taken >= q.fragments.Count) Obtain(q);
+        else progression?.Announce($"Fragment d'Engrenage {taken} / {q.fragments.Count}", Notice.Loot);
+        RefreshHints();
+    }
+
+    const string FragmentRock = "fragment_rock"; // obstacles.json: the cracked rock over a fragment
+    const float FragmentIsland = 1.5f, FragmentMoat = 2f; // tiles: a fragment's pocket of land, its moat of lava
+
+    string PickGuard(IslandPlan.QuarterFragments rules = null)
+    {
+        var guards = rules != null && rules.guards.Length > 0
+            ? rules.guards.Where(g => g.weight > 0f).Select(g => new Weighted { key = g.key, weight = g.weight }).ToList()
+            : Data.fragments.guards.Where(g => g.weight > 0f).ToList();
         if (guards.Count == 0) return "nook";
         double roll = rng.NextDouble() * guards.Sum(g => g.weight);
         foreach (var g in guards)
@@ -593,7 +758,7 @@ public class TimeGears : MonoBehaviour
         if (q.mode != Fragments && q.HasBridge) DrawBridge(q);
         foreach (var f in q.fragments)
         {
-            if (f.taken) continue;
+            if (f.taken || f.guard == Shrine) continue; // a shrine's fragment is in its room
             Vector2 at = island.Cell(f.tile);
             var go = Pickup("Fragment d'Engrenage", at, 0.55f);
             pickups.Add((go, f));
@@ -762,6 +927,7 @@ public class TimeGears : MonoBehaviour
         var evolved = pool.Where(id => Encounters.Depth(GameData.Pokemon(id)) == deepest).ToList();
         var guardian = Fighter(by, evolved[rng.Next(evolved.Count)], at, false, Level(q, Data.guardian.level), Data.guardian.health);
         if (guardian == null) return all;
+        AsGuardian(guardian);
         Loot.Mark(guardian);
         guardian.damageFactor *= Data.guardian.damage;
         var tera = guardian.gameObject.AddComponent<EnemyUltimate>();
@@ -789,6 +955,14 @@ public class TimeGears : MonoBehaviour
         }
         group.Rest(new EnemyGroup.Roam { home = at, wake = RoomContent.GuardianWake, leash = RoomContent.GuardianLeash });
         return all;
+    }
+
+    // A guardian's size and its health bar at the top of the screen.
+    void AsGuardian(Combatant guardian)
+    {
+        guardian.transform.localScale = Vector3.one * Data.guardian.scale;
+        guardians.RemoveAll(g => g == null || !g.IsAlive);
+        guardians.Add(guardian);
     }
 
     /// The islet's boss fell: the gear, and a chest.
@@ -937,7 +1111,10 @@ public class TimeGears : MonoBehaviour
         if (q == null || island.Away || LoadingScreen.Busy) return;
         var leader = team != null ? team.Controlled : null;
         foreach (var (go, f) in pickups)
+        {
             if (!f.guardBeaten && f.spawned.Count > 0 && f.spawned.All(c => c == null || !c.IsAlive)) f.guardBeaten = true;
+            if (go != null) go.SetActive(!UnderRock(f)); // shows once its rock is broken
+        }
         if (leader == null) return;
         Vector2 at = leader.transform.position;
         if (gate != null && !q.hasKey && Vector2.Distance(at, gate.transform.position) < 1.6f && Time.time - gateWarnedAt > 2.5f)
@@ -948,16 +1125,15 @@ public class TimeGears : MonoBehaviour
         for (int i = pickups.Count - 1; i >= 0; i--)
         {
             var (go, f) = pickups[i];
-            if (go == null || Vector2.Distance(at, go.transform.position) > PickReach) continue;
+            if (go == null || !go.activeSelf || Vector2.Distance(at, go.transform.position) > PickReach) continue;
             Destroy(go);
             pickups.RemoveAt(i);
-            f.taken = true;
-            int taken = q.fragments.Count(x => x.taken);
-            if (taken >= q.fragments.Count) Obtain(q);
-            else progression?.Announce($"Fragment d'Engrenage {taken} / {q.fragments.Count}", Notice.Loot);
-            RefreshHints();
+            TakeFragment(q, f);
         }
     }
+
+    // A fragment still under its cracked rock.
+    static bool UnderRock(Fragment f) => f.guard == "rock" && Obstacles.At(f.tile.x, f.tile.y)?.key == FragmentRock;
 
     void Obtain(Quarter q)
     {
@@ -1007,6 +1183,7 @@ public class TimeGears : MonoBehaviour
     {
         if (!testPlan || madeFor == null) return;
         Data.testMode = mode;
+        forcedTestMode = true; // from now on over the quarter profile's mode
         Despawn();
         foreach (var k in madeFor.skyBridge.Where(e => e.Value == 0).Select(e => e.Key).ToList()) madeFor.skyBridge.Remove(k);
         madeFor.reserved.Clear();
@@ -1026,10 +1203,10 @@ public class TimeGears : MonoBehaviour
     int barFrame;
     static readonly Color FirstPhase = new(0.85f, 0.2f, 0.2f), SecondPhase = new(0.75f, 0.3f, 0.95f);
 
-    // The islet's boss, top centre: its name and health (another colour once it has changed).
+    // The islet's boss, or a guardian being fought, top centre: its name and health (another colour once it has changed).
     void BossBar(float s)
     {
-        var b = boss.FirstOrDefault(c => c != null && c.IsAlive);
+        var b = boss.FirstOrDefault(c => c != null && c.IsAlive) ?? guardians.FirstOrDefault(c => c != null && c.IsAlive && c.gameObject.activeInHierarchy);
         if (b == null) { barShown = -1f; return; }
         var ultimate = b.GetComponent<EnemyUltimate>();
         bool second = ultimate != null && !string.IsNullOrEmpty(ultimate.LastUsed);

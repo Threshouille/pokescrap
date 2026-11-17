@@ -42,6 +42,18 @@
   {
    "group": "stump",
    "amplitude": 0
+  },
+  {
+   "group": "volcano_spire",
+   "amplitude": 0
+  },
+  {
+   "group": "volcano_rock",
+   "amplitude": 0
+  },
+  {
+   "group": "volcano_pebble",
+   "amplitude": 0
   }
  ]
 }

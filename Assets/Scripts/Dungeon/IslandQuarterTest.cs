@@ -2,19 +2,22 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// A test quarter of island (Assets/Resources/Data/quarter_test.json; sandbox room 5), to work out how a quarter is
-/// composed: one big open zone without walls, fan-shaped (its point, bottom left, stands for the centre of the island,
-/// its arc for the coast), crossed by a wide winding river from a spring near the point to the coast, a sub-biome on
-/// each side of it, a few bridges. Filled into an IslandPlan (a single quarter), so DungeonGenerator and IslandRun draw
-/// and play it as an island zone.
+/// A test quarter of island (one profile per theme in Assets/Resources/Data/quarters/; sandbox room 5), to work out how
+/// a quarter is composed: one big open zone without walls, fan-shaped (its point, bottom left, stands for the centre of
+/// the island, its arc for the coast). Layout "river" (forest.json): crossed by a wide winding river from a spring near
+/// the point to the coast, a sub-biome on each side of it, a few bridges. Layout "volcano" (volcano.json,
+/// IslandQuarterVolcano.cs): a cone with a crater near the point, lava flows down to the coast, sub-biomes by height.
+/// Filled into an IslandPlan (a single quarter), so DungeonGenerator and IslandRun draw and play it as an island zone.
 public partial class IslandPlan
 {
     [Serializable]
     public class QuarterTest
     {
+        public string layout = "river"; // "river" (forest) or "volcano"
         public int seed;
         public float secretChance = -1f; // chance of secret stairs here (-1: secret_rooms.json's)
         public float caveChance = -1f; // chance of a sealed cave here (-1: cave_seals.json's)
+        public SecretRooms.Spot[] secretSpots = new SecretRooms.Spot[0]; // the hideouts allowed here (empty: secret_rooms.json's)
         public string caveSeal = ""; // tests: the seal of the cave (cave_seals.json key), drawn when empty
         public string themeName = "Nature luxuriante";
         public float radius = 120f, coastNoise = 0.1f, coastScale = 0.025f, sideNoise = 5f;
@@ -28,6 +31,23 @@ public partial class IslandPlan
         public Road road = new();
         public Relief relief = new();
         public Props props = new();
+        public Volcano volcano = new();
+        public QuarterFragments fragments = new();
+    }
+
+    /// A test quarter's Time Gear (see IslandPlan.fragmentRules; TimeGears).
+    [Serializable]
+    public class QuarterFragments
+    {
+        public string mode = ""; // "boss", "fragments", or "" (time_gears.json's testMode)
+        public SecretRooms.Spot[] guards = new SecretRooms.Spot[0]; // shrine (a guardian's room), elite, nook, rock (under fragment_rock), lava (ringed by lava)
+        public int minElite;
+        public float hint = -1f;
+        // shrine: the theme's types (type names), where the guardians come from; minions of those types with each;
+        // hardShare: the shrine stands among the hardest tiles to walk to (that share of the farthest, the highest).
+        public string[] themeTypes = new string[0];
+        public int minions = 2;
+        public float hardShare = 0.15f, shrineGap = 18f;
     }
 
     /// Decor elements cut from the story maps (map_props.json) scattered on each sub-biome's open ground.
@@ -133,6 +153,9 @@ public partial class IslandPlan
         public int grid = 3, terraceExtras = 2;
         public float[] terraceWidth = { 0.75f, 0.95f }, terraceHeight = { 0.5f, 0.7f };
         public float[] levelShade = { 0.93f, 0.96f, 0.98f, 1f }, footShadow = { 0.7f, 0.85f };
+        public float peakShare = 1f; // how much the mountain's levels shrink, the lowest to the top (less: a broader top)
+        public string summit = "cave"; // the mountain's top level: "cave" (under a roof) or "crater" (a lava lake)
+        public float craterMargin = 2f; // tiles of rim around a crater's lava
         public Cave cave = new();
     }
 
@@ -165,32 +188,58 @@ public partial class IslandPlan
 
     [Serializable] class QuarterTestFile { public QuarterTest test = new(); }
 
-    /// Seed of the last test quarter drawn (to draw it again with another rock).
+    /// Seed and profile of the last test quarter drawn (to draw it again with another rock).
     public static int LastQuarterSeed { get; private set; }
+    public static string LastQuarterProfile { get; private set; } = DefaultProfile;
 
-    /// The test quarter from quarter_test.json: seed (0: the file's, or a new one when that is 0 too); rock: which of
-    /// relief.rockDecors draws the cliffs.
-    public static IslandPlan QuarterTestPlan(int seed = 0, int rock = 0)
+    public const string DefaultProfile = "forest";
+
+    /// The quarter profiles (files of Resources/Data/quarters, the forest first).
+    public static List<string> QuarterProfiles()
     {
-        var asset = Resources.Load<TextAsset>("Data/quarter_test");
-        var t = asset != null ? JsonUtility.FromJson<QuarterTestFile>(asset.text).test : new QuarterTest();
+        var names = new List<string>();
+        foreach (var a in Resources.LoadAll<TextAsset>("Data/quarters")) names.Add(a.name);
+        names.Sort((a, b) => a == DefaultProfile ? -1 : b == DefaultProfile ? 1 : string.CompareOrdinal(a, b));
+        return names;
+    }
+
+    /// A quarter profile's settings (Resources/Data/quarters/<key>.json), the forest's when missing.
+    public static QuarterTest QuarterProfile(string key)
+    {
+        var asset = Resources.Load<TextAsset>("Data/quarters/" + (string.IsNullOrEmpty(key) ? DefaultProfile : key));
+        if (asset == null) asset = Resources.Load<TextAsset>("Data/quarters/" + DefaultProfile);
+        return asset != null ? JsonUtility.FromJson<QuarterTestFile>(asset.text).test : new QuarterTest();
+    }
+
+    /// A test quarter from its profile (null: the forest's): seed (0: the file's, or a new one when that is 0
+    /// too); rock: which of relief.rockDecors draws the cliffs.
+    public static IslandPlan QuarterTestPlan(int seed = 0, int rock = 0, string profile = null)
+    {
+        profile ??= DefaultProfile;
+        var t = QuarterProfile(profile);
         if (seed == 0) seed = t.seed != 0 ? t.seed : Environment.TickCount;
         LastQuarterSeed = seed;
+        LastQuarterProfile = profile;
         var plan = new IslandPlan();
         var rng = new System.Random(seed);
-        plan.BuildQuarterTest(t, rng);
+        if (t.layout == "volcano") plan.BuildVolcano(t, rng);
+        else plan.BuildQuarterTest(t, rng);
         plan.LayRelief(t, rng, rock);
+        if (t.layout == "volcano") plan.FinishVolcano(t);
         plan.ScatterProps(t, rng);
-        plan.PlaceSecret(rng, t.secretChance);
+        plan.PlaceSecret(rng, t.secretChance, t.secretSpots);
+        plan.fragmentRules = t.fragments;
         return plan;
     }
 
-    void BuildQuarterTest(QuarterTest t, System.Random rng)
+    // The fan of a test quarter: from its point (the island's centre, bottom left), between its two sides (wavering),
+    // up to the coast; beyond the sides within the coast, the neighbouring quarters (Border). Returns the noise offsets.
+    Vector2[] LayFan(QuarterTest t, System.Random rng, SubBiome[] subbiomes)
     {
         settings = new Settings { radius = t.radius, coastNoise = t.coastNoise, voidMargin = t.voidMargin };
         var theme = new Theme
         {
-            key = "test", name = t.themeName, subbiomes = new[] { t.left, t.right },
+            key = "test", name = t.themeName, subbiomes = subbiomes,
             riverKind = t.riverKind, bridgeKind = t.bridgeKind, lakeKind = t.riverKind,
         };
         for (int q = 0; q < 4; q++) { themes[q] = theme; order[q] = q; }
@@ -205,8 +254,6 @@ public partial class IslandPlan
         wall = new bool[n];
         var offsets = new Vector2[4];
         for (int i = 0; i < offsets.Length; i++) offsets[i] = new Vector2((float)rng.NextDouble() * 1000f, (float)rng.NextDouble() * 1000f);
-
-        // The fan: from the point, between the two sides (wavering), up to the coast.
         var point = new Vector2(t.voidMargin, t.voidMargin);
         centre = point; // the fan's point stands for the island's centre
         for (int y = 0; y < size; y++)
@@ -216,9 +263,17 @@ public partial class IslandPlan
                 float coast = t.radius * (1f + t.coastNoise * (Fbm(x * t.coastScale, y * t.coastScale, offsets[0], 3) * 2f - 1f));
                 bool land = dx * dx + dy * dy < coast * coast
                     && dx > t.sideNoise * Fbm(0f, y * 0.04f, offsets[1], 2) && dy > t.sideNoise * Fbm(x * 0.04f, 0f, offsets[2], 2);
-                // Beyond the two sides, within the coast: the neighbouring quarters (the rampart hides them).
                 region[Index(x, y)] = land ? 0 : dx * dx + dy * dy < coast * coast ? Border : Void;
             }
+        return offsets;
+    }
+
+    void BuildQuarterTest(QuarterTest t, System.Random rng)
+    {
+        var offsets = LayFan(t, rng, new[] { t.left, t.right });
+        int n = size * size;
+        var point = centre;
+
 
         // The river's middle line: along the fan's middle (45°), swinging from side to side, a little at the spring and
         // fully further down; it carries on past the coast so that it pours into the sky.
@@ -337,6 +392,7 @@ public partial class IslandPlan
         }
 
         // Broken columns along the road, on one side or both, off the road and the water, away from portals and bridge.
+        if (string.IsNullOrEmpty(r.column)) { start = toPrevious + Vector2Int.right * 2; return; }
         float next = Mathf.Lerp(r.columnSpacing[0], r.columnSpacing[1], (float)rng.NextDouble()), run = 0f;
         for (int k = 1; k < line.Count; k++)
         {
@@ -441,12 +497,13 @@ public partial class IslandPlan
         var shapes = new List<(Vector2 centre, float radius, int level)>();
         int open = 0;
         for (int i = 1; i < n; i++) if (dist[i] != int.MaxValue && dist[i] > dist[open]) open = i;
+        if (coneAt.x >= 0f && InMap((int)coneAt.x, (int)coneAt.y)) open = Index((int)coneAt.x, (int)coneAt.y); // a volcano's cone
         var mountain = new Vector2(open % size + 0.5f, open / size + 0.5f);
         float big = Mathf.Min(r.mountainRadius, dist[open] - r.clearance);
         bool hasMountain = big >= 8f;
         if (hasMountain)
             for (int level = 1; level <= r.mountainLevels; level++)
-                shapes.Add((mountain, big * (1f - (level - 1f) / r.mountainLevels), level));
+                shapes.Add((mountain, big * (1f - r.peakShare * (level - 1f) / r.mountainLevels), level));
         var hills = new List<(Vector2 centre, float radius)>();
         for (int k = 0, tries = 0; k < r.hills && tries < 400; tries++)
         {
@@ -682,8 +739,12 @@ public partial class IslandPlan
             Vector2Int mouth = new(-1, -1);
             for (int i = 0; i < n && mouth.x < 0; i++)
                 if (ramps[i] && faceOf[i] == top && Vector2.Distance(new Vector2(i % size, i / size), mountain) < mountainReach) mouth = new Vector2Int(i % size, i / size);
-            caves.Add(Vector2Int.FloorToInt(mountain));
-            Hollow(r, rng, mountain, big, mouth, cliff, ramps, face, faceOf);
+            if (r.summit == "crater") Crater(r, mountain, big, cliff, ramps, face);
+            else
+            {
+                caves.Add(Vector2Int.FloorToInt(mountain));
+                Hollow(r, rng, mountain, big, mouth, cliff, ramps, face, faceOf);
+            }
         }
 
         // Ledges: a few stretches of face (3 to 6 columns wide), jumped down, never climbed.

@@ -599,4 +599,97 @@ public class LogicTests
         Assert.That(SpecialItems.ZCastTime(false), Is.InRange(1f, 4f));
         Assert.Less(SpecialItems.ZCastTime(true), SpecialItems.ZCastTime(false));
     }
+
+    // Quarter profiles: the forest first, the volcano's settings coherent (its sub-biome keys, hideouts, fragments).
+    [Test]
+    public void QuarterProfilesAreCoherent()
+    {
+        var profiles = IslandPlan.QuarterProfiles();
+        Assert.AreEqual(IslandPlan.DefaultProfile, profiles[0]);
+        CollectionAssert.Contains(profiles, "volcano");
+        var v = IslandPlan.QuarterProfile("volcano");
+        Assert.AreEqual("volcano", v.layout);
+        var keys = v.volcano.subBiomes.Select(b => b.key).ToList();
+        foreach (var key in new[] { v.volcano.crater, v.volcano.caves, v.volcano.ash, v.volcano.flowsBiome, v.volcano.shore })
+            CollectionAssert.Contains(keys, key, $"sous-biome {key}");
+        foreach (var b in v.volcano.subBiomes) Assert.IsTrue(b.tilesets != null && b.tilesets.Length > 0, $"{b.key} : décor");
+        foreach (var spot in v.secretSpots) CollectionAssert.Contains(new[] { "clearing", "rock", "lava_island", "nook" }, spot.key);
+        CollectionAssert.DoesNotContain(v.secretSpots.Select(x => x.key).ToList(), "rock", "l'escalier secret du volcan : recoin ou îlot de lave");
+        Assert.AreEqual("fragments", v.fragments.mode);
+        foreach (var g in v.fragments.guards) CollectionAssert.Contains(new[] { "shrine", "elite", "nook", "rock", "lava" }, g.key);
+        CollectionAssert.AreEquivalent(new[] { "Feu", "Sol" }, v.fragments.themeTypes);
+        Assert.AreEqual("crater", v.relief.summit);
+    }
+
+    // The volcano quarter: a cone with lava in its crater, flows of lava, the landing on firm ground, the forest's
+    // quarter unchanged by default (no cone, a river).
+    [Test]
+    public void VolcanoQuarterIsBuilt()
+    {
+        for (int seed = 1; seed <= 3; seed++)
+        {
+            var plan = IslandPlan.QuarterTestPlan(seed, 0, "volcano");
+            Assert.IsTrue(plan.HasCone, $"graine {seed} : cône");
+            int top = plan.height.Max(), crater = 0;
+            for (int i = 0; i < plan.height.Length; i++) if (plan.height[i] == top && plan.obstacle[i] == "lava") crater++;
+            Assert.Greater(crater, 0, $"graine {seed} : lave du cratère");
+            Assert.GreaterOrEqual(plan.lavaFlows.Count, 2, $"graine {seed} : coulées");
+            Assert.IsNull(plan.obstacle[plan.Index(plan.start.x, plan.start.y)], $"graine {seed} : arrivée sur la terre ferme");
+            if (plan.secret.x >= 0 && plan.secretSpot == "lava_island")
+                Assert.IsFalse(plan.Reach(plan.Index(plan.start.x, plan.start.y))[plan.Index(plan.secret.x, plan.secret.y)], $"graine {seed} : l'îlot ne s'atteint pas à pied");
+        }
+        var forest = IslandPlan.QuarterTestPlan(5);
+        Assert.IsFalse(forest.HasCone);
+        Assert.AreEqual(0, forest.lavaFlows.Count);
+    }
+
+    // Lava cooled by Eau and Glace: a walkable crust for a while; the fragments' rock broken by the right types.
+    [Test]
+    public void LavaCoolsAndFragmentRocksBreak()
+    {
+        var o = JsonUtility.FromJson<ObstacleFileForTest>(Resources.Load<TextAsset>("Data/obstacles").text);
+        var cooled = o.obstacles.FirstOrDefault(x => x.key == "cooled_lava");
+        Assert.IsNotNull(cooled);
+        Assert.IsFalse(cooled.fall || cooled.solid, "la croûte se traverse à pied");
+        foreach (int type in new[] { 3, 6 })
+            Assert.IsTrue(o.interactions.Any(x => x.on == "lava" && x.byType == type && x.becomes == "cooled_lava" && x.duration > 0f), $"type {type}");
+        Assert.IsTrue(o.obstacles.Any(x => x.key == "fragment_rock" && x.solid));
+        foreach (int type in new[] { 7, 9, 13, 17 })
+            Assert.IsTrue(o.interactions.Any(x => x.on == "fragment_rock" && x.byType == type), $"rocher du fragment, type {type}");
+    }
+
+    // The guardians' types: against Feu and Sol, Eau hits hardest; Plante answers Eau (resists it, beats it). Guardians:
+    // those with a mega first, never two of a line; the others Terastallize into Plante, a Pokémon that strikes with it
+    // first, then the most evolved.
+    [Test]
+    public void FragmentGuardiansCounterTheTheme()
+    {
+        float M(int t, int[] d) => TypeChart.Multiplier(t, d, out _);
+        int counter = FragmentGuardians.Counter(new[] { 2, 9 }, M);
+        Assert.AreEqual(3, counter, "Eau contre Feu et Sol");
+        Assert.AreEqual(4, FragmentGuardians.Answer(counter, M), "Plante contre Eau");
+        var megaA = new MegaDef { id = 900, @base = 1 };
+        var leafy = new MoveDef { id = 1, type = 4, power = 40 };
+        var plain = new MoveDef { id = 2, type = 9, power = 40 };
+        var pool = new[]
+        {
+            new PokemonStats { id = 1, types = new[] { 2 } }, // a mega
+            new PokemonStats { id = 2, types = new[] { 9 } }, // strikes with Plante
+            new PokemonStats { id = 3, types = new[] { 9, 2 } }, // more evolved, no Plante move
+            new PokemonStats { id = 4, types = new[] { 11 } }, // not of the theme
+        };
+        var picks = FragmentGuardians.Choose(new[] { 2, 9 }, 3, new System.Random(1), pool,
+            id => id == 1 ? megaA : null, id => id == 2 ? new[] { leafy } : new[] { plain }, p => p.id == 3 ? 2 : 1, M);
+        Assert.AreEqual(3, picks.Count);
+        Assert.AreEqual(1, picks[0].id);
+        Assert.AreSame(megaA, picks[0].mega);
+        Assert.AreEqual(2, picks[1].id, "celui qui frappe avec le type du Téracristal d'abord");
+        Assert.AreEqual(4, picks[1].tera);
+        Assert.AreEqual(3, picks[2].id);
+        Assert.IsFalse(picks.Any(p => p.id == 4));
+    }
+
+    [Serializable] class ObstacleForTest { public string key; public bool fall, solid; }
+    [Serializable] class InteractionForTest { public string on, becomes; public int byType; public float duration; }
+    [Serializable] class ObstacleFileForTest { public ObstacleForTest[] obstacles; public InteractionForTest[] interactions; }
 }

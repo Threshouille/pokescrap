@@ -37,6 +37,7 @@ public class ObstacleDef
     public bool OneWay => oneWay != null && oneWay.Length == 2;
     public bool ownRocks; // always drawn with its romRocks, never with the rock cut from the arena's décor (ruins' columns)
     public string spriteTint; // colour laid over its sprite (a cracked boulder is darker)
+    public string look; // drawn with another kind's hand-made sheet (cooled lava: obstacle_rock)
     public float bumpStun; // solid: seconds a Pokémon thrown against it (push, slide) is stunned
     public float bumpDamage; // ... and the share of its max HP it loses
     public int[] anchorTypes = new int[0]; // these types cannot be pushed while on it and take less damage (metal: Acier)
@@ -263,7 +264,7 @@ public class Obstacles : MonoBehaviour
         foreach (var d in file.obstacles ?? new ObstacleDef[0])
         {
             d.tint = ColorUtility.TryParseHtmlString(d.color, out var c) ? c : Color.white;
-            d.sheet = EffectLibrary.Get("obstacle_" + d.key);
+            d.sheet = EffectLibrary.Get("obstacle_" + (string.IsNullOrEmpty(d.look) ? d.key : d.look));
             if (ColorUtility.TryParseHtmlString(d.spriteTint, out var tint)) d.spriteColor = tint;
             defs[d.key] = d;
         }

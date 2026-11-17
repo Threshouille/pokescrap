@@ -316,6 +316,17 @@ def main(data_dir, styles_path, out_dir, preview=None):
                         if row == "Bottom" and lip.get("corner"):
                             round_corner(piece, side, lip["corner"])
                         made[side + row] = [piece]
+        tint = style.get("tint")
+        if tint:
+            # A recoloured copy of another map's rock (the volcano's basalt from the rock style): each channel × tint.
+            for pieces in made.values():
+                for piece in pieces:
+                    px = piece.load()
+                    for y in range(piece.height):
+                        for x in range(piece.width):
+                            r, g, b, a = px[x, y]
+                            if a:
+                                px[x, y] = (min(255, round(r * tint[0])), min(255, round(g * tint[1])), min(255, round(b * tint[2])), a)
         shadow = style.get("shadow")
         if shadow:
             # Cast on the ground at a face's foot: darkest at the top, fading out `depth` pixels down.

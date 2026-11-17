@@ -94,7 +94,7 @@ public class TerrainSandbox : MonoBehaviour
     static readonly Vector2 GalleryStairs = new(12f, -12f), GalleryBackStairs = new(-12f, 12f);
     static readonly Vector2 RoomsStairs = new(-12f, -12f); // to the room gallery (rooms.json)
     static readonly Vector2 IslandStairs = new(0f, -12f); // to a test island (IslandPlan, IslandRun)
-    static readonly Vector2 QuarterStairs = new(0f, 12f); // to the test quarter of island (quarter_test.json)
+    static readonly Vector2 QuarterStairs = new(0f, 12f); // to the test quarter of island (Data/quarters, X: next theme)
 
     // Rooms of the items and AI work (dev): Z demo, elite, boss, rescue demos.
     static readonly Vector2 ZDemoStairs = new(-12f, 12f), ZDemoBackStairs = new(12f, 12f);
@@ -127,6 +127,7 @@ public class TerrainSandbox : MonoBehaviour
     readonly Dictionary<Combatant, SpecialItems.Equipped> keptItems = new(); // items before the Z demo room
     int zDemoIndex;
     int quarterSeed, quarterRock; // test quarter: kept to draw the same one again with another rock (C)
+    string quarterProfile = IslandPlan.DefaultProfile; // test quarter: its theme (Data/quarters; X: the next one)
     IslandRun island; // test island
     RoomInstance shownRoom; // room gallery: the room on show
     int roomType; // room gallery: 0 any type, else RoomCatalog.Types[roomType - 1]
@@ -555,10 +556,11 @@ public class TerrainSandbox : MonoBehaviour
                 island.revealAll = true; // test island: the whole mini-map at once
             }
             // The test quarter's portals lead to a new draw of it.
-            island.testRedraw = room == 5 ? () => IslandPlan.QuarterTestPlan(0, quarterRock) : null;
+            string profile = quarterProfile;
+            island.testRedraw = room == 5 ? () => IslandPlan.QuarterTestPlan(0, quarterRock, profile) : null;
             if (room == 5)
             {
-                island.Begin(IslandPlan.QuarterTestPlan(quarterSeed, quarterRock));
+                island.Begin(IslandPlan.QuarterTestPlan(quarterSeed, quarterRock, profile));
                 quarterSeed = 0; // R draws a new one
             }
             else island.Begin(rng);
@@ -634,6 +636,18 @@ public class TerrainSandbox : MonoBehaviour
             quarterRock++;
             Switch(5);
         }
+        // Test quarter: X or d-pad right for the next theme's profile (forest, volcano...).
+        if (room == 5 && ((kb != null && kb.xKey.wasPressedThisFrame) || (pad != null && pad.dpad.right.wasPressedThisFrame)))
+        {
+            var profiles = IslandPlan.QuarterProfiles();
+            if (profiles.Count > 0)
+            {
+                quarterProfile = profiles[(profiles.IndexOf(quarterProfile) + 1) % profiles.Count];
+                quarterSeed = 0;
+                quarterRock = 0;
+                Switch(5);
+            }
+        }
         // Boss room: N or d-pad up for the next boss of the roster (its own arena).
         if (room == BossRoom && ((kb != null && kb.nKey.wasPressedThisFrame) || (pad != null && pad.dpad.up.wasPressedThisFrame)))
         {
@@ -686,7 +700,7 @@ public class TerrainSandbox : MonoBehaviour
             : room == BossRoom ? $"Boss d'îlot ({bossIndex % Mathf.Max(1, BossRoster.Count) + 1}/{BossRoster.Count}) : {fighter?.Stats?.name ?? "boss"}{(fighter == null || !fighter.IsAlive ? " (revient bientôt)" : "")} · arène {arenaName}     N ou ↑ : boss suivant     R ou Select : relancer     Escalier (en haut) : retour"
             : room == 2 ? "Galerie des mégas : s'approcher d'un Pokémon montre ses animations     Escalier (en haut à gauche) : retour"
             : room == 4 ? $"Île de test : {(island?.Quarter >= 0 ? $"{island.Plan.themes[island.Quarter].name} (quartier {System.Array.IndexOf(island.Plan.order, island.Quarter) + 1}/4) — {island.Biome?.name}" : "hors des quartiers")}     R ou Select : nouvelle île     Escalier (à l'arrivée) : retour"
-            : room == 5 ? $"Quart d'île de test : {island?.Biome?.name ?? "—"}     R ou Select : nouveau tirage     C ou croix bas : autre roche     Escalier (à l'arrivée) : retour"
+            : room == 5 ? $"Quart d'île de test ({quarterProfile}) : {island?.Biome?.name ?? "—"}     R ou Select : nouveau tirage     X ou croix droite : autre thème     C ou croix bas : autre roche     Escalier (à l'arrivée) : retour"
             : room == 3 ? $"{shownRoom?.Describe() ?? "Aucune salle dans rooms.json"}     Type : {(roomType > 0 && roomType <= RoomCatalog.Types.Count ? RoomCatalog.Types[roomType - 1].name : "tous")} (N, croix haut)     R ou Select : autre salle     Escalier : retour"
             : $"Salle des obstacles : {(drawn.Count > 0 ? string.Join(", ", drawn) : "rien")}     Cibles immobiles (reviennent après un K.O.)     R ou Select : nouveau tirage     Escalier (en bas à gauche) : retour";
         // Top centre, between the stage box and the lots panel, wrapped; the banners go below it (HudLayout).

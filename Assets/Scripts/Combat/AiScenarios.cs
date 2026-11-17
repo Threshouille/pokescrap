@@ -120,7 +120,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Salle : poussé dans la lave, tombe et revient", InRoom("lava", "lake", PushedIntoLava()));
         yield return Scenario("Salle : le feu brûle un pont", InRoom("water", "river", Turns("bridge", 2, "burning_bridge")));
         yield return Scenario("Salle : la glace gèle l'eau", InRoom("water", "lake", Turns("water", 6, "frozen")));
-        yield return Scenario("Salle : l'eau refroidit la lave", InRoom("lava", "lake", Turns("lava", 3, "rock")));
+        yield return Scenario("Salle : l'eau fige la lave en croûte praticable", InRoom("lava", "lake", Turns("lava", 3, "cooled_lava")));
         yield return Scenario("Salle : une attaque Feu tirée brûle le pont", InRoom("water", "river", FireShotBurnsBridge()));
         yield return Scenario("Salle : les pylônes lancent leur arc", InRoom("electric", "storm", PylonsFire()));
         yield return Scenario("Niveau : pas de gel sur les obstacles traversables", LevelHitches());
@@ -190,6 +190,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Salles de l'île : trésor, embuscade à sortie fermée, gardien sur son coffre", IslandRoomContents());
         yield return Scenario("Engrenages : un passage au choix par engrenage, le centre depuis le dernier quartier", GearsLockPassages());
         yield return Scenario("Engrenages : donjon de la clé, portail de l'îlot, boss grand et prêt à sa seconde phase ; fragments et indices", GearsFromBossAndFragments());
+        yield return Scenario("Volcan : cône et cratère, coulées, escalier secret sur un îlot de lave, fragments cachés et gardés", VolcanoQuarter());
         yield return Scenario("Portes : quart de test, le portail suivant s'ouvre au dolmen une fois le boss battu", GearGate(true));
         yield return Scenario("Portes : île, le passage s'ouvre au dolmen une fois le boss battu et mène au quartier suivant", GearGate(false));
 
@@ -2603,6 +2604,67 @@ public class AiScenarios : MonoBehaviour
         bool themed = dungeonTheme == TimeGears.DungeonTheme(q0);
         Report(bridged && landmark && shut && inDungeon && themed && second && guardianReady && key && big && phase && fixedSet && locked && gear && rate > 0.5f && rate < 7f && fragments == 3 && hints == 3 && together,
             $"pont {bridged}, donjon sur un point d'intérêt {landmark}, portail fermé sans clé {shut} ; donjon {inDungeon} (thème {dungeonTheme}, attendu {TimeGears.DungeonTheme(q0)}), 2e salle {second}, gardien {guardian?.Stats.name} prêt {guardianReady}, clé {key} ; îlot : {who} (grand {big}, seconde phase prête {phase}, jeu fixe {fixedSet}, sortie fermée {locked}), engrenage {gear} ; légendaire {rate:0.0} % ; {fragments} fragments, {hints} indices, engrenage reconstitué {together}");
+    }
+
+    // The volcano quarter (quarters/volcano.json): a cone with lava in its crater, at least two lava flows; secret
+    // stairs in a nook or on a pocket of land ringed by lava (out of reach on foot); its Time Gear by fragments, each
+    // behind a shrine reached on foot, its guardian of the theme's types (a mega, else a Tera), all different; the team
+    // walks into the first shrine, its guardian falls, the fragment is handed over.
+    IEnumerator VolcanoQuarter()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        IslandPlan plan = null;
+        for (int seed = 1; seed <= 80 && plan == null; seed++)
+        {
+            var p = IslandPlan.QuarterTestPlan(seed, 0, "volcano");
+            if (p.secret.x >= 0 && (p.secretSpot == "lava_island" || p.secretSpot == "nook")) plan = p;
+        }
+        if (plan == null) { Restore(kept, members); Report(false, "aucun tirage avec l'escalier dans un recoin ou sur un îlot de lave"); yield break; }
+        int top = plan.height.Max();
+        int crater = 0;
+        for (int i = 0; i < plan.height.Length; i++) if (plan.height[i] == top && plan.obstacle[i] == "lava") crater++;
+        bool flows = plan.lavaFlows.Count >= 2;
+        var reached = plan.Reach(plan.Index(plan.start.x, plan.start.y));
+        bool secretRight = plan.secretSpot == "nook" ? reached[plan.Index(plan.secret.x, plan.secret.y)] : !reached[plan.Index(plan.secret.x, plan.secret.y)];
+        var run = gameObject.AddComponent<IslandRun>();
+        run.Begin(plan);
+        var gears = GetComponent<TimeGears>();
+        gears.ForceTestMode(TimeGears.Fragments);
+        yield return new WaitForSeconds(0.5f);
+        var q = gears.Here;
+        int count = q.fragments.Count;
+        bool shrines = q.fragments.All(f => f.guard == TimeGears.Shrine && reached[plan.Index(f.tile.x, f.tile.y)] && f.hint == f.tile);
+        bool guarded = q.fragments.All(f => f.guardian > 0 && (f.mega != null || f.tera > 0)) && q.fragments.Select(f => f.guardian).Distinct().Count() == count;
+        string who = string.Join(", ", q.fragments.Select(f => $"{GameData.Pokemon(f.guardian)?.name}{(f.mega != null ? " (méga)" : f.tera > 0 ? $" (Téra {GameData.TypeName(f.tera)})" : "")}"));
+        var shrine = GetComponents<FragmentShrine>().FirstOrDefault(s => s.index == 0);
+        bool inRoom = false, taken = false;
+        if (shrine != null && shrine.StairsAt is Vector2 door)
+        {
+            foreach (var m in members) Teleport(m, door + Vector2.down * 3f);
+            yield return new WaitForSeconds(0.3f);
+            foreach (var m in members) Teleport(m, door);
+            float until = Time.realtimeSinceStartup + 6f;
+            yield return new WaitForSecondsRealtime(0.3f);
+            while (LoadingScreen.Busy && Time.realtimeSinceStartup < until) yield return null;
+            yield return new WaitForSeconds(0.8f);
+            inRoom = shrine.InRoom;
+            float end = Time.time + 25f;
+            while (!q.fragments[0].taken && Time.time < end)
+            {
+                foreach (var c in Combatant.All.ToList())
+                    if (c != null && c.IsAlive && c.team == Team.Enemy) KnockOut(c);
+                yield return new WaitForSeconds(0.5f);
+            }
+            taken = q.fragments[0].taken;
+        }
+        Restore(kept, members);
+        EndIsland(run);
+        Report(crater > 0 && flows && secretRight && count == 3 && shrines && guarded && inRoom && taken,
+            $"cratère {crater} cases de lave, coulées {plan.lavaFlows.Count} ; escalier secret ({plan.secretSpot}) bien placé {secretRight} ; {count} sanctuaires atteignables à pied, indice exact {shrines} ; gardiens {who} ; salle {inRoom}, fragment remis {taken}");
     }
 
     // Gates with a dolmen (the test quarter's two portals, or the first quarter's way to the second): all shut at

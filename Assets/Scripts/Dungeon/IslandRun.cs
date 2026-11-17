@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -95,6 +96,9 @@ public class IslandRun : MonoBehaviour
         // After the gears (their places are made first when a zone is built).
         if (GetComponent<KeyDungeon>() == null) gameObject.AddComponent<KeyDungeon>();
         if (GetComponent<BossPortal>() == null) gameObject.AddComponent<BossPortal>();
+        // A shrine per Time Gear fragment (only those whose fragment hides behind a guardian show).
+        var shrines = GetComponents<FragmentShrine>();
+        for (int k = shrines.Length; k < FragmentShrines; k++) gameObject.AddComponent<FragmentShrine>().index = k;
         Build(Plan.order[0], null);
     }
 
@@ -177,6 +181,8 @@ public class IslandRun : MonoBehaviour
 
     /// The test quarter (sandbox room 5): a new draw of it, behind its portals (null elsewhere: portals inert).
     public System.Func<IslandPlan> testRedraw;
+
+    const int FragmentShrines = 3; // at most one shrine per fragment (time_gears.json fragments.count)
     const int TestPrevious = -11, TestNext = -10; // the test quarter's portals, as zones
 
     string Towards(int zone) => zone == TestNext ? "le quartier suivant (nouveau tirage)" : zone == TestPrevious ? "le quartier précédent (nouveau tirage)" : Plan.ZoneName(zone);
@@ -270,6 +276,7 @@ public class IslandRun : MonoBehaviour
         if (GetComponent<TimeGears>() is { } timeGears) timeGears.Clear();
         if (GetComponent<KeyDungeon>() is { } dungeon) dungeon.Clear();
         if (GetComponent<BossPortal>() is { } portal) portal.Clear();
+        foreach (var shrine in GetComponents<FragmentShrine>()) shrine.Clear();
         hints.Clear();
         Away = false;
         if (propRoot != null) Destroy(propRoot.gameObject);
@@ -437,7 +444,7 @@ public class IslandRun : MonoBehaviour
         }
         // Tests: the key dungeon and the boss islet's portal (TimeGears).
         if (revealAll || SaveData.Settings.devMode)
-            foreach (var stairs in new IslandStairs[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>() })
+            foreach (var stairs in new IslandStairs[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>() }.Concat(GetComponents<FragmentShrine>()))
                 if (stairs != null && stairs.Waiting(Zone))
                 {
                     GUI.color = stairs.MapColour;

@@ -398,6 +398,27 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   - Dolmen du centre : 4 logements, un par Engrenage du Temps (`gear_dolmen_quad`, sens horaire depuis le haut à
     gauche) ; chaque engrenage rapporté s'y pose et s'allume (`gear_dolmen_quad_slot`), la porte ne s'ouvre qu'au
     quatrième. Côté quartier, devant la porte.
+- Quart du volcan (décidé le 17/11/2026, Robin ; branche `feature/quart-volcan`) : deuxième quart composé, après le
+  quart Forêt. Un profil par thème lu par le même générateur (le quart de test devient le profil Forêt ; la vraie île
+  pourra s'en servir). Composition propre au thème : un cône à paliers vers la pointe du quart (côté centre de l'île),
+  cratère de lave au sommet ; deux ou trois coulées de lave qui descendent vers la côte à la place du fleuve, franchies
+  par des ponts de basalte ; route entre les deux portails qui traverse une coulée. Sous-biomes par altitude : cratère,
+  grottes de magma (pied du cône), pentes de cendres, coulées (le long de la lave), rivage de basalte (côte).
+  Contenu : escalier secret, grotte scellée (sceaux du volcan : coulée de lave figée, fumerolles), Engrenage du Temps en
+  3 fragments (pas de boss ici). Escalier secret propre au volcan : dans un recoin (le plus haut, au bout d'un chemin)
+  ou sur une poche de terre entourée par une coulée de lave, qu'on atteint en la survolant (types et déplacements qui
+  passent la lave) ou en la refroidissant (attaques Eau, Glace, flaque ou verglas : lave refroidie praticable 12 s).
+  Gardiens des fragments (décidé le 17/11/2026, Robin) : chaque fragment est gardé dans une salle à part, derrière un
+  sanctuaire visible (bulle et icône sur la mini-carte, indice précis), un peu difficile d'accès mais toujours
+  atteignable à pied ; dans la salle, la sortie reste fermée jusqu'à la chute du gardien, qui lâche le fragment.
+  Gardien : un Pokémon des types du thème (Feu, Sol pour le volcan), les trois différents ; d'abord ceux qui peuvent
+  méga-évoluer (la méga est leur seconde phase), sinon un Pokémon qui se téracristallise à mi-PV dans le type qui
+  reprend l'avantage : le type qui bat le thème (Eau contre Feu et Sol), puis celui qui bat ce contre (Plante), de
+  préférence un Pokémon qui a une attaque offensive de ce type. Arène au thème du gardien (son Téracristal, sinon ses
+  types), 2 sbires des types du thème. Comme le gardien du donjon de la clé, et tous deux désormais (17/11/2026) : un peu plus grand
+  qu'un Pokémon ordinaire (× 1,3, le boss d'îlot × 1,6) et une barre de vie en haut de l'écran, comme le boss. Visuels : même méthode que le premier quart
+  (sols et murs des décors de la ROM, falaises et éléments de décor découpés dans les cartes volcaniques de l'histoire),
+  pour un résultat cohérent avec lui.
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
   sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
   (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.

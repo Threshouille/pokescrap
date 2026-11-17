@@ -1,0 +1,294 @@
+{
+ "comment": "Volcano quarter profile (IslandQuarterVolcano.cs; sandbox room 5, X: next theme; GDD « Quart du volcan »). Same fan and settings as forest.json (radius, coast, road, relief, props), layout \"volcano\": volcano.coneShare: where the cone stands along the fan's middle (share of radius), relief.mountainRadius its radius, relief.summit \"crater\": its top level a lava lake (craterMargin tiles of rim); flows: count range, flowWidth (tiles, at the cone then at the coast), flowSpread (degrees between the outermost), flowStart (tiles past the cone), flowMeander / flowWavelength; bridges where the road crosses a flow and extraBridges further down each; roadBulge: tiles past the cone the road goes round it; sub-biomes: shore (basalt) beyond shoreShare of the way to the coast, flows within flowsBand tiles of the lava, ash elsewhere, then the cone's levels magma caves and its top the crater (keys of subBiomes, tilesets = ROM decors as in biomes.json). secretSpots: the secret stairs' hideouts here (lava_island: a pocket of land ringed by lava; nook: the highest, farthest spot reached on foot). fragments: how this quarter gives its Time Gear (mode fragments; guards: shrine = each fragment in its guardian's room behind a shrine (FragmentShrine), among the hardShare hardest tiles to walk to, shrineGap tiles apart; the guardians from themeTypes, a mega first, else a Tera into the type that beats the theme's counter (FragmentGuardians), with minions of the theme's types; other hideouts: elite, nook, rock, lava; hint: 0 = the exact tile on the mini-map).",
+ "test": {
+  "seed": 0,
+  "secretChance": 1,
+  "caveChance": 1,
+  "caveSeal": "",
+  "themeName": "Volcan",
+  "radius": 120,
+  "coastNoise": 0.1,
+  "coastScale": 0.025,
+  "sideNoise": 5,
+  "voidMargin": 16,
+  "widthNoise": 1.0,
+  "bridgeWidth": 2,
+  "bridgeKind": "bridge",
+  "riverKind": "lava",
+  "road": {
+   "width": 3,
+   "portalShare": 0.55,
+   "wander": 5,
+   "earthDecor": 132,
+   "stoneDecor": 133,
+   "stoneShare": 0.08,
+   "column": "",
+   "columnSpacing": [
+    9,
+    15
+   ],
+   "pairChance": 0.3,
+   "columnOffset": 1.2
+  },
+  "relief": {
+   "grid": 3,
+   "terraceExtras": 2,
+   "terraceWidth": [
+    0.75,
+    0.95
+   ],
+   "terraceHeight": [
+    0.5,
+    0.7
+   ],
+   "hills": 3,
+   "hillRadius": [
+    5,
+    9
+   ],
+   "upperChance": 0.5,
+   "mountainRadius": 30,
+   "mountainLevels": 3,
+   "clearance": 3,
+   "rockDecors": [
+    49
+   ],
+   "rampDecor": 0,
+   "ledges": 3,
+   "ledgeLength": [
+    3,
+    6
+   ],
+   "levelShade": [
+    0.93,
+    0.96,
+    0.98,
+    1.0
+   ],
+   "footShadow": [],
+   "faceRows": 2,
+   "faceShade": 0.04,
+   "hillStyle": "basalt",
+   "mountainStyle": "basalt",
+   "summit": "crater",
+   "craterMargin": 2,
+   "peakShare": 0.55
+  },
+  "props": {
+   "clearance": 3,
+   "blockSpacing": 2.5,
+   "bySubBiome": [
+    {
+     "subBiome": "ash",
+     "groups": [
+      {
+       "group": "volcano_pebble",
+       "per100": 1.2
+      },
+      {
+       "group": "volcano_rock",
+       "per100": 0.25
+      },
+      {
+       "group": "volcano_spire",
+       "per100": 0.08
+      }
+     ]
+    },
+    {
+     "subBiome": "basalt",
+     "groups": [
+      {
+       "group": "volcano_rock",
+       "per100": 0.4
+      },
+      {
+       "group": "volcano_spire",
+       "per100": 0.15
+      },
+      {
+       "group": "volcano_pebble",
+       "per100": 0.6
+      }
+     ]
+    },
+    {
+     "subBiome": "flows",
+     "groups": [
+      {
+       "group": "volcano_pebble",
+       "per100": 1.0
+      },
+      {
+       "group": "volcano_rock",
+       "per100": 0.15
+      }
+     ]
+    },
+    {
+     "subBiome": "magma_caves",
+     "groups": [
+      {
+       "group": "volcano_pebble",
+       "per100": 0.8
+      },
+      {
+       "group": "volcano_rock",
+       "per100": 0.2
+      }
+     ]
+    },
+    {
+     "subBiome": "crater",
+     "groups": [
+      {
+       "group": "volcano_pebble",
+       "per100": 0.5
+      }
+     ]
+    }
+   ],
+   "patches": [
+    {
+     "subBiome": "ash",
+     "kind": "scatter",
+     "count": [
+      2,
+      3
+     ],
+     "radius": [
+      5,
+      8
+     ],
+     "groups": [
+      {
+       "group": "volcano_rock",
+       "per100": 4
+      },
+      {
+       "group": "volcano_pebble",
+       "per100": 8
+      }
+     ]
+    },
+    {
+     "subBiome": "basalt",
+     "kind": "scatter",
+     "count": [
+      1,
+      2
+     ],
+     "radius": [
+      5,
+      7
+     ],
+     "groups": [
+      {
+       "group": "volcano_spire",
+       "per100": 3
+      },
+      {
+       "group": "volcano_rock",
+       "per100": 2
+      }
+     ]
+    }
+   ]
+  },
+  "layout": "volcano",
+  "volcano": {
+   "coneShare": 0.32,
+   "flows": [
+    2,
+    3
+   ],
+   "flowWidth": [
+    3,
+    5
+   ],
+   "flowSpread": 70,
+   "flowStart": -3,
+   "flowMeander": 6,
+   "flowWavelength": 40,
+   "extraBridges": 1,
+   "roadBulge": 10,
+   "shoreShare": 0.86,
+   "flowsBand": 3,
+   "crater": "crater",
+   "caves": "magma_caves",
+   "ash": "ash",
+   "flowsBiome": "flows",
+   "shore": "basalt",
+   "subBiomes": [
+    {
+     "key": "basalt",
+     "name": "Rivage de basalte",
+     "tilesets": [
+      132
+     ],
+     "color": "#8a6a5a"
+    },
+    {
+     "key": "ash",
+     "name": "Pentes de cendres",
+     "tilesets": [
+      13
+     ],
+     "color": "#7a7068"
+    },
+    {
+     "key": "flows",
+     "name": "Coulées",
+     "tilesets": [
+      12
+     ],
+     "color": "#a0503a"
+    },
+    {
+     "key": "magma_caves",
+     "name": "Grottes de magma",
+     "tilesets": [
+      9
+     ],
+     "color": "#5a3a3a"
+    },
+    {
+     "key": "crater",
+     "name": "Cratère",
+     "tilesets": [
+      112
+     ],
+     "color": "#c04020"
+    }
+   ]
+  },
+  "secretSpots": [
+   {
+    "key": "lava_island",
+    "weight": 2
+   },
+   {
+    "key": "nook",
+    "weight": 1
+   }
+  ],
+  "fragments": {
+   "mode": "fragments",
+   "guards": [
+    {
+     "key": "shrine",
+     "weight": 1
+    }
+   ],
+   "minElite": 0,
+   "hint": 0,
+   "themeTypes": [
+    "Feu",
+    "Sol"
+   ],
+   "minions": 2,
+   "hardShare": 0.15,
+   "shrineGap": 18
+  }
+ }
+}

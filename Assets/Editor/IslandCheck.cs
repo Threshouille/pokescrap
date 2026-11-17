@@ -270,7 +270,18 @@ public static class IslandCheck
         Debug.Log($"RAMPART DONE, {problems} problème(s)");
     }
 
-    /// Test quarter (quarter_test.json), Unity closed: python3 Tools/setup.py --unity-only IslandCheck.Quarter
+    // The quarter profile asked on the command line (-quarterProfile volcano), the forest's otherwise.
+    static string ProfileArg()
+    {
+        var args = System.Environment.GetCommandLineArgs();
+        for (int i = 0; i + 1 < args.Length; i++) if (args[i] == "-quarterProfile") return args[i + 1];
+        return IslandPlan.DefaultProfile;
+    }
+
+    static string Suffix(string profile) => profile == IslandPlan.DefaultProfile ? "" : "_" + profile;
+
+    /// Test quarter (Data/quarters/<profile>.json, -quarterProfile, the forest's by default), Unity closed:
+    /// python3 Tools/setup.py --unity-only IslandCheck.Quarter (→ Logs/quarter_preview[_profile].png)
     /// Four draws side by side in Logs/quarter_preview.png (sub-biomes in their colour, water blue, bridges brown, the
     /// landing point red); QUARTER lines: size, share of each side, water, bridges, all land reached from the landing.
     public static void Quarter()
@@ -278,7 +289,7 @@ public static class IslandCheck
         var shots = new List<Texture2D>();
         for (int k = 0; k < 4; k++)
         {
-            var plan = IslandPlan.QuarterTestPlan();
+            var plan = IslandPlan.QuarterTestPlan(0, 0, ProfileArg());
             var px = new Color32[plan.size * plan.size];
             int left = 0, right = 0, water = 0, bridge = 0, walkable = 0;
             var reached = plan.Reach(plan.Index(plan.start.x, plan.start.y));
@@ -327,6 +338,18 @@ public static class IslandCheck
                 if (plan.obstacle[i] == "column") columns++;
             }
             Debug.Log($"QUARTER #{k + 1} route : {roadTiles} cases dont {stones} de pierre, {columns} colonnes, portails {string.Join(" ", plan.markers)}");
+            if (plan.HasCone)
+            {
+                var levels = new int[8];
+                int crater = 0;
+                for (int i = 0; i < plan.height.Length; i++)
+                {
+                    if (plan.region[i] != 0 || Vector2.Distance(new Vector2(i % plan.size, i / plan.size), plan.ConeTile) > 40f) continue;
+                    levels[Mathf.Clamp(plan.height[i], 0, 7)]++;
+                    if (plan.height[i] > 0 && plan.obstacle[i] == "lava") crater++;
+                }
+                Debug.Log($"QUARTER #{k + 1} cône en {plan.ConeTile} : cases par palier {string.Join("/", levels)}, lave du cratère {crater} cases, coulées {plan.lavaFlows.Count}");
+            }
             var tex = new Texture2D(plan.size, plan.size, TextureFormat.RGB24, false);
             tex.SetPixels32(px);
             tex.Apply();
@@ -340,7 +363,7 @@ public static class IslandCheck
         for (int k = 0; k < shots.Count; k++)
             sheet.SetPixels32((k % 2) * (s + 6), (1 - k / 2) * (s + 6), shots[k].width, shots[k].height, shots[k].GetPixels32());
         sheet.Apply();
-        File.WriteAllBytes("Logs/quarter_preview.png", sheet.EncodeToPNG());
+        File.WriteAllBytes($"Logs/quarter_preview{Suffix(ProfileArg())}.png", sheet.EncodeToPNG());
         Debug.Log("QUARTER DONE");
     }
 
@@ -352,7 +375,7 @@ public static class IslandCheck
         EditorSceneManager.OpenScene("Assets/Scenes/SampleScene.unity");
         var gen = Object.FindAnyObjectByType<DungeonGenerator>();
         var cam = Camera.main;
-        var plan = IslandPlan.QuarterTestPlan();
+        var plan = IslandPlan.QuarterTestPlan(0, 0, ProfileArg());
         var watch = System.Diagnostics.Stopwatch.StartNew();
         gen.island = plan;
         gen.Generate();
@@ -381,7 +404,7 @@ public static class IslandCheck
         {
             (gen.CentreOf(gen.Size / 2, gen.Size / 2), gen.Interior.width / 2f + 2f),
             (Tile(plan.markers.Count > 0 ? plan.markers[0] : plan.start), 9f),
-            (Tile(plan.markers.Count > 1 ? plan.markers[1] : bridge), 9f),
+            plan.HasCone ? (Tile(plan.ConeTile), 16f) : (Tile(plan.markers.Count > 1 ? plan.markers[1] : bridge), 9f), // a volcano's cone
             (Tile(mouth), 14f),
         };
         cam.backgroundColor = new Color(0.42f, 0.62f, 0.86f);
@@ -403,7 +426,7 @@ public static class IslandCheck
         cam.targetTexture = null;
         RenderTexture.active = null;
         sheet.Apply();
-        File.WriteAllBytes("Logs/quarter_shots.png", sheet.EncodeToPNG());
+        File.WriteAllBytes($"Logs/quarter_shots{Suffix(ProfileArg())}.png", sheet.EncodeToPNG());
         foreach (var g in gates) Object.DestroyImmediate(g);
         gen.island = null;
         Debug.Log("QUARTERSHOT DONE");

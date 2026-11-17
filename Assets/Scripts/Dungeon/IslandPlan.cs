@@ -56,7 +56,12 @@ public partial class IslandPlan
     public readonly List<Vector2Int> markers = new(); // landmarks shown as passage ends that lead nowhere yet (test quarter's portals)
     public readonly List<Vector2Int> caves = new(); // cave mouths (test quarter's mountain top), leading nowhere yet
     public Vector2Int secret = new(-1, -1); // secret stairs (SecretStairs), -1 none
-    public string secretSpot; // where they hide: "clearing" or "rock" (under secret_rooms.json's rock, to break)
+    public string secretSpot; // where they hide: "clearing", "rock" (under secret_rooms.json's rock, to break) or "lava_island"
+
+    /// How a test quarter gives its gear (its profile's "fragments": "boss" or "fragments"; empty: time_gears.json's
+    /// testMode), and its fragments' hideouts: guards by weight (empty: time_gears.json's), at least minElite of them
+    /// an elite, hint spread in tiles (negative: time_gears.json's).
+    [NonSerialized] public QuarterFragments fragmentRules;
     public readonly List<Vector2> clearings = new(); // the clearings in the middle of the forests, in tiles (level design)
     /// Tiles of the sky walked on (a rope bridge to a boss's islet, TimeGears), by index, with the zone they belong to:
     /// open, nothing drawn under them, the sky around them walled.

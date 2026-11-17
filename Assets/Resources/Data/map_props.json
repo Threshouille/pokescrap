@@ -1,5 +1,5 @@
 {
- "comment": "Decor elements cut out of the upper layer of the story maps (MAP_BG) by Tools/pmd/extract_map_props.py into Resources/MapProps/<key>.png (found by find_map_props.py). map: BMA name; rect: x, y, width, height (pixels) in the rendered upper layer; group: what the props of quarter_test.json pick from; block: it blocks its tile (a tree trunk, a rock); trunk: [width, height, x offset] in pixels of the part that stops a Pokémon, from its foot (a tree's trunk: a collider of that size on it, its tiles blocked to the AI's paths only, obstacle 'trunk'; without it the whole tile blocks, obstacle 'blocker'). Its foot is the middle of its bottom edge. layer: lower (the opaque lower layer, detoured by clearTop / cutSides, see extract_map_props.py), upper by default.",
+ "comment": "Decor elements cut out of the upper layer of the story maps (MAP_BG) by Tools/pmd/extract_map_props.py into Resources/MapProps/<key>.png (found by find_map_props.py). map: BMA name; rect: x, y, width, height (pixels) in the rendered upper layer; group: what the props of the quarter profiles (Data/quarters) pick from; block: it blocks its tile (a tree trunk, a rock); trunk: [width, height, x offset] in pixels of the part that stops a Pokémon, from its foot (a tree's trunk: a collider of that size on it, its tiles blocked to the AI's paths only, obstacle 'trunk'; without it the whole tile blocks, obstacle 'blocker'). Its foot is the middle of its bottom edge. layer: lower (the opaque lower layer, detoured by clearTop / cutSides, see extract_map_props.py), upper by default.",
  "fade": { "comment": "Un élément au moins minHeight cases de haut (arbre, gros buisson) qui cache un Pokémon de l'équipe (le haut de son corps dans l'image, derrière son pied) devient transparent jusqu'à alpha, en time secondes (PropFade).", "alpha": 0.4, "minHeight": 1.2, "time": 0.2 },
  "props": [
   {"key": "jungle_fern_787", "group": "jungle_fern", "map": "D54P11A", "rect": [183, 46, 24, 24], "block": false},
@@ -50,6 +50,18 @@
   {"key": "tree_1212", "group": "tree", "map": "P16P01A", "rect": [48, 193, 95, 86], "block": true, "trunk": [14, 10, 0]},
   {"key": "tree_1251", "group": "tree", "map": "P20P02A", "rect": [270, 73, 89, 88], "block": true, "trunk": [17, 10, 3]},
   {"key": "tree_1254", "group": "tree", "map": "P20P02A", "rect": [49, 121, 89, 88], "block": true, "trunk": [17, 10, -4]},
-  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true, "trunk": [15, 8, 0]}
+  {"key": "stump_1213", "group": "stump", "map": "P17P01A", "rect": [219, 101, 18, 15], "block": true, "trunk": [15, 8, 0]},
+  {"key": "volcano_spire_1459", "group": "volcano_spire", "map": "V03P08A", "rect": [35, 81, 34, 62], "block": true},
+  {"key": "volcano_spire_1460", "group": "volcano_spire", "map": "V03P08A", "rect": [243, 81, 34, 62], "block": true},
+  {"key": "volcano_rock_1485", "group": "volcano_rock", "map": "V03P08A", "rect": [132, 249, 48, 39], "block": true},
+  {"key": "volcano_rock_1488", "group": "volcano_rock", "map": "V03P08A", "rect": [136, 289, 40, 28], "block": true},
+  {"key": "volcano_rock_1467", "group": "volcano_rock", "map": "V03P08A", "rect": [91, 137, 18, 20], "block": false},
+  {"key": "volcano_rock_1468", "group": "volcano_rock", "map": "V03P08A", "rect": [203, 137, 18, 20], "block": false},
+  {"key": "volcano_pebble_1471", "group": "volcano_pebble", "map": "V03P08A", "rect": [25, 161, 28, 15], "block": false},
+  {"key": "volcano_pebble_1472", "group": "volcano_pebble", "map": "V03P08A", "rect": [259, 161, 28, 15], "block": false},
+  {"key": "volcano_pebble_1473", "group": "volcano_pebble", "map": "V03P08A", "rect": [75, 175, 20, 15], "block": false},
+  {"key": "volcano_pebble_1474", "group": "volcano_pebble", "map": "V03P08A", "rect": [217, 175, 20, 15], "block": false},
+  {"key": "volcano_pebble_1480", "group": "volcano_pebble", "map": "V03P08A", "rect": [211, 221, 27, 23], "block": false},
+  {"key": "volcano_pebble_1481", "group": "volcano_pebble", "map": "V03P08A", "rect": [113, 237, 22, 19], "block": false}
  ]
 }
