@@ -7,7 +7,7 @@ using UnityEngine;
 /// object needs (centred on the ground, at the foot when it stands).
 public static class EntranceArt
 {
-    public enum Icon { Down, Up, Secret, Sealed, Key, Boss, GateShut, GateOpen }
+    public enum Icon { Down, Up, Secret, Sealed, Key, Boss, GateShut, GateOpen, Shrine }
 
     public const int GroundOrder = -2; // over the terrain (-3), under the walls and the ground marks
     public const int StandOrder = 1; // stands like a Pokémon, sorted by its foot

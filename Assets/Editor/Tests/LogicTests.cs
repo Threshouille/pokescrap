@@ -689,6 +689,18 @@ public class LogicTests
         Assert.IsFalse(picks.Any(p => p.id == 4));
     }
 
+    // The shrines' sheets: three stones like the key dungeon's, their glow looping, the fragment's icon after the
+    // entrances' eight (EntranceArt.Icon.Shrine).
+    [Test]
+    public void ShrineSheetsAreThere()
+    {
+        var shrine = EffectLibrary.Get("fragment_shrine");
+        Assert.IsNotNull(shrine);
+        Assert.AreEqual(EffectLibrary.Get("key_dungeon").frame_count, shrine.frame_count, "une image par matière, comme le donjon de la clé");
+        Assert.IsTrue(EffectLibrary.Get("fragment_shrine_glow")?.loop ?? false);
+        Assert.Greater(EffectLibrary.Get("entrance_icons").frame_count, (int)EntranceArt.Icon.Shrine);
+    }
+
     [Serializable] class ObstacleForTest { public string key; public bool fall, solid; }
     [Serializable] class InteractionForTest { public string on, becomes; public int byType; public float duration; }
     [Serializable] class ObstacleFileForTest { public ObstacleForTest[] obstacles; public InteractionForTest[] interactions; }

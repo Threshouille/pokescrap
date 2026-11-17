@@ -24,17 +24,21 @@ public class FragmentShrine : IslandStairs
     protected override SecretRooms.Room Room => new() { type = TimeGears.BossRoomType };
     protected override string Kind => "shrine";
     protected override bool OneUse => true;
-    protected override EntranceArt.Icon Icon => EntranceArt.Icon.Boss;
+    protected override EntranceArt.Icon Icon => EntranceArt.Icon.Shrine;
     protected override float BubbleHeight => EntranceArt.Data.gateBubbleHeight;
 
-    // A stone dolmen over stairs going down, of the stone of its ground, its runes glowing (the key dungeon's, for now).
+    // A stone gate in the gear dolmen's and the rampart's language (Design/effects_v24_sanctuaires): two pillars ringed
+    // with riveted verdigris bronze, a slab laid on them with a gear's socket, one third of it gold (the fragment it
+    // keeps), stairs going down between them; its runes and that third light up turquoise.
     protected override GameObject MakeEntrance(Vector2 at)
     {
         var go = new GameObject(StairsName);
         go.transform.position = at;
         var foot = new Vector2(0f, -0.5f);
-        EntranceSprite.Make(go.transform, foot, EntranceArt.Foot, EntranceArt.StandOrder).Still("key_dungeon", EntranceArt.KeyMaterialOf(BiomeKey));
-        EntranceSprite.Make(go.transform, foot - new Vector2(0f, 0.01f), EntranceArt.Foot, EntranceArt.StandOrder, unlit: true).Play("key_dungeon_glow");
+        EntranceSprite.Make(go.transform, foot, EntranceArt.Foot, EntranceArt.StandOrder).Still("fragment_shrine", EntranceArt.KeyMaterialOf(BiomeKey));
+        // The glow a hair lower: drawn over the shrine (sorted by the foot), never level with it.
+        EntranceSprite.Make(go.transform, foot - new Vector2(0f, 0.01f), EntranceArt.Foot, EntranceArt.StandOrder, unlit: true).Play("fragment_shrine_glow");
+        PointLights.Attach(go, "stairs", new Vector2(0f, 2.2f));
         return go;
     }
 

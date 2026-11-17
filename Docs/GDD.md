@@ -416,7 +416,11 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   reprend l'avantage : le type qui bat le thème (Eau contre Feu et Sol), puis celui qui bat ce contre (Plante), de
   préférence un Pokémon qui a une attaque offensive de ce type. Arène au thème du gardien (son Téracristal, sinon ses
   types), 2 sbires des types du thème. Comme le gardien du donjon de la clé, et tous deux désormais (17/11/2026) : un peu plus grand
-  qu'un Pokémon ordinaire (× 1,3, le boss d'îlot × 1,6) et une barre de vie en haut de l'écran, comme le boss. Visuels : même méthode que le premier quart
+  qu'un Pokémon ordinaire (× 1,3, le boss d'îlot × 1,6) et une barre de vie en haut de l'écran, comme le boss.
+  Sanctuaire (17/11/2026, revu par Robin) : dans la langue du dolmen à engrenage et du rempart : deux piliers de pierre
+  grise cerclés de bronze vert-de-gris riveté, une dalle posée dessus avec un logement d'engrenage dont un tiers est doré
+  (le fragment qu'il garde), l'escalier entre les piliers ; runes et tiers qui s'allument en turquoise ; mousse, sable ou
+  givre selon le sol ; icône : un engrenage gris dont un tiers est doré, dans la bulle et sur la mini-carte. Visuels : même méthode que le premier quart
   (sols et murs des décors de la ROM, falaises et éléments de décor découpés dans les cartes volcaniques de l'histoire),
   pour un résultat cohérent avec lui.
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
