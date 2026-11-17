@@ -4,17 +4,21 @@
 
 Décidé (13/10/2026) : squelette d'abord. Les jalons 1 à 4 sont faits en version minimale, dans l'ordre, pour boucler une partie complète ; on approfondit ensuite.
 
-## État au 25/10/2026
+## État au 17/11/2026
 
-- Jalons 1 à 4 : faits en version minimale. Jalon 5 : bien avancé (tous les sprites, attaques générées, statuts,
-  évolutions, mégas). Jalon 6 : pas commencé.
-- Approfondi depuis : terrains et obstacles, météos, IA (cible, dangers, réparation, secours), objets spéciaux et
-  ultimes, rencontres et élites (seconde phase), sac et objets tenus, interface en partie.
-- Encore provisoire : structure de partie sur `dev` (l'île, les salles et les niveaux continus d'Owen ne sont pas
-  fusionnés), équilibrage, rythme d'expérience, monnaies et boutique, talents, boss autres que Groudon.
-- Prochaines étapes : socle technique (`refacto/socle` : outils d'interface, profil de dev, tests EditMode, docs), puis
-  intégration des branches d'Owen avec lui, puis outils de dev dans un assembly séparé ; reprise des fonctionnalités
-  après la réunion de conception (structure de partie, économie, cibles d'équilibrage).
+- Jalons 1 à 4 : faits en version minimale. Jalon 5 : très avancé (tous les sprites, attaques faites à la main par
+  type, statuts, évolutions, mégas, talents). Jalon 6 : pas commencé.
+- Structure de partie : l'île flottante (quartiers séparés, Engrenages du Temps, donjons de la clé, boss d'îlot,
+  escaliers secrets, grottes scellées, entrées des donjons, remparts et portes à engrenage) est dans `dev`, avec le
+  quart d'île, les salles et les niveaux continus d'Owen. Seule `feature/refonte-visuelle` (Owen) reste à part.
+- Approfondi depuis le 25/10 : rencontres et élites (seconde phase), sac et objets tenus, interface en partie, jour et
+  nuit, talents et IA des talents, attaques faites à la main (lots 1 à 5, attaques de statut), capacités Z (une mise en
+  scène par type, Z ennemie esquivable).
+- Encore provisoire : équilibrage et rythme d'expérience (sans cible chiffrée), monnaies et boutique, quêtes du Tableau
+  des missions, boss plus dynamiques.
+- Prochaines étapes : tester en vraie partie ce qui ne l'a été qu'au banc ; réunion de conception (économie, cibles
+  d'équilibrage) ; puis dette technique (registre des salles du terrain de test, banc par domaine, outils de dev dans un
+  assembly à part, découpage de `Combatant` et `Obstacles`).
 
 ## Déjà fait (prototype de combat)
 
@@ -94,9 +98,10 @@ Objectif décidé par Owen : à terme, les 558 Pokémon de la ROM sont jouables 
 - Fait (15-17/10/2026) : 34 attaques de base (une à distance et une au corps à corps par type), réglées une par une, avec planches d'effets ; icônes des 9 statuts ; menu limité aux premières formes.
 - **Suivant (décidé par Owen) : reprise des autres attaques au cas par cas** pour leur donner un aspect unique (dont les 108 écartées) et leurs effets visuels.
 - Fait (19/10/2026) : persos de dev (toutes les attaques) ; effets de terrain, première série de 7 terrains et 14 attaques (`terrains.json`). Suite : affinités entre terrains, puis d'autres attaques.
-- Reste : évolutions sans niveau (non décidé), nouvelles familles (mur…), talents.
-- Terrains spéciaux (eau, lave, trous) et types de déplacement.
-- Plus de décors, les 3 cycles et le boss final.
+- Fait depuis : talents (lots 1 à 3, passifs des mégas) ; terrains spéciaux (eau, lave, vide) et types de
+  déplacement ; attaques faites à la main seules en jeu (lots 1 à 5 par type, attaques de statut posées dans l'arène) ;
+  boss d'îlot par thème avec 4 attaques fixes.
+- Reste : évolutions sans niveau (non décidé), les 3 cycles et le boss final.
 
 Conséquence dès maintenant : ne rien écrire qui suppose une liste fermée de Pokémon ou d'attaques.
 

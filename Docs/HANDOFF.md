@@ -1,59 +1,38 @@
 # Pokescrap — Passation de session
 
-Dernière mise à jour : 02/11/2026 (Robin : `feature/engrenages` fusionnée dans `dev` le 26/10 ; `feature/talents` prête à fusionner, voir ci-dessous). À lire en début de session avec `CLAUDE.md` (détails
-techniques), `Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons). Bilan complet du 25/10 : avancement,
-branches, axes de refonte et questions de conception (page partagée par Robin).
+Dernière mise à jour : 17/11/2026 (Robin). À lire en début de session avec `CLAUDE.md` (détails techniques),
+`Docs/GDD.md` (décisions de conception) et `Docs/ROADMAP.md` (jalons).
 
-## Talents (02/11/2026, branche `feature/talents`, poussée, pas encore fusionnée dans `dev`)
+## État au 17/11/2026
 
-Fait : catalogue `abilities_rt.json` (talents ROM + caché PokéAPI par Pokémon, talents des mégas, rapport
-`Docs/TALENTS.md`) ; effets des lots 1 à 3 (tous les talents des Pokémon) et passifs des 27 mégas
-(`ability_effects.json`, `Abilities.cs`, `Combatant.Ability.cs`) ; visuels des talents et des mégas (Claude Design,
-`Design/effects_v18_talents/`, `effects_v19_megas/`), salle de démo 21, protégés des mégas ; IA et talents, lots 1 à 3
-(`AbilityAi` : connaissance bornée, exploiter son talent, lire ceux des adversaires) ; persos de dev avec talent de
-départ. Banc complet 85/85 le 30/10 (avant le dernier commit du 02/11, retouches des persos de dev). `dev` n'a pas
-bougé depuis : fusion sans conflit attendue. Restent à part : `feature/attaques-type-lot4` (Owen), `feature/refonte-visuelle`
-(Owen, à fusionner avec lui). Suite : réglage des valeurs en jeu.
+`dev` contient tout le travail en cours, sauf `feature/refonte-visuelle` (Owen). Dernière fusion le 13/11 :
+`feature/entrees-donjons` (entrées des donjons, remparts et portes à engrenage, capacités Z par type). Contrôle du
+17/11 sur `dev` : compile, tests EditMode 34/34, banc complet 89/89 (performances de l'île : 5 à 11 ms par image),
+données cohérentes (JSON lisibles, les 406 planches d'`effects.json` présentes, aucun `.meta` manquant ni orphelin),
+rien de la ROM dans le dépôt.
 
-Test en jeu prévu (éditeur, profil de dev) :
-0. Démo de tous les talents : terrain de test, escalier rose (en bas, à droite de l'orange) ; regarder chaque talent
-   (←/→, ↑/↓ par famille) et noter ceux dont la démo ne montre rien de clair.
-1. Menu : un perso de dev, R2 / Tab ouvre la liste des talents (filtre par famille, description) ; un Pokémon normal
-   montre ses talents et son caché. En partie, J ouvre la même liste (Maj+J : le suivant).
-2. Partie normale : le nom du talent tiré s'affiche dans le HUD après le niveau ; il reste après une évolution ; une
-   méga prend celui de la méga puis rend l'ancien.
-3. Terrain de test (Select / T) avec un perso de dev, J pour choisir un talent :
-   cibles d'entraînement de la salle 0 pour Sniper (dégâts plus forts de loin), Chanceux (tirs plus gros),
-   Technicien, Brasier sous 1/3 des PV ; Statik / Peau Dure en frappant au corps à corps une cible avec le talent
-   (élite de la salle 7 : J ne change que le Pokémon joué, donc tester le talent de l'élite par son tirage).
-4. Météo : Sécheresse / Crachin au début d'une arène ; Glissade, Chlorophylle (vitesse), Voile Sable (pas de dégâts).
-5. Intimidation : bandeau et icône de malus d'attaque sur les ennemis qui approchent.
-6. Paratonnerre / Lavabo : les tirs Électrik / Eau des ennemis sont attirés et absorbés.
-7. Marque Ombre / Piège Sable : esquive refusée près du porteur ; Ventouse : pas de recul.
-8. Ramassage : objets qui arrivent dans le sac au fil des K.O.
-9. À noter : bandeaux trop fréquents ou pas assez, valeurs trop fortes ou trop faibles.
-Banc complet le 29/10 (mégas) : 80/82 ; les deux échecs, antérieurs aux talents, corrigés le 30/10 : « capacité Z
-frappe et paralyse » (le Z ne multipliait que la puissance, pas la stat du lanceur : Onde de Choc, puissance 7, à peine
-×2,4 ; visible depuis que Fatal-Foudre est une zone) et « Secours : le plus apte éloigne l'ennemi » (Charge repousse
-désormais le meneur immobile hors de portée de la réanimation : le scénario le ramène sur le K.O.). « Groupe : pas d'à-coups » et « Peuplement : camps et rondes », instables, corrigés le 29/10 (8 passages sur 8) :
-reculs dus aux coups et aux esquives exclus ; population de nuit acceptée, équipe placée sur une case libre près
-du camp.
+Fusionné dans `dev` depuis le 25/10 : rencontres et élites, interface en partie (sac, objets tenus à tiers), seconde
+phase des ennemis, quart d'île (relief, escaliers secrets, grottes scellées), jour et nuit (éclairage, lumières,
+particules, vent), Engrenages du Temps (boss d'îlot, peuplement de l'île, socle technique), talents (lots 1 à 3,
+passifs des mégas, IA et talents), attaques faites à la main seules (lots 1 à 5 des attaques de type, poings, attaques
+de statut posées dans l'arène, attaques des boss à part), entrées des donjons et remparts, capacités Z refaites
+(cinématique du joueur, une mise en scène par type, Z ennemie esquivable, 38 planches `z_*`).
 
-## Reprise (26/10/2026, Robin) : où on s'est arrêté
+Branches :
+- `feature/refonte-visuelle` (Owen, 6 commits, dernier le 23/10, 460 fichiers) : assets Claude Design de l'île, sol
+  organique par shader, eau animée. Pas dans `dev`, sans doute très divergente : à reprendre ou abandonner avec Owen.
+- Une trentaine de branches déjà fusionnées restent en local et sur `origin` (dont `fix/banc-z-secours` et son
+  worktree `.claude/worktrees/cranky-haibt-8f8e8c`) : à supprimer quand on veut, d'un commun accord.
+- `main` est la branche de production : elle n'est pas tenue à jour avec `dev`, c'est voulu.
 
-Branche `feature/engrenages` (contient `feature/peuplement` et `refacto/socle`), **pas poussée**, pas fusionnée dans
-`dev`. Accès à l'îlot du boss terminé et validé en jeu : donjon de la clé sur le point d'intérêt, entrée = grotte
-du sommet (y entrer mène au donjon), sinon faille dimensionnelle de la ROM (`rift`, animée), sur une case libre, accessible à pied et loin des autres donjons ; pont de
-corde vertical sur la côte arrondie, pied praticable par tous ; portail de lumière animé (scintille terne sans la clé,
-s'ouvre la première fois qu'on approche avec, puis tourbillon) ; arène et salles gardées telles quelles au retour ;
-plus de bulles numérotées pour les boss d'îlot. La clé reste la Clé de Donjon Mystère (`pmd_Key_White`).
-
-À faire ensuite :
-1. Banc complet (pas lancé depuis la fusion de `refacto/socle`) avant toute fusion dans dev ; bilan de la tâche.
-2. Boss plus dynamiques (ruée, renforts à mi-PV), passe d'équilibrage générale, puis l'aspect graphique.
-3. Plus tard : salle rouge du terrain de test qui tire le boss au hasard à l'entrée (N reste pour choisir) ; quêtes
-   du Tableau des missions ; intégrer les branches d'Owen avec lui ; outils de dev dans un assembly à part ; boutique
-   Kecleon.
+Suites possibles :
+1. Tester en vraie partie ce qui ne l'a été qu'au banc ou dans le terrain de test : rencontres et élites sur l'île,
+   talents, capacités Z (salle 6), entrées des donjons et portes à engrenage.
+2. Équilibrage avec des cibles chiffrées (rythme d'expérience, PV, dégâts), à décider en réunion de conception.
+3. Boss plus dynamiques (ruée, renforts à mi-PV) ; quêtes du Tableau des missions ; monnaie et boutique Kecleon.
+4. Dette technique : registre des salles du terrain de test par nom, banc découpé par domaine, outils de dev dans un
+   assembly à part, découpage de `Combatant` et `Obstacles`.
+5. Robin prépare une autre proposition sur les capacités Z (GDD).
 
 ## Méthode de travail
 
@@ -61,34 +40,88 @@ plus de bulles numérotées pour les boss d'îlot. La clé reste la Clé de Donj
 - Avant toute nouvelle tâche, présenter un plan et attendre l'accord (valeurs, comportements, ce qui est provisoire,
   questions ouvertes). Signaler tout écart au plan validé. Donner un avis argumenté, pas seulement exécuter.
 - Une branche par tâche **depuis `dev`** (`feature/…`, `fix/…`, `refacto/…`), poussée sur `origin`, fusionnée dans `dev`
-  une fois testée en jeu et le banc vert. `main` n'est plus mis à jour depuis le 19/10 (à rattraper depuis `dev`).
+  une fois testée en jeu et le banc vert. `main` est la branche de production, pas tenue à jour avec `dev`.
 - Commits non signés, seulement avec l'accord de la personne ; jamais de force push ; ne pas toucher aux branches de
   l'autre sans lui. Dépôt public : rien de la ROM (vérification avant chaque push, voir `CLAUDE.md`).
 - Après chaque tâche : tests (EditMode et banc), mise à jour de GDD / ROADMAP / CLAUDE.md / README, commit.
 - Effets visuels : prompt pour Claude Design (pixel art strict, 24 px = 1 case, une ligne d'images orientée vers la
   droite, `effects.json`) ; archive déposée à la racine, extraite dans `Design/effects_vN/`, contrôlée, fusionnée dans
-  `Assets/Resources/Effects/`. Effets Z et Téra : ressources existantes en ligne plutôt que Claude Design.
+  `Assets/Resources/Effects/`. Effets Téra : ressources existantes en ligne plutôt que Claude Design ; effets Z : mouvement par code et
+  planches dessinées par script (`Design/effects_v23_z/make_sheets.py`), présentées sur un canevas Claude Design.
 
-## Où en est le projet (25/10/2026)
+## Où en est le projet (17/11/2026)
 
 | Domaine | État |
 |---|---|
-| Combat (familles d'attaques, types, statuts, esquive, visée) | solide |
-| Environnement (10 terrains, 20 obstacles, pylônes, 4 météos, 2 sports) | solide |
-| IA (rôles, cible par score, dangers, réparation de chemin, secours, soins sûrs) | solide |
-| Rencontres (lots, rangs, combinaisons, élites, seconde phase à mi-PV) | fait, à régler en vraie partie |
-| Objets (méga, Z, Téra ; sac partagé ; objets tenus à tiers ; butin ; interface lisible) | fait |
+| Combat (familles d'attaques, attaques faites à la main, types, statuts, esquive, visée) | solide |
+| Environnement (terrains, obstacles, pylônes, météos, sports, jour et nuit) | solide |
+| IA (rôles, cible par score, dangers, réparation de chemin, secours, soins sûrs, talents, esquive des Z) | solide |
+| Rencontres (lots, rangs, combinaisons, élites, seconde phase à mi-PV, peuplement de l'île) | fait, à régler en vraie partie |
+| Objets (méga, Z, Téra ; sac partagé ; objets tenus à tiers ; butin) | fait |
+| Talents (lots 1 à 3, passifs des mégas, visuels) | fait, valeurs à régler en jeu |
+| Structure de partie (île en quartiers, engrenages, donjons de la clé, boss d'îlot, escaliers secrets, grottes scellées) | fait, à éprouver en vraie partie |
 | Progression en partie (expérience, améliorations, attaques, évolutions) | provisoire |
-| Structure de partie | provisoire sur `dev` (Arène 1 → Arène 2 → Boss) ; île, salles et niveaux continus sur les branches d'Owen |
 | Entre les parties (menu, recrutement, sauvegarde) | minimal ; ni monnaie ni boutique |
 | Son, coopération | pas commencés (jalon 6) |
 | Équilibrage | sans cible chiffrée |
 
-## Branches pas encore dans `dev` (25/10/2026)
+## En attente
 
-Toutes ont des conflits avec `dev` (fusion à blanc par `git merge-tree`) ; intégration prévue avec Owen, dans l'ordre :
+- Icônes de bonus et malus (`status_attack_up`… six fichiers) : flèches colorées provisoires.
+- Planches des 14 attaques à trace qui n'ont qu'un disque coloré (prompt prêt : `Design/prompt_attaques_terrain.md`) ;
+  les attribuer via `move_rules.json`.
+- Attaques génériques sans effet visuel propre ; 108 attaques écartées (`Tools/pmd/generated_moves_report.txt`).
+- Évolution manuelle : pas testés à la manette (Triangle), échange, Babimanta, Barpau, Debugant.
+- Archives qui ne servent plus à la racine et dans `Design/` (Owen peut les supprimer) ; garder l'archive de la ROM.
 
-## Fusion de dev dans `feature/quart-ile` (24/10/2026, Robin)
+## Problèmes connus et points à surveiller
+
+- Corrigé le 22/10/2026 : gels sur les grands niveaux quand le Pokémon joué survolait l'eau, la lave ou le vide (Ptéra) :
+  les alliés, sans chemin, lançaient l'A* jusqu'à sa limite puis la réparation de chemin (Dijkstra quadratique sur
+  toute la carte, toutes les 0,5 s). Correctifs : cible de suivi praticable, chemin partiel à la limite de l'A*,
+  réparation à tas binaire bornée, redessin incrémental des obstacles et du terrain. Sonde au banc (« Niveau : pas de
+  gel… ») : pire image 167 ms → 31 ms sur un niveau 360×268. Reste à confirmer en jeu par Robin.
+
+- Équilibrage entièrement provisoire : rythme d'expérience (20 + 4 × niveau) sans lien avec l'objectif « niveau 100 en
+  30 min », soutien rare (il faut un soin ou un bonus aux alliés), équipe qui progresse vite.
+- L'annonce des attaques au corps à corps ennemies reste un disque rouge, qui ne correspond pas aux arcs ni aux estocs.
+- Mineurs : les zones ne déclenchent ni drain ni recul ; Attaque / Attaque Spé proposées même sans attaque de cette
+  catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
+- Jamais testés à la manette : navigation du menu, écran de remplacement d'attaque, Croix / Rond des écrans de fin.
+- Observé sur le banc : une attaque de projectile touchait un ennemi immobile de nombreuses fois (à vérifier en jeu).
+- Réglages de test : dans `meta_dev.json` (éditeur et builds de développement), plus dans `meta.json`.
+- Unity s'est déjà bloqué pendant un rechargement de scripts (« The file 'MemoryStream' is corrupted ») : relancer.
+  Après une recompilation, la liaison unityMCP peut manquer une dizaine de secondes : vérifier `Logs/Editor.log`.
+- Version d'Unity : `ProjectSettings/ProjectVersion.txt` diffère selon les machines ; ne pas le committer.
+- Machine d'Owen (Linux) : manette Battletron compatible PS4 en Bluetooth ; si Linux la refuse (« Rejected connection
+  from !bonded device »), refaire l'appairage avec `bluetoothctl` jusqu'à « Bonded: yes ». Ne pas toucher à
+  `ClassicBondedOnly` sans accord explicite.
+
+## Comment je teste
+
+- **Tests EditMode** (logique pure et données, quelques secondes) : `python3 Tools/setup.py --edit-tests` (Unity fermé ;
+  sinon Window > General > Test Runner, EditMode). Fichiers dans `Assets/Editor/Tests/`.
+- **Banc d'essai** (89 scénarios en mode Play) : `python3 Tools/setup.py --ai-scenarios`, Unity fermé,
+  lignes `AISCENARIO` dans `Logs/ai_scenarios.log` ; touche B dans le terrain de test.
+- **Compilation rapide hors Unity** : reprendre le fichier `.rsp` d'Unity (`Library/Bee/artifacts/*/Assembly-CSharp.rsp`)
+  et le passer au `csc` du SDK .NET livré avec Unity.
+- **Terrain de test** (menu, Select / T en `devMode`) : salle 0 (émetteurs de terrain, présentoir des objets), 1
+  obstacles et cibles, 2 galerie des mégas, 3 galerie des salles, 4 île de test, 5 quart d'île, 6 démo des
+  capacités Z, 7 élite, 8 boss, 9 démos de secours, 20 observation des rencontres (V / ○ : pilote automatique),
+  21 démo des talents.
+- Play lance la scène `Menu` ; `Run.Start(new[]{4,1,25})` lance une partie avec cette équipe, `Run.ToMenu()` revient au
+  menu. Écran d'amélioration : `Progression.AddXp(5000)`. Statuts : `combatant.AddStatus("sleep", 3f)`.
+- Sauvegarde : `save.json` dans `Application.persistentDataPath` (macOS `~/Library/Application Support/DefaultCompany/
+  Pokescrap/`, Linux `~/.config/unity3d/DefaultCompany/Pokescrap/`, Windows `%USERPROFILE%\AppData\LocalLow\
+  DefaultCompany\Pokescrap\`) ; menu **Pokescrap > Effacer la sauvegarde**.
+- Mesurer une mécanique : figer les autres acteurs (désactiver `AllyAI`, `EnemyAI`, `BossAI`). Le temps est figé
+  pendant l'écran d'amélioration (`Time.timeScale = 0`). La fenêtre Unity en arrière-plan est lente.
+
+## Historique des sessions (avant le 02/11/2026)
+
+Notes des sessions passées, gardées pour mémoire ; l'état actuel est en haut de ce fichier.
+
+### Fusion de dev dans `feature/quart-ile` (24/10/2026, Robin)
 
 dev (objets spéciaux, ultimes ennemis, secours et soins) fusionné dans la branche d'Owen ; salles de dev renumérotées
 6 à 9 dans le terrain de test (démo Z, élite, boss, secours). Corrigé : sur le quart d'île, les alliés ne refaisaient
@@ -97,7 +130,7 @@ maintenant une réparation. Banc en batch : 39/39. « Hauteur » échouait aussi
 (`e5de12e`) : ennemi à 7 cases, la portée exacte de Puis. Cachée, donc hors de portée au moindre décalage ; ramené à
 5 cases et une attaque typée.
 
-## Session en cours : composition du quart d'île (branche `feature/quart-ile`, 23-24/10/2026)
+### Session en cours : composition du quart d'île (branche `feature/quart-ile`, 23-24/10/2026)
 
 Branche partie de `feature/salles` (Robin : salles, île flottante ; Owen : zones séparées), **ni l'une ni l'autre
 fusionnées dans `dev`**. But : composer un quartier de l'île principale avec les assets de DM. Salle de test : escalier
@@ -148,7 +181,7 @@ Reste à faire :
 Abandonné : la refonte visuelle organique (branche `feature/refonte-visuelle`, non fusionnée, gardée pour mémoire :
 shader de sol, vitrine, assets Claude Design) — Owen préfère les assets de DM en cases carrées.
 
-## Prochaine session : attaques au cas par cas
+### Prochaine session : attaques au cas par cas
 
 Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps à corps), réglées une par une avec Owen (détail dans le GDD, paramètres dans `CLAUDE.md`), avec leurs planches Claude Design (`Design/effects_v6_attaques_de_base/`, `Design/effects_v7_attaques_de_base_cac/`, prompts `Design/prompt_attaques_de_base*.md`) et les icônes des 9 statuts (`Design/effects_v5_statuts/`). Owen n'a pas encore tout testé à la manette. Ensuite : les 18 attaques de type (liste et lots dans le GDD) ; lot 1 fait le 19/10/2026 (Vibraqua, Lame d'Air, Plaie-Croix, Onde Folie, Telluriforce), planches intégrées ; lot 2 fait le 19/10/2026 (Fatal-Foudre, Blizzard, Draco Météor, Pouv. Antique), planches demandées (`Design/prompt_attaques_type_lot2.md`). Draco Météor baisse le modificateur « attack », qui touche aussi les attaques physiques. Lot 2 fusionné dans dev le 26/10/2026 ; lot 3 (Lance-Flamme, Ball'Ombre, Méga-Sangsue) fusionné le 26/10/2026 ; lot 4 (Plaquage, Frappe Atlas, Acidarmure, Gyroballe, Psyko, Coup Bas) en cours sur `feature/attaques-type-lot4`, planches demandées (`Design/prompt_attaques_type_lot4.md`). Points de départ :
 - `Tools/pmd/generated_moves_report.txt` : 108 attaques écartées (75 de statut sans effet transposable comme Abri, Repos, Morphing, Métronome ; terrain, météo, K.O. en un coup, expulsion ; statuts non gérés comme Attraction, Requiem, Entrave).
@@ -157,18 +190,18 @@ Fait (15-17/10/2026) : les 34 **attaques de base** (17 à distance, 17 au corps 
 - Notes du générateur sur chaque attaque (`notes` : « plusieurs coups », « charge », « recharge », « une seule statistique gardée ») : pistes de reprise.
 - Champs ignorés pour l'instant : chance de recul critique, coups multiples en mêlée (puissance ×2 à la place), bonus sur plusieurs statistiques.
 
-## Effets de terrain (19/10/2026)
+### Effets de terrain (19/10/2026)
 
 Faits et testés en Play par Robin : 7 terrains, 14 attaques, persos de dev, commandes clavier U I O P. Suite décidée : affiner la logique et le fonctionnement, puis les affinités entre terrains (table `reactions`). Tuiles animées des 8 terrains livrées (19/10/2026, `Design/effects_v11_terrains/`, prompt `Design/prompt_terrains.md`). Reste, reporté par Robin (19/10/2026) : planches des 14 attaques à trace qui n'ont qu'un disque coloré (Lance-Flamme, Déflagration, Hydrocanon, Hydroblast, Canon Graine, Mégafouet, Végé-Attak, Tonnerre, Fatal-Foudre, Laser Glace, Blizzard, Détritus, Bomb-Beurk, Boue-Bombe) ; prompt prêt : `Design/prompt_attaques_terrain.md`. Ces attaques sont générées : leur attribuer les planches via `move_rules.json` plutôt qu'en les recopiant dans `realtime_moves.json`.
 
-## Méga-évolutions (20/10/2026, Robin) : en pause
+### Méga-évolutions (20/10/2026, Robin) : en pause
 
 Étape 1 faite (branche `feature/mega-evolutions`) : sprites de 27 mégas (SpriteCollab), galerie du terrain de test,
 jauge commune, L3 + R3 / F, stats et types, onde de choc, retour au bout de 50 s ; testée en jeu par Robin, réservée
 au `devMode`. Mise en pause par Robin pour passer aux IA. Fusionnée dans `dev` le 22/10/2026. Suite (GDD) : 2) méga-gemmes (sauvegarde, emplacement au menu
 d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : boss qui méga-évoluent.
 
-## Correction des IA (branche `feature/ia`, fusionnée dans `dev` le 22/10/2026, Robin)
+### Correction des IA (branche `feature/ia`, fusionnée dans `dev` le 22/10/2026, Robin)
 
 - Alliés qui suivaient le Pokémon joué jusque dans une zone nocive : ils visent la case sûre la plus proche de lui
   (`AllyAI.SafeSpotNear`) par un chemin qui contourne les dangers (`Navigator.Direction(..., avoid: true)`), et
@@ -183,7 +216,7 @@ d'équipe, obtention en partie, sans doublon) ; 3) les 27 passifs. Plus tard : b
   ennemi au corps à corps ; pylônes vus avec 60 % de chances par cycle ; métal ignoré par les IA. `Navigator` ne
   relance plus l'A* à chaque pas vers une cible inaccessible (problème connu, corrigé). Banc : 14 scénarios.
 
-## Salles (branche `feature/salles`, 22/10/2026, Robin)
+### Salles (branche `feature/salles`, 22/10/2026, Robin)
 
 Étape 1 faite : catalogue `rooms.json` (types, thèmes, variantes, tailles), générateur (plans de murs, décors de la ROM,
 liquide du décor), galerie des salles dans le terrain de test, `RoomCheck` (84 salles, 0 problème). Le point de départ
@@ -219,7 +252,7 @@ glace 88, 111, 137, 139, 140 ; eau 4, 39, 52, 96, 113, 126 ; forêt 5, 10, 35, 4
 désert 17, 19, 20, 85, 133 ; électrique 14 (Plaines Elek), 127 (Registeel) ; néant 26, 55 (Faille Spatiale, liquide
 noir), 59, 99 ; ruines 28, 29, 30, 45/46 (Tour du Temps) ; labyrinthe 102 (Grotte Labyrinthe).
 
-## Objets spéciaux (branche `feature/objets`, 23/10/2026, Robin)
+### Objets spéciaux (branche `feature/objets`, 23/10/2026, Robin)
 
 Faits : `items.json`, collection et équipement dans la sauvegarde, encoches et écran des objets au menu, ultimes (méga
 avec gemme, capacité Z, Téracristal) sur la jauge commune, butin (boss, coffre de fin d'étape, élites). Banc 23/23 (5
@@ -227,62 +260,3 @@ scénarios d'objets, 4 d'élites et d'ultimes ennemis). Ultimes ennemis (`EnemyU
 plutôt que chez Claude Design (demande de Robin) ; vérifier les noms français des objets ; observé sur le banc : une
 attaque de projectile touche un ennemi immobile du banc à de nombreuses reprises (1 035 dégâts pour ≈ 33 estimés par
 coup), à vérifier en jeu.
-
-## Branches (26/10/2026)
-
-`feature/quart-ile` est fusionnée dans `dev` (Owen, 25/10). Pas encore dans `dev` : `feature/attaques-type-lot2`,
-`feature/refonte-visuelle`, `feature/salles` (Owen), `feature/peuplement` et `feature/engrenages` (Robin, celle-ci
-contient `refacto/socle`). Conflits récurrents : numéros des salles du terrain de test, liste des scénarios du banc,
-`PlayerController`, journaux de modifications ; après l'intégration : registre des salles par nom, banc découpé par
-domaine, outils de dev dans un assembly à part, puis découpage de `Combatant` et `Obstacles`.
-
-## En attente
-
-- Icônes de bonus et malus (`status_attack_up`… six fichiers) : flèches colorées provisoires.
-- Planches des 14 attaques à trace qui n'ont qu'un disque coloré (prompt prêt : `Design/prompt_attaques_terrain.md`) ;
-  les attribuer via `move_rules.json`.
-- Attaques génériques sans effet visuel propre ; 108 attaques écartées (`Tools/pmd/generated_moves_report.txt`).
-- Évolution manuelle : pas testés à la manette (Triangle), échange, Babimanta, Barpau, Debugant.
-- Archives qui ne servent plus à la racine et dans `Design/` (Owen peut les supprimer) ; garder l'archive de la ROM.
-
-## Problèmes connus et points à surveiller
-
-- Corrigé le 22/10/2026 : gels sur les grands niveaux quand le Pokémon joué survolait l'eau, la lave ou le vide (Ptéra) :
-  les alliés, sans chemin, lançaient l'A* jusqu'à sa limite puis la réparation de chemin (Dijkstra quadratique sur
-  toute la carte, toutes les 0,5 s). Correctifs : cible de suivi praticable, chemin partiel à la limite de l'A*,
-  réparation à tas binaire bornée, redessin incrémental des obstacles et du terrain. Sonde au banc (« Niveau : pas de
-  gel… ») : pire image 167 ms → 31 ms sur un niveau 360×268. Reste à confirmer en jeu par Robin.
-
-- Équilibrage entièrement provisoire : rythme d'expérience (20 + 4 × niveau) sans lien avec l'objectif « niveau 100 en
-  30 min », soutien rare (il faut un soin ou un bonus aux alliés), équipe qui progresse vite.
-- L'annonce des attaques au corps à corps ennemies reste un disque rouge, qui ne correspond pas aux arcs ni aux estocs.
-- Mineurs : les zones ne déclenchent ni drain ni recul ; Attaque / Attaque Spé proposées même sans attaque de cette
-  catégorie ; animation de marche pendant un lancement ou sous sommeil (IA).
-- Jamais testés à la manette : navigation du menu, écran de remplacement d'attaque, Croix / Rond des écrans de fin.
-- Observé sur le banc : une attaque de projectile touchait un ennemi immobile de nombreuses fois (à vérifier en jeu).
-- Réglages de test : dans `meta_dev.json` (éditeur et builds de développement), plus dans `meta.json`.
-- Unity s'est déjà bloqué pendant un rechargement de scripts (« The file 'MemoryStream' is corrupted ») : relancer.
-  Après une recompilation, la liaison unityMCP peut manquer une dizaine de secondes : vérifier `Logs/Editor.log`.
-- Version d'Unity : `ProjectSettings/ProjectVersion.txt` diffère selon les machines ; ne pas le committer.
-- Machine d'Owen (Linux) : manette Battletron compatible PS4 en Bluetooth ; si Linux la refuse (« Rejected connection
-  from !bonded device »), refaire l'appairage avec `bluetoothctl` jusqu'à « Bonded: yes ». Ne pas toucher à
-  `ClassicBondedOnly` sans accord explicite.
-
-## Comment je teste
-
-- **Tests EditMode** (logique pure et données, quelques secondes) : `python3 Tools/setup.py --edit-tests` (Unity fermé ;
-  sinon Window > General > Test Runner, EditMode). Fichiers dans `Assets/Editor/Tests/`.
-- **Banc d'essai** (58 scénarios en mode Play, environ 10 min) : `python3 Tools/setup.py --ai-scenarios`, Unity fermé,
-  lignes `AISCENARIO` dans `Logs/ai_scenarios.log` ; touche B dans le terrain de test.
-- **Compilation rapide hors Unity** : reprendre le fichier `.rsp` d'Unity (`Library/Bee/artifacts/*/Assembly-CSharp.rsp`)
-  et le passer au `csc` du SDK .NET livré avec Unity.
-- **Terrain de test** (menu, Select / T en `devMode`) : salle 0 (émetteurs de terrain, présentoir des objets), 1
-  obstacles et cibles, 2 galerie des mégas, 3 démo des capacités Z, 4 élite, 5 boss, 6 démos de secours, 20
-  observation des rencontres (V / ○ : pilote automatique).
-- Play lance la scène `Menu` ; `Run.Start(new[]{4,1,25})` lance une partie avec cette équipe, `Run.ToMenu()` revient au
-  menu. Écran d'amélioration : `Progression.AddXp(5000)`. Statuts : `combatant.AddStatus("sleep", 3f)`.
-- Sauvegarde : `save.json` dans `Application.persistentDataPath` (macOS `~/Library/Application Support/DefaultCompany/
-  Pokescrap/`, Linux `~/.config/unity3d/DefaultCompany/Pokescrap/`, Windows `%USERPROFILE%\AppData\LocalLow\
-  DefaultCompany\Pokescrap\`) ; menu **Pokescrap > Effacer la sauvegarde**.
-- Mesurer une mécanique : figer les autres acteurs (désactiver `AllyAI`, `EnemyAI`, `BossAI`). Le temps est figé
-  pendant l'écran d'amélioration (`Time.timeScale = 0`). La fenêtre Unity en arrière-plan est lente.
