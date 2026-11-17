@@ -7884,6 +7884,86 @@
         "#a0fff0",
         "#4ab6b3"
       ]
+    },
+    {
+      "file": "level_gate_rise.png",
+      "frame_width": 24,
+      "frame_height": 40,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#1e1a1c",
+        "#3a3236",
+        "#55494c",
+        "#776669",
+        "#7a1e08",
+        "#e0501a",
+        "#ffb040",
+        "#fff0b0",
+        "#8a7a6a"
+      ]
+    },
+    {
+      "file": "level_gate.png",
+      "frame_width": 24,
+      "frame_height": 40,
+      "frame_count": 6,
+      "frame_duration_ms": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "loop": true,
+      "palette": [
+        "#1e1a1c",
+        "#3a3236",
+        "#55494c",
+        "#776669",
+        "#7a1e08",
+        "#e0501a",
+        "#ffb040",
+        "#fff0b0",
+        "#8a7a6a"
+      ]
+    },
+    {
+      "file": "level_gate_drop.png",
+      "frame_width": 24,
+      "frame_height": 40,
+      "frame_count": 7,
+      "frame_duration_ms": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "loop": false,
+      "palette": [
+        "#1e1a1c",
+        "#3a3236",
+        "#55494c",
+        "#776669",
+        "#7a1e08",
+        "#e0501a",
+        "#ffb040",
+        "#fff0b0",
+        "#8a7a6a"
+      ]
     }
   ]
 }

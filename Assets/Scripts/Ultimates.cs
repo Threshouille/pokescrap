@@ -249,10 +249,13 @@ public class Ultimates : MonoBehaviour
         var z = ZVersion(baseMove, e.type, e.level);
         int type = e.type, level = e.level;
         posing = member;
+        // The last Z launched wins: an enemy's on its way is dropped.
+        int id = ZStrike.Launch();
+        ZCutScene.CancelWarnings();
         ZCutScene.Play(member, z.name, type, false, () =>
         {
             posing = null;
-            if (member != null && member.IsAlive) StartCoroutine(StrikeZ(member, z, type, level));
+            if (member != null && member.IsAlive && ZStrike.Live(id)) StartCoroutine(StrikeZ(member, z, type, level, id: id));
         });
     }
 
@@ -285,9 +288,10 @@ public class Ultimates : MonoBehaviour
     /// The Z strike itself (the player's, or an enemy's: EnemyUltimate, with a range, and no more than maxShare of each
     /// target's maximum health when > 0): the opponents in view, each struck when the type's show reaches it (ZStrike).
     /// "dodgeable" (an enemy's): an opponent that dodged just before it is reached is spared (ZStrike.Dodged).
-    public static System.Collections.IEnumerator StrikeZ(Combatant member, MoveDef move, int type, int level, float range = 0f, float maxShare = 0f, bool dodgeable = false)
+    /// "id" (ZStrike.Launch): the strike stops as soon as a later Z is launched (0: never).
+    public static System.Collections.IEnumerator StrikeZ(Combatant member, MoveDef move, int type, int level, float range = 0f, float maxShare = 0f, bool dodgeable = false, int id = 0)
     {
-        if (member == null) yield break;
+        if (member == null || !ZStrike.Live(id)) yield break;
         var crystal = SpecialItems.Crystal(type);
         var hit = crystal?.hit ?? new SpecialItems.ZHit();
         var show = crystal?.show ?? new SpecialItems.ZShow();
@@ -321,6 +325,7 @@ public class Ultimates : MonoBehaviour
         {
             float wait = start + h.delay - Time.time;
             if (wait > 0f) yield return new WaitForSeconds(wait);
+            if (!ZStrike.Live(id)) yield break; // overtaken by a later Z
             ZStrike.Reached(foe);
             if (member == null) yield break;
             if (foe == null || !foe.IsAlive) continue;
@@ -353,7 +358,7 @@ public class Ultimates : MonoBehaviour
             }
             if (!string.IsNullOrEmpty(hit.terrain)) Terrain.PaintArea(hit.terrain, at, hit.terrainRadius * scale, hit.terrainDuration, member, spareTeam: true);
         }
-        if (string.IsNullOrEmpty(hit.teamModStat) || member == null) yield break;
+        if (string.IsNullOrEmpty(hit.teamModStat) || member == null || !ZStrike.Live(id)) yield break;
         foreach (var ally in Combatant.All)
             if (ally != null && ally.IsAlive && ally.team == member.team)
                 ally.AddModifier(hit.teamModStat, hit.teamModValue, hit.teamModDuration);

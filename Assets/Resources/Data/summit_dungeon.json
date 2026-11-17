@@ -1,0 +1,468 @@
+{
+ "comment": "The volcano's summit dungeon (SummitDungeon.cs; GDD « Donjon du volcan »): an optional dungeon whose entrance stands on the crater's rim (quarters/volcano.json volcano.dungeon). levels: the levels crossed one after the other (LevelPlan, GDD « Niveaux continus »), each with levels.json's settings overridden here: name (the loading screen's title), themes (rooms.json themes its zones are drawn from, repeated to weigh them), tileset (its ROM décor), mainZones, branches, challenge, rest, monsterHouse... start: the main sub-theme of a level (its first and last zones; the path strays from it to neighbours in between, LevelPlan.NextSubTheme); branchThemes: the sub-themes of the branches' last zones (an oasis: a rest; a crystal cave). subThemes: key, name, roomTheme and variants (rooms.json), tilesets (ROM décors, one per zone), neighbours, zoneType (a branch's last zone of it). Each zone is drawn in its own décor, the change halfway along the path between two zones (DungeonGenerator.ZoneDecors). boss: the last room, the boss's chamber (rooms.json type and theme). Lot 1: the levels and the chamber are crossed without foes (encounters, other-themed rooms and the boss come in lots 2 to 4). subThemes: key, name, roomTheme / variants (rooms.json), tilesets (one drawn per zone), heat (the main path never cools down: from start to finish of each level, hotter toward the volcano's heart), neighbours, zoneType (a branch end's room type), habitat (populations.json), crossings (obstacles across the paths leaving its zones: lava, water, chasm with a bridge, rockfall with a gap; crossingChance of each level). zones (LevelContent): foes at rest in the combat zones (lots, groups, wake, leash, spawnRange; level baseLevel + levelPerFloor per floor), arenas (monster house, challenge, sub-boss: gates rise when the controlled Pokémon walks in (gateInside), waves, then a chest), chests (a branch end's sub-theme or a zone type).",
+ "name": "Donjon du volcan",
+ "levels": [
+  {
+   "name": "Galeries de magma",
+   "themes": [
+    "cave",
+    "cave",
+    "lava"
+   ],
+   "tileset": 9,
+   "mainZones": [
+    8,
+    10
+   ],
+   "branches": [
+    3,
+    4
+   ],
+   "branchLength": [
+    1,
+    2
+   ],
+   "loops": [
+    0,
+    1
+   ],
+   "challenge": [
+    1,
+    1
+   ],
+   "rest": [
+    0,
+    1
+   ],
+   "monsterHouse": [
+    1,
+    1
+   ],
+   "gap": [
+    10,
+    16
+   ],
+   "turn": 55,
+   "zoneScale": 1.15,
+   "pathWidth": [
+    3,
+    5
+   ],
+   "wiggle": 3.5,
+   "border": 4,
+   "pocketChance": 0.45,
+   "pocketEvery": 9,
+   "pocketRadius": [
+    2,
+    4
+   ],
+   "start": "mine",
+   "branchThemes": [
+    "oasis",
+    "crystals"
+   ],
+   "finish": "flows",
+   "crossingChance": 0.45
+  },
+  {
+   "name": "Cœur du volcan",
+   "themes": [
+    "lava",
+    "lava",
+    "cave"
+   ],
+   "tileset": 112,
+   "mainZones": [
+    8,
+    10
+   ],
+   "branches": [
+    3,
+    4
+   ],
+   "branchLength": [
+    1,
+    2
+   ],
+   "loops": [
+    0,
+    1
+   ],
+   "challenge": [
+    1,
+    2
+   ],
+   "rest": [
+    0,
+    1
+   ],
+   "monsterHouse": [
+    1,
+    1
+   ],
+   "gap": [
+    10,
+    18
+   ],
+   "turn": 55,
+   "zoneScale": 1.25,
+   "pathWidth": [
+    3,
+    6
+   ],
+   "wiggle": 3.5,
+   "border": 4,
+   "pocketChance": 0.4,
+   "pocketEvery": 10,
+   "pocketRadius": [
+    2,
+    4
+   ],
+   "start": "basalt",
+   "branchThemes": [
+    "crystals",
+    "mine"
+   ],
+   "finish": "furnace",
+   "crossingChance": 0.55
+  }
+ ],
+ "boss": {
+  "name": "Chambre du boss",
+  "type": "subboss",
+  "theme": "lava"
+ },
+ "subThemes": [
+  {
+   "key": "mine",
+   "name": "Ancienne mine",
+   "roomTheme": "cave",
+   "variants": [
+    "mine",
+    "galleries"
+   ],
+   "tilesets": [
+    130,
+    103
+   ],
+   "heat": 1,
+   "neighbours": [
+    "crystals",
+    "magma_cave"
+   ],
+   "crossings": [
+    "rockfall",
+    "chasm"
+   ],
+   "habitat": "summit_mine"
+  },
+  {
+   "key": "crystals",
+   "name": "Grotte de cristaux",
+   "roomTheme": "cave",
+   "variants": [
+    "pillars",
+    "chasm"
+   ],
+   "tilesets": [
+    1,
+    22
+   ],
+   "heat": 1,
+   "zoneType": "rest",
+   "neighbours": [
+    "mine",
+    "magma_cave",
+    "oasis"
+   ],
+   "crossings": [
+    "chasm",
+    "rockfall"
+   ],
+   "habitat": "summit_crystals"
+  },
+  {
+   "key": "oasis",
+   "name": "Oasis cachée",
+   "roomTheme": "water",
+   "variants": [
+    "pools",
+    "lake"
+   ],
+   "tilesets": [
+    85
+   ],
+   "heat": 0,
+   "zoneType": "rest",
+   "neighbours": [
+    "crystals"
+   ],
+   "crossings": [
+    "water"
+   ],
+   "habitat": "summit_oasis"
+  },
+  {
+   "key": "magma_cave",
+   "name": "Grotte de magma",
+   "roomTheme": "cave",
+   "variants": [
+    "rockfall",
+    "galleries",
+    "pillars"
+   ],
+   "tilesets": [
+    9
+   ],
+   "heat": 2,
+   "neighbours": [
+    "mine",
+    "crystals",
+    "flows",
+    "obsidian"
+   ],
+   "crossings": [
+    "lava",
+    "rockfall"
+   ],
+   "habitat": "summit_magma_cave"
+  },
+  {
+   "key": "flows",
+   "name": "Coulées",
+   "roomTheme": "lava",
+   "variants": [
+    "flow",
+    "rocks"
+   ],
+   "tilesets": [
+    12
+   ],
+   "heat": 3,
+   "neighbours": [
+    "magma_cave",
+    "basalt"
+   ],
+   "crossings": [
+    "lava"
+   ],
+   "habitat": "summit_flows"
+  },
+  {
+   "key": "obsidian",
+   "name": "Galeries d'obsidienne",
+   "roomTheme": "cave",
+   "variants": [
+    "pillars",
+    "rockfall"
+   ],
+   "tilesets": [
+    133
+   ],
+   "heat": 3,
+   "neighbours": [
+    "magma_cave",
+    "basalt",
+    "furnace"
+   ],
+   "crossings": [
+    "rockfall",
+    "lava"
+   ],
+   "habitat": "summit_obsidian"
+  },
+  {
+   "key": "basalt",
+   "name": "Orgues de basalte",
+   "roomTheme": "lava",
+   "variants": [
+    "rocks",
+    "flow"
+   ],
+   "tilesets": [
+    132
+   ],
+   "heat": 3,
+   "neighbours": [
+    "flows",
+    "obsidian",
+    "lava_lakes"
+   ],
+   "crossings": [
+    "lava",
+    "rockfall"
+   ],
+   "habitat": "summit_basalt"
+  },
+  {
+   "key": "lava_lakes",
+   "name": "Lacs de lave",
+   "roomTheme": "lava",
+   "variants": [
+    "lake",
+    "archipelago"
+   ],
+   "tilesets": [
+    112
+   ],
+   "heat": 4,
+   "neighbours": [
+    "basalt",
+    "furnace"
+   ],
+   "crossings": [
+    "lava"
+   ],
+   "habitat": "summit_lava_lakes"
+  },
+  {
+   "key": "furnace",
+   "name": "Fournaise",
+   "roomTheme": "lava",
+   "variants": [
+    "furnace",
+    "lake"
+   ],
+   "tilesets": [
+    58
+   ],
+   "heat": 5,
+   "neighbours": [
+    "lava_lakes",
+    "obsidian"
+   ],
+   "crossings": [
+    "lava"
+   ],
+   "habitat": "summit_furnace"
+  }
+ ],
+ "zones": {
+  "baseLevel": 6,
+  "levelPerFloor": 3,
+  "stageBonus": 1,
+  "stagePerFloor": 1,
+  "spawnRange": 24,
+  "wake": 7,
+  "leash": 16,
+  "groups": [
+   1,
+   2
+  ],
+  "lots": [
+   {
+    "key": "solo",
+    "weight": 2
+   },
+   {
+    "key": "team",
+    "weight": 2
+   },
+   {
+    "key": "pack",
+    "weight": 1
+   }
+  ],
+  "gateInside": 0.7,
+  "arenas": [
+   {
+    "type": "monster_house",
+    "waves": [
+     3,
+     3
+    ],
+    "lotsPerWave": [
+     2,
+     2
+    ],
+    "lots": [
+     {
+      "key": "pack",
+      "weight": 2
+     },
+     {
+      "key": "team",
+      "weight": 1
+     },
+     {
+      "key": "solo",
+      "weight": 1
+     }
+    ],
+    "stoneChance": 0.15,
+    "chestIcon": "pmd_Chest_Blue",
+    "announce": "Maison des monstres ! Les herses se referment.",
+    "cleared": "La maison des monstres est vidée : les herses s'abaissent."
+   },
+   {
+    "type": "challenge",
+    "waves": [
+     2,
+     2
+    ],
+    "lotsPerWave": [
+     1,
+     2
+    ],
+    "lots": [
+     {
+      "key": "team",
+      "weight": 2
+     },
+     {
+      "key": "gang",
+      "weight": 1
+     }
+    ],
+    "rarities": [
+     "uncommon",
+     "rare",
+     "epic"
+    ],
+    "stageBonus": 1,
+    "stoneChance": 0.25,
+    "announce": "Défi ! Les herses se referment.",
+    "cleared": "Défi relevé : les herses s'abaissent."
+   },
+   {
+    "type": "subboss",
+    "waves": [
+     1,
+     1
+    ],
+    "lotsPerWave": [
+     1,
+     1
+    ],
+    "lots": [
+     {
+      "key": "champion",
+      "weight": 1
+     }
+    ],
+    "stageBonus": 1,
+    "stoneChance": 0.3,
+    "announce": "Un champion garde la salle ! Les herses se referment.",
+    "cleared": "Le champion est tombé : les herses s'abaissent."
+   }
+  ],
+  "chests": [
+   {
+    "subTheme": "oasis",
+    "stoneChance": 0.2
+   },
+   {
+    "subTheme": "crystals",
+    "stoneChance": 0.25
+   },
+   {
+    "subTheme": "mine",
+    "stoneChance": 0.15
+   },
+   {
+    "type": "rest",
+    "stoneChance": 0.1
+   }
+  ]
+ }
+}

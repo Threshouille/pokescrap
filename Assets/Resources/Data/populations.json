@@ -28,6 +28,15 @@
   { "key": "outskirts", "name": "Abords", "types": [{ "type": "Normal", "weight": 2 }, { "type": "Combat", "weight": 2 }, { "type": "Psy", "weight": 1 }, { "type": "Roche", "weight": 1 }], "night": ["Spectre"] },
   { "key": "halls", "name": "Salles effondrées", "types": [{ "type": "Roche", "weight": 2 }, { "type": "Spectre", "weight": 2 }, { "type": "Psy", "weight": 2 }], "night": ["Spectre"] },
   { "key": "overgrown", "name": "Ruines envahies", "types": [{ "type": "Plante", "weight": 2 }, { "type": "Spectre", "weight": 1 }, { "type": "Psy", "weight": 1 }, { "type": "Insecte", "weight": 1 }], "night": ["Spectre"] },
-  { "key": "temple", "name": "Temple", "types": [{ "type": "Psy", "weight": 3 }, { "type": "Spectre", "weight": 2 }, { "type": "Acier", "weight": 1 }, { "type": "Dragon", "weight": 1 }], "night": ["Spectre"] }
+  { "key": "temple", "name": "Temple", "types": [{ "type": "Psy", "weight": 3 }, { "type": "Spectre", "weight": 2 }, { "type": "Acier", "weight": 1 }, { "type": "Dragon", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "summit_mine", "name": "Ancienne mine", "types": [{ "type": "Sol", "weight": 3 }, { "type": "Roche", "weight": 2 }, { "type": "Acier", "weight": 2 }, { "type": "Combat", "weight": 1 }], "night": ["Spectre"], "include": [74, 50, 66] },
+  { "key": "summit_crystals", "name": "Grotte de cristaux", "types": [{ "type": "Roche", "weight": 2 }, { "type": "Psy", "weight": 2 }, { "type": "Spectre", "weight": 2 }, { "type": "Acier", "weight": 1 }], "night": ["Ténèbres"], "include": [330, 331, 365, 366, 95] },
+  { "key": "summit_oasis", "name": "Oasis cachée", "types": [{ "type": "Eau", "weight": 3 }, { "type": "Plante", "weight": 2 }, { "type": "Insecte", "weight": 1 }], "night": ["Spectre"], "include": [183] },
+  { "key": "summit_magma_cave", "name": "Grotte de magma", "types": [{ "type": "Feu", "weight": 3 }, { "type": "Roche", "weight": 2 }, { "type": "Sol", "weight": 2 }], "night": ["Spectre"] },
+  { "key": "summit_flows", "name": "Coulées", "types": [{ "type": "Feu", "weight": 4 }, { "type": "Sol", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "summit_obsidian", "name": "Galeries d'obsidienne", "types": [{ "type": "Roche", "weight": 2 }, { "type": "Spectre", "weight": 2 }, { "type": "Ténèbres", "weight": 2 }, { "type": "Feu", "weight": 1 }], "night": ["Spectre"], "include": [330] },
+  { "key": "summit_basalt", "name": "Orgues de basalte", "types": [{ "type": "Roche", "weight": 3 }, { "type": "Feu", "weight": 2 }, { "type": "Sol", "weight": 1 }], "night": ["Ténèbres"] },
+  { "key": "summit_lava_lakes", "name": "Lacs de lave", "types": [{ "type": "Feu", "weight": 4 }, { "type": "Sol", "weight": 1 }, { "type": "Roche", "weight": 1 }], "night": ["Spectre"] },
+  { "key": "summit_furnace", "name": "Fournaise", "types": [{ "type": "Feu", "weight": 4 }, { "type": "Acier", "weight": 1 }], "night": ["Spectre"], "include": [126, 267, 245] }
  ]
 }

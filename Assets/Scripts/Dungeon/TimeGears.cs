@@ -396,6 +396,7 @@ public class TimeGears : MonoBehaviour
         var others = new List<Vector2Int>(plan.markers);
         if (plan.secret.x >= 0) others.Add(plan.secret);
         if (plan.sealedCave.x >= 0) others.Add(plan.sealedCave);
+        if (plan.summitDungeon.x >= 0) others.Add(plan.summitDungeon);
         foreach (var p in plan.passages) { others.Add(p.a); others.Add(p.b); }
         return others.All(o => Vector2.Distance(o, t) >= DungeonGap);
     }

@@ -701,6 +701,117 @@ public class LogicTests
         Assert.Greater(EffectLibrary.Get("entrance_icons").frame_count, (int)EntranceArt.Icon.Shrine);
     }
 
+    // The summit dungeon: its levels are drawn from themes of the catalogue and laid out, each with a start and a last
+    // zone; on the volcano its entrance stands on the crater's rim, reached on foot, at the top.
+    [Test]
+    public void SummitDungeonIsLaidOut()
+    {
+        var d = SummitDungeon.Data;
+        Assert.AreEqual(2, d.levels.Length);
+        foreach (var level in d.levels)
+        {
+            Assert.IsFalse(string.IsNullOrEmpty(level.name));
+            foreach (var theme in level.themes) Assert.IsNotNull(RoomCatalog.Pick("combat", new System.Random(1), theme), $"thème {theme}");
+            var plan = LevelPlan.Generate(new System.Random(3), level);
+            Assert.IsNotNull(plan.start);
+            Assert.IsNotNull(plan.boss);
+            Assert.AreNotSame(plan.start, plan.boss);
+            Assert.AreEqual(level.tileset, plan.tileset, "le décor du niveau");
+        }
+        Assert.IsNotNull(RoomCatalog.Pick(d.boss.type, new System.Random(1), d.boss.theme), "la chambre du boss");
+        for (int seed = 1; seed <= 3; seed++)
+        {
+            var v = IslandPlan.QuarterTestPlan(seed, 0, "volcano");
+            var e = v.summitDungeon;
+            Assert.GreaterOrEqual(e.x, 0, $"graine {seed} : entrée du donjon");
+            Assert.AreEqual(v.height.Max(), v.height[v.Index(e.x, e.y)], "au sommet");
+            Assert.IsTrue(v.Reach(v.Index(v.start.x, v.start.y))[v.Index(e.x, e.y)], "atteinte à pied");
+        }
+        Assert.AreEqual(-1, IslandPlan.QuarterTestPlan(5).summitDungeon.x, "pas de donjon dans la forêt");
+    }
+
+    // The summit dungeon's sub-themes: along the main path each zone keeps to the sub-theme before or a neighbour, the
+    // level starts and ends in its main one; the branches' last zones take the branch sub-themes (oasis, crystals);
+    // each zone gets a décor of its sub-theme.
+    [Test]
+    public void SummitSubThemesEvolve()
+    {
+        var d = SummitDungeon.Data;
+        var subs = d.subThemes.ToDictionary(x => x.key);
+        foreach (var st in d.subThemes)
+        {
+            foreach (var n in st.neighbours) Assert.IsTrue(subs.ContainsKey(n), $"{st.key} : voisin {n}");
+            Assert.IsTrue(Populations.Has(st.Habitat), $"{st.key} : population {st.Habitat}");
+            foreach (var c in st.crossings) CollectionAssert.Contains(new[] { "lava", "water", "chasm", "rockfall" }, c, $"{st.key} : passage {c}");
+        }
+        LevelPlan.SubTheme Look(string k) => subs.TryGetValue(k, out var x) ? x : null;
+        // Warming up: never toward a cooler neighbour on the way to a goal, which is reached in time.
+        for (int r = 0; r < 20; r++)
+        {
+            Assert.AreEqual("flows", LevelPlan.NextSubTheme(subs["magma_cave"], "flows", 0, new System.Random(r), Look), "à temps");
+            string next = LevelPlan.NextSubTheme(subs["magma_cave"], "flows", 5, new System.Random(r), Look);
+            Assert.GreaterOrEqual(subs[next].heat, subs["magma_cave"].heat, $"jamais plus froid : {next}");
+        }
+        Assert.AreEqual(2, LevelPlan.StepsTo("mine", "flows", Look));
+        Assert.Greater(LevelPlan.StepsTo("flows", "mine", Look), 100, "on ne refroidit pas");
+        foreach (var a in d.zones.arenas) CollectionAssert.Contains(new[] { "monster_house", "challenge", "subboss" }, a.type);
+        foreach (var c in d.zones.chests) Assert.IsTrue(string.IsNullOrEmpty(c.subTheme) || subs.ContainsKey(c.subTheme), c.subTheme);
+        foreach (var l in d.zones.lots.Concat(d.zones.arenas.SelectMany(a => a.lots))) Assert.IsNotNull(Encounters.CategoryOf(l.key), l.key);
+        for (int seed = 1; seed <= 6; seed++)
+            foreach (var level in d.levels)
+            {
+                var plan = LevelPlan.Generate(new System.Random(seed), level, d.subThemes);
+                var main = plan.zones.Where(z => z.main).ToList();
+                Assert.AreEqual(level.start, main[0].subTheme, "départ");
+                Assert.AreEqual(level.finish, main[^1].subTheme, "arrivée");
+                Assert.Greater(main.Count(z => z.subTheme != level.start && z.subTheme != level.finish), 0, $"graine {seed} : des sous-thèmes en chemin");
+                for (int i = 1; i < main.Count; i++)
+                {
+                    var before = subs[main[i - 1].subTheme];
+                    Assert.IsTrue(main[i].subTheme == before.key || before.neighbours.Contains(main[i].subTheme),
+                        $"graine {seed} : {before.key} → {main[i].subTheme}");
+                    Assert.GreaterOrEqual(subs[main[i].subTheme].heat, before.heat, $"graine {seed} : {before.key} → {main[i].subTheme} refroidit");
+                }
+                foreach (var z in plan.zones.Where(z => z.subTheme != null))
+                    CollectionAssert.Contains(subs[z.subTheme].tilesets, z.tileset, $"décor de {z.subTheme}");
+                var ends = plan.zones.Where(z => !z.main && z.links.Count == 1).Select(z => z.subTheme).ToList();
+                Assert.IsTrue(level.branchThemes.Any(b => ends.Contains(b)), $"graine {seed} : une salle de branche ({string.Join(", ", level.branchThemes)})");
+            }
+    }
+
+    // Two Z moves at once: the last launched wins, the one before is dropped.
+    [Test]
+    public void LastZLaunchedWins()
+    {
+        int enemy = ZStrike.Launch();
+        Assert.IsTrue(ZStrike.Live(enemy));
+        int player = ZStrike.Launch();
+        Assert.IsFalse(ZStrike.Live(enemy), "le Z ennemi est annulé");
+        Assert.IsTrue(ZStrike.Live(player));
+        Assert.IsTrue(ZStrike.Live(0), "hors compte");
+    }
+
+    // Soft seams between décors: the cut is as deep at both ends of a side whatever the pattern (two tiles side by
+    // side join), a tile with nothing touching keeps everything, a cut side loses its edge row and keeps its far one.
+    [Test]
+    public void DecorSeamsJoinAndCut()
+    {
+        for (int p = 0; p < DecorSeams.Patterns + 2; p++)
+        {
+            Assert.AreEqual(DecorSeams.Inset(0f, 0), DecorSeams.Inset(0f, p), 0.001f);
+            Assert.AreEqual(DecorSeams.Inset(0f, p), DecorSeams.Inset(23f, p), 0.001f);
+        }
+        for (int x = 0; x < 24; x++)
+            for (int y = 0; y < 24; y++) Assert.IsTrue(DecorSeams.Own(x, y, 0, 0, 1));
+        for (int x = 0; x < 24; x++)
+        {
+            Assert.IsFalse(DecorSeams.Own(x, 23, DecorSeams.North, 0, 0), "rangée du bord coupée");
+            Assert.IsTrue(DecorSeams.Own(x, 0, DecorSeams.North, 0, 0), "rangée opposée gardée");
+        }
+        Assert.IsFalse(DecorSeams.Own(23, 23, 0, DecorSeams.NorthEast, 0), "coin mordu");
+        Assert.IsTrue(DecorSeams.Own(0, 0, 0, DecorSeams.NorthEast, 0));
+    }
+
     [Serializable] class ObstacleForTest { public string key; public bool fall, solid; }
     [Serializable] class InteractionForTest { public string on, becomes; public int byType; public float duration; }
     [Serializable] class ObstacleFileForTest { public ObstacleForTest[] obstacles; public InteractionForTest[] interactions; }

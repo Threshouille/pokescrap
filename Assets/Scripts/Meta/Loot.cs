@@ -50,6 +50,28 @@ public class Loot : MonoBehaviour
     /// Where the waiting chest stands (tests, the island's rooms), null without one.
     public Vector2? ChestAt => chest != null ? chest.transform.position : null;
 
+    // Chests of their own, as many as wanted (the zones of a level, LevelContent), each with its mega stone chance.
+    readonly List<(GameObject go, float stone)> placed = new();
+
+    /// A chest of its own at that spot, beside the stage's (a level's zones); opened like it, taken away by
+    /// RemoveChests.
+    public GameObject PlaceChest(Vector2 at, float stoneChance = 0f, string icon = null)
+    {
+        var go = MakeChest(at, icon);
+        placed.Add((go, stoneChance));
+        return go;
+    }
+
+    /// Takes chests placed by PlaceChest away unopened.
+    public void RemoveChests(IEnumerable<GameObject> chests)
+    {
+        foreach (var go in chests)
+        {
+            placed.RemoveAll(c => c.go == go);
+            if (go != null) Destroy(go);
+        }
+    }
+
     /// Takes the waiting chest away unopened (the team leaves the room it stands in).
     public void RemoveChest()
     {
@@ -171,7 +193,12 @@ public class Loot : MonoBehaviour
     {
         if ((Run.Sandbox && !anywhere) || chest != null) return;
         chestStone = stoneChance;
-        chest = new GameObject("Coffre");
+        chest = MakeChest(at, icon);
+    }
+
+    GameObject MakeChest(Vector2 at, string icon)
+    {
+        var chest = new GameObject("Coffre");
         chest.transform.position = at;
         // Mystery Dungeon's chest (PMDCollab), else a drawn box with its lid.
         var sprite = SpecialItems.Icon(string.IsNullOrEmpty(icon) ? SpecialItems.Loot.chestIcon : icon);
@@ -182,7 +209,7 @@ public class Loot : MonoBehaviour
             r.sortingOrder = 1;
             r.spriteSortPoint = SpriteSortPoint.Pivot;
             chest.transform.localScale = Vector3.one * ChestSize;
-            return;
+            return chest;
         }
         var box = chest.AddComponent<SpriteRenderer>();
         box.sprite = Shapes.Square;
@@ -196,6 +223,7 @@ public class Loot : MonoBehaviour
         lid.sprite = Shapes.Square;
         lid.color = new Color(0.95f, 0.75f, 0.2f);
         lid.sortingOrder = 2;
+        return chest;
     }
 
     void Place(Item item, Vector2 at)
@@ -258,6 +286,16 @@ public class Loot : MonoBehaviour
         }
         if (chest != null && walker != null && Vector2.Distance(walker.transform.position, chest.transform.position) <= ChestReach)
             OpenChest();
+        for (int i = placed.Count - 1; i >= 0; i--)
+        {
+            var (go, stone) = placed[i];
+            if (go == null) { placed.RemoveAt(i); continue; }
+            if (walker == null || Vector2.Distance(walker.transform.position, go.transform.position) > ChestReach) continue;
+            placed.RemoveAt(i);
+            var at = (Vector2)go.transform.position;
+            Destroy(go);
+            Open(at, stone);
+        }
     }
 
     void OpenChest()
@@ -265,13 +303,19 @@ public class Loot : MonoBehaviour
         var at = (Vector2)chest.transform.position;
         Destroy(chest);
         chest = null;
-        var special = rng.NextDouble() < chestStone ? RollStone(rng, TeamIds(), SaveData.HasStone) : null;
+        Open(at, chestStone);
+        ChestOpened?.Invoke();
+    }
+
+    // What a chest gives, laid around where it stood.
+    void Open(Vector2 at, float stoneChance)
+    {
+        var special = rng.NextDouble() < stoneChance ? RollStone(rng, TeamIds(), SaveData.HasStone) : null;
         Place(special ?? RollTyped(rng, TeamTypes()), at + Vector2.up * 0.8f);
         if (rng.NextDouble() < HeldItems.ChestChance && HeldItems.Roll(rng) is { } held)
             Place(new Item { held = held.key, heldTier = held.tiered ? HeldItems.ChestTier(rng) : 0 }, at + new Vector2(-0.8f, 0.3f));
         for (int k = 0; k < BagItems.ChestCount; k++)
             if (BagItems.Roll(rng) is { } item) Place(new Item { consumable = item.key }, at + new Vector2(0.8f * (k + 1), 0.3f));
-        ChestOpened?.Invoke();
     }
 
     void Take(int index)

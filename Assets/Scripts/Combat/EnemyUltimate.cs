@@ -306,9 +306,11 @@ public class EnemyUltimate : MonoBehaviour
         var z = Ultimates.ZVersion(baseMove, ItemType, s.level);
         int type = ItemType;
         progression?.Announce($"Attention : {self.Stats.name} ennemi prépare {z.name} !", Notice.Alert);
+        int id = ZStrike.Launch(); // the last Z launched wins (ZStrike.Launch)
         ZCutScene.Play(self, z.name, type, true, () =>
         {
-            if (this != null && self != null && self.IsAlive) StartCoroutine(Ultimates.StrikeZ(self, z, type, s.level, s.zRange, s.zMaxShare, dodgeable: true));
+            if (this != null && self != null && self.IsAlive && ZStrike.Live(id))
+                StartCoroutine(Ultimates.StrikeZ(self, z, type, s.level, s.zRange, s.zMaxShare, dodgeable: true, id: id));
         });
     }
 }

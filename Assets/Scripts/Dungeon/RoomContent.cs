@@ -64,7 +64,13 @@ public class RoomContent
     public static float GuardianWake => Data.guardian.wake;
     public static float GuardianLeash => Data.guardian.leash;
 
-    public const string Treasures = "treasure", Ambushes = "ambush", Guardians = "guardian", Bosses = "boss";
+    public const string Treasures = "treasure", Ambushes = "ambush", Guardians = "guardian", Bosses = "boss", Passages = "passage";
+
+    /// A passage (a level of a dungeon crossed on foot, SummitDungeon): over as soon as it begins, its way on at
+    /// endHint (set by IslandStairs once the level is built: its last zone).
+    public Vector2? endHint;
+    /// What lives in its zones (foes, arenas with gates, chests), run while the team is in the level.
+    public LevelContent levelContent;
 
     /// A boss room (the islet's, TimeGears): its foes, spawned by whoever made the content; the room's type.
     public Func<DungeonGenerator, EnemySpawner, Vector2, List<Combatant>> spawnBoss;
@@ -168,6 +174,11 @@ public class RoomContent
         Vector2 far = arena.RandomOpenPosition(rng, Mathf.Min(8f, arena.Interior.width / 3f), arrival);
         switch (key)
         {
+            case Passages:
+                Done = true;
+                EndAt = endHint;
+                levelContent?.Begin(arena, spawner);
+                break;
             case Bosses:
                 if (spawnBoss != null && spawner != null) enemies.AddRange(spawnBoss(arena, spawner, far));
                 if (enemies.Count == 0) Done = true;
@@ -220,6 +231,7 @@ public class RoomContent
     /// Each physics step while the team is in the room.
     public void Tick(Vector2 teamAt)
     {
+        if (started && key == Passages) levelContent?.Tick(teamAt);
         if (!started || Done) return;
         enemies.RemoveAll(c => c == null || !c.IsAlive);
         if (key == Bosses)
@@ -288,6 +300,7 @@ public class RoomContent
     /// the next visit of stairs that stay).
     public void Leave()
     {
+        if (started) levelContent?.Leave();
         foreach (var c in enemies)
             if (c != null) UnityEngine.Object.Destroy(c.gameObject);
         enemies.Clear();

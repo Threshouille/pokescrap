@@ -15,12 +15,24 @@ public class ZCutScene : MonoBehaviour
     const float RingEvery = 0.14f, RingTime = 0.45f, Outro = 0.35f;
 
     static ZCutScene current;
+    static readonly System.Collections.Generic.List<ZCutScene> warnings = new();
+
+    /// Drops the enemies' Z warnings still on screen, their strikes with them (a later Z wins, ZStrike.Launch).
+    public static void CancelWarnings()
+    {
+        foreach (var w in warnings.ToArray()) if (w != null && !w.released) { w.release = null; w.Finish(); }
+        warnings.Clear();
+    }
 
     /// The player's Z cut-scene is on screen (an enemy waits for its end before its own Z).
     public static bool Playing => current != null;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => current = null;
+    static void ResetStatics()
+    {
+        current = null;
+        warnings.Clear();
+    }
 
     /// The phase at "t" seconds from the start (pure, for the tests).
     public static Phase PhaseAt(float t, float freeze, float pose, float title) =>
@@ -45,6 +57,7 @@ public class ZCutScene : MonoBehaviour
         var go = new GameObject(enemy ? "Avertissement Z" : "Cinématique Z");
         var scene = go.AddComponent<ZCutScene>();
         if (!enemy) current = scene;
+        else warnings.Add(scene);
         scene.Begin(who, moveName, type, enemy, release);
     }
 
@@ -175,6 +188,7 @@ ZFx.Draw(Shapes.Ring, new Color(colour.r, colour.g, colour.b, 0.9f), at, 6f, 0f,
     void OnDestroy()
     {
         if (current == this) current = null;
+        warnings.Remove(this);
         if (body != null && body.sortingOrder == ActorOrder) Restore();
     }
 

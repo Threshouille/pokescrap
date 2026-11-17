@@ -17,6 +17,7 @@
     {"key": "boulder", "name": "Rocher", "solid": true, "romRocks": [{"tileset": 9, "cut": "core"}, {"tileset": 18}], "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#6a4a3a", "passTypes": [3], "passPokemonTypes": [14]},
     {"key": "column", "name": "Colonne brisée", "solid": true, "ownRocks": true, "romRocks": [{"tileset": 46}], "bumpStun": 0.5, "bumpDamage": 0.05, "color": "#b8a090", "passTypes": [3], "passPokemonTypes": [14]},
     {"key": "ledge", "name": "Rebord", "oneWay": [0, -1], "hidden": true, "color": "#8a6a50"},
+    {"key": "zone_gate", "name": "Herse", "solid": true, "hidden": true, "color": "#3a3236", "comment": "herses des grandes salles de combat des niveaux continus (LevelContent), dessinées par leurs planches level_gate*"},
     {"key": "blocker", "name": "Élément de décor", "solid": true, "hidden": true, "color": "#406030"},
     {"key": "trunk", "name": "Tronc", "solid": true, "hidden": true, "noCollider": true, "color": "#406030", "comment": "the tiles of a tree (map_props.json trunk): blocked to the AI paths, the collider is the trunk itself (IslandRun.PlaceProps)"},
     {"key": "cave_mechanism", "name": "Mécanisme", "solid": true, "hidden": true, "color": "#806040"},

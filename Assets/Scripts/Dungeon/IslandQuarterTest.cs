@@ -967,6 +967,7 @@ public partial class IslandPlan
         }
         var landmarks = new List<Vector2Int>(markers) { start };
         if (sealedCave.x >= 0) { landmarks.Add(sealedCaveFront); landmarks.AddRange(caveParts); }
+        if (summitDungeon.x >= 0) landmarks.Add(summitDungeon);
         foreach (var m in landmarks) Stamp(m, 3.5f, i => { if (dist[i] != 0) { dist[i] = 0; queue.Enqueue(i); } });
         while (queue.Count > 0)
         {

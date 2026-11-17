@@ -52,6 +52,31 @@ public class LevelRun : MonoBehaviour
         nextReveal = 0f;
     }
 
+    /// Shows an already built level (a dungeon's floor, IslandStairs): its mini-map in the fog, from now on.
+    public void Show(LevelPlan plan)
+    {
+        arena = DungeonGenerator.Current;
+        team = FindAnyObjectByType<PlayerController>();
+        Plan = plan;
+        var inside = arena.Interior;
+        if (map != null) Destroy(map);
+        map = new Texture2D(inside.width, inside.height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+        pixels = new Color32[inside.width * inside.height];
+        revealed = new bool[pixels.Length];
+        seenZones.Clear();
+        dirty = true;
+        nextReveal = 0f;
+    }
+
+    /// Stops showing the level, the arena left as it is (whoever comes next rebuilds it).
+    public void Hide()
+    {
+        Plan = null;
+        Here = null;
+        if (map != null) Destroy(map);
+        map = null;
+    }
+
     /// Leaves the level (the arena is rebuilt by whoever comes next).
     public void End()
     {

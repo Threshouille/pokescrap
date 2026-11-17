@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -71,6 +72,7 @@ public class DungeonGenerator : MonoBehaviour
         var origin = Interior.min;
         level.Carve(open, origin, rng, spawnClearance);
         spawn = origin + Vector2Int.RoundToInt(level.start.centre);
+        if (level.zones.Exists(z => z.tileset >= 0 && z.tileset != level.tileset)) ZoneDecors(origin);
         Draw(rng);
         Obstacles.Rebuild(this);
         Terrain.Rebuild(this);
@@ -82,9 +84,124 @@ public class DungeonGenerator : MonoBehaviour
             var rect = z.Rect;
             Obstacles.Current.GenerateZone(z.room.obstacles, rng, keep, new RectInt(rect.xMin + origin.x, rect.yMin + origin.y, rect.width, rect.height));
         }
+        if (level.CrossingChance > 0f) LayCrossings(origin, rng, level.CrossingChance, level.SubOf);
         Obstacles.Current.FinishLevel(spawn);
         if (player != null) player.position = CentreOf(spawn.x, spawn.y);
     }
+
+    // A level whose zones have décors of their own (a dungeon's sub-themes): each open tile takes the décor whose zones
+    // are nearest along the paths, give or take a few tiles of smooth noise (one per décor), so that two décors meet
+    // along a wavering seam with tongues and islands of each other instead of a straight cut; each wall then takes
+    // the décor of the nearest open tile.
+    const float DecorBlend = 3.5f, DecorNoise = 0.22f;
+
+    void ZoneDecors(Vector2Int origin)
+    {
+        int n = size * size;
+        cellDecor = new DungeonTileset[n];
+        var decors = new List<DungeonTileset>();
+        var dist = new List<int[]>();
+        foreach (var z in level.zones)
+        {
+            var c = origin + Vector2Int.RoundToInt(z.centre);
+            if (c.x < 0 || c.y < 0 || c.x >= size || c.y >= size || !open[c.x, c.y]) continue;
+            var d = (z.tileset >= 0 ? TilesetRoster.Get(z.tileset) : null) ?? tileset;
+            int k = decors.IndexOf(d);
+            if (k < 0) { decors.Add(d); dist.Add(null); k = decors.Count - 1; }
+            dist[k] ??= new int[n];
+            dist[k][c.y * size + c.x] = 1; // seeds (0: not reached)
+        }
+        // Distance along the open tiles from each décor's zones.
+        var queue = new Queue<int>();
+        foreach (var field in dist)
+        {
+            for (int i = 0; i < n; i++) if (field[i] == 1) queue.Enqueue(i);
+            while (queue.Count > 0)
+            {
+                int c = queue.Dequeue(), x = c % size, y = c / size;
+                foreach (var d in Around)
+                {
+                    int nx = x + d.x, ny = y + d.y;
+                    if (nx < 0 || ny < 0 || nx >= size || ny >= size || !open[nx, ny]) continue;
+                    int k = ny * size + nx;
+                    if (field[k] != 0) continue;
+                    field[k] = field[c] + 1;
+                    queue.Enqueue(k);
+                }
+            }
+        }
+        var seeds = new Vector2[decors.Count];
+        var noise = new System.Random(level.zones.Count * 7919 + size);
+        for (int k = 0; k < seeds.Length; k++) seeds[k] = new Vector2((float)noise.NextDouble() * 1000f, (float)noise.NextDouble() * 1000f);
+        for (int x = 0; x < size; x++)
+            for (int y = 0; y < size; y++)
+            {
+                if (!open[x, y]) continue;
+                int i = y * size + x, best = -1;
+                float bestScore = float.MaxValue;
+                for (int k = 0; k < decors.Count; k++)
+                {
+                    if (dist[k][i] == 0) continue;
+                    float wobble = (Mathf.PerlinNoise(seeds[k].x + x * DecorNoise, seeds[k].y + y * DecorNoise) - 0.5f) * 2f * DecorBlend;
+                    float score = dist[k][i] + wobble;
+                    if (score < bestScore) { bestScore = score; best = k; }
+                }
+                if (best >= 0) { cellDecor[i] = decors[best]; queue.Enqueue(i); }
+            }
+        // Walls: the décor of the nearest open tile.
+        while (queue.Count > 0)
+        {
+            int c = queue.Dequeue(), x = c % size, y = c / size;
+            foreach (var d in Around)
+            {
+                int nx = x + d.x, ny = y + d.y;
+                if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+                int k = ny * size + nx;
+                if (cellDecor[k] != null) continue;
+                cellDecor[k] = cellDecor[c];
+                queue.Enqueue(k);
+            }
+        }
+        for (int i = 0; i < n; i++) if (cellDecor[i] == null) cellDecor[i] = tileset;
+        softSeams = true;
+    }
+
+    // Obstacles across some paths (LevelPlan.Lane), after the zones' own: the crossings of the sub-theme of one of the
+    // zones it joins (Settings.crossingChance): a band of lava, water or void two or three tiles thick with a bridge
+    // two tiles wide somewhere across, or a row of boulders with a gap; never near the zones' entries.
+    void LayCrossings(Vector2Int origin, System.Random rng, float chance, Func<string, LevelPlan.SubTheme> sub)
+    {
+        foreach (var lane in level.lanes)
+        {
+            if (lane.points.Count < 12 || rng.NextDouble() >= chance) continue;
+            var kinds = new List<string>();
+            foreach (var z in new[] { lane.a, lane.b })
+                if (sub(z.subTheme) is { } st) kinds.AddRange(st.crossings);
+            if (kinds.Count == 0) continue;
+            string kind = kinds[rng.Next(kinds.Count)];
+            int at = Mathf.RoundToInt(lane.points.Count * (0.4f + 0.2f * (float)rng.NextDouble()));
+            var p = lane.points[at] + (Vector2)origin;
+            var dir = (lane.points[Mathf.Min(lane.points.Count - 1, at + 3)] - lane.points[Mathf.Max(0, at - 3)]).normalized;
+            if (dir == Vector2.zero) continue;
+            var across = Vector2.Perpendicular(dir);
+            float half = lane.widths[at] / 2f + 2.5f, thick = kind == "rockfall" ? 1.6f : rng.Next(2) == 0 ? 2.2f : 3.2f;
+            float gap = ((float)rng.NextDouble() * 2f - 1f) * Mathf.Max(0f, lane.widths[at] / 2f - 1.5f);
+            string band = kind == "rockfall" ? "boulder" : kind == "chasm" ? "void" : kind;
+            if (Obstacles.Def(band) == null) continue;
+            for (int x = Mathf.FloorToInt(p.x - half - thick); x <= Mathf.CeilToInt(p.x + half + thick); x++)
+                for (int y = Mathf.FloorToInt(p.y - half - thick); y <= Mathf.CeilToInt(p.y + half + thick); y++)
+                {
+                    if (x < 0 || y < 0 || x >= size || y >= size || !open[x, y] || Obstacles.At(x, y) != null) continue;
+                    var rel = new Vector2(x + 0.5f, y + 0.5f) - p;
+                    float along = Vector2.Dot(rel, dir), side = Vector2.Dot(rel, across);
+                    if (Mathf.Abs(along) > thick / 2f || Mathf.Abs(side) > half) continue;
+                    bool way = Mathf.Abs(side - gap) < (kind == "rockfall" ? 1.4f : 1.05f);
+                    Obstacles.Place(x, y, way ? (kind == "rockfall" ? null : "bridge") : band);
+                }
+        }
+    }
+
+    static readonly Vector2Int[] Around = { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
 
     // One zone of the island, as a map of its own: the zone's land and its sub-biomes' décors tile by tile (the centre
     // in its own décor), its walls (cliffs, thickets) drawn with the décor next to them; everything else around it
@@ -292,6 +409,13 @@ public class DungeonGenerator : MonoBehaviour
     /// Where the team appeared in the arena.
     public Vector2 SpawnPoint => CentreOf(spawn.x, spawn.y);
 
+    /// The world point of a level's canvas point (LevelPlan: zone centres), once the level is built.
+    public Vector2 LevelPoint(Vector2 canvas)
+    {
+        var c = Interior.min + Vector2Int.RoundToInt(canvas);
+        return CentreOf(c.x, c.y);
+    }
+
 
     bool[,] open;
     int size;
@@ -454,6 +578,7 @@ public class DungeonGenerator : MonoBehaviour
         int s = seed != 0 ? seed : room != null ? room.seed : 0; // a room of a floor is laid out the same way each time
         var rng = new System.Random(s != 0 ? s : System.Environment.TickCount);
         cellDecor = null;
+        softSeams = false;
         skyWall = null;
         rampart = null;
         wallLook = null;
@@ -610,7 +735,7 @@ public class DungeonGenerator : MonoBehaviour
                         mask |= 1 << i;
                 int chunk = (isOpen ? decor.floor : decor.wall)[mask * 3 + variation];
                 (isOpen ? floorCells : wallCells).Add(new Vector3Int(x, y, 0));
-                (isOpen ? floorTiles : wallTiles).Add(GetTile(decor, chunk, solid));
+                (isOpen ? floorTiles : wallTiles).Add((isOpen && softSeams ? Seam(x, y, decor, chunk) : null) ?? GetTile(decor, chunk, solid));
             }
         floorMap.SetTiles(floorCells.ToArray(), floorTiles.ToArray());
         wallMap.SetTiles(wallCells.ToArray(), wallTiles.ToArray());
@@ -624,6 +749,34 @@ public class DungeonGenerator : MonoBehaviour
                     map.SetTileFlags(cell, TileFlags.None);
                     map.SetColor(cell, new Color(shade, shade, shade, 1f));
                 }
+    }
+
+    // Soft seams between décors (DecorSeams): a floor tile next to another décor's floor, on the side that gives way,
+    // remade with that floor spilling over its touching sides and corners; null when it is not on a seam.
+    bool softSeams;
+
+    TileBase Seam(int x, int y, DungeonTileset decor, int chunk)
+    {
+        if (decor.Animation is { } anim && anim.Has(chunk)) return null;
+        DungeonTileset other = null;
+        DungeonTileset Other(int nx, int ny)
+        {
+            if (nx < 0 || ny < 0 || nx >= size || ny >= size || !Looks(nx, ny)) return null;
+            var d = cellDecor[ny * size + nx];
+            if (d == null || d == decor || !DecorSeams.Bites(decor, d) || (other != null && d != other)) return null;
+            return d;
+        }
+        int sides = 0, corners = 0;
+        if (Other(x, y + 1) is { } n) { other = n; sides |= DecorSeams.North; }
+        if (Other(x + 1, y) is { } e) { other = e; sides |= DecorSeams.East; }
+        if (Other(x, y - 1) is { } so) { other = so; sides |= DecorSeams.South; }
+        if (Other(x - 1, y) is { } w) { other = w; sides |= DecorSeams.West; }
+        if ((sides & (DecorSeams.North | DecorSeams.East)) == 0 && Other(x + 1, y + 1) is { } ne) { other = ne; corners |= DecorSeams.NorthEast; }
+        if ((sides & (DecorSeams.South | DecorSeams.East)) == 0 && Other(x + 1, y - 1) is { } se) { other = se; corners |= DecorSeams.SouthEast; }
+        if ((sides & (DecorSeams.South | DecorSeams.West)) == 0 && Other(x - 1, y - 1) is { } sw) { other = sw; corners |= DecorSeams.SouthWest; }
+        if ((sides & (DecorSeams.North | DecorSeams.West)) == 0 && Other(x - 1, y + 1) is { } nw) { other = nw; corners |= DecorSeams.NorthWest; }
+        if (other == null) return null;
+        return DecorSeams.Cut(decor, chunk, other, sides, corners, (x * 7 + y * 13) % DecorSeams.Patterns);
     }
 
     // The roof: the walls of its décor over every roofed tile (its own edges where the roof ends), one tile layer.

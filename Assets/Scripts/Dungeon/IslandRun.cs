@@ -99,6 +99,7 @@ public class IslandRun : MonoBehaviour
         // A shrine per Time Gear fragment (only those whose fragment hides behind a guardian show).
         var shrines = GetComponents<FragmentShrine>();
         for (int k = shrines.Length; k < FragmentShrines; k++) gameObject.AddComponent<FragmentShrine>().index = k;
+        if (GetComponent<SummitDungeon>() == null) gameObject.AddComponent<SummitDungeon>(); // the volcano's, when there is one
         Build(Plan.order[0], null);
     }
 
@@ -277,6 +278,7 @@ public class IslandRun : MonoBehaviour
         if (GetComponent<KeyDungeon>() is { } dungeon) dungeon.Clear();
         if (GetComponent<BossPortal>() is { } portal) portal.Clear();
         foreach (var shrine in GetComponents<FragmentShrine>()) shrine.Clear();
+        if (GetComponent<SummitDungeon>() is { } summit) summit.Clear();
         hints.Clear();
         Away = false;
         if (propRoot != null) Destroy(propRoot.gameObject);
@@ -444,7 +446,7 @@ public class IslandRun : MonoBehaviour
         }
         // Tests: the key dungeon and the boss islet's portal (TimeGears).
         if (revealAll || SaveData.Settings.devMode)
-            foreach (var stairs in new IslandStairs[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>() }.Concat(GetComponents<FragmentShrine>()))
+            foreach (var stairs in new IslandStairs[] { GetComponent<KeyDungeon>(), GetComponent<BossPortal>(), GetComponent<SummitDungeon>() }.Concat(GetComponents<FragmentShrine>()))
                 if (stairs != null && stairs.Waiting(Zone))
                 {
                     GUI.color = stairs.MapColour;

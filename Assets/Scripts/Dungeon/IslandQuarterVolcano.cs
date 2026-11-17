@@ -25,6 +25,7 @@ public partial class IslandPlan
         public float shoreShare = 0.86f; // beyond this share of the way to the coast: the basalt shore
         public float flowsBand = 3f; // tiles from a flow's edge: the flows sub-biome
         public string crater = "crater", caves = "magma_caves", ash = "ash", flowsBiome = "flows", shore = "basalt";
+        public bool dungeon = true; // the summit dungeon (SummitDungeon, Data/summit_dungeon.json), its entrance on the crater's rim
         public SubBiome[] subBiomes = new SubBiome[0];
     }
 
@@ -34,6 +35,8 @@ public partial class IslandPlan
     public bool HasCone => coneAt.x >= 0f;
     public Vector2Int ConeTile => Vector2Int.FloorToInt(coneAt);
     [NonSerialized] public List<List<Vector2>> lavaFlows = new(); // the middle lines of the volcano's flows
+    /// The volcano's summit dungeon (SummitDungeon): its entrance on the crater's rim, reached on foot; x = -1 for none.
+    [NonSerialized] public Vector2Int summitDungeon = new(-1, -1);
 
     SubBiome VolcanoBiome(Volcano v, string key)
     {
@@ -151,6 +154,29 @@ public partial class IslandPlan
         return new Vector2(-d.y, d.x);
     }
 
+    void PlaceSummitDungeon(QuarterTest t)
+    {
+        summitDungeon = new Vector2Int(-1, -1);
+        if (!t.volcano.dungeon || height == null) return;
+        int top = t.relief.mountainLevels;
+        var reached = Reach(Index(start.x, start.y));
+        string lava = themes[0].riverKind;
+        float best = float.MaxValue;
+        for (int i = 0; i < size * size; i++)
+        {
+            if (!reached[i] || height[i] != top || obstacle[i] != null || wall[i] || (decor != null && decor[i] > 0)) continue;
+            int x = i % size, y = i / size;
+            bool rim = false;
+            for (int dy = -2; dy <= 2 && !rim; dy++)
+                for (int dx = -2; dx <= 2 && !rim; dx++)
+                    rim = InMap(x + dx, y + dy) && obstacle[Index(x + dx, y + dy)] == lava && height[Index(x + dx, y + dy)] == top;
+            if (!rim) continue;
+            float score = y; // the front of the rim: nearest the bottom of the screen (the stairs come up there)
+            if (score < best) { best = score; summitDungeon = new Vector2Int(x, y); }
+        }
+        if (summitDungeon.x >= 0) reserved.Add(summitDungeon);
+    }
+
     // The direction a flow runs at a tile (along its nearest middle line).
     Vector2 FlowAt(Vector2Int c)
     {
@@ -221,9 +247,11 @@ public partial class IslandPlan
         });
     }
 
-    // After the relief: the cone's levels are the magma caves, its top the crater.
+    // After the relief: the cone's levels are the magma caves, its top the crater; the summit dungeon's entrance on the
+    // crater's rim, at the front (the stairs come up there), reached on foot.
     void FinishVolcano(QuarterTest t)
     {
+        PlaceSummitDungeon(t);
         var v = t.volcano;
         var caves = VolcanoBiome(v, v.caves);
         var crater = VolcanoBiome(v, v.crater);

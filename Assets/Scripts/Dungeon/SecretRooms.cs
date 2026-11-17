@@ -147,6 +147,7 @@ public partial class IslandPlan
         {
             var c = new Vector2Int(i % size, i / size);
             if (!reached[i] || !FreeGround(c.x, c.y) || NearCave(c) || Vector2.Distance(c, start) < s.minDistance) continue;
+            if (summitDungeon.x >= 0 && Vector2.Distance(c, summitDungeon) < 6f) continue; // the summit dungeon's entrance
             spots.Add(c);
         }
         if (spots.Count == 0) return false;

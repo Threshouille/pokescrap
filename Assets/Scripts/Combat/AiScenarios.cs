@@ -191,6 +191,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Engrenages : un passage au choix par engrenage, le centre depuis le dernier quartier", GearsLockPassages());
         yield return Scenario("Engrenages : donjon de la clé, portail de l'îlot, boss grand et prêt à sa seconde phase ; fragments et indices", GearsFromBossAndFragments());
         yield return Scenario("Volcan : cône et cratère, coulées, escalier secret sur un îlot de lave, fragments cachés et gardés", VolcanoQuarter());
+        yield return Scenario("Volcan : donjon du sommet, deux niveaux continus (rencontres, herses, coffres) puis la chambre du boss, retour au cratère", SummitDescent());
         yield return Scenario("Portes : quart de test, le portail suivant s'ouvre au dolmen une fois le boss battu", GearGate(true));
         yield return Scenario("Portes : île, le passage s'ouvre au dolmen une fois le boss battu et mène au quartier suivant", GearGate(false));
 
@@ -2665,6 +2666,86 @@ public class AiScenarios : MonoBehaviour
         EndIsland(run);
         Report(crater > 0 && flows && secretRight && count == 3 && shrines && guarded && inRoom && taken,
             $"cratère {crater} cases de lave, coulées {plan.lavaFlows.Count} ; escalier secret ({plan.secretSpot}) bien placé {secretRight} ; {count} sanctuaires atteignables à pied, indice exact {shrines} ; gardiens {who} ; salle {inRoom}, fragment remis {taken}");
+    }
+
+    // The volcano's summit dungeon: the team walks onto its entrance on the crater's rim; the first level is a whole
+    // level (LevelPlan) with its way on in its last zone; down to the second level, then to the boss's chamber (empty
+    // in lot 1, over at once); the way back leads to the rim.
+    IEnumerator SummitDescent()
+    {
+        var arena = DungeonGenerator.Current;
+        if (arenaDecor == null) arenaDecor = arena.tileset;
+        Clear();
+        var members = team.Members.ToArray();
+        var kept = Sturdy(members);
+        var plan = IslandPlan.QuarterTestPlan(7, 0, "volcano");
+        var run = gameObject.AddComponent<IslandRun>();
+        run.Begin(plan);
+        yield return new WaitForSeconds(0.5f);
+        var summit = GetComponent<SummitDungeon>();
+        IEnumerator Take(Vector2? to)
+        {
+            if (to == null) yield break;
+            foreach (var m in members) Teleport(m, to.Value + Vector2.down * 3f);
+            yield return new WaitForSeconds(0.3f);
+            foreach (var m in members) Teleport(m, to.Value);
+            float until = Time.realtimeSinceStartup + 8f;
+            yield return new WaitForSecondsRealtime(0.3f);
+            while (LoadingScreen.Busy && Time.realtimeSinceStartup < until) yield return null;
+            yield return new WaitForSeconds(0.6f);
+        }
+        var floors = new List<string>();
+        string life = "";
+        bool lives = false;
+        yield return Take(summit != null ? summit.StairsAt : null);
+        for (int k = 0; k < 3 && summit != null && summit.InRoom; k++)
+        {
+            var level = DungeonGenerator.Current.level;
+            floors.Add(level != null ? $"niveau {level.zones.Count} zones (décor {level.tileset})" : "chambre");
+            // The first level's life: foes at rest near a combat zone; an arena shuts its gates, its waves fall, the
+            // gates sink and a chest stands there.
+            var content = k == 0 ? summit.ContentAt(0) : null;
+            if (content != null && level != null)
+            {
+                var combat = level.zones.FirstOrDefault(z => z.type == "combat");
+                if (combat != null)
+                {
+                    foreach (var m in members) Teleport(m, DungeonGenerator.Current.LevelPoint(combat.centre) + Vector2.down * 2f);
+                    yield return new WaitForSeconds(0.6f);
+                }
+                int resting = content.FoesAlive;
+                foreach (var c in Combatant.All.ToList()) if (c.team == Team.Enemy) KnockOut(c);
+                yield return new WaitForSeconds(0.5f);
+                var house = level.zones.FirstOrDefault(z => z.type == "monster_house") ?? level.zones.FirstOrDefault(z => z.type == "challenge");
+                int up = 0, chestsBefore = content.ChestsPlaced, rounds = 0;
+                bool sealedIn = false;
+                if (house != null)
+                {
+                    foreach (var m in members) Teleport(m, DungeonGenerator.Current.LevelPoint(house.centre));
+                    yield return new WaitForSeconds(0.8f);
+                    up = content.GatesUp;
+                    sealedIn = content.Fighting && content.Sealed(house);
+                    for (; rounds < 12 && content.Fighting; rounds++)
+                    {
+                        yield return new WaitForSeconds(2f);
+                        foreach (var c in Combatant.All.ToList()) if (c.team == Team.Enemy) KnockOut(c);
+                    }
+                    yield return new WaitForSeconds(0.5f);
+                }
+                lives = resting > 0 && house != null && up > 0 && sealedIn && content.GatesUp == 0 && !content.Fighting && content.ChestsPlaced > chestsBefore;
+                life = $"au repos {resting}, cases de herse {up} (salle fermée {sealedIn}) puis {content.GatesUp}, vagues {rounds}, coffres {chestsBefore} → {content.ChestsPlaced}";
+            }
+            if (summit.NextAt == null) break;
+            yield return Take(summit.NextAt);
+        }
+        bool chamber = summit != null && summit.InRoom && DungeonGenerator.Current.level == null && summit.Floor == 2;
+        Vector2 rim = run.Cell(plan.summitDungeon);
+        yield return Take(summit != null ? summit.BackAt : null);
+        bool back = summit != null && !summit.InRoom && Vector2.Distance(team.Controlled.transform.position, rim) < 3f;
+        Restore(kept, members);
+        EndIsland(run);
+        Report(floors.Count == 3 && floors[0].StartsWith("niveau") && floors[1].StartsWith("niveau") && chamber && back && lives,
+            $"entrée au cratère {plan.summitDungeon} ; étages : {string.Join(", ", floors)} ; {life} ; chambre du boss {chamber} ; retour au bord du cratère {back}");
     }
 
     // Gates with a dolmen (the test quarter's two portals, or the first quarter's way to the second): all shut at

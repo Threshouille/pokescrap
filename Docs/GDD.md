@@ -423,6 +423,25 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   givre selon le sol ; icône : un engrenage gris dont un tiers est doré, dans la bulle et sur la mini-carte. Visuels : même méthode que le premier quart
   (sols et murs des décors de la ROM, falaises et éléments de décor découpés dans les cartes volcaniques de l'histoire),
   pour un résultat cohérent avec lui.
+- Donjon du volcan (décidé le 17/11/2026, Robin ; branche `feature/quart-volcan`) : donjon optionnel au sommet du volcan,
+  pour explorer le volcan souterrain. Entrée libre : une bouche de grotte au bord du cratère, atteinte par les escaliers
+  du cône. Deux niveaux continus (façon Minecraft Dungeons, GDD « Niveaux continus »), puis la chambre du boss :
+  « Galeries de magma » (grottes et coulées : éboulis, galeries, mine, bras de lave), puis « Cœur du volcan » (lacs de
+  lave, archipel, fournaise). Les branches optionnelles accueillent des salles d'autres thèmes (temple englouti, grotte
+  de cristaux, mine…), chacune avec ses Pokémon et sa récompense ; le chemin principal reste volcanique. Populations
+  Feu, Sol, Roche et un peu de Spectre, plus fortes avec la profondeur. Chambre du boss : Heatran ou Groudon, traité
+  comme un boss d'îlot (grand, barre de vie, 4 attaques fixes, seconde phase à mi-PV avec cinématique), sortie fermée
+  jusqu'à sa chute ; gros coffre (méga-gemme ou Téra-Éclat de niveau supérieur, objet tenu de haut rang) et chance de
+  le recruter ; pas d'Engrenage du Temps (un détour) ; un escalier ramène au bord du cratère. C'est l'occasion de faire
+  l'étape 4 des niveaux continus (rencontres par zone, défis et Monster House à sortie bloquée, décor par zone).
+  Variété (17/11/2026, Robin) : chaque niveau part d'un sous-thème et évolue de voisin en voisin, chacun avec ses
+  salles et son décor, en se réchauffant à mesure qu'on approche du cœur du volcan (« Galeries de magma » : ancienne
+  mine → cristaux / grotte de magma → coulées ; « Cœur du volcan » : orgues de basalte / obsidienne → lacs de lave →
+  fournaise) ; les fins de branche sont des salles cachées d'un autre thème (oasis cachée, grotte de cristaux, mine).
+  Retours du 17/11 : transitions de décor ondulées (plus de coupure carrée), sous-thèmes plus présents, Pokémon propres
+  à chaque sous-thème (Ténéfix et Mysdibule dans les cristaux, Eau et Plante dans l'oasis…), coffres dans les fins de
+  branche et les repos, grandes salles de combat fermées par des herses à l'entrée façon Minecraft Dungeons (vagues,
+  puis herses abaissées et coffre), passages à obstacles sur les chemins (lave avec pont, gouffre, éboulis).
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
   sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
   (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.

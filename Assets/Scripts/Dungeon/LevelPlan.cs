@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,6 +21,8 @@ public class LevelPlan
         public bool main; // on the main path
         public readonly List<Zone> links = new();
         public readonly List<Vector2Int> entries = new(); // where the paths come in (kept clear)
+        public string subTheme; // its sub-theme (SubTheme key), null in a level without them
+        public int tileset = -1; // its own ROM décor (-1: the level's)
         public RectInt Rect => new(Mathf.RoundToInt(centre.x - radius.x), Mathf.RoundToInt(centre.y - radius.y),
             Mathf.RoundToInt(radius.x * 2f), Mathf.RoundToInt(radius.y * 2f));
     }
@@ -43,6 +46,96 @@ public class LevelPlan
         public float pocketChance = 0.4f; // chance, every pocketEvery tiles of path, of a recess on its side
         public float pocketEvery = 10f;
         public float[] pocketRadius = { 2f, 4f };
+        // A level of its own (a dungeon's): its zones' themes drawn from this list (repeat one to weigh it; empty: one
+        // theme drawn from the catalogue), its décor (ROM tileset; -1: the first zone's), its name.
+        public string[] themes = new string[0];
+        public int tileset = -1;
+        public string name = "";
+        // Sub-themes (a dungeon's, SubTheme): the main path starts in "start" and ends in "finish" (start when empty),
+        // each zone a neighbour of the one before, never cooler than it (SubTheme.heat: the nearer the volcano's heart,
+        // the hotter); the branches' last zones take branchThemes, one each, and their other zones the sub-themes
+        // around.
+        public string start = "", finish = "";
+        public string[] branchThemes = new string[0];
+        public float crossingChance; // obstacles across a path, that often (its zones' sub-themes' crossings)
+    }
+
+    /// A sub-theme of a dungeon's levels: its rooms (rooms.json theme and variants), its décors (ROM tilesets, one
+    /// drawn per zone), the sub-themes a zone of it may lead to; zoneType: the type of a branch's last zone of it
+    /// (rest for an oasis...); heat: how near the volcano's heart (the main path never cools down); habitat: its
+    /// Pokémon (populations.json, its key when empty); crossings: the obstacles laid across the paths that leave its
+    /// zones (lava, water, chasm: a band with a bridge; rockfall: boulders with a gap).
+    [Serializable]
+    public class SubTheme
+    {
+        public string key, name, roomTheme, zoneType = "rest", habitat = "";
+        public string[] variants = new string[0], neighbours = new string[0], crossings = new string[0];
+        public int[] tilesets = new int[0];
+        public int heat;
+        public string Habitat => string.IsNullOrEmpty(habitat) ? key : habitat;
+    }
+
+    /// A path between two zones as carved: its middle line (canvas tiles) and its width there.
+    public class Lane
+    {
+        public Zone a, b;
+        public readonly List<Vector2> points = new();
+        public readonly List<float> widths = new();
+    }
+
+    public readonly List<Lane> lanes = new();
+
+    readonly Dictionary<string, SubTheme> subs = new();
+
+    /// A sub-theme of this level by its key (null without one).
+    public SubTheme SubOf(string key) => Sub(key);
+
+    /// The chance of obstacles across each path (Settings.crossingChance).
+    public float CrossingChance { get; private set; }
+
+    SubTheme Sub(string key) => key != null && subs.TryGetValue(key, out var st) ? st : null;
+
+    /// The sub-theme after "from" along a path: one of its neighbours (or itself), at random, the neighbours weighed
+    /// "move" times as much as staying. With "goal": never cooler than "from" (heat), and only those from which the
+    /// goal is still reached (warming up from neighbour to neighbour) within "stepsLeft" zones (the nearest to it if
+    /// none is); "leave": not "from" itself when another will do (the path leaves the main sub-theme at once).
+    public static string NextSubTheme(SubTheme from, string goal, int stepsLeft, System.Random rng, Func<string, SubTheme> lookup,
+        int move = 2, bool leave = false)
+    {
+        if (from == null) return goal;
+        var options = new List<string> { from.key };
+        foreach (var n in from.neighbours) if (lookup(n) != null && !options.Contains(n)) options.Add(n);
+        if (goal != null)
+        {
+            var warm = options.Where(k => lookup(k).heat >= from.heat).ToList();
+            var reach = warm.Where(k => StepsTo(k, goal, lookup) <= stepsLeft).ToList();
+            options = reach.Count > 0 ? reach : options.OrderBy(k => StepsTo(k, goal, lookup)).Take(1).ToList();
+        }
+        if (leave && options.Count > 1) options.Remove(from.key);
+        int total = options.Sum(k => k == from.key ? 1 : move);
+        int roll = rng.Next(total);
+        foreach (var k in options)
+            if ((roll -= k == from.key ? 1 : move) < 0) return k;
+        return options[^1];
+    }
+
+    /// How many neighbour steps from one sub-theme to another, never cooling down (int.MaxValue / 2 when it cannot be
+    /// reached).
+    public static int StepsTo(string from, string to, Func<string, SubTheme> lookup)
+    {
+        var seen = new Dictionary<string, int> { [from] = 0 };
+        var queue = new Queue<string>();
+        queue.Enqueue(from);
+        while (queue.Count > 0)
+        {
+            var k = queue.Dequeue();
+            if (k == to) return seen[k];
+            var st = lookup(k);
+            if (st == null) continue;
+            foreach (var n in st.neighbours)
+                if (lookup(n) is { } next && next.heat >= st.heat && !seen.ContainsKey(n)) { seen[n] = seen[k] + 1; queue.Enqueue(n); }
+        }
+        return int.MaxValue / 2;
     }
 
     [Serializable] class File { public Settings level = new(); }
@@ -50,6 +143,7 @@ public class LevelPlan
     public readonly List<Zone> zones = new();
     public Zone start, boss;
     public string theme; // the level's theme (rooms.json), one décor for the whole level for now
+    string[] themes = new string[0]; // the themes its zones are drawn from (Settings.themes)
     public int tileset;
     public Vector2Int size; // canvas, in tiles
 
@@ -59,12 +153,13 @@ public class LevelPlan
         return asset != null ? JsonUtility.FromJson<File>(asset.text).level : new Settings();
     }
 
-    public static LevelPlan Generate(System.Random rng, Settings s = null)
+    public static LevelPlan Generate(System.Random rng, Settings s = null, SubTheme[] subThemes = null)
     {
         s ??= LoadSettings();
         for (int attempt = 0; attempt < 100; attempt++)
         {
             var plan = new LevelPlan();
+            if (subThemes != null) foreach (var st in subThemes) if (st != null && !string.IsNullOrEmpty(st.key)) plan.subs[st.key] = st;
             if (plan.Build(rng, s)) return plan;
         }
         throw new InvalidOperationException("LevelPlan: no layout found with these settings");
@@ -80,10 +175,14 @@ public class LevelPlan
     bool Build(System.Random rng, Settings s)
     {
         // One theme and one décor for the whole level (sub-biomes come next).
-        var probe = RoomCatalog.Pick("combat", rng);
+        themes = s.themes;
+        var probe = RoomCatalog.Pick("combat", rng, themes.Length > 0 ? themes[rng.Next(themes.Length)] : null);
         if (probe == null) return false;
         theme = probe.theme.key;
-        tileset = probe.tileset;
+        tileset = s.tileset >= 0 ? s.tileset : probe.tileset;
+        string home = Sub(s.start) != null ? s.start : null;
+        CrossingChance = s.crossingChance;
+        string goal = home == null ? null : Sub(s.finish) != null ? s.finish : home;
 
         // Main path.
         int mainCount = Pick(s.mainZones, rng);
@@ -92,7 +191,11 @@ public class LevelPlan
         for (int i = 0; i < mainCount; i++)
         {
             string type = i == 0 ? "start" : i == mainCount - 1 ? "boss" : i == mainCount - 2 ? "subboss" : "combat";
-            var zone = MakeZone(type, rng, s);
+            // Its sub-theme: the start's first, the finish's for the last two zones, in between a neighbour of the one
+            // before, warming up, always able to reach the finish in time.
+            string sub = home == null ? null : i == 0 ? home : i >= mainCount - 2 ? goal
+                : NextSubTheme(Sub(previous.subTheme), goal, mainCount - 2 - i, rng, Sub, leave: i == 1 || previous.subTheme == home);
+            var zone = MakeZone(type, rng, s, sub);
             if (zone == null) return false;
             zone.main = true;
             if (previous == null) zone.centre = Vector2.zero;
@@ -111,10 +214,14 @@ public class LevelPlan
             Retype(z, "monster_house", rng, s);
         }
 
-        // Branches from the middle of the main path, ending in the optional zones.
+        // Branches from the middle of the main path, ending in the optional zones: first the sub-themes of the
+        // branches (an oasis, a crystal cave), then the challenges and rests.
         var ends = new List<string>();
-        for (int i = 0, n = Pick(s.challenge, rng); i < n; i++) ends.Add("challenge");
-        for (int i = 0, n = Pick(s.rest, rng); i < n; i++) ends.Add("rest");
+        var endSubs = new List<string>();
+        foreach (var key in s.branchThemes)
+            if (Sub(key) is { } st) { ends.Add(string.IsNullOrEmpty(st.zoneType) ? "rest" : st.zoneType); endSubs.Add(key); }
+        for (int i = 0, n = Pick(s.challenge, rng); i < n; i++) { ends.Add("challenge"); endSubs.Add(null); }
+        for (int i = 0, n = Pick(s.rest, rng); i < n; i++) { ends.Add("rest"); endSubs.Add(null); }
         int branches = Mathf.Max(Pick(s.branches, rng), ends.Count);
         var roots = zones.FindAll(z => z.main && z != start && z != boss && z.type != "subboss");
         for (int b = 0; b < branches && roots.Count > 0; b++)
@@ -125,8 +232,10 @@ public class LevelPlan
             float bearing = Bearing(root) + (rng.Next(2) == 0 ? 90f : -90f);
             for (int k = 0; k < length; k++)
             {
-                string type = k == length - 1 && b < ends.Count ? ends[b] : "combat";
-                var zone = MakeZone(type, rng, s);
+                bool last = k == length - 1 && b < ends.Count;
+                string type = last ? ends[b] : "combat";
+                string sub = home == null ? null : last && endSubs[b] != null ? endSubs[b] : NextSubTheme(Sub(from.subTheme), null, 0, rng, Sub, move: 3);
+                var zone = MakeZone(type, rng, s, sub);
                 if (zone == null || !PlaceNext(zone, from, ref bearing, s.turn * 0.6f, rng, s)) break;
                 Link(from, zone);
                 zones.Add(zone);
@@ -134,12 +243,15 @@ public class LevelPlan
             }
         }
         if (zones.FindAll(z => z.type == "challenge").Count < s.challenge[0]) return false;
+        // Every branch sub-theme has its room (else drawn again).
+        foreach (var key in endSubs)
+            if (key != null && !zones.Exists(z => !z.main && z.subTheme == key && z.links.Count == 1)) return false;
 
         // Loops: a branch's end joined to a nearby zone of the main path.
         for (int l = 0, n = Pick(s.loops, rng); l < n; l++)
             foreach (var z in zones)
             {
-                if (z.main || z.links.Count != 1) continue;
+                if (z.main || z.links.Count != 1 || (z.subTheme != null && endSubs.Contains(z.subTheme))) continue; // hidden rooms stay dead ends
                 var target = zones.Find(m => m.main && m != z.links[0] && m != boss && !m.links.Contains(z)
                     && Vector2.Distance(m.centre, z.centre) < Mathf.Max(m.radius.x, m.radius.y) + Mathf.Max(z.radius.x, z.radius.y) + s.gap[1] * 1.3f);
                 if (target == null) continue;
@@ -160,15 +272,22 @@ public class LevelPlan
         return true;
     }
 
-    Zone MakeZone(string type, System.Random rng, Settings s)
+    Zone MakeZone(string type, System.Random rng, Settings s, string sub = null)
     {
-        var room = RoomCatalog.Pick(type, rng, type == "boss" ? null : theme);
+        // Its sub-theme's rooms and décor; else a theme of the level's list (one for the whole level otherwise); a type
+        // without it takes any of its own.
+        var st = Sub(sub);
+        string wanted = type == "boss" ? null : st != null ? st.roomTheme : themes.Length > 0 ? themes[rng.Next(themes.Length)] : theme;
+        string variant = type != "boss" && st != null && st.variants.Length > 0 ? st.variants[rng.Next(st.variants.Length)] : null;
+        var room = (variant != null ? RoomCatalog.Pick(type, rng, wanted, variant) : null) ?? RoomCatalog.Pick(type, rng, wanted)
+                   ?? (wanted != null ? RoomCatalog.Pick(type, rng) : null);
         if (room == null) return null;
-        room.tileset = tileset; // one décor for the level
+        int decor = st != null && st.tilesets.Length > 0 ? st.tilesets[rng.Next(st.tilesets.Length)] : tileset;
+        room.tileset = decor; // its sub-theme's, else one décor for the level
         if (room.obstacles != null) // its liquid drawn by the level's décor only where that décor's layer suits it
         {
             var t = room.theme;
-            bool own = !string.IsNullOrEmpty(t.liquid) && (t.liquidDecors.Length == 0 || Array.IndexOf(t.liquidDecors, tileset) >= 0);
+            bool own = !string.IsNullOrEmpty(t.liquid) && (t.liquidDecors.Length == 0 || Array.IndexOf(t.liquidDecors, decor) >= 0);
             room.obstacles.decorKind = own ? t.liquid : null;
         }
         string style = room.layout?.style ?? "";
@@ -176,6 +295,8 @@ public class LevelPlan
         {
             type = type,
             room = room,
+            subTheme = st?.key,
+            tileset = decor,
             radius = new Vector2(room.size.x, room.size.y) * (0.5f * s.zoneScale),
             built = style == "ring" || style == "cross" || style == "maze" || style == "bars",
         };
@@ -183,11 +304,12 @@ public class LevelPlan
 
     void Retype(Zone z, string type, System.Random rng, Settings s)
     {
-        var other = MakeZone(type, rng, s);
+        var other = MakeZone(type, rng, s, z.subTheme);
         if (other == null) return;
         z.type = type;
         z.room = other.room;
         z.built = other.built;
+        z.tileset = other.tileset;
         z.radius = Vector2.Min(z.radius, other.radius); // never larger than the place it was given
     }
 
@@ -264,6 +386,7 @@ public class LevelPlan
             RoomLayouts.Apply(open, rect, keep, z.room.layout, rng, clear);
         }
         // Paths between linked zones, each drawn once.
+        lanes.Clear();
         var done = new HashSet<(Zone, Zone)>();
         foreach (var z in zones)
             for (int i = 0; i < z.links.Count; i++)
@@ -273,7 +396,9 @@ public class LevelPlan
                 done.Add((z, l));
                 var a = z.entries[i];
                 var b = l.entries[l.links.IndexOf(z)];
-                Path(open, origin + Vector2Int.RoundToInt(z.centre), a, b, origin + Vector2Int.RoundToInt(l.centre), rng, s);
+                var lane = new Lane { a = z, b = l };
+                lanes.Add(lane);
+                Path(open, origin + Vector2Int.RoundToInt(z.centre), a, b, origin + Vector2Int.RoundToInt(l.centre), rng, s, lane, origin);
             }
         SealFrom(open, origin + Vector2Int.RoundToInt(start.centre));
     }
@@ -308,7 +433,7 @@ public class LevelPlan
 
     // A winding path from a zone's centre to the next one's, through their entries: discs of a varying width along a
     // line that strays sideways (never at its ends).
-    static void Path(bool[,] open, Vector2Int from, Vector2Int a, Vector2Int b, Vector2Int to, System.Random rng, Settings s)
+    static void Path(bool[,] open, Vector2Int from, Vector2Int a, Vector2Int b, Vector2Int to, System.Random rng, Settings s, Lane lane, Vector2Int origin)
     {
         Disc(open, from, a, Pick(s.pathWidth, rng) / 2f);
         Disc(open, b, to, Pick(s.pathWidth, rng) / 2f);
@@ -325,6 +450,8 @@ public class LevelPlan
             var p = Vector2.Lerp(pa, pb, t) + side * sway;
             float width = Mathf.Lerp(w0, w1, 0.5f + 0.5f * Mathf.Sin(t * 7f + phase));
             Stamp(open, p, width / 2f);
+            lane.points.Add(p - origin);
+            lane.widths.Add(width);
             // Now and then a recess on one side: a nook to look into, a wider spot to fight in.
             if (t * length >= nextPocket)
             {

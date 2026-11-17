@@ -38,6 +38,8 @@ public abstract class IslandStairs : MonoBehaviour
     public Vector2? StairsAt => stairs != null ? stairs.transform.position : null;
     public Vector2? BackAt => back != null ? back.transform.position : null;
     public Vector2? NextAt => next != null ? next.transform.position : null;
+    /// The title of the loading screen into a room (0: the first).
+    protected virtual string FloorTitle(int room) => room == 0 ? RoomName : $"{RoomName} — salle {room + 1}";
     /// How many rooms follow one another behind them.
     protected virtual int Floors => 1;
     /// Shut for now, and why (the team is told when it steps on them).
@@ -47,6 +49,8 @@ public abstract class IslandStairs : MonoBehaviour
     protected virtual void Store(int room, RoomContent content) { if (room == 0) first = content; }
     protected virtual RoomContent Make(int room, string habitat, int decor, int rank, float distance, System.Random random) =>
         RoomContent.Draw(Kind, habitat, decor, rank, distance, random, forceContent);
+    /// A floor crossed as a whole level (LevelPlan, a dungeon's) rather than a room of the catalogue; null: a room.
+    protected virtual LevelPlan LevelFor(int room) => null;
     /// A room's content is over (its chest opened, its foes beaten).
     protected virtual void Finished(int room, RoomContent content) { }
     RoomContent first;
@@ -197,7 +201,7 @@ public abstract class IslandStairs : MonoBehaviour
             {
                 armed = false;
                 int on = floor + 1;
-                LoadingScreen.Run($"{RoomName} — salle {on + 1}", () => EnterRoom(on));
+                LoadingScreen.Run(FloorTitle(on), () => EnterRoom(on));
                 return;
             }
         }
@@ -214,7 +218,7 @@ public abstract class IslandStairs : MonoBehaviour
             armed = false;
             EffectPlayer.Spawn("entrance_enter", target.transform.position, Vector2.right);
             if (inRoom) LoadingScreen.Run(Plan.ZoneName(zone), GoBack);
-            else LoadingScreen.Run(RoomName, () => EnterRoom(0));
+            else LoadingScreen.Run(FloorTitle(0), () => EnterRoom(0));
             return;
         }
         if ((inRoom ? d > Leave : SteppedOff(at, d)) && (next == null || Vector2.Distance(at, next.transform.position) > Leave)) armed = true;
@@ -243,9 +247,9 @@ public abstract class IslandStairs : MonoBehaviour
         finishedHere = Content.Done;
         var r = Room;
         string theme = string.IsNullOrEmpty(r.theme) ? null : r.theme, variant = string.IsNullOrEmpty(r.variant) ? null : r.variant;
-        // Played already (stairs that stay): the plain room of the data.
-        // The room of its content, the same one each time (played already: empty).
-        var room = Content.Room() ?? RoomCatalog.Pick(r.type, rng, theme, variant) ?? RoomCatalog.Pick(null, rng);
+        // A level of a dungeon, or the room of its content, the same one each time (played already: empty).
+        var level = LevelFor(index);
+        var room = level != null ? null : Content.Room() ?? RoomCatalog.Pick(r.type, rng, theme, variant) ?? RoomCatalog.Pick(null, rng);
         if (stairs != null) Destroy(stairs);
         stairs = null;
         inRoom = true;
@@ -253,9 +257,16 @@ public abstract class IslandStairs : MonoBehaviour
         foreach (var zoneArea in FindObjectsByType<global::Zone>()) Destroy(zoneArea.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         arena.island = null;
-        arena.level = null;
+        arena.level = level;
         arena.room = room;
         arena.Generate();
+        // A level: its mini-map in the fog, its way on in its last zone.
+        if (level != null)
+        {
+            Content.endHint = arena.LevelPoint(level.boss.centre);
+            (GetComponent<LevelRun>() ?? gameObject.AddComponent<LevelRun>()).Show(level);
+        }
+        else GetComponent<LevelRun>()?.Hide();
         if (team != null) team.PrepareForNextArena(arena.SpawnPoint, 0f);
         // The way back: beside the arrival.
         var spawn = arena.CellOf(arena.SpawnPoint);
@@ -265,8 +276,14 @@ public abstract class IslandStairs : MonoBehaviour
         back = RoomStairs("Escalier de retour", arena.CentreOf(cell.x, cell.y), false);
         armed = cell != spawn;
         Content.Begin(arena, FindAnyObjectByType<EnemySpawner>(), arena.SpawnPoint);
-        // A room already over: straight on to the next one.
-        if (Content.Done && floor + 1 < Floors) next = RoomStairs("Escalier suivant", NearestOpen(arena.SpawnPoint + Vector2.right * 3f), true);
+        // Over as soon as it began (a level crossed on foot): said so once, here.
+        if (Content.Done && !finishedHere)
+        {
+            finishedHere = true;
+            Finished(floor, Content);
+        }
+        // A room already over: straight on to the next one (a level's at its end).
+        if (Content.Done && floor + 1 < Floors) next = RoomStairs("Escalier suivant", NearestOpen(Content.EndAt ?? arena.SpawnPoint + Vector2.right * 3f), true);
     }
 
     // The free tile nearest to a point (stairs never land in a wall or an obstacle).
@@ -296,6 +313,8 @@ public abstract class IslandStairs : MonoBehaviour
         floor = 0;
         foreach (var zoneArea in FindObjectsByType<global::Zone>()) Destroy(zoneArea.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
+        GetComponent<LevelRun>()?.Hide();
+        arena.level = null;
         island.Return(zone, ReturnTile);
     }
 }

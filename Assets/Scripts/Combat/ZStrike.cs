@@ -20,6 +20,21 @@ public static class ZStrike
     static void ResetStatics() => incoming.Clear();
 
     /// Notes when a dodgeable strike reaches that opponent ("time": Time.time of the hit).
+    // The last Z launched wins (player's or enemy's): each one takes a number when it starts (its warning or its
+    // cut-scene), and an older one still on the way is dropped (its strike stops, its warning goes).
+    static int latest;
+
+    /// A Z move starts: its number; every Z started before it is now cancelled.
+    public static int Launch()
+    {
+        latest++;
+        incoming.Clear();
+        return latest;
+    }
+
+    /// That Z (its number from Launch) has not been overtaken by a later one. 0: not counted (always live).
+    public static bool Live(int id) => id == 0 || id == latest;
+
     public static void Expect(Combatant foe, float time, Vector2 from) { if (foe != null) incoming[foe] = (time, from); }
     public static void Reached(Combatant foe) { if (foe != null) incoming.Remove(foe); }
 
@@ -177,6 +192,7 @@ public static class ZStrike
         if (grid == null) return false;
         var (centre, w, h) = View(spot);
         int level = grid.HeightAt(spot);
+        var land = LandAround(grid, grid.CellOf(spot), centre, w, h);
         for (int i = 0; i < 40; i++)
         {
             var p = centre + new Vector2(Random.Range(-w + 1f, w - 1f), Random.Range(-h + 1f, h - 1f));
@@ -184,10 +200,34 @@ public static class ZStrike
             if (Vector2.Distance(p, spot) < 3f || !grid.WalkableAt(p, 0.3f) || grid.HeightAt(p) != level) continue;
             var obstacle = Obstacles.At(cell.x, cell.y);
             if (obstacle != null && obstacle.solid) continue;
+            if (!land.Contains(cell)) continue; // never into a pocket walled off from where it stood (out of the map)
             spot = p;
             return true;
         }
         return false;
+    }
+
+    // The tiles joined on foot to "from" within the screen and a margin (walls and solid obstacles stop the walk,
+    // water, lava and void do not: it may land in them and fall).
+    static HashSet<Vector2Int> LandAround(DungeonGenerator grid, Vector2Int from, Vector2 centre, float w, float h)
+    {
+        var seen = new HashSet<Vector2Int> { from };
+        var queue = new Queue<Vector2Int>();
+        queue.Enqueue(from);
+        var lo = grid.CellOf(centre - new Vector2(w + 6f, h + 6f));
+        var hi = grid.CellOf(centre + new Vector2(w + 6f, h + 6f));
+        while (queue.Count > 0)
+        {
+            var c = queue.Dequeue();
+            foreach (var n in new[] { c + Vector2Int.right, c + Vector2Int.left, c + Vector2Int.up, c + Vector2Int.down })
+            {
+                if (n.x < lo.x || n.y < lo.y || n.x > hi.x || n.y > hi.y || seen.Contains(n) || !grid.Walkable(n.x, n.y)) continue;
+                if (Obstacles.At(n.x, n.y) is { } o && o.solid) continue;
+                seen.Add(n);
+                queue.Enqueue(n);
+            }
+        }
+        return seen;
     }
 
     /// The screen's centre and half extents (tiles).
