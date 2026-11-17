@@ -179,7 +179,8 @@
   "health": 10,
   "level": 1,
   "minions": 2,
-  "damage": 1.5, "scale": 1.3
+  "damage": 1.5,
+  "scale": 1.3
  },
  "arenas": [
   {
@@ -501,6 +502,16 @@
     240,
     345,
     433
+   ]
+  },
+  {
+   "pokemon": 527,
+   "name": "Heatran",
+   "moves": [
+    524,
+    53,
+    484,
+    431
    ]
   }
  ]

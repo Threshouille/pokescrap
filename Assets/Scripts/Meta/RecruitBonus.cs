@@ -5,4 +5,6 @@ using UnityEngine;
 public class RecruitBonus : MonoBehaviour
 {
     public float multiplier = 1f;
+    /// A chance of its own (0-1), whatever its recruit rate, legendaries included (the summit dungeon's boss); 0: none.
+    public float chance;
 }

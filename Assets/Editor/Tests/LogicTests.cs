@@ -779,6 +779,22 @@ public class LogicTests
             }
     }
 
+    // The summit dungeon's boss: Heatran or Groudon, each with four moves that exist (a moveset or a loadout).
+    [Test]
+    public void SummitBossHasItsMoves()
+    {
+        var chamber = SummitDungeon.Data.boss;
+        CollectionAssert.IsNotEmpty(chamber.pokemon);
+        foreach (int id in chamber.pokemon)
+        {
+            Assert.IsNotNull(GameData.Pokemon(id), $"boss {id}");
+            var moves = TimeGears.BossMoves(id);
+            Assert.IsTrue(moves != null || GameData.HasLoadout(id), $"attaques du boss {id}");
+            if (moves != null) foreach (int m in moves) Assert.IsNotNull(GameData.Move(m), $"attaque {m} du boss {id}");
+        }
+        Assert.Greater(chamber.recruitChance, 0f);
+    }
+
     // Two Z moves at once: the last launched wins, the one before is dropped.
     [Test]
     public void LastZLaunchedWins()

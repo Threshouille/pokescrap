@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// The volcano's summit dungeon (Resources/Data/summit_dungeon.json; GDD « Donjon du volcan »): optional, its entrance
@@ -10,7 +12,14 @@ using UnityEngine;
 public class SummitDungeon : IslandStairs
 {
     [Serializable]
-    public class Chamber { public string name = "Chambre du boss", type = "subboss", theme = "lava", variant = ""; }
+    public class Chamber
+    {
+        public string name = "Chambre du boss", type = "subboss", theme = "lava", variant = "";
+        public int[] pokemon = { 527, 415 }; // one drawn per island (Heatran or Groudon)
+        public float recruitChance = 0.15f, stoneChance = 0.5f;
+        public string chestIcon = "pmd_Chest_Gold", announce = "Le gardien du volcan : {0} !";
+        public int heldTier = 3; // a held item of that tier beside the chest
+    }
 
     [Serializable]
     public class Settings
@@ -50,6 +59,20 @@ public class SummitDungeon : IslandStairs
     /// What lives in a level's zones (tests).
     public LevelContent ContentAt(int floor) => floor >= 0 && floor < contents.Length ? contents[floor]?.levelContent : null;
 
+    /// The boss of this island's summit dungeon (Chamber.pokemon, one drawn per island; 0 without sprites).
+    public int BossId
+    {
+        get
+        {
+            Prepare();
+            var ids = Data.boss.pokemon.Where(PokemonRoster.Has).ToArray();
+            return ids.Length == 0 ? 0 : ids[(int)((uint)(seed * 2654435761u) % (uint)ids.Length)];
+        }
+    }
+
+    TimeGears gears;
+    TimeGears Gears => gears != null ? gears : gears = GetComponent<TimeGears>();
+
     void Prepare()
     {
         if (madeFor == Plan) return;
@@ -79,6 +102,20 @@ public class SummitDungeon : IslandStairs
         return levels[room] ??= LevelPlan.Generate(new System.Random(seed + room * 104729), Data.levels[room], Data.subThemes);
     }
 
+    // The boss fallen: a big chest (a mega stone more often) and a held item of a high tier beside it.
+    protected override void Finished(int room, RoomContent content)
+    {
+        if (room < Data.levels.Length || content.key != RoomContent.Bosses) return;
+        var loot = FindAnyObjectByType<Loot>();
+        if (loot == null) return;
+        Vector2 at = content.EndAt ?? Vector2.zero;
+        loot.SpawnChest(at + Vector2.right * 1.5f, anywhere: true, Data.boss.stoneChance, Data.boss.chestIcon);
+        if (HeldItems.Roll(new System.Random(seed + 17)) is { } held)
+            loot.PlaceHeld(held.key, at + new Vector2(-1.5f, 0f), held.tiered ? Mathf.Min(Data.boss.heldTier, HeldItems.MaxTier) : 0);
+        if (FindAnyObjectByType<Progression>() is { } progression)
+            progression.Announce($"{Data.name} : le gardien est tombé !", Notice.Loot);
+    }
+
     protected override RoomContent Stored(int room)
     {
         Prepare();
@@ -99,11 +136,19 @@ public class SummitDungeon : IslandStairs
             passage.levelContent = new LevelContent(LevelFor(room), Data.zones, room, rank, new System.Random(seed + room * 7 + 1));
             return passage;
         }
-        // The boss's chamber (its boss comes in lot 4: until then, an empty arena over at once).
+        // The boss's chamber: Heatran or Groudon, the way out shut until it falls.
         var content = RoomContent.Draw(Kind, habitat, decor, rank, distance, random, RoomContent.Bosses);
         content.bossRoomType = Data.boss.type;
         content.theme = Data.boss.theme;
         content.variant = string.IsNullOrEmpty(Data.boss.variant) ? null : Data.boss.variant;
+        int id = BossId;
+        content.spawnBoss = (arena, spawner, at) =>
+        {
+            if (id <= 0 || Gears == null) return new List<Combatant>();
+            var all = Gears.SpawnSummitBoss(id, rank, spawner, at, Data.boss.announce);
+            if (all.Count > 0) all[0].gameObject.AddComponent<RecruitBonus>().chance = Data.boss.recruitChance;
+            return all;
+        };
         return content;
     }
 }

@@ -191,7 +191,7 @@ public class AiScenarios : MonoBehaviour
         yield return Scenario("Engrenages : un passage au choix par engrenage, le centre depuis le dernier quartier", GearsLockPassages());
         yield return Scenario("Engrenages : donjon de la clé, portail de l'îlot, boss grand et prêt à sa seconde phase ; fragments et indices", GearsFromBossAndFragments());
         yield return Scenario("Volcan : cône et cratère, coulées, escalier secret sur un îlot de lave, fragments cachés et gardés", VolcanoQuarter());
-        yield return Scenario("Volcan : donjon du sommet, deux niveaux continus (rencontres, herses, coffres) puis la chambre du boss, retour au cratère", SummitDescent());
+        yield return Scenario("Volcan : donjon du sommet, deux niveaux continus (rencontres, herses, coffres), le boss et son coffre, retour au cratère", SummitDescent());
         yield return Scenario("Portes : quart de test, le portail suivant s'ouvre au dolmen une fois le boss battu", GearGate(true));
         yield return Scenario("Portes : île, le passage s'ouvre au dolmen une fois le boss battu et mène au quartier suivant", GearGate(false));
 
@@ -2739,13 +2739,33 @@ public class AiScenarios : MonoBehaviour
             yield return Take(summit.NextAt);
         }
         bool chamber = summit != null && summit.InRoom && DungeonGenerator.Current.level == null && summit.Floor == 2;
+        // The chamber's boss (Heatran or Groudon): there, then beaten; the big chest stands by it.
+        string bossName = "aucun";
+        bool beaten = false;
+        if (chamber)
+        {
+            yield return new WaitForSeconds(0.5f);
+            var boss = Combatant.All.FirstOrDefault(c => c != null && c.IsAlive && c.team == Team.Enemy && c.GetComponent<BossAI>() != null);
+            if (boss != null)
+            {
+                bossName = boss.Stats.name;
+                for (int k = 0; k < 10 && Combatant.All.Any(c => c != null && c.IsAlive && c.team == Team.Enemy); k++)
+                {
+                    foreach (var c in Combatant.All.ToList()) if (c != null && c.team == Team.Enemy) KnockOut(c);
+                    yield return new WaitForSeconds(1.5f);
+                }
+                yield return new WaitForSeconds(2f);
+                var loot = FindAnyObjectByType<Loot>();
+                beaten = !Combatant.All.Any(c => c != null && c.IsAlive && c.team == Team.Enemy) && loot != null && loot.ChestAt != null;
+            }
+        }
         Vector2 rim = run.Cell(plan.summitDungeon);
         yield return Take(summit != null ? summit.BackAt : null);
         bool back = summit != null && !summit.InRoom && Vector2.Distance(team.Controlled.transform.position, rim) < 3f;
         Restore(kept, members);
         EndIsland(run);
-        Report(floors.Count == 3 && floors[0].StartsWith("niveau") && floors[1].StartsWith("niveau") && chamber && back && lives,
-            $"entrée au cratère {plan.summitDungeon} ; étages : {string.Join(", ", floors)} ; {life} ; chambre du boss {chamber} ; retour au bord du cratère {back}");
+        Report(floors.Count == 3 && floors[0].StartsWith("niveau") && floors[1].StartsWith("niveau") && chamber && beaten && back && lives,
+            $"entrée au cratère {plan.summitDungeon} ; étages : {string.Join(", ", floors)} ; {life} ; chambre du boss {chamber}, boss {bossName} battu et coffre {beaten} ; retour au bord du cratère {back}");
     }
 
     // Gates with a dolmen (the test quarter's two portals, or the first quarter's way to the second): all shut at

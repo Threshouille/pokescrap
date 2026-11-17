@@ -873,7 +873,7 @@ public class TimeGears : MonoBehaviour
     /// The boss of the islet: big, and its second phase ready (its mega, or for the legendary a Tera shard of the type
     /// that takes the team's moves best); with the arena's minions (elites: they change the décor against the team).
     /// Called by its room (RoomContent).
-    public List<Combatant> SpawnBoss(Quarter q, EnemySpawner by, Vector2 at)
+    public List<Combatant> SpawnBoss(Quarter q, EnemySpawner by, Vector2 at, string announce = null)
     {
         boss.Clear();
         var all = new List<Combatant>();
@@ -907,8 +907,16 @@ public class TimeGears : MonoBehaviour
             m.gameObject.AddComponent<EliteMark>(); // burns the bridges, freezes the water... like the elites
             all.Add(m);
         }
-        progression?.Announce($"Le boss du quartier : {c.Stats.name} !", Notice.Elite);
+        progression?.Announce(announce != null ? string.Format(announce, c.Stats.name) : $"Le boss du quartier : {c.Stats.name} !", Notice.Elite);
         return all;
+    }
+
+    /// The volcano summit dungeon's boss (SummitDungeon): an islet boss in all but its gear (a legendary: its second
+    /// phase a Tera shard), at the team's level plus "levelBonus", as strong as the deepest quarter's.
+    public List<Combatant> SpawnSummitBoss(int id, int rank, EnemySpawner by, Vector2 at, string announce)
+    {
+        var q = new Quarter { mode = Boss, boss = id, legendary = true, rank = rank, distance = 1f };
+        return SpawnBoss(q, by, at, announce);
     }
 
     /// The key dungeon's guardian: an evolved Pokémon of the boss's types (the most evolved there is), an elite that
