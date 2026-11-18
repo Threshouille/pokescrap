@@ -1,5 +1,5 @@
 {
- "comment": "The volcano's summit dungeon (SummitDungeon.cs; GDD « Donjon du volcan »): an optional dungeon whose entrance stands on the crater's rim (quarters/volcano.json volcano.dungeon). levels: the levels crossed one after the other (LevelPlan, GDD « Niveaux continus »), each with levels.json's settings overridden here: name (the loading screen's title), themes (rooms.json themes its zones are drawn from, repeated to weigh them), tileset (its ROM décor), mainZones, branches, challenge, rest, monsterHouse... start: the main sub-theme of a level (its first and last zones; the path strays from it to neighbours in between, LevelPlan.NextSubTheme); branchThemes: the sub-themes of the branches' last zones (an oasis: a rest; a crystal cave). subThemes: key, name, roomTheme and variants (rooms.json), tilesets (ROM décors, one per zone), neighbours, zoneType (a branch's last zone of it). Each zone is drawn in its own décor, the change halfway along the path between two zones (DungeonGenerator.ZoneDecors). boss: the last room, the boss's chamber (rooms.json type and theme). Lot 1: the levels and the chamber are crossed without foes (encounters, other-themed rooms and the boss come in lots 2 to 4). subThemes: key, name, roomTheme / variants (rooms.json), tilesets (one drawn per zone), heat (the main path never cools down: from start to finish of each level, hotter toward the volcano's heart), neighbours, zoneType (a branch end's room type), habitat (populations.json), crossings (obstacles across the paths leaving its zones: lava, water, chasm with a bridge, rockfall with a gap; crossingChance of each level). zones (LevelContent): foes at rest in the combat zones (lots, groups, wake, leash, spawnRange; level baseLevel + levelPerFloor per floor), arenas (monster house, challenge, sub-boss: gates rise when the controlled Pokémon walks in (gateInside), waves, then a chest), chests (a branch end's sub-theme or a zone type).",
+ "comment": "The volcano's summit dungeon (SummitDungeon.cs; GDD « Donjon du volcan »): an optional dungeon whose entrance stands on the crater's rim (quarters/volcano.json volcano.dungeon). levels: the levels crossed one after the other (LevelPlan, GDD « Niveaux continus »), each with levels.json's settings overridden here: name (the loading screen's title), themes (rooms.json themes its zones are drawn from, repeated to weigh them), tileset (its ROM décor), mainZones, branches, challenge, rest, monsterHouse... start: the main sub-theme of a level (its first and last zones; the path strays from it to neighbours in between, LevelPlan.NextSubTheme); branchThemes: the sub-themes of the branches' last zones (an oasis: a rest; a crystal cave). subThemes: key, name, roomTheme and variants (rooms.json), tilesets (ROM décors, one per zone), neighbours, zoneType (a branch's last zone of it). Each zone is drawn in its own décor, the change halfway along the path between two zones (DungeonGenerator.ZoneDecors). boss: the last room, the boss's chamber (rooms.json type and theme). Lot 1: the levels and the chamber are crossed without foes (encounters, other-themed rooms and the boss come in lots 2 to 4). subThemes: key, name, roomTheme / variants (rooms.json), tilesets (one drawn per zone), heat (the main path never cools down: from start to finish of each level, hotter toward the volcano's heart), neighbours, zoneType (a branch end's room type), habitat (populations.json), crossings (obstacles across the paths leaving its zones: lava, water, chasm with a bridge, rockfall with a gap; crossingChance of each level). zones (LevelContent): foes at rest in the combat zones (lots, groups, wake, leash, spawnRange; level baseLevel + levelPerFloor per floor), arenas (monster house, challenge, sub-boss: gates rise when the controlled Pokémon walks in (gateInside), waves, then a chest), chests (a branch end's sub-theme or a zone type). light (DayNight.Phase: color, intensity, bloom, saturation, contrast, exposure, vignette, tint; night: a dark place, its Pokémon those of the night): each sub-theme's light under ground, fading as the team goes from zone to zone (LevelContent).",
  "name": "Donjon du volcan",
  "levels": [
   {
@@ -59,7 +59,8 @@
    "start": "mine",
    "branchThemes": [
     "oasis",
-    "crystals"
+    "temple",
+    "fossils"
    ],
    "finish": "flows",
    "crossingChance": 0.45
@@ -121,7 +122,7 @@
    "start": "basalt",
    "branchThemes": [
     "crystals",
-    "mine"
+    "fossils"
    ],
    "finish": "furnace",
    "crossingChance": 0.55
@@ -145,16 +146,66 @@
     130,
     103
    ],
-   "heat": 1,
+   "heat": 2,
    "neighbours": [
     "crystals",
-    "magma_cave"
+    "magma_cave",
+    "fossils"
    ],
    "crossings": [
     "rockfall",
     "chasm"
    ],
+   "light": {
+    "key": "mine",
+    "name": "Ancienne mine",
+    "color": "#ffd7a0",
+    "intensity": 0.6,
+    "night": false,
+    "bloom": 0.45,
+    "saturation": 0,
+    "contrast": 5,
+    "exposure": 0,
+    "vignette": 0.3,
+    "tint": "#ffffff"
+   },
    "habitat": "summit_mine"
+  },
+  {
+   "key": "fossils",
+   "name": "Gisement de fossiles",
+   "roomTheme": "cave",
+   "variants": [
+    "rockfall",
+    "galleries"
+   ],
+   "tilesets": [
+    49,
+    103
+   ],
+   "heat": 2,
+   "zoneType": "rest",
+   "neighbours": [
+    "mine",
+    "crystals"
+   ],
+   "crossings": [
+    "rockfall"
+   ],
+   "light": {
+    "key": "fossils",
+    "name": "Gisement de fossiles",
+    "color": "#e8d0a8",
+    "intensity": 0.62,
+    "night": false,
+    "bloom": 0.35,
+    "saturation": -5,
+    "contrast": 5,
+    "exposure": 0,
+    "vignette": 0.3,
+    "tint": "#ffffff"
+   },
+   "habitat": "summit_fossils"
   },
   {
    "key": "crystals",
@@ -168,17 +219,33 @@
     1,
     22
    ],
-   "heat": 1,
+   "heat": 2,
    "zoneType": "rest",
    "neighbours": [
     "mine",
+    "fossils",
     "magma_cave",
-    "oasis"
+    "oasis",
+    "hot_springs",
+    "temple"
    ],
    "crossings": [
     "chasm",
     "rockfall"
    ],
+   "light": {
+    "key": "crystals",
+    "name": "Grotte de cristaux",
+    "color": "#9a8cff",
+    "intensity": 0.42,
+    "night": true,
+    "bloom": 0.95,
+    "saturation": 15,
+    "contrast": 8,
+    "exposure": 0,
+    "vignette": 0.35,
+    "tint": "#f0e8ff"
+   },
    "habitat": "summit_crystals"
   },
   {
@@ -195,12 +262,98 @@
    "heat": 0,
    "zoneType": "rest",
    "neighbours": [
-    "crystals"
+    "crystals",
+    "hot_springs",
+    "temple"
    ],
    "crossings": [
     "water"
    ],
+   "light": {
+    "key": "oasis",
+    "name": "Oasis cachée",
+    "color": "#6fc0d0",
+    "intensity": 0.4,
+    "night": true,
+    "bloom": 0.85,
+    "saturation": 5,
+    "contrast": 5,
+    "exposure": 0,
+    "vignette": 0.35,
+    "tint": "#e0fff8"
+   },
    "habitat": "summit_oasis"
+  },
+  {
+   "key": "temple",
+   "name": "Temple englouti",
+   "roomTheme": "ruins",
+   "variants": [
+    "hall",
+    "colonnade"
+   ],
+   "tilesets": [
+    126,
+    28
+   ],
+   "heat": 0,
+   "zoneType": "challenge",
+   "neighbours": [
+    "crystals",
+    "oasis"
+   ],
+   "crossings": [
+    "water"
+   ],
+   "light": {
+    "key": "temple",
+    "name": "Temple englouti",
+    "color": "#5a8cc8",
+    "intensity": 0.36,
+    "night": true,
+    "bloom": 0.75,
+    "saturation": -5,
+    "contrast": 10,
+    "exposure": 0,
+    "vignette": 0.45,
+    "tint": "#d8e8ff"
+   },
+   "habitat": "summit_temple"
+  },
+  {
+   "key": "hot_springs",
+   "name": "Sources chaudes",
+   "roomTheme": "water",
+   "variants": [
+    "pools",
+    "lake"
+   ],
+   "tilesets": [
+    110
+   ],
+   "heat": 3,
+   "neighbours": [
+    "oasis",
+    "crystals",
+    "magma_cave"
+   ],
+   "crossings": [
+    "water"
+   ],
+   "light": {
+    "key": "hot_springs",
+    "name": "Sources chaudes",
+    "color": "#ffe4d4",
+    "intensity": 0.72,
+    "night": false,
+    "bloom": 0.65,
+    "saturation": 5,
+    "contrast": 5,
+    "exposure": 0.1,
+    "vignette": 0.2,
+    "tint": "#fff4ec"
+   },
+   "habitat": "summit_hot_springs"
   },
   {
    "key": "magma_cave",
@@ -214,10 +367,11 @@
    "tilesets": [
     9
    ],
-   "heat": 2,
+   "heat": 4,
    "neighbours": [
     "mine",
     "crystals",
+    "hot_springs",
     "flows",
     "obsidian"
    ],
@@ -225,6 +379,19 @@
     "lava",
     "rockfall"
    ],
+   "light": {
+    "key": "magma_cave",
+    "name": "Grotte de magma",
+    "color": "#ffb080",
+    "intensity": 0.5,
+    "night": false,
+    "bloom": 0.7,
+    "saturation": 5,
+    "contrast": 8,
+    "exposure": 0,
+    "vignette": 0.35,
+    "tint": "#ffffff"
+   },
    "habitat": "summit_magma_cave"
   },
   {
@@ -238,7 +405,7 @@
    "tilesets": [
     12
    ],
-   "heat": 3,
+   "heat": 6,
    "neighbours": [
     "magma_cave",
     "basalt"
@@ -246,6 +413,19 @@
    "crossings": [
     "lava"
    ],
+   "light": {
+    "key": "flows",
+    "name": "Coulées",
+    "color": "#ff8050",
+    "intensity": 0.32,
+    "night": false,
+    "bloom": 1.0,
+    "saturation": 5,
+    "contrast": 12,
+    "exposure": 0,
+    "vignette": 0.4,
+    "tint": "#ffffff"
+   },
    "habitat": "summit_flows"
   },
   {
@@ -259,16 +439,29 @@
    "tilesets": [
     133
    ],
-   "heat": 3,
+   "heat": 6,
    "neighbours": [
     "magma_cave",
     "basalt",
-    "furnace"
+    "ashes"
    ],
    "crossings": [
     "rockfall",
     "lava"
    ],
+   "light": {
+    "key": "obsidian",
+    "name": "Galeries d'obsidienne",
+    "color": "#8070a0",
+    "intensity": 0.32,
+    "night": true,
+    "bloom": 0.8,
+    "saturation": -5,
+    "contrast": 12,
+    "exposure": 0,
+    "vignette": 0.45,
+    "tint": "#ffffff"
+   },
    "habitat": "summit_obsidian"
   },
   {
@@ -282,17 +475,69 @@
    "tilesets": [
     132
    ],
-   "heat": 3,
+   "heat": 6,
    "neighbours": [
     "flows",
     "obsidian",
-    "lava_lakes"
+    "lava_lakes",
+    "ashes"
    ],
    "crossings": [
     "lava",
     "rockfall"
    ],
+   "light": {
+    "key": "basalt",
+    "name": "Orgues de basalte",
+    "color": "#c09080",
+    "intensity": 0.42,
+    "night": false,
+    "bloom": 0.8,
+    "saturation": 0,
+    "contrast": 10,
+    "exposure": 0,
+    "vignette": 0.35,
+    "tint": "#ffffff"
+   },
    "habitat": "summit_basalt"
+  },
+  {
+   "key": "ashes",
+   "name": "Chambre des cendres",
+   "roomTheme": "lava",
+   "variants": [
+    "rocks",
+    "furnace"
+   ],
+   "tilesets": [
+    57,
+    123
+   ],
+   "heat": 7,
+   "neighbours": [
+    "obsidian",
+    "basalt",
+    "lava_lakes",
+    "furnace"
+   ],
+   "crossings": [
+    "lava",
+    "rockfall"
+   ],
+   "light": {
+    "key": "ashes",
+    "name": "Chambre des cendres",
+    "color": "#a09090",
+    "intensity": 0.26,
+    "night": true,
+    "bloom": 0.8,
+    "saturation": -25,
+    "contrast": 12,
+    "exposure": 0,
+    "vignette": 0.5,
+    "tint": "#f0e8e8"
+   },
+   "habitat": "summit_ashes"
   },
   {
    "key": "lava_lakes",
@@ -305,14 +550,28 @@
    "tilesets": [
     112
    ],
-   "heat": 4,
+   "heat": 8,
    "neighbours": [
     "basalt",
+    "ashes",
     "furnace"
    ],
    "crossings": [
     "lava"
    ],
+   "light": {
+    "key": "lava_lakes",
+    "name": "Lacs de lave",
+    "color": "#ff7040",
+    "intensity": 0.28,
+    "night": false,
+    "bloom": 1.1,
+    "saturation": 5,
+    "contrast": 14,
+    "exposure": 0,
+    "vignette": 0.45,
+    "tint": "#ffffff"
+   },
    "habitat": "summit_lava_lakes"
   },
   {
@@ -326,14 +585,27 @@
    "tilesets": [
     58
    ],
-   "heat": 5,
+   "heat": 10,
    "neighbours": [
     "lava_lakes",
-    "obsidian"
+    "ashes"
    ],
    "crossings": [
     "lava"
    ],
+   "light": {
+    "key": "furnace",
+    "name": "Fournaise",
+    "color": "#ff6030",
+    "intensity": 0.3,
+    "night": false,
+    "bloom": 1.2,
+    "saturation": 8,
+    "contrast": 15,
+    "exposure": 0,
+    "vignette": 0.45,
+    "tint": "#ffffff"
+   },
    "habitat": "summit_furnace"
   }
  ],
@@ -456,12 +728,12 @@
     "stoneChance": 0.25
    },
    {
-    "subTheme": "mine",
-    "stoneChance": 0.15
-   },
-   {
     "type": "rest",
     "stoneChance": 0.1
+   },
+   {
+    "subTheme": "fossils",
+    "stoneChance": 0.2
    }
   ]
  }

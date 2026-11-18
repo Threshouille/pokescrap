@@ -159,6 +159,9 @@ public class PlayerController : MonoBehaviour
         member.combatant.Init(pokemonId, Team.Player, SaveData.StartingMoves(pokemonId));
         member.combatant.Special = SpecialItems.ActiveFor(pokemonId); // its ultimate for this run (Ultimates)
         DrawAbility(member.combatant, pokemonId);
+        // A dev character starts with its held item (dev_characters.json heldItem: the Shell Bell, for the tests).
+        if (GameData.IsDev(pokemonId) && GameData.Pokemon(pokemonId)?.heldItem is { Length: > 0 } held && HeldItems.Get(held) is { } item)
+            member.combatant.Hold(item);
         member.combatant.Died += _ => OnKnockedOut(member);
         member.ai = go.AddComponent<AllyAI>();
         member.ai.leader = transform;

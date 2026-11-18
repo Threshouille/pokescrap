@@ -105,8 +105,32 @@ public class LevelContent
         Array.Find(settings.chests, c => !string.IsNullOrEmpty(c.subTheme) && c.subTheme == z.subTheme && !z.main && z.links.Count == 1)
         ?? Array.Find(settings.chests, c => !string.IsNullOrEmpty(c.type) && c.type == z.type);
 
-    Populations.Where Habitat(LevelPlan.Zone z) =>
-        new(plan.SubOf(z.subTheme)?.Habitat, spawner != null && spawner.Night);
+    // Its Pokémon: its sub-theme's, those of the night in a dark place (its light), else the hour's.
+    Populations.Where Habitat(LevelPlan.Zone z)
+    {
+        var sub = plan.SubOf(z.subTheme);
+        bool night = sub?.light != null && !string.IsNullOrEmpty(sub.light.key) ? sub.light.night : spawner != null && spawner.Night;
+        return new(sub?.Habitat, night);
+    }
+
+    LevelPlan.Zone lit;
+
+    // The light of the zone the team stands in, or is nearest to (paths keep the last one until another is nearer).
+    void Light(Vector2 teamAt)
+    {
+        LevelPlan.Zone best = null;
+        float bestScore = float.MaxValue;
+        foreach (var z in plan.zones)
+        {
+            var off = teamAt - Centre(z);
+            float score = Mathf.Sqrt(off.x * off.x / (z.radius.x * z.radius.x) + off.y * off.y / (z.radius.y * z.radius.y));
+            if (score < bestScore) { bestScore = score; best = z; }
+        }
+        if (best == null || best == lit || bestScore > 1.6f) return;
+        lit = best;
+        var light = plan.SubOf(best.subTheme)?.light;
+        DayNight.SetIndoor(light != null && !string.IsNullOrEmpty(light.key) ? light : DayNight.IndoorLight);
+    }
 
     Vector2 Centre(LevelPlan.Zone z) => arena.LevelPoint(z.centre);
 
@@ -132,6 +156,7 @@ public class LevelContent
     public void Tick(Vector2 teamAt)
     {
         if (!started || arena == null) return;
+        Light(teamAt);
         foreach (var z in zones)
         {
             if (z.chestPlaced && !z.chestGiven && z.chest == null) z.chestGiven = true; // opened
@@ -385,5 +410,6 @@ public class LevelContent
         }
         if (gates != null) UnityEngine.Object.Destroy(gates);
         started = false;
+        lit = null;
     }
 }

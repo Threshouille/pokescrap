@@ -256,6 +256,8 @@ public abstract class IslandStairs : MonoBehaviour
         island.Away = true;
         foreach (var zoneArea in FindObjectsByType<global::Zone>()) Destroy(zoneArea.gameObject);
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
+        // Under ground: the place's own light, whatever the hour (a level's zones set theirs as the team walks).
+        DayNight.SetIndoor(DayNight.IndoorLight, fade: false);
         arena.island = null;
         arena.level = level;
         arena.room = room;
@@ -315,6 +317,7 @@ public abstract class IslandStairs : MonoBehaviour
         foreach (var shot in FindObjectsByType<Projectile>()) Destroy(shot.gameObject);
         GetComponent<LevelRun>()?.Hide();
         arena.level = null;
+        DayNight.SetIndoor(null); // back under the sky
         island.Return(zone, ReturnTile);
     }
 }

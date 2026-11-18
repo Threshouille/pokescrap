@@ -72,6 +72,7 @@ public class LevelPlan
         public string[] variants = new string[0], neighbours = new string[0], crossings = new string[0];
         public int[] tilesets = new int[0];
         public int heat;
+        public DayNight.Phase light; // its light under ground (DayNight.SetIndoor); night: its Pokémon are those of the night
         public string Habitat => string.IsNullOrEmpty(habitat) ? key : habitat;
     }
 

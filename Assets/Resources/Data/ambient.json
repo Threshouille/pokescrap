@@ -1,5 +1,5 @@
 {
- "comment": "Ambient particles (AmbientParticles.cs; GDD, 'Jour et nuit'): each effect is born on the tiles in sight that match one of `where` (island: sub-biome or theme keys of biomes.json; arenas: 'decor:<ROM décor>'; anywhere: 'obstacle:<key>', 'terrain:<key>'), `density` a second per 100 such tiles, during `phases` (daynight.json keys; none: always). motion: fall, rise, drift (along `drift`, tiles/s), wander, flow (down the rivers, towards the sky at the coast). speed (tiles/s), sway (noise), spin (degrees/s), life [min, max] s, size [min, max] tiles (fallback shape only: a sheet keeps its pixel size), colors (one at random, for the fallback shape: a sheet keeps its own colours), alpha, blink (on/off pulses over its life), grow (size at the end × that), lit (darker at night; else keeps its colours: fireflies, embers), order (sorting order: 2 over the Pokémon, -4 on the water). sheet: a sheet of Resources/Effects (frames at random, or playing when it loops), else the fallback shape (dot, square, diamond). Within range tiles of the camera; max particles per effect. props: born in the crowns of these map_props.json groups (trees) in sight, density a second per 100 of them, instead of tiles. light: a glow of lights.json on up to `lights` of its particles at once, blinking with them (fireflies). The current runs away from the island's centre (the arena's), along the water. wind: share of a storm's wind (Climate.WindNow) added to their motion (leaves, snow).",
+ "comment": "Ambient particles (AmbientParticles.cs; GDD, 'Jour et nuit'): each effect is born on the tiles in sight that match one of `where` (island: sub-biome or theme keys of biomes.json; arenas: 'decor:<ROM décor>'; anywhere: 'obstacle:<key>', 'terrain:<key>'), `density` a second per 100 such tiles, during `phases` (daynight.json keys; none: always). motion: fall, rise, drift (along `drift`, tiles/s), wander, flow (down the rivers, towards the sky at the coast). speed (tiles/s), sway (noise), spin (degrees/s), life [min, max] s, size [min, max] tiles (fallback shape only: a sheet keeps its pixel size), colors (one at random, for the fallback shape: a sheet keeps its own colours), alpha, blink (on/off pulses over its life), grow (size at the end × that), lit (darker at night; else keeps its colours: fireflies, embers), order (sorting order: 2 over the Pokémon, -4 on the water). sheet: a sheet of Resources/Effects (frames at random, or playing when it loops), else the fallback shape (dot, square, diamond). Within range tiles of the camera; max particles per effect. props: born in the crowns of these map_props.json groups (trees) in sight, density a second per 100 of them, instead of tiles. light: a glow of lights.json on up to `lights` of its particles at once, blinking with them (fireflies). The current runs away from the island's centre (the arena's), along the water. wind: share of a storm's wind (Climate.WindNow) added to their motion (leaves, snow). Dungeon levels: 'sub:<sub-theme key>' (the nearest zone's, SummitDungeon); under ground the phases are 'night' in a dark place and 'day' elsewhere (DayNight.PhaseKey).",
  "range": 14,
  "sampleEvery": 0.5,
  "effects": [
@@ -14,7 +14,9 @@
     "meadow",
     "lagoon",
     "oasis",
-    "overgrown"
+    "overgrown",
+    "sub:oasis",
+    "sub:temple"
    ],
    "phases": [
     "dusk",
@@ -163,7 +165,12 @@
     "crater",
     "decor:12",
     "obstacle:lava",
-    "terrain:embers"
+    "terrain:embers",
+    "sub:magma_cave",
+    "sub:flows",
+    "sub:basalt",
+    "sub:lava_lakes",
+    "sub:furnace"
    ],
    "phases": [],
    "density": 1.5,
@@ -236,7 +243,9 @@
     "outskirts",
     "halls",
     "temple",
-    "decor:20"
+    "decor:20",
+    "sub:mine",
+    "sub:fossils"
    ],
    "phases": [
     "dawn",
@@ -328,6 +337,99 @@
    "order": -4,
    "sheet": "particle_bubble",
    "shape": "dot"
+  },
+  {
+   "key": "steam",
+   "where": [
+    "sub:hot_springs"
+   ],
+   "phases": [],
+   "density": 1.2,
+   "max": 90,
+   "motion": "rise",
+   "speed": 0.35,
+   "sway": 0.6,
+   "life": [
+    2.5,
+    4
+   ],
+   "size": [
+    0.35,
+    0.6
+   ],
+   "colors": [
+    "#ffffff",
+    "#f0f4ff"
+   ],
+   "alpha": 0.28,
+   "lit": true,
+   "order": 2,
+   "sheet": "",
+   "shape": "dot"
+  },
+  {
+   "key": "ash",
+   "where": [
+    "sub:ashes"
+   ],
+   "phases": [],
+   "density": 1.6,
+   "max": 140,
+   "motion": "fall",
+   "speed": 0.45,
+   "sway": 0.6,
+   "spin": 30,
+   "life": [
+    5,
+    8
+   ],
+   "size": [
+    0.08,
+    0.15
+   ],
+   "colors": [
+    "#9a9090",
+    "#bcb4b0",
+    "#6a6262"
+   ],
+   "alpha": 0.85,
+   "lit": true,
+   "order": 2,
+   "sheet": "",
+   "shape": "square"
+  },
+  {
+   "key": "glints",
+   "where": [
+    "sub:crystals"
+   ],
+   "phases": [],
+   "density": 0.5,
+   "max": 30,
+   "motion": "wander",
+   "speed": 0.1,
+   "sway": 0.2,
+   "life": [
+    1.5,
+    3
+   ],
+   "size": [
+    0.08,
+    0.12
+   ],
+   "colors": [
+    "#c0a0ff",
+    "#80e0ff",
+    "#ffb0f0"
+   ],
+   "alpha": 1,
+   "blink": 4,
+   "lit": false,
+   "order": 2,
+   "sheet": "",
+   "shape": "diamond",
+   "light": "crystal",
+   "lights": 8
   }
  ]
 }

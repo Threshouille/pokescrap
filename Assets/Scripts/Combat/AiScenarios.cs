@@ -97,6 +97,7 @@ public class AiScenarios : MonoBehaviour
         // Abilities drawn at random would change the scenarios: none, unless a scenario gives one.
         Abilities.Suspended = true;
         foreach (var member in team.Members) member.SetAbility(0);
+        foreach (var member in team.Members) member.Hold(null); // nor the dev characters' held item (Shell Bell)
 
         yield return Scenario("Ne suit pas le Pokémon joué dans le danger", NoFollowIntoDanger());
         yield return Scenario("Contourne un danger pour le rejoindre", WalkAround());
@@ -2698,6 +2699,7 @@ public class AiScenarios : MonoBehaviour
         string life = "";
         bool lives = false;
         yield return Take(summit != null ? summit.StairsAt : null);
+        bool indoors = DayNight.Indoors; // under ground: the place's own light, not the hour's
         for (int k = 0; k < 3 && summit != null && summit.InRoom; k++)
         {
             var level = DungeonGenerator.Current.level;
@@ -2761,11 +2763,11 @@ public class AiScenarios : MonoBehaviour
         }
         Vector2 rim = run.Cell(plan.summitDungeon);
         yield return Take(summit != null ? summit.BackAt : null);
-        bool back = summit != null && !summit.InRoom && Vector2.Distance(team.Controlled.transform.position, rim) < 3f;
+        bool back = summit != null && !summit.InRoom && Vector2.Distance(team.Controlled.transform.position, rim) < 3f && !DayNight.Indoors;
         Restore(kept, members);
         EndIsland(run);
-        Report(floors.Count == 3 && floors[0].StartsWith("niveau") && floors[1].StartsWith("niveau") && chamber && beaten && back && lives,
-            $"entrée au cratère {plan.summitDungeon} ; étages : {string.Join(", ", floors)} ; {life} ; chambre du boss {chamber}, boss {bossName} battu et coffre {beaten} ; retour au bord du cratère {back}");
+        Report(floors.Count == 3 && floors[0].StartsWith("niveau") && floors[1].StartsWith("niveau") && chamber && beaten && back && lives && indoors,
+            $"entrée au cratère {plan.summitDungeon} ; étages : {string.Join(", ", floors)} ; {life} ; lumière propre sous terre {indoors} ; chambre du boss {chamber}, boss {bossName} battu et coffre {beaten} ; retour au bord du cratère {back}");
     }
 
     // Gates with a dolmen (the test quarter's two portals, or the first quarter's way to the second): all shut at

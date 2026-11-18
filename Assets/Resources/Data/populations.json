@@ -37,6 +37,10 @@
   { "key": "summit_obsidian", "name": "Galeries d'obsidienne", "types": [{ "type": "Roche", "weight": 2 }, { "type": "Spectre", "weight": 2 }, { "type": "Ténèbres", "weight": 2 }, { "type": "Feu", "weight": 1 }], "night": ["Spectre"], "include": [330] },
   { "key": "summit_basalt", "name": "Orgues de basalte", "types": [{ "type": "Roche", "weight": 3 }, { "type": "Feu", "weight": 2 }, { "type": "Sol", "weight": 1 }], "night": ["Ténèbres"] },
   { "key": "summit_lava_lakes", "name": "Lacs de lave", "types": [{ "type": "Feu", "weight": 4 }, { "type": "Sol", "weight": 1 }, { "type": "Roche", "weight": 1 }], "night": ["Spectre"] },
-  { "key": "summit_furnace", "name": "Fournaise", "types": [{ "type": "Feu", "weight": 4 }, { "type": "Acier", "weight": 1 }], "night": ["Spectre"], "include": [126, 267, 245] }
+  { "key": "summit_furnace", "name": "Fournaise", "types": [{ "type": "Feu", "weight": 4 }, { "type": "Acier", "weight": 1 }], "night": ["Spectre"], "include": [126, 267, 245] },
+  { "key": "summit_fossils", "name": "Gisement de fossiles", "types": [{ "type": "Roche", "weight": 3 }, { "type": "Sol", "weight": 2 }, { "type": "Eau", "weight": 1 }], "night": ["Spectre"], "include": [140, 138, 142, 443, 445, 373, 375] },
+  { "key": "summit_temple", "name": "Temple englouti", "types": [{ "type": "Eau", "weight": 3 }, { "type": "Psy", "weight": 2 }, { "type": "Spectre", "weight": 2 }], "night": ["Spectre"], "include": [54, 79, 131, 201] },
+  { "key": "summit_hot_springs", "name": "Sources chaudes", "types": [{ "type": "Eau", "weight": 2 }, { "type": "Feu", "weight": 2 }, { "type": "Normal", "weight": 1 }], "night": ["Spectre"], "include": [350, 267, 243, 194] },
+  { "key": "summit_ashes", "name": "Chambre des cendres", "types": [{ "type": "Spectre", "weight": 3 }, { "type": "Feu", "weight": 2 }, { "type": "Ténèbres", "weight": 1 }], "night": ["Spectre"], "include": [92, 93, 385] }
  ]
 }

@@ -735,7 +735,7 @@ public class DungeonGenerator : MonoBehaviour
                         mask |= 1 << i;
                 int chunk = (isOpen ? decor.floor : decor.wall)[mask * 3 + variation];
                 (isOpen ? floorCells : wallCells).Add(new Vector3Int(x, y, 0));
-                (isOpen ? floorTiles : wallTiles).Add((isOpen && softSeams ? Seam(x, y, decor, chunk) : null) ?? GetTile(decor, chunk, solid));
+                (isOpen ? floorTiles : wallTiles).Add((softSeams ? Seam(x, y, decor, chunk, isOpen, mask * 3 + variation, solid) : null) ?? GetTile(decor, chunk, solid));
             }
         floorMap.SetTiles(floorCells.ToArray(), floorTiles.ToArray());
         wallMap.SetTiles(wallCells.ToArray(), wallTiles.ToArray());
@@ -751,17 +751,19 @@ public class DungeonGenerator : MonoBehaviour
                 }
     }
 
-    // Soft seams between décors (DecorSeams): a floor tile next to another décor's floor, on the side that gives way,
-    // remade with that floor spilling over its touching sides and corners; null when it is not on a seam.
+    // Soft seams between décors (DecorSeams): a tile (floor or wall) next to another décor's, on the side that gives
+    // way, remade with that décor's chunk for the same tile spilling over its touching sides and corners (floors,
+    // wall borders and the dark mass of the walls alike); null when it is not on a seam.
     bool softSeams;
 
-    TileBase Seam(int x, int y, DungeonTileset decor, int chunk)
+    TileBase Seam(int x, int y, DungeonTileset decor, int chunk, bool isOpen, int index, bool solid)
     {
         if (decor.Animation is { } anim && anim.Has(chunk)) return null;
         DungeonTileset other = null;
         DungeonTileset Other(int nx, int ny)
         {
-            if (nx < 0 || ny < 0 || nx >= size || ny >= size || !Looks(nx, ny)) return null;
+            if (nx < 0 || ny < 0 || nx >= size || ny >= size) return null;
+            if (rampart != null && rampart[ny * size + nx]) return null;
             var d = cellDecor[ny * size + nx];
             if (d == null || d == decor || !DecorSeams.Bites(decor, d) || (other != null && d != other)) return null;
             return d;
@@ -776,7 +778,11 @@ public class DungeonGenerator : MonoBehaviour
         if ((sides & (DecorSeams.South | DecorSeams.West)) == 0 && Other(x - 1, y - 1) is { } sw) { other = sw; corners |= DecorSeams.SouthWest; }
         if ((sides & (DecorSeams.North | DecorSeams.West)) == 0 && Other(x - 1, y + 1) is { } nw) { other = nw; corners |= DecorSeams.NorthWest; }
         if (other == null) return null;
-        return DecorSeams.Cut(decor, chunk, other, sides, corners, (x * 7 + y * 13) % DecorSeams.Patterns);
+        var shapes = isOpen ? other.floor : other.wall;
+        if (shapes == null || index >= shapes.Length) return null;
+        int under = shapes[index];
+        if (other.Animation is { } otherAnim && otherAnim.Has(under)) return null;
+        return DecorSeams.Cut(decor, chunk, other, under, sides, corners, (x * 7 + y * 13) % DecorSeams.Patterns, solid);
     }
 
     // The roof: the walls of its décor over every roofed tile (its own edges where the roof ends), one tile layer.

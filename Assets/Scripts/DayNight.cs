@@ -6,7 +6,8 @@ using UnityEngine.Rendering.Universal;
 /// The day and night cycle (Resources/Data/daynight.json; GDD, "Jour et nuit"), added by PlayerController: a clock
 /// running with the game (stopped while paused), its phases in turn (dawn, day, dusk, night), the colour and intensity
 /// of the scene's global light following them. IsNight drives the evolutions and seals of the night. H / Shift+H in
-/// devMode: a minute later / the next phase.
+/// devMode: a minute later / the next phase. Underground (the rooms behind stairs, the summit dungeon's zones:
+/// SetIndoor) the light is the place's own whatever the hour, its "night" too; the clock keeps running.
 public class DayNight : MonoBehaviour
 {
     [Serializable]
@@ -20,6 +21,7 @@ public class DayNight : MonoBehaviour
         public float bloom, saturation, contrast, exposure, vignette;
         public string tint = "#ffffff";
         [NonSerialized] public Color colour, filter;
+        [NonSerialized] public bool prepared;
     }
 
     [Serializable]
@@ -28,7 +30,52 @@ public class DayNight : MonoBehaviour
         public bool randomStart = true;
         public float blend = 30f, clockStart = 5f, bloomThreshold = 0.85f;
         public Phase[] phases = new Phase[0];
+        public Phase indoor = new() { key = "indoor", name = "Sous terre", color = "#c8c0d8", intensity = 0.6f, vignette = 0.3f };
+        public float indoorFade = 1.5f; // seconds from one place's light to the next
     }
+
+    // Underground: the light fading from one place's (or the outdoor light as it was) to another's.
+    static Phase indoorFrom, indoorTo;
+    static float indoorT = 1f;
+
+    /// Under ground: the light is the place's own (SetIndoor).
+    public static bool Indoors => indoorTo != null;
+
+    /// The default light under ground (daynight.json indoor): a room behind stairs.
+    public static Phase IndoorLight => Data.indoor;
+
+    /// The light of a place under ground from now on, fading in from the light shown now (null: back outside, at once).
+    public static void SetIndoor(Phase place, bool fade = true)
+    {
+        if (place == null)
+        {
+            indoorFrom = indoorTo = null;
+            indoorT = 1f;
+            return;
+        }
+        Prepare(place);
+        if (place == indoorTo) return;
+        indoorFrom = fade && indoorTo != null ? Snapshot() : place;
+        indoorTo = place;
+        indoorT = fade && indoorFrom != place ? 0f : 1f;
+    }
+
+    /// Parses a phase's colours (a place's light read from another file).
+    public static void Prepare(Phase p)
+    {
+        if (p == null || p.prepared) return;
+        if (!ColorUtility.TryParseHtmlString(p.color, out p.colour)) p.colour = Color.white;
+        if (!ColorUtility.TryParseHtmlString(p.tint, out p.filter)) p.filter = Color.white;
+        p.prepared = true;
+    }
+
+    // The light shown now, as a phase of its own (what a new place's light fades in from).
+    static Phase Snapshot() => new()
+    {
+        key = "now", intensity = Mix(p => p.intensity), colour = Mix(p => p.colour), bloom = Mix(p => p.bloom),
+        saturation = Mix(p => p.saturation), contrast = Mix(p => p.contrast), exposure = Mix(p => p.exposure),
+        vignette = Mix(p => p.vignette), filter = Mix(p => p.filter), prepared = true,
+    };
 
     static Settings settings;
     static float clock; // seconds since the start of the dawn
@@ -42,11 +89,8 @@ public class DayNight : MonoBehaviour
             if (settings != null) return settings;
             var asset = Resources.Load<TextAsset>("Data/daynight");
             settings = asset != null ? JsonUtility.FromJson<Settings>(asset.text) : new Settings();
-            foreach (var p in settings.phases)
-            {
-                if (!ColorUtility.TryParseHtmlString(p.color, out p.colour)) p.colour = Color.white;
-                if (!ColorUtility.TryParseHtmlString(p.tint, out p.filter)) p.filter = Color.white;
-            }
+            foreach (var p in settings.phases) Prepare(p);
+            Prepare(settings.indoor);
             return settings;
         }
     }
@@ -56,6 +100,8 @@ public class DayNight : MonoBehaviour
     {
         settings = null;
         clock = 0f;
+        indoorFrom = indoorTo = null;
+        indoorT = 1f;
     }
 
     /// Seconds in a whole day.
@@ -85,7 +131,10 @@ public class DayNight : MonoBehaviour
 
     public static float BloomThreshold => Data.bloomThreshold;
 
-    public static bool IsNight => Now(out _) is { night: true };
+    /// The phase key the ambient effects follow: under ground, "night" in a dark place, "day" otherwise.
+    public static string PhaseKey => Indoors ? (indoorTo.night ? "night" : "day") : Now(out _)?.key;
+
+    public static bool IsNight => Indoors ? indoorTo.night : Now(out _) is { night: true };
 
     /// How dark it is: 0 at the brightest phase's light, 1 at the darkest one (the point lights follow it).
     public static float Darkness
@@ -108,7 +157,7 @@ public class DayNight : MonoBehaviour
             var phase = Now(out _);
             float hours = Mathf.Repeat(Data.clockStart + Mathf.Repeat(clock, Length) / Length * 24f, 24f);
             int h = Mathf.FloorToInt(hours), m = Mathf.FloorToInt((hours - h) * 60f);
-            return $"{phase?.name ?? "—"} {h:00}:{m:00}";
+            return $"{(Indoors ? indoorTo.name : phase?.name) ?? "—"} {h:00}:{m:00}";
         }
     }
 
@@ -125,6 +174,13 @@ public class DayNight : MonoBehaviour
         var phases = Data.phases;
         phase = next = null;
         t = 0f;
+        if (Indoors)
+        {
+            phase = indoorFrom;
+            next = indoorTo;
+            t = indoorT * indoorT * (3f - 2f * indoorT);
+            return true;
+        }
         if (phases.Length == 0) return false;
         phase = Now(out float into);
         next = phases[(Array.IndexOf(phases, phase) + 1) % phases.Length];
@@ -143,6 +199,7 @@ public class DayNight : MonoBehaviour
     void Awake()
     {
         clock = Data.randomStart ? UnityEngine.Random.value * Length : 0f;
+        SetIndoor(null); // a new run starts outside
     }
 
     void Start()
@@ -151,7 +208,11 @@ public class DayNight : MonoBehaviour
             if (light.lightType == Light2D.LightType.Global) { sun = light; break; }
     }
 
-    void FixedUpdate() => clock += Time.fixedDeltaTime;
+    void FixedUpdate()
+    {
+        clock += Time.fixedDeltaTime;
+        if (indoorT < 1f) indoorT = Mathf.Min(1f, indoorT + Time.fixedDeltaTime / Mathf.Max(0.01f, Data.indoorFade));
+    }
 
     void Update()
     {

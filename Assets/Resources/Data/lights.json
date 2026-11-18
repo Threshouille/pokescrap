@@ -32,5 +32,6 @@
  "caveMouth": { "color": "#ffd890", "radius": 3.0, "intensity": 0.6, "flicker": 0.0 },
  "stairs": { "color": "#a0e8ff", "radius": 1.8, "intensity": 0.6, "flicker": 0.0 },
  "arc": { "color": "#fff07a", "radius": 4.0, "intensity": 1.2, "flicker": 0.4 },
- "firefly": { "color": "#d8ff60", "radius": 1.4, "intensity": 0.9, "flicker": 0.0 }
+ "firefly": { "color": "#d8ff60", "radius": 1.4, "intensity": 0.9, "flicker": 0.0 },
+ "crystal": {"color": "#a090ff", "radius": 1.6, "intensity": 0.8, "flicker": 0.2}
 }

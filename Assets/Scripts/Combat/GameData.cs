@@ -19,6 +19,7 @@ public class PokemonStats
     public EvolutionDef evolution; // how the previous form turns into this one (method empty: not by itself)
     public int model; // dev characters: Pokémon whose sprites and portrait they use (0: their own)
     public int growthOf; // dev characters: Pokémon whose level-up gains they get (0: their own)
+    public string heldItem; // dev characters: the held item they start a run with (held_items.json key)
 
     /// A copy (a mega evolution changes the name and types of the copy, the Pokémon's data stays untouched).
     public PokemonStats Clone() => (PokemonStats)MemberwiseClone();

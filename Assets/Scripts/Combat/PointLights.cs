@@ -26,7 +26,7 @@ public class PointLights : MonoBehaviour
         public float dayShare = 0.15f, range = 16f, scanEvery = 0.25f, flashTime = 0.3f;
         public int maxLights = 48, lavaGrid = 3;
         public Glow[] pokemonTypes = new Glow[0], pokemon = new Glow[0], moves = new Glow[0], obstacles = new Glow[0], terrains = new Glow[0];
-        public Glow brazier, caveMark, caveMouth, stairs, arc, firefly;
+        public Glow brazier, caveMark, caveMouth, stairs, arc, firefly, crystal;
     }
 
     class Entry
@@ -82,7 +82,7 @@ public class PointLights : MonoBehaviour
     public static Light2D Attach(GameObject on, string name, Vector2 offset = default)
     {
         var d = Data;
-        var glow = name switch { "brazier" => d.brazier, "caveMark" => d.caveMark, "caveMouth" => d.caveMouth, "stairs" => d.stairs, "arc" => d.arc, "firefly" => d.firefly, _ => null };
+        var glow = name switch { "brazier" => d.brazier, "caveMark" => d.caveMark, "caveMouth" => d.caveMouth, "stairs" => d.stairs, "arc" => d.arc, "firefly" => d.firefly, "crystal" => d.crystal, _ => null };
         return glow != null && on != null ? Make(on.transform, glow, offset) : null;
     }
 

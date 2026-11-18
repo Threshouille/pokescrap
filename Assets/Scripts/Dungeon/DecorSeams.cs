@@ -3,9 +3,9 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 /// Soft seams between two ROM décors laid side by side (a dungeon level's sub-themes, DungeonGenerator.ZoneDecors):
-/// the ROM has no tile joining the floor of one décor to another's, so a floor tile on the seam is remade: its own
+/// the ROM has no tile joining one décor to another, so a tile on the seam (floor or wall alike) is remade: its own
 /// chunk, cut back from the sides (and corners) that touch the other décor along a wavering, rounded line, the other
-/// décor's plain floor showing through where it is cut. Only one of the two sides is cut (Bites), so the other's
+/// décor's chunk for the same tile showing through where it is cut. Only one of the two sides is cut (Bites), so the other's
 /// floor seems to spill over in curves instead of meeting it along the tiles' square edges. Made once per (décor,
 /// chunk, other décor, sides, corners, pattern) and kept.
 public static class DecorSeams
@@ -17,7 +17,7 @@ public static class DecorSeams
     const float Depth = 8f, Wave = 6f, Round = 5f; // pixels of a 24-pixel tile
 
     static readonly Dictionary<Texture2D, Color32[]> sources = new();
-    static readonly Dictionary<(DungeonTileset, int, DungeonTileset, int, int, int), Tile> made = new();
+    static readonly Dictionary<(DungeonTileset, int, DungeonTileset, int, int, int, int, bool), Tile> made = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset()
@@ -72,15 +72,15 @@ public static class DecorSeams
             && Keeps(x, y + 2, sides, corners, pattern) && Keeps(x, y - 2, sides, corners, pattern);
     }
 
-    /// The tile of décor "a" (its chunk) cut where it meets décor "b" (its plain floor showing through).
-    public static Tile Cut(DungeonTileset a, int chunk, DungeonTileset b, int sides, int corners, int pattern)
+    /// The tile of décor "a" (its chunk) cut where it meets décor "b", whose chunk for the same tile ("under": the
+    /// same shape, floor or wall, so that edges and wall borders carry on) shows through; "solid": a wall's collider.
+    public static Tile Cut(DungeonTileset a, int chunk, DungeonTileset b, int under, int sides, int corners, int pattern, bool solid)
     {
-        var key = (a, chunk, b, sides, corners, pattern);
+        var key = (a, chunk, b, under, sides, corners, pattern, solid);
         if (made.TryGetValue(key, out var tile) && tile != null) return tile;
         var pa = Pixels(a.texture);
         var pb = Pixels(b.texture);
-        if (pa == null || pb == null || a.chunkSize != 24 || b.chunkSize != 24 || b.floor == null || b.floor.Length < 255 * 3 + 1) return null;
-        int under = b.floor[255 * 3];
+        if (pa == null || pb == null || a.chunkSize != 24 || b.chunkSize != 24) return null;
         var result = new Color32[24 * 24];
         for (int y = 0; y < 24; y++)
             for (int x = 0; x < 24; x++)
@@ -90,7 +90,7 @@ public static class DecorSeams
         texture.Apply();
         tile = ScriptableObject.CreateInstance<Tile>();
         tile.sprite = Sprite.Create(texture, new Rect(0, 0, 24, 24), new Vector2(0.5f, 0.5f), 24, 0, SpriteMeshType.FullRect);
-        tile.colliderType = UnityEngine.Tilemaps.Tile.ColliderType.None;
+        tile.colliderType = solid ? UnityEngine.Tilemaps.Tile.ColliderType.Grid : UnityEngine.Tilemaps.Tile.ColliderType.None;
         made[key] = tile;
         return tile;
     }

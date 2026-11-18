@@ -743,6 +743,8 @@ public class LogicTests
             foreach (var n in st.neighbours) Assert.IsTrue(subs.ContainsKey(n), $"{st.key} : voisin {n}");
             Assert.IsTrue(Populations.Has(st.Habitat), $"{st.key} : population {st.Habitat}");
             foreach (var c in st.crossings) CollectionAssert.Contains(new[] { "lava", "water", "chasm", "rockfall" }, c, $"{st.key} : passage {c}");
+            Assert.IsFalse(string.IsNullOrEmpty(st.light?.key), $"{st.key} : lumière");
+            Assert.That(st.light.intensity, Is.InRange(0.15f, 1f), $"{st.key} : intensité");
         }
         LevelPlan.SubTheme Look(string k) => subs.TryGetValue(k, out var x) ? x : null;
         // Warming up: never toward a cooler neighbour on the way to a goal, which is reached in time.

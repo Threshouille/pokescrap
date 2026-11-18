@@ -442,6 +442,12 @@ Roguelike d'action en temps réel, jouable à la manette, dans une arène. Le je
   à chaque sous-thème (Ténéfix et Mysdibule dans les cristaux, Eau et Plante dans l'oasis…), coffres dans les fins de
   branche et les repos, grandes salles de combat fermées par des herses à l'entrée façon Minecraft Dungeons (vagues,
   puis herses abaissées et coffre), passages à obstacles sur les chemins (lave avec pont, gouffre, éboulis).
+  Lumière (18/11/2026, Robin) : sous terre, plus de jour ni de nuit (l'horloge de l'île continue de tourner) ; chaque
+  sous-thème a sa lumière, qui se fond d'une zone à l'autre : sombre dans les coulées et les lacs de lave (la lave
+  éclaire), pénombre bleutée de l'oasis et du temple (lucioles), éclats des cristaux, cendres en suspension ; un lieu
+  sombre compte comme la nuit pour ses Pokémon. Nouveaux sous-thèmes : temple englouti (salle cachée, défi à herses,
+  Eau / Psy / Spectre), sources chaudes (vapeur, Eau / Feu), gisement de fossiles (Kabuto, Amonita, Ptéra…), chambre
+  des cendres (Spectre / Feu, avant la fournaise).
 - Grottes scellées (décidé le 25/10/2026, Owen) : une petite grotte, point d'intérêt d'un quartier, fermée par un
   sceau qui ne s'ouvre qu'à une condition ; dedans, un escalier vers une salle à événement, comme l'escalier secret
   (même retour au même endroit). Contrairement à l'escalier secret, elle se voit : c'est une énigme, pas une surprise.

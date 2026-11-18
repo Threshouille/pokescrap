@@ -168,7 +168,7 @@ public class AmbientParticles : MonoBehaviour
             nextSample = Time.time + data.sampleEvery;
             Sample(grid, cam);
         }
-        var phase = DayNight.Now(out _)?.key;
+        var phase = DayNight.PhaseKey;
         foreach (var e in data.effects)
         {
             if (e.system == null) continue;
@@ -222,6 +222,7 @@ public class AmbientParticles : MonoBehaviour
         var plan = grid.island;
         var origin = plan != null ? grid.IslandOrigin - grid.Interior.min : Vector2Int.zero;
         string decor = plan == null && grid.tileset != null ? "decor:" + grid.tileset.romId : null;
+        var level = plan == null ? grid.level : null; // a dungeon level: its zones' sub-themes ("sub:<key>")
         // The trees in sight: their crowns (a little above the middle of their sprite).
         if (plan != null)
         {
@@ -257,15 +258,33 @@ public class AmbientParticles : MonoBehaviour
                     }
                 }
                 bool ground = grid.Walkable(x, y);
+                string place = level != null && ground ? SubTag(level, grid, x, y) : null;
                 foreach (var e in data.effects)
                 {
                     var p = e.places;
                     // The biome's effects on open ground; the obstacles' and terrains' on them.
                     if ((ob != null && p.Contains(ob)) || (te != null && p.Contains(te))
-                        || (ground && ((sub != null && p.Contains(sub)) || (theme != null && p.Contains(theme)) || (decor != null && p.Contains(decor)))))
+                        || (ground && ((sub != null && p.Contains(sub)) || (theme != null && p.Contains(theme)) || (decor != null && p.Contains(decor)) || (place != null && p.Contains(place)))))
                         e.cells.Add(new Vector2Int(x, y));
                 }
             }
+    }
+
+    // The sub-theme of the level's zone nearest to a tile ("sub:<key>"), null without one.
+    readonly Dictionary<string, string> subTags = new();
+
+    string SubTag(LevelPlan level, DungeonGenerator grid, int x, int y)
+    {
+        var at = new Vector2(x - grid.Interior.xMin + 0.5f, y - grid.Interior.yMin + 0.5f);
+        LevelPlan.Zone best = null;
+        float bestScore = float.MaxValue;
+        foreach (var z in level.zones)
+        {
+            var off = at - z.centre;
+            float score = Mathf.Sqrt(off.x * off.x / (z.radius.x * z.radius.x) + off.y * off.y / (z.radius.y * z.radius.y));
+            if (score < bestScore) { bestScore = score; best = z; }
+        }
+        return best?.subTheme != null ? Tag(subTags, "sub:", best.subTheme) : null;
     }
 
     static string Tag(Dictionary<string, string> cache, string prefix, string key)
